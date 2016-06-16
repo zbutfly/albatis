@@ -101,7 +101,7 @@ public class MessageTranportThread extends Thread {
             if (DataContext.msgPcgList.size() < buffNum) {
                 List<KafkaMessage> list = new ArrayList<>();
                 DataContext.msgPcgList.add(list);
-                workList = DataContext.msgPcgList.get(DataContext.msgPcgList.size() - 1);
+                workList = list;
                 workList.add(km);
                 flag = true;
             }
@@ -111,7 +111,7 @@ public class MessageTranportThread extends Thread {
             if (DataContext.msgPcgList.size() < buffNum) {
                 List<KafkaMessage> list = Collections.synchronizedList(new ArrayList<KafkaMessage>());
                 DataContext.msgPcgList.add(list);
-                workList = DataContext.msgPcgList.get(DataContext.msgPcgList.size() - 1);
+                workList = list;
             }
             //空闲状态归0
             newListFlag = false;
