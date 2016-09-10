@@ -2,21 +2,36 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<parent>
-		<groupId>net.butfly.albacore</groupId>
-		<artifactId>albacore-parent</artifactId>
+		<groupId>net.butfly</groupId>
+		<artifactId>parent</artifactId>
 		<version>3.0.0-SNAPSHOT</version>
+		<relativePath>../albacore/parent.pom</relativePath>
 	</parent>
-	<groupId>net.butfly.albacore</groupId>
-	<artifactId>albacore-orm-parent</artifactId>
-	<version>3.0.0-SNAPSHOT</version>
+	<groupId>net.butfly.albatis</groupId>
+	<artifactId>albatis</artifactId>
+	<version>1.0.0-SNAPSHOT</version>
 	<packaging>pom</packaging>
-	<name>albacore-orm-parent</name>
 	<modules>
 		<module>core</module>
-		<module>hbase</module>
 		<module>jdbc</module>
 		<module>mongodb</module>
-		<module>nosql</module>
+		<module>hbase</module>
 		<module>solr</module>
+		<module>es</module>
+		<module>kafka</module>
+		<module>neo4j</module>
 	</modules>
+	<dependencies>
+		<dependency>
+			<groupId>net.butfly.albacore</groupId>
+			<artifactId>albacore-test</artifactId>
+			<version>3.0.0-SNAPSHOT</version>
+			<scope>test</scope>
+		</dependency>
+	</dependencies>
+	<scm>
+		<connection>https://bitbucket.org/butfly/albatis.git</connection>
+		<developerConnection>https://butfly@bitbucket.org/butfly/albatis.git</developerConnection>
+		<url>https://bitbucket.org/butfly/albatis</url>
+	</scm>
 </project>
