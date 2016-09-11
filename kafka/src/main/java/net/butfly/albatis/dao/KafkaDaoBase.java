@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import net.butfly.albacore.entity.AbstractEntity;
@@ -48,7 +49,6 @@ public class KafkaDaoBase implements KafkaDao {
 		if (null != consumers) consumers.uninit();
 	}
 
-	// TODO: Deserailize from message to entity
 	@SuppressWarnings("unchecked")
 	@Override
 	public <K extends Serializable, E extends AbstractEntity<K>> E[] select(Class<E> entityClass, K... topic) {
@@ -63,16 +63,22 @@ public class KafkaDaoBase implements KafkaDao {
 						"Since key is defines, you could not use empty (which means fetch any topic.)");
 				List<KafkaMessage> ml = consumers.getMessagePackage(k);
 				consumers.commit();
-				for (KafkaMessage m : ml) {}
+				for (KafkaMessage m : ml)
+					results.add(deserialize(m.getKeyValue(), m.getValues()));
+
 			}
 		} else if (bufferMix) {
 			List<KafkaMessage> ml = consumers.getMessagePackage("");
 			consumers.commit();
-			for (KafkaMessage m : ml) {
-				consumers.commit();
-			}
+			for (KafkaMessage m : ml)
+				results.add(deserialize(m.getKeyValue(), m.getValues()));
 		} else throw new RuntimeException("No topics, and not mix, we could not fetch any message from kafka.");
 		return Generics.toArray(results, entityClass);
+	}
+
+	private <K extends Serializable, E extends AbstractEntity<K>> E deserialize(Object keyValue, Map<String, Object> values) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 	@Override

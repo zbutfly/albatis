@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package net.butfly.albatis.impl.kafka.thread;
 
 import java.util.ArrayList;
@@ -15,10 +10,6 @@ import net.butfly.albatis.impl.kafka.context.DataContext;
 import net.butfly.albatis.impl.kafka.mapper.KafkaMessage;
 import net.butfly.albatis.impl.kafka.mapper.KafkaTopicConfig;
 
-/**
- *
- * @author hzcominfo
- */
 public class MessageTranportThread extends Thread {
 
 	private boolean mixFlag;
@@ -87,13 +78,6 @@ public class MessageTranportThread extends Thread {
 		}
 	}
 
-	/**
-	 * set message to the mix queue
-	 *
-	 * @param km
-	 *            one message
-	 * @return true:add queue success|false:queue is full
-	 */
 	public boolean transportDataToMixList(KafkaMessage km) {
 		boolean flag = false;
 		if (workList.size() < buffMax) {
@@ -123,12 +107,6 @@ public class MessageTranportThread extends Thread {
 		return flag;
 	}
 
-	/**
-	 * set message to message map
-	 *
-	 * @param km
-	 * @return ture:set success|false
-	 */
 	public boolean transportDataToNoMixMap(KafkaMessage km) {
 		boolean flag = false;
 		workList = DataContext.msgMap.get(km.getTopic());
