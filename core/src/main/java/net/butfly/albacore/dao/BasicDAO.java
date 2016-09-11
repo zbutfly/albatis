@@ -22,6 +22,8 @@ public interface BasicDAO extends SimpleDAO {
 
 	<K extends Serializable, E extends AbstractEntity<K>> int count(final Class<E> entityClass, Criteria criteria);
 
+	<K extends Serializable, E extends AbstractEntity<K>> E select(final Class<E> entityClass, final K key);
+
 	<K extends Serializable, E extends AbstractEntity<K>> K[] selectKeys(final Class<E> entityClass, Criteria criteria, Page page);
 
 	<K extends Serializable, E extends AbstractEntity<K>> E[] select(final Class<E> entityClass, Criteria criteria, Page page);
