@@ -1,28 +1,19 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package net.butfly.albatis.impl.kafka.thread;
 
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import kafka.consumer.KafkaStream;
-import kafka.message.MessageAndMetadata;
-import net.butfly.albatis.impl.kafka.context.DataContext;
-import net.butfly.albatis.impl.kafka.mapper.KafkaMessage;
 
 import org.bson.BSONDecoder;
 import org.bson.BSONObject;
 import org.bson.BasicBSONDecoder;
 
-/**
- *
- * @author hzcominfo
- */
-public class ConsumerThread extends Thread {
+import kafka.consumer.KafkaStream;
+import kafka.message.MessageAndMetadata;
+import net.butfly.albatis.impl.kafka.context.DataContext;
+import net.butfly.albatis.impl.kafka.mapper.KafkaMessage;
 
+public class ConsumerThread extends Thread {
 	private KafkaStream<byte[], byte[]> stream;
 	private int msgListMax;
 	private String keyFiled;
@@ -44,6 +35,7 @@ public class ConsumerThread extends Thread {
 		this.stream = stream;
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public void run() {
 		if (stream != null) {

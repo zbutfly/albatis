@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package net.butfly.albatis.impl.kafka.api;
 
 import java.util.ArrayList;
@@ -12,6 +7,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
 import kafka.consumer.Consumer;
 import kafka.consumer.ConsumerConfig;
 import kafka.consumer.KafkaStream;
@@ -24,10 +20,6 @@ import net.butfly.albatis.impl.kafka.mapper.KafkaTopicConfig;
 import net.butfly.albatis.impl.kafka.thread.ConsumerThread;
 import net.butfly.albatis.impl.kafka.thread.MessageTranportThread;
 
-/**
- *
- * @author hzcominfo
- */
 public class KafkaConsumer {
 
 	// consumer对象名字
@@ -40,20 +32,10 @@ public class KafkaConsumer {
 
 	MessageTranportThread mtt;
 
-	/**
-	 * get consumer name
-	 *
-	 * @return the consumer name
-	 */
 	public String getConsumerName() {
 		return consumerName;
 	}
 
-	/**
-	 * set consumer name
-	 *
-	 * @param consumerName
-	 */
 	public void setConsumerName(String consumerName) {
 		this.consumerName = consumerName;
 	}
@@ -166,9 +148,6 @@ public class KafkaConsumer {
 		return initFlag;
 	}
 
-	/**
-	 * commit to zookeeper
-	 */
 	public void commit() {
 		kafkaConnector.commitOffsets();
 	}
@@ -223,12 +202,6 @@ public class KafkaConsumer {
 		return sendList;
 	}
 
-	/**
-	 * 获取线程池max值
-	 *
-	 * @param topics
-	 * @return int for all streams count of all topic
-	 */
 	private int countThreadPoolMax(KafkaTopicConfig[] topics) {
 		int count = 0;
 		for (KafkaTopicConfig topic : topics) {
@@ -237,12 +210,6 @@ public class KafkaConsumer {
 		return count;
 	}
 
-	/**
-	 * get topic map
-	 *
-	 * @param topics
-	 * @return Map<String,Integer>,key is topic name,value is stream count
-	 */
 	private Map<String, Integer> topicArrayToTopicMap(KafkaTopicConfig[] topics) {
 		Map<String, Integer> topicMap = new HashMap<>();
 		for (KafkaTopicConfig topic : topics) {
