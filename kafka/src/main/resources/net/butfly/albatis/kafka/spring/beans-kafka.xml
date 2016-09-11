@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:context="http://www.springframework.org/schema/context" xmlns:util="http://www.springframework.org/schema/util"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.1.xsd
+	http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.1.xsd
+	http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-4.1.xsd">
+
+	<import resource="classpath:/net/butfly/albacore/orm/spring/beans-albatis.xml" />
+
+	<context:property-placeholder order="999" ignore-unresolvable="true" properties-ref="kafkaDefaultProps" />
+	<util:properties id="kafkaDefaultProps" ignore-resource-not-found="true" location="classpath:kafka-client.properties">
+		<prop key="albatis.kafka.zookeeper.connection.timeout.ms">15000</prop>
+		<prop key="albatis.kafka.zookeeper.sync.time.ms">5000</prop>
+		<prop key="albatis.kafka.auto.commit.enable">FALSE</prop>
+		<prop key="albatis.kafka.auto.commit.interval.ms">1000</prop>
+		<prop key="albatis.kafka.auto.offset.reset">smallest</prop>
+		<prop key="albatis.kafka.session.timeout.ms">30000</prop>
+		<prop key="albatis.kafka.partition.assignment.strategy">range</prop>
+		<prop key="albatis.kafka.socket.receive.buffer.bytes">5242880</prop>
+		<prop key="albatis.kafka.fetch.message.max.bytes">3145728</prop>
+	</util:properties>
+	<bean id="kafkaDao" class="net.butfly.albatis.dao.KafkaDao" abstract="true" parent="simpleDao" init-method="initialize">
+		<property name="consumer" ref="kafkaConsumerConfig" />
+	</bean>
+	<bean id="kafkaConsumerConfig" class="net.butfly.albatis.impl.kafka.config.KafkaConsumerConfig">
+		<property name="zookeeperConnect" value="${albatis.kafka.zookeeper.connect}" />
+		<property name="zookeeperConnectionTimeoutMs" value="${albatis.kafka.zookeeper.connection.timeout.ms}" />
+		<property name="zookeeperSyncTimeMs" value="${albatis.kafka.zookeeper.sync.time.ms}" />
+		<property name="groupId" value="${albatis.kafka.group.id}" />
+		<property name="autoCommitEnable" value="${albatis.kafka.auto.commit.enable}" />
+		<property name="autoCommitIntervalMs" value="${albatis.kafka.auto.commit.interval.ms}" />
+		<property name="autoOffsetReset" value="${albatis.kafka.auto.offset.reset}" />
+		<property name="sessionTimeoutMs" value="${albatis.kafka.session.timeout.ms}" />
+		<property name="partitionAssignmentStrategy" value="${albatis.kafka.partition.assignment.strategy}" />
+		<property name="socketReceiveBufferBytes" value="${albatis.kafka.socket.receive.buffer.bytes}" />
+		<property name="fetchMessageMaxBytes" value="${albatis.kafka.fetch.message.max.bytes}" />
+	</bean>
+</beans>
