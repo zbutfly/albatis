@@ -42,3 +42,9 @@
 	test.topic1.stream.num=
 	test.topic1.key=
 	```
+4. 代码使用
+```java
+ApplicationContext context = new ClassPathXmlApplicationContext("/net/butfly/albatis/kafka/test/spring/beans-test.xml");
+KafkaDao dao = context.getBean("kafkaTestDao", KafkaDao.class);
+User[] users = dao.select(User.class);
+```
