@@ -21,16 +21,14 @@ import net.butfly.albatis.impl.kafka.thread.ConsumerThread;
 import net.butfly.albatis.impl.kafka.thread.MessageTranportThread;
 
 public class KafkaConsumer {
-
-	// consumer对象名字
 	private String consumerName = "DEFAULT CONSUMER";
-	// topic-keyfield
 	Map<String, String> topicKeyFieldMap = new HashMap<>();
-
-	// 传输最大
 	int tranMax;
-
 	MessageTranportThread mtt;
+	// 一个kafkaConsumer只启用一个
+	ConsumerConnector kafkaConnector;
+	ExecutorService kafkaConsumerService;
+	boolean initFlag = false;
 
 	public String getConsumerName() {
 		return consumerName;
@@ -39,15 +37,6 @@ public class KafkaConsumer {
 	public void setConsumerName(String consumerName) {
 		this.consumerName = consumerName;
 	}
-
-	// kafka连接对象
-	// 一个kafkaConsumer只启用一个
-	ConsumerConnector kafkaConnector;
-	// 线程池
-	ExecutorService kafkaConsumerService;
-
-	// 初始化状态
-	boolean initFlag = false;
 
 	/**
 	 * 初始化kafka consumer流程
@@ -67,11 +56,11 @@ public class KafkaConsumer {
 	public String init(final KafkaConsumerConfig kafkaConfig, final KafkaTopicConfig[] topics, final boolean bufferMix,
 			final int msgBuffers, final int bufferMax) {
 		// 已启动则不进行初始化
-		if (initFlag) { return ResultContext.RESULT_INIT_ALREADY_RUN; }
+		if (initFlag) return ResultContext.RESULT_INIT_ALREADY_RUN;
 
 		// 初始化线程池
 		int poolMax = countThreadPoolMax(topics);
-		if (poolMax == 0) { return ResultContext.RESULT_INIT_NONE_TOPICS; }
+		if (poolMax == 0) return ResultContext.RESULT_INIT_NONE_TOPICS;
 
 		tranMax = bufferMax;
 
@@ -98,17 +87,13 @@ public class KafkaConsumer {
 		// init connector
 		int threadCount = 0;
 		try {
-
 			kafkaConnector = Consumer.createJavaConsumerConnector(consumerConfig);
 			Map<String, List<KafkaStream<byte[], byte[]>>> topicMessageStreams = kafkaConnector.createMessageStreams(topicArrayToTopicMap(
 					topics));
 
 			for (Map.Entry<String, List<KafkaStream<byte[], byte[]>>> messageStreamsOfTopic : topicMessageStreams.entrySet()) {
 				List<KafkaStream<byte[], byte[]>> streams = messageStreamsOfTopic.getValue();
-				if (streams.isEmpty()) {
-					continue;
-				}
-
+				if (streams.isEmpty()) continue;
 				for (final KafkaStream<byte[], byte[]> stream : streams) {
 					ConsumerThread ct = new ConsumerThread();
 					ct.setStream(stream);
@@ -118,7 +103,6 @@ public class KafkaConsumer {
 					threadCount++;
 				}
 			}
-
 		} catch (Exception e) {
 			return ResultContext.RESULT_INIT_CONN_ERROR;
 		}
@@ -184,29 +168,22 @@ public class KafkaConsumer {
 	public synchronized List<KafkaMessage> getMessagePackage(String topic) {
 		List<KafkaMessage> sendList = new ArrayList<>();
 		if ("".equals(topic)) {
-			if (DataContext.msgPcgList.size() > 1) {
-				sendList.addAll(DataContext.msgPcgList.remove(0));
-			} else {
-				return null;
-			}
+			if (DataContext.msgPcgList.size() > 1) sendList.addAll(DataContext.msgPcgList.remove(0));
+			else return null;
 		} else {
 			if (DataContext.msgMap.containsKey(topic)) {
 				List<KafkaMessage> msgList = DataContext.msgMap.get(topic);
-				while (!msgList.isEmpty() && sendList.size() < tranMax) {
+				while (!msgList.isEmpty() && sendList.size() < tranMax)
 					sendList.add(msgList.remove(0));
-				}
-			} else {
-				return null;
-			}
+			} else return null;
 		}
 		return sendList;
 	}
 
 	private int countThreadPoolMax(KafkaTopicConfig[] topics) {
 		int count = 0;
-		for (KafkaTopicConfig topic : topics) {
+		for (KafkaTopicConfig topic : topics)
 			count += topic.getStreamNum();
-		}
 		return count;
 	}
 
@@ -219,5 +196,4 @@ public class KafkaConsumer {
 
 		return topicMap;
 	}
-
 }

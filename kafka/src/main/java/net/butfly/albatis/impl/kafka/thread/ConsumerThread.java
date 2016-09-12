@@ -42,27 +42,22 @@ public class ConsumerThread extends Thread {
 			BSONDecoder decoder = new BasicBSONDecoder();
 			for (MessageAndMetadata<byte[], byte[]> msgAndMetadata : stream) {
 				String topic = msgAndMetadata.topic();
-				if (keyFiled == null) {
-					keyFiled = topicKeyFieldMap.get(topic);
-				}
+				if (keyFiled == null) keyFiled = topicKeyFieldMap.get(topic);
+
 				byte[] message = msgAndMetadata.message();
 				BSONObject value = decoder.readObject(message);
 				KafkaMessage kafkaMsg = new KafkaMessage();
 				kafkaMsg.setTopic(topic);
 				kafkaMsg.setValues((Map<String, Object>) value.get("value"));
-				if (kafkaMsg.getValues().containsKey(keyFiled)) {
-					kafkaMsg.setKeyValue(kafkaMsg.getValues().get(keyFiled));
-				}
-				while (DataContext.msgList.size() > msgListMax) {
+				if (kafkaMsg.getValues().containsKey(keyFiled)) kafkaMsg.setKeyValue(kafkaMsg.getValues().get(keyFiled));
+
+				while (DataContext.msgList.size() > msgListMax)
 					try {
 						Thread.sleep(1000);
 					} catch (InterruptedException ex) {
 						Logger.getLogger(ConsumerThread.class.getName()).log(Level.SEVERE, null, ex);
 					}
-				}
-
 				DataContext.msgList.add(kafkaMsg);
-
 			}
 		}
 	}

@@ -11,7 +11,6 @@ import net.butfly.albatis.impl.kafka.mapper.KafkaMessage;
 import net.butfly.albatis.impl.kafka.mapper.KafkaTopicConfig;
 
 public class MessageTranportThread extends Thread {
-
 	private boolean mixFlag;
 	private int buffNum;
 	private int buffMax;
@@ -44,36 +43,22 @@ public class MessageTranportThread extends Thread {
 			List<KafkaMessage> msgList = Collections.synchronizedList(new ArrayList<KafkaMessage>());
 			DataContext.msgPcgList.add(msgList);
 			workList = DataContext.msgPcgList.get(0);
-		} else {
-			for (KafkaTopicConfig topic : topics) {
-				DataContext.msgMap.put(topic.getTopic(), Collections.synchronizedList(new ArrayList<KafkaMessage>()));
-			}
-		}
+		} else for (KafkaTopicConfig topic : topics)
+			DataContext.msgMap.put(topic.getTopic(), Collections.synchronizedList(new ArrayList<KafkaMessage>()));
 
 		while (stopFlag == false) {
 			if (!DataContext.msgList.isEmpty()) {
 				KafkaMessage km = DataContext.msgList.remove(0);
-				if (mixFlag) {
-					while (transportDataToMixList(km) == false) {
-						try {
-							Thread.sleep(1000);
-						} catch (InterruptedException ex) {
-							Logger.getLogger(MessageTranportThread.class.getName()).log(Level.SEVERE, null, ex);
-						}
+				if (mixFlag) while (transportDataToMixList(km) == false)
+					try {
+						Thread.sleep(1000);
+					} catch (InterruptedException ex) {
+						Logger.getLogger(MessageTranportThread.class.getName()).log(Level.SEVERE, null, ex);
 					}
-				} else {
-					if (transportDataToNoMixMap(km) == false) {
-						DataContext.msgList.add(km);
-					}
-				}
-
+				else if (transportDataToNoMixMap(km) == false) DataContext.msgList.add(km);
 			} else {
-				if (noDataCount < buffMax) {
-					noDataCount++;
-				} else {
-					newListFlag = true;
-				}
-
+				if (noDataCount < buffMax) noDataCount++;
+				else newListFlag = true;
 			}
 		}
 	}
@@ -83,14 +68,12 @@ public class MessageTranportThread extends Thread {
 		if (workList.size() < buffMax) {
 			workList.add(km);
 			flag = true;
-		} else {
-			if (DataContext.msgPcgList.size() < buffNum) {
-				List<KafkaMessage> list = new ArrayList<>();
-				DataContext.msgPcgList.add(list);
-				workList = list;
-				workList.add(km);
-				flag = true;
-			}
+		} else if (DataContext.msgPcgList.size() < buffNum) {
+			List<KafkaMessage> list = new ArrayList<>();
+			DataContext.msgPcgList.add(list);
+			workList = list;
+			workList.add(km);
+			flag = true;
 		}
 
 		if (newListFlag) {
