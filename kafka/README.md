@@ -1,5 +1,13 @@
 # ALBATIS-KAFKA
 ## 配置
+0. 依赖配置
+```xml
+<dependency>
+	<groupId>net.butfly.albatis</groupId>
+	<artifactId>albatis-kafka</artifactId>
+	<version>1.0.0-SNAPSHOT</version>
+</dependency>
+```
 1. 框架配置
 在业务项目的spring配置文件中，包含albatis-kafka主定义文件：
 ```xml
