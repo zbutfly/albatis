@@ -14,6 +14,11 @@
 			<version>1.0.0-SNAPSHOT</version>
 		</dependency>
 		<dependency>
+			<groupId>net.butfly.albacore</groupId>
+			<artifactId>albacore-serder-json</artifactId>
+			<version>1.0.0-SNAPSHOT</version>
+		</dependency>
+		<dependency>
 			<groupId>org.apache.kafka</groupId>
 			<artifactId>kafka${version.scala.suffix}</artifactId>
 			<version>0.10.0.1</version>
@@ -28,10 +33,16 @@
 			<artifactId>kafka-streams</artifactId>
 			<version>0.10.0.1</version>
 		</dependency>
-		<dependency><!-- for bson deserialize -->
-			<groupId>org.mongodb</groupId>
-			<artifactId>mongo-java-driver</artifactId>
-			<version>2.13.1</version>
+		<dependency>
+			<groupId>com.leansoft</groupId>
+			<artifactId>bigqueue</artifactId>
+			<version>0.7.0</version>
 		</dependency>
 	</dependencies>
+	<repositories>
+		<repository>
+			<id>github.release.repo</id>
+			<url>https://raw.github.com/bulldog2011/bulldog-repo/master/repo/releases/</url>
+		</repository>
+	</repositories>
 </project>
