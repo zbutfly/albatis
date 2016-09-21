@@ -4,9 +4,8 @@ import java.util.Map;
 
 public class KafkaMessage {
 	private String topic;
-	private Map<String, Object> values;
-	// value of key field
-	private Object keyValue;
+	private Map<String, Object> value;
+	private Object key;
 
 	public String getTopic() {
 		return topic;
@@ -16,20 +15,27 @@ public class KafkaMessage {
 		this.topic = topic;
 	}
 
-	public Map<String, Object> getValues() {
-		return values;
+	public Map<String, Object> getValue() {
+		return value;
 	}
 
-	public void setValues(Map<String, Object> values) {
-		this.values = values;
+	public void setValue(Map<String, Object> value) {
+		this.value = value;
 	}
 
-	public Object getKeyValue() {
-		if (keyValue == null) { return ""; }
-		return keyValue;
+	public Object get(String prop) {
+		return value.get(prop);
 	}
 
-	public void setKeyValue(Object keyValue) {
-		this.keyValue = keyValue;
+	public void put(String prop, Object v) {
+		value.put(prop, v);
+	}
+
+	public Object getKey() {
+		return key;
+	}
+
+	public void setKey(Object key) {
+		this.key = key;
 	}
 }

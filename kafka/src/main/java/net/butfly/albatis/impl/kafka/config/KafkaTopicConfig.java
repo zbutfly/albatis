@@ -1,4 +1,4 @@
-package net.butfly.albatis.impl.kafka.mapper;
+package net.butfly.albatis.impl.kafka.config;
 
 import java.io.Serializable;
 
