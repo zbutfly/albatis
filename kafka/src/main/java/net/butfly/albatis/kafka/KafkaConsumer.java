@@ -2,6 +2,7 @@ package net.butfly.albatis.kafka;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -20,10 +21,11 @@ import kafka.consumer.ConsumerConfig;
 import kafka.consumer.KafkaStream;
 import kafka.javaapi.consumer.ConsumerConnector;
 import net.butfly.albacore.serder.BsonSerder;
+import net.butfly.albacore.utils.Reflections;
 import net.butfly.albatis.impl.kafka.config.KafkaConsumerConfig;
 import net.butfly.albatis.impl.kafka.config.KafkaTopicConfig;
-import net.butfly.albatis.impl.kafka.mapper.KafkaMessage;
 import scala.Tuple2;
+import scala.Tuple3;
 
 public class KafkaConsumer implements AutoCloseable {
 	private static final Logger logger = LoggerFactory.getLogger(KafkaConsumer.class);
@@ -48,6 +50,47 @@ public class KafkaConsumer implements AutoCloseable {
 		this.serder = new BsonSerder();
 	}
 
+	@SuppressWarnings("serial")
+	private static final TypeToken<Map<String, Object>> T_MAP = new TypeToken<Map<String, Object>>() {};
+
+	@SuppressWarnings("unchecked")
+	public List<Tuple3<String, Object, Map<String, Object>>> read(String topic) {
+		List<Tuple3<String, Object, Map<String, Object>>> l = new ArrayList<>();
+		for (Tuple2<String, byte[]> message : context.dequeue(topic)) {
+			Map<String, Object> map = (Map<String, Object>) serder.der(message._2, T_MAP).get("value");
+			Object key = topicKeys.containsKey(topic) ? map.get(topicKeys.get(topic)) : null;
+			l.add(new Tuple3<String, Object, Map<String, Object>>(message._1, key, map));
+		}
+		return l;
+	}
+
+	public static class KafkaWrapper<E> implements Serializable {
+		private static final long serialVersionUID = -1808631723718939410L;
+
+		public E getValue() {
+			return value;
+		}
+
+		public void setValue(E value) {
+			this.value = value;
+		}
+
+		private E value;
+	}
+
+	public <E> List<Tuple3<String, Object, E>> read(String topic, Class<E> cl) {
+		@SuppressWarnings("serial")
+		TypeToken<KafkaWrapper<E>> t = new TypeToken<KafkaWrapper<E>>() {};
+		List<Tuple3<String, Object, E>> l = new ArrayList<>();
+
+		for (Tuple2<String, byte[]> message : context.dequeue(topic)) {
+			KafkaWrapper<E> e = serder.der(message._2, t);
+			Object key = topicKeys.containsKey(topic) ? Reflections.get(e.value, topicKeys.get(topic)) : null;
+			l.add(new Tuple3<String, Object, E>(message._1, key, e.value));
+		}
+		return l;
+	}
+
 	/**
 	 * @param config
 	 * @param topics
@@ -68,22 +111,6 @@ public class KafkaConsumer implements AutoCloseable {
 		consumers = Executors.newFixedThreadPool(threads);
 		createConsumers(threads, configure(config), topics);
 		inited = true;
-	}
-
-	@SuppressWarnings({ "rawtypes", "unchecked" })
-	public List<KafkaMessage> readMap(String topic) {
-		TypeToken<Map> t = TypeToken.of(Map.class);
-		List<KafkaMessage> l = new ArrayList<>();
-
-		for (Tuple2<String, byte[]> message : context.dequeue(topic)) {
-			KafkaMessage km = new KafkaMessage();
-			Map map = (Map) serder.der(message._2, t).get("value");
-			km.setTopic(message._1);
-			if (topicKeys.containsKey(topic)) km.setKey(map.get(topicKeys.get(topic)));
-			km.setValue(map);
-			l.add(km);
-		}
-		return l;
 	}
 
 	public void commit() {
