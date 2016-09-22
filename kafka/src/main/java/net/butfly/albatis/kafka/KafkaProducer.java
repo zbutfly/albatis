@@ -10,7 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import kafka.javaapi.producer.Producer;
-import net.butfly.albacore.lambda.Func;
+import net.butfly.albacore.lambda.Converter;
 import net.butfly.albacore.serder.BsonSerder;
 import net.butfly.albatis.impl.kafka.config.KafkaProducerConfig;
 
@@ -49,7 +49,7 @@ public class KafkaProducer implements AutoCloseable {
 	}
 
 	@SuppressWarnings("unchecked")
-	public void write(String topic, Map<String, Object> meta, Func<Map<String, Object>, String> keying, Map<String, Object>... map) {
+	public void write(String topic, Map<String, Object> meta, Converter<Map<String, Object>, String> keying, Map<String, Object>... map) {
 		for (Map<String, Object> m : map)
 			context.enqueue(topic, serder.ser(new KafkaMapWrapper(null, meta, m)));
 	}
@@ -61,7 +61,7 @@ public class KafkaProducer implements AutoCloseable {
 	}
 
 	@SuppressWarnings("unchecked")
-	public <E> void write(String topic, Func<E, String> keying, E... object) {
+	public <E> void write(String topic, Converter<E, String> keying, E... object) {
 		for (E e : object)
 			context.enqueue(topic, serder.ser(new KafkaObjectWrapper<E>(null, e)));
 	}
