@@ -5,9 +5,9 @@ import kafka.message.MessageAndMetadata;
 
 class ConsumerThread extends Thread {
 	private KafkaStream<byte[], byte[]> stream;
-	private KafkaQueue context;
+	private Queue context;
 
-	public ConsumerThread(KafkaQueue context) {
+	public ConsumerThread(Queue context) {
 		super();
 		this.context = context;
 	}

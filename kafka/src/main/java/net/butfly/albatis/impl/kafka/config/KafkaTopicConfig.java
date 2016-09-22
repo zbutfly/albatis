@@ -5,11 +5,10 @@ import java.io.Serializable;
 public class KafkaTopicConfig implements Serializable {
 	private static final long serialVersionUID = -5726233255599028569L;
 	private String topic;
-	private Integer streamNum;
+	private int streamNum = 1;
 	private String key;
 
 	public String getKey() {
-		if (key == null) { return ""; }
 		return key;
 	}
 
@@ -18,7 +17,6 @@ public class KafkaTopicConfig implements Serializable {
 	}
 
 	public String getTopic() {
-		if (topic == null) { return null; }
 		return topic;
 	}
 
@@ -26,13 +24,11 @@ public class KafkaTopicConfig implements Serializable {
 		this.topic = topic;
 	}
 
-	public Integer getStreamNum() {
-		if (streamNum == null) { return 0; }
+	public int getStreamNum() {
 		return streamNum;
 	}
 
-	public void setStreamNum(Integer streamNum) {
+	public void setStreamNum(int streamNum) {
 		this.streamNum = streamNum;
 	}
-
 }
