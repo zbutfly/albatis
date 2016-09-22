@@ -46,9 +46,10 @@ abstract class Queue implements AutoCloseable {
 	}
 
 	public final void sleep() {
-		try {
-			Thread.sleep(WAIT_MS);
-		} catch (InterruptedException e) {}
+		Thread.yield();
+		// try {
+		// Thread.sleep(WAIT_MS);
+		// } catch (InterruptedException e) {}
 	}
 
 	protected abstract IBigQueue queue(String topic);

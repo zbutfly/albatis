@@ -7,25 +7,21 @@ class ConsumerThread extends Thread {
 	private KafkaStream<byte[], byte[]> stream;
 	private Queue context;
 
-	public ConsumerThread(Queue context) {
+	public ConsumerThread(Queue context, KafkaStream<byte[], byte[]> stream) {
 		super();
 		this.context = context;
-	}
-
-	public void setStream(KafkaStream<byte[], byte[]> stream) {
 		this.stream = stream;
 	}
 
 	@Override
 	public void run() {
-		if (stream != null) {
+		while (true) {
 			for (MessageAndMetadata<byte[], byte[]> msgAndMetadata : stream) {
 				String topic = msgAndMetadata.topic();
 				byte[] message = msgAndMetadata.message();
-				// waiting for full status
-				context.sleep();
 				context.enqueue(topic, message);
 			}
+			context.sleep();
 		}
 	}
 }
