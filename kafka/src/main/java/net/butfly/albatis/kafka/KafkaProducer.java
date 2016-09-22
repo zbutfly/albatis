@@ -25,8 +25,8 @@ import net.butfly.albatis.impl.kafka.config.KafkaConsumerConfig;
 import net.butfly.albatis.impl.kafka.config.KafkaTopicConfig;
 import scala.Tuple2;
 
-public class KafkaConsumer implements AutoCloseable {
-	private static final Logger logger = LoggerFactory.getLogger(KafkaConsumer.class);
+public class KafkaProducer implements AutoCloseable {
+	private static final Logger logger = LoggerFactory.getLogger(KafkaProducer.class);
 
 	boolean inited = false;
 	private String name;
@@ -39,11 +39,11 @@ public class KafkaConsumer implements AutoCloseable {
 	private BsonSerder serder;
 	private boolean mixed;
 
-	public KafkaConsumer() {
+	public KafkaProducer() {
 		this("COMINFO_KAFKA_CONSUMER");
 	}
 
-	public KafkaConsumer(String name) {
+	public KafkaProducer(String name) {
 		super();
 		this.name = name;
 		this.serder = new BsonSerder();
@@ -93,7 +93,7 @@ public class KafkaConsumer implements AutoCloseable {
 	 *            缓冲消息个数
 	 * @return
 	 */
-	public KafkaConsumer initialize(final KafkaConsumerConfig config, final KafkaTopicConfig[] topics, final boolean mixed,
+	public KafkaProducer initialize(final KafkaConsumerConfig config, final KafkaTopicConfig[] topics, final boolean mixed,
 			final int maxMixPackage, final int maxMessage) {
 		if (inited) throw new RuntimeException("Kafka consumer has already been initialized.");
 		int threads = parseTopics(topics);
