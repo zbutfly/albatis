@@ -6,7 +6,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -28,25 +27,36 @@ import scala.Tuple2;
 public class KafkaConsumer implements AutoCloseable {
 	private static final Logger logger = LoggerFactory.getLogger(KafkaConsumer.class);
 
-	boolean inited = false;
 	private String name;
 	private Map<String, String> topicKeys = new HashMap<>();
 	private Map<String, Integer> topicConcurrencies = new HashMap<>();
 
 	private ConsumerConnector connect;
 	private Queue context;
-	private ExecutorService consumers;
+	private ExecutorService threads;
 	private BsonSerder serder;
 	private boolean mixed;
 
-	public KafkaConsumer() {
-		this("COMINFO_KAFKA_CONSUMER");
-	}
-
-	public KafkaConsumer(String name) {
+	/**
+	 * @param mixed:
+	 *            是否混合模式
+	 * @param maxPackageMix:
+	 *            混合模式下缓冲区个数
+	 * @param maxMessageNoMix:
+	 *            缓冲消息个数
+	 * @return
+	 */
+	public KafkaConsumer(String name, final KafkaConsumerConfig config, final KafkaTopicConfig[] topics, final boolean mixed,
+			final int maxMixPackage, final int maxMessage) throws KafkaException {
 		super();
 		this.name = name;
 		this.serder = new BsonSerder();
+		int concurrency = parseTopics(topics);
+		if (concurrency == 0) throw new KafkaException("Kafka configuration has no topic definition.");
+		threads = Executors.newFixedThreadPool(concurrency);
+		this.mixed = mixed;
+		logger.info("[" + name + "] Consumer thread starting (max: " + concurrency + ")...");
+		createConsumers(configure(config, mixed), topics);
 	}
 
 	@SuppressWarnings("serial")
@@ -56,13 +66,16 @@ public class KafkaConsumer implements AutoCloseable {
 	public List<KafkaMapWrapper> read(String... topic) {
 		List<KafkaMapWrapper> l = new ArrayList<>();
 		if (mixed) topic = new String[] { null };
-		for (String t : topic)
-			for (Tuple2<String, byte[]> message : context.dequeue(t)) {
+		for (String t : topic) {
+			List<Tuple2<String, byte[]>> all = context.dequeue(t);
+			if (context.size(t) == 0) commit();
+			for (Tuple2<String, byte[]> message : all) {
 				Map<String, Object> meta = serder.der(message._2, T_MAP);
 				Map<String, Object> value = (Map<String, Object>) meta.get("value");
 				meta.remove("value");
 				l.add(new KafkaMapWrapper(t, topicKeys.containsKey(topic) ? value.get(topicKeys.get(topic)) : null, meta, value));
 			}
+		}
 		return l;
 	}
 
@@ -72,37 +85,17 @@ public class KafkaConsumer implements AutoCloseable {
 		List<KafkaObjectWrapper<E>> l = new ArrayList<>();
 
 		if (mixed) topic = new String[] { null };
-		for (String top : topic)
-			for (Tuple2<String, byte[]> message : context.dequeue(top)) {
+		for (String top : topic) {
+			List<Tuple2<String, byte[]>> all = context.dequeue(top);
+			if (context.size(top) == 0) commit();
+			for (Tuple2<String, byte[]> message : all) {
 				KafkaObjectWrapper<E> w = serder.der(message._2, t);
 				w.setTopic(top);
 				if (topicKeys.containsKey(topic)) w.setKey(Reflections.get(w.getValue(), topicKeys.get(topic)));
 				l.add(w);
 			}
+		}
 		return l;
-	}
-
-	/**
-	 * @param config
-	 * @param topics
-	 * @param isMix:
-	 *            是否混合模式
-	 * @param maxPackageMix:
-	 *            混合模式下缓冲区个数
-	 * @param maxMessageNoMix:
-	 *            缓冲消息个数
-	 * @return
-	 */
-	public KafkaConsumer initialize(final KafkaConsumerConfig config, final KafkaTopicConfig[] topics, final boolean mixed,
-			final int maxMixPackage, final int maxMessage) {
-		if (inited) throw new RuntimeException("Kafka consumer has already been initialized.");
-		int threads = parseTopics(topics);
-		if (threads == 0) throw new RuntimeException("Kafka configuration has no topic definition.");
-		consumers = Executors.newFixedThreadPool(threads);
-		this.mixed = mixed;
-		createConsumers(threads, configure(config, mixed), topics);
-		inited = true;
-		return this;
 	}
 
 	public void commit() {
@@ -110,12 +103,11 @@ public class KafkaConsumer implements AutoCloseable {
 	}
 
 	public void close() {
-		logger.info("[" + name + "] All consumers closing...");
-		consumers.shutdown();
+		logger.info("[" + name + "] All threads closing...");
+		threads.shutdown();
 		connect.shutdown();
 		logger.info("[" + name + "] Buffer clearing...");
 		context.close();
-		inited = false;
 	}
 
 	private int parseTopics(KafkaTopicConfig[] topics) {
@@ -128,38 +120,22 @@ public class KafkaConsumer implements AutoCloseable {
 		return count;
 	}
 
-	private ConsumerConfig configure(KafkaConsumerConfig config, boolean mixed) {
-		context = mixed ? new QueueMixed(curr(config.getZookeeperConnect()), 1000)
-				: new QueueTopic(curr(config.getZookeeperConnect()), 1000);
-		if (config.getZookeeperConnect() == null || config.getGroupId() == null) throw new RuntimeException(
-				"Kafka configuration has no zookeeper and group definition.");
-		Properties props = new Properties();
-		props.put("zookeeper.connect", config.getZookeeperConnect());
-		props.put("zookeeper.connection.timeout.ms", "" + config.getZookeeperConnectionTimeoutMs());
-		props.put("zookeeper.sync.time.ms", "" + config.getZookeeperSyncTimeMs());
-		props.put("group.id", config.getGroupId());
-		props.put("auto.commit.enable", "" + config.isAutoCommitEnable());
-		props.put("auto.commit.interval.ms", "" + config.getAutoCommitIntervalMs());
-		props.put("auto.offset.reset", config.getAutoOffsetReset());
-		props.put("session.timeout.ms", "" + config.getSessionTimeoutMs());
-		props.put("partition.assignment.strategy", config.getPartitionAssignmentStrategy());
-		props.put("socket.receive.buffer.bytes", "" + config.getSocketReceiveBufferBytes());
-		props.put("fetch.message.max.bytes", "" + config.getFetchMessageMaxBytes());
-		return new ConsumerConfig(props);
+	private ConsumerConfig configure(KafkaConsumerConfig config, boolean mixed) throws KafkaException {
+		context = mixed ? new QueueMixed(curr(config.toString()), 1000) : new QueueTopic(curr(config.toString()), 1000);
+		return config.getConfig();
 	}
 
-	private String curr(String zookeeperConnect) {
+	private String curr(String zookeeperConnect) throws KafkaException {
 		try {
 			File f = new File("./" + zookeeperConnect.replaceAll("[:/\\,]", "-"));
 			f.mkdirs();
 			return f.getCanonicalPath();
 		} catch (IOException e) {
-			throw new RuntimeException(e);
+			throw new KafkaException(e);
 		}
 	}
 
-	private void createConsumers(int threads, ConsumerConfig config, KafkaTopicConfig... topics) {
-		logger.info("[" + name + "] Consumer thread starting (max: " + threads + ")...");
+	private void createConsumers(ConsumerConfig config, KafkaTopicConfig... topics) {
 		int c = 0;
 		try {
 			connect = Consumer.createJavaConsumerConnector(config);
@@ -168,9 +144,7 @@ public class KafkaConsumer implements AutoCloseable {
 				List<KafkaStream<byte[], byte[]>> streams = messageStreamsOfTopic.getValue();
 				if (streams.isEmpty()) continue;
 				for (final KafkaStream<byte[], byte[]> stream : streams) {
-					ConsumerThread ct = new ConsumerThread(context);
-					ct.setStream(stream);
-					consumers.submit(ct);
+					threads.submit(new ConsumerThread(context, stream));
 					c++;
 				}
 			}

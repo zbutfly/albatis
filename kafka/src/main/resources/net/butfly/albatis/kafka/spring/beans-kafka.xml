@@ -16,7 +16,7 @@
 		<prop key="albatis.kafka.auto.offset.reset">smallest</prop>
 		<prop key="albatis.kafka.session.timeout.ms">30000</prop>
 		<prop key="albatis.kafka.partition.assignment.strategy">range</prop>
-		<prop key="albatis.kafka.socket.receive.buffer.bytes">5242880</prop>
+		<prop key="albatis.kafka.transfer.buffer.bytes">5242880</prop>
 		<prop key="albatis.kafka.fetch.message.max.bytes">3145728</prop>
 	</util:properties>
 	<bean id="kafkaDao" class="net.butfly.albatis.dao.KafkaDao" abstract="true" parent="simpleDao" init-method="initialize">
@@ -32,7 +32,7 @@
 		<property name="autoOffsetReset" value="${albatis.kafka.auto.offset.reset}" />
 		<property name="sessionTimeoutMs" value="${albatis.kafka.session.timeout.ms}" />
 		<property name="partitionAssignmentStrategy" value="${albatis.kafka.partition.assignment.strategy}" />
-		<property name="socketReceiveBufferBytes" value="${albatis.kafka.socket.receive.buffer.bytes}" />
+		<property name="socketReceiveBufferBytes" value="${albatis.kafka.transfer.buffer.bytes}" />
 		<property name="fetchMessageMaxBytes" value="${albatis.kafka.fetch.message.max.bytes}" />
 	</bean>
 </beans>
