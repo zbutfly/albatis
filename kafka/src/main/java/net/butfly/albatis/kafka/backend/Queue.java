@@ -1,61 +1,189 @@
 package net.butfly.albatis.kafka.backend;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Charsets;
+import com.leansoft.bigqueue.BigQueueImpl;
 import com.leansoft.bigqueue.IBigQueue;
 
-public abstract class Queue implements Closeable {
+public class Queue implements Closeable {
 	protected static final Logger logger = LoggerFactory.getLogger(Queue.class);
 	protected static final long WAIT_MS = 1000;
-	protected long batchSize;
-	protected boolean closing;
+	protected long poolSize;
+	protected Boolean closing;
 	protected String dataFolder;
+	private Map<String, IBigQueue> queue;
 
-	public void enqueue(String topic, byte[] key, byte[] message) {
-		if (!closing) try {
-			queue(topic).enqueue(new Message(topic, key, message).toBytes());
-		} catch (IOException e) {
-			logger.error("Message enqueue/serialize to local pool failure.", e);
+	public Queue(String dataFolder, long poolSize) {
+		this.dataFolder = dataFolder;
+		this.poolSize = poolSize;
+		this.closing = false;
+		this.queue = new ConcurrentHashMap<>();
+	}
+
+	public void enqueue(Message... message) {
+		if (closing) return;
+		while (size() >= poolSize)
+			sleep();
+		for (Message m : message) {
+			IBigQueue q = queue(m.topic);
+			try {
+				q.enqueue(m.toBytes());
+			} catch (IOException e) {
+				logger.error("Message enqueue/serialize to local pool failure.", e);
+			}
 		}
 	}
 
-	public List<Message> dequeue(String topic) {
+	public List<Message> dequeue(long batchSize, String... topic) {
+		topic = topics(topic);
 		List<Message> batch = new ArrayList<>();
-		if (!contains(topic)) return batch;
-		while (batch.size() < batchSize && size(topic) > 0)
-			try {
-				batch.add(new Message(queue(topic).dequeue()));
-			} catch (IOException e) {
-				logger.error("Message dequeue/deserialize from local pool failure.", e);
+		long remain;
+		do {
+			remain = 0;
+			for (String t : topic) {
+				IBigQueue q = queue.get(t);
+				if (null == q || q.size() == 0) continue;
+				try {
+					batch.add(new Message(q.dequeue()));
+				} catch (IOException e) {
+					logger.error("Message dequeue/deserialize from local pool failure.", e);
+				}
+				remain += q.size();
+				logger.trace("Queue dequeue: [" + batch.size() + "] messages, remain: [" + remain + "] messages.");
 			}
+		} while (batch.size() < batchSize && !(remain <= 0 && !sleep()));
 		return batch;
 	}
 
-	public abstract long size();
-
-	public abstract long size(String topic);
-
-	public abstract Set<String> topics();
-
-	public abstract boolean contains(String topic);
-
-	public void close() {
-		closing = true;
-		while (size() > 0)
-			sleep();
+	public long size(String... topic) {
+		long s = 0;
+		for (String t : topics(topic))
+			s += contains(t) ? 0 : queue.get(topic).size();
+		return s;
 	}
 
-	public final void sleep() {
+	public String[] topics(String... topic) {
+		return null == topic || topic.length == 0 ? queue.keySet().toArray(new String[0]) : topic;
+	}
+
+	public boolean contains(String... topic) {
+		for (String t : topics(topic))
+			if (queue.containsKey(t)) return true;
+		return false;
+	}
+
+	private IBigQueue queue(String topic) {
+		if (contains(topic)) return queue.get(topic);
+		else {
+			IBigQueue q;
+			try {
+				q = new BigQueueImpl(dataFolder, topic);
+			} catch (IOException e) {
+				throw new RuntimeException("Local cache create failure.", e);
+			}
+			synchronized (queue) {
+				queue.put(topic, q);
+			}
+			return q;
+		}
+	}
+
+	@Override
+	public final void close() {
+		synchronized (closing) {
+			if (closing) return;
+			closing = true;
+			for (String t : queue.keySet()) {
+				try {
+					queue.get(t).close();
+				} catch (IOException e) {
+					logger.error("QueueBase on [" + t + "] close failure.", e);
+				}
+				queue.remove(t);
+			}
+			closing = false;
+		}
+	}
+
+	public final boolean sleep() {
 		Thread.yield();
+		return true;
 	}
 
-	protected abstract IBigQueue queue(String topic);
+	public static class Message implements Serializable {
+		private static final long serialVersionUID = -8599938670114294267L;
+		private String topic;
+		private byte[] key;
+		private byte[] message;
+
+		public Message(String topic, byte[] key, byte[] message) {
+			super();
+			this.topic = topic;
+			this.key = key;
+			this.message = message;
+		}
+
+		public Message(byte[] data) {
+			try (ByteArrayInputStream bo = new ByteArrayInputStream(data)) {
+				topic = new String(read(bo), Charsets.UTF_8);
+				key = read(bo);
+				message = read(bo);
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
+		}
+
+		public String getTopic() {
+			return topic;
+		}
+
+		public byte[] getKey() {
+			return key;
+		}
+
+		public byte[] getMessage() {
+			return message;
+		}
+
+		byte[] toBytes() {
+			try (ByteArrayOutputStream bo = new ByteArrayOutputStream()) {
+				write(bo, topic.getBytes(Charsets.UTF_8));
+				write(bo, key);
+				write(bo, message);
+				return bo.toByteArray();
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
+		}
+
+		private static void write(ByteArrayOutputStream os, byte[] data) throws IOException {
+			if (null == data) os.write(-1);
+			else {
+				os.write(data.length);
+				if (data.length > 0) os.write(data);
+			}
+		}
+
+		private static byte[] read(ByteArrayInputStream bo) throws IOException {
+			int len = bo.read();
+			if (len == -1) return null;
+			if (len == 0) return new byte[0];
+			byte[] data = new byte[len];
+			if (bo.read(data) != len) throw new RuntimeException();
+			return data;
+		}
+	}
 
 }

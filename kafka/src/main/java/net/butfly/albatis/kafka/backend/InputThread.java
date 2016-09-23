@@ -1,33 +1,45 @@
 package net.butfly.albatis.kafka.backend;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import kafka.consumer.KafkaStream;
 import kafka.message.MessageAndMetadata;
 import net.butfly.albacore.lambda.Task;
+import net.butfly.albatis.kafka.backend.Queue.Message;
 
 public class InputThread extends Thread {
 	private KafkaStream<byte[], byte[]> stream;
 	private Queue context;
-	private int commitBatch;
+	private long batchSize;
 	private Task committing;
 
-	public InputThread(Queue context, KafkaStream<byte[], byte[]> stream, int commitBatch, Task committing) {
+	public InputThread(Queue context, KafkaStream<byte[], byte[]> stream, long batciSize, Task committing) {
 		super();
 		this.context = context;
 		this.stream = stream;
-		this.commitBatch = commitBatch;
+		this.batchSize = batciSize;
 		this.committing = committing;
 	}
 
 	@Override
 	public void run() {
-		int c = 0;
+		long c = 0;
 		while (true) {
+			List<Message> messages = new ArrayList<>();
 			for (MessageAndMetadata<byte[], byte[]> msgAndMetadata : stream) {
-				context.enqueue(msgAndMetadata.topic(), msgAndMetadata.key(), msgAndMetadata.message());
-				c++;
-				if (c >= commitBatch) committing.call();
+				messages.add(new Message(msgAndMetadata.topic(), msgAndMetadata.key(), msgAndMetadata.message()));
+				if (messages.size() > batchSize) break;
 			}
-			context.sleep();
+			long s = messages.size();
+			c += s;
+			context.enqueue(messages.toArray(new Message[messages.size()]));
+			if (c > batchSize) {
+				committing.call();
+				c = 0;
+			}
+			if (s < batchSize) context.sleep();
 		}
 	}
+
 }
