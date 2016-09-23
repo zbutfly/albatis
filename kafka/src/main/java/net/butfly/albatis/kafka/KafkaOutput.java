@@ -10,15 +10,19 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import kafka.javaapi.producer.Producer;
+import net.butfly.albacore.io.Output;
 import net.butfly.albacore.lambda.Converter;
 import net.butfly.albacore.serder.BsonSerder;
-import net.butfly.albatis.impl.kafka.config.KafkaProducerConfig;
+import net.butfly.albatis.kafka.backend.OutputThread;
+import net.butfly.albatis.kafka.backend.Queue;
+import net.butfly.albatis.kafka.backend.QueueMixed;
+import net.butfly.albatis.kafka.config.KafkaOutputConfig;
 
 @SuppressWarnings("deprecation")
-public class KafkaProducer implements AutoCloseable {
-	private static final Logger logger = LoggerFactory.getLogger(KafkaProducer.class);
+public class KafkaOutput implements Output<String> {
+	private static final long serialVersionUID = -276336973758504567L;
+	private static final Logger logger = LoggerFactory.getLogger(KafkaOutput.class);
 
-	private String name;
 	private Queue context;
 	private ExecutorService threads;
 	private BsonSerder serder;
@@ -32,44 +36,41 @@ public class KafkaProducer implements AutoCloseable {
 	 *            缓冲消息个数
 	 * @return
 	 */
-	public KafkaProducer(final String name, final KafkaProducerConfig config, int batchSize) throws KafkaException {
+	public KafkaOutput(final String topic, final KafkaOutputConfig config, int batchSize) throws KafkaException {
 		super();
-		this.name = name;
 		this.serder = new BsonSerder();
 		threads = Executors.newFixedThreadPool(1);
 		context = new QueueMixed(curr(config.toString()), batchSize);
-		logger.info("[" + name + "] Producer thread starting (max: " + 1 + ")...");
+		logger.info("Producer thread starting (max: " + 1 + ")...");
 		createProcuder(threads, config, batchSize);
 	}
 
 	@SuppressWarnings("unchecked")
-	public void write(String topic, Map<String, Object> meta, Map<String, Object>... map) {
-		for (Map<String, Object> m : map)
-			context.enqueue(topic, serder.ser(new KafkaMapWrapper(null, meta, m)));
+	@Override
+	public void write(String topic, Map<String, Object>... message) {
+		// TODO: create key
+		byte[] k = null;
+		for (Map<String, Object> m : message)
+			context.enqueue(topic, k, serder.ser(m));
 	}
 
 	@SuppressWarnings("unchecked")
-	public void write(String topic, Map<String, Object> meta, Converter<Map<String, Object>, String> keying, Map<String, Object>... map) {
-		for (Map<String, Object> m : map)
-			context.enqueue(topic, serder.ser(new KafkaMapWrapper(null, meta, m)));
-	}
-
-	@SuppressWarnings("unchecked")
+	@Override
 	public <E> void write(String topic, E... object) {
+		// TODO: create key
+		byte[] k = null;
 		for (E e : object)
-			context.enqueue(topic, serder.ser(new KafkaObjectWrapper<E>(null, e)));
+			context.enqueue(topic, k, serder.ser(e));
 	}
 
 	@SuppressWarnings("unchecked")
-	public <E> void write(String topic, Converter<E, String> keying, E... object) {
+	public <E> void write(String topic, Converter<E, byte[]> keying, E... object) {
 		for (E e : object)
-			context.enqueue(topic, serder.ser(new KafkaObjectWrapper<E>(null, e)));
+			context.enqueue(topic, keying.apply(e), serder.ser(e));
 	}
 
 	public void close() {
-		logger.info("[" + name + "] All threads closing...");
 		threads.shutdown();
-		logger.info("[" + name + "] Buffer clearing...");
 		context.close();
 	}
 
@@ -83,13 +84,13 @@ public class KafkaProducer implements AutoCloseable {
 		}
 	}
 
-	private void createProcuder(ExecutorService threads, KafkaProducerConfig config, int batchSize) {
-		Producer<String, byte[]> p;
+	private void createProcuder(ExecutorService threads, KafkaOutputConfig config, int batchSize) {
+		Producer<byte[], byte[]> p;
 		try {
 			p = new Producer<>(config.getConfig());
 		} catch (KafkaException e) {
 			throw new RuntimeException(e);
 		}
-		threads.submit(new ProducerThread(context, p));
+		threads.submit(new OutputThread(context, p));
 	}
 }

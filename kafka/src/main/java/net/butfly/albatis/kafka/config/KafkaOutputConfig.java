@@ -1,4 +1,4 @@
-package net.butfly.albatis.impl.kafka.config;
+package net.butfly.albatis.kafka.config;
 
 import java.util.Properties;
 
@@ -6,7 +6,7 @@ import kafka.producer.ProducerConfig;
 import net.butfly.albatis.kafka.KafkaException;
 
 @SuppressWarnings("deprecation")
-public class KafkaProducerConfig extends KafkaConfigBase {
+public class KafkaOutputConfig extends KafkaConfigBase {
 	private static final long serialVersionUID = -3028341800709486625L;
 	public static final Properties DEFAULT_CONFIG = defaults();
 	private String metadataBrokerList;
@@ -15,17 +15,17 @@ public class KafkaProducerConfig extends KafkaConfigBase {
 	private String compressionCodec;
 	private String keySerializerClass;
 
-	public KafkaProducerConfig(String zookeeperConnect, String metadataBrokerList) {
+	public KafkaOutputConfig(String zookeeperConnect, String metadataBrokerList) {
 		this(DEFAULT_CONFIG);
 		this.zookeeperConnect = zookeeperConnect;
 		this.metadataBrokerList = metadataBrokerList;
 	}
 
-	public KafkaProducerConfig(String classpathResourceName) {
+	public KafkaOutputConfig(String classpathResourceName) {
 		super(classpathResourceName);
 	}
 
-	public KafkaProducerConfig(Properties props) {
+	public KafkaOutputConfig(Properties props) {
 		super(props);
 		metadataBrokerList = props.getProperty("metadata.broker.list");
 		requestRequiredAcks = Integer.parseInt(props.getProperty("request.required.acks", "-1"));

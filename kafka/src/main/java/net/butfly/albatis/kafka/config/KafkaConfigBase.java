@@ -1,4 +1,4 @@
-package net.butfly.albatis.impl.kafka.config;
+package net.butfly.albatis.kafka.config;
 
 import java.io.IOException;
 import java.io.InputStream;

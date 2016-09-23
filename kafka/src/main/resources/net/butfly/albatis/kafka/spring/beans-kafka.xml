@@ -22,7 +22,7 @@
 	<bean id="kafkaDao" class="net.butfly.albatis.dao.KafkaDao" abstract="true" parent="simpleDao" init-method="initialize">
 		<property name="consumer" ref="kafkaConsumerConfig" />
 	</bean>
-	<bean id="kafkaConsumerConfig" class="net.butfly.albatis.impl.kafka.config.KafkaConsumerConfig">
+	<bean id="kafkaConsumerConfig" class="net.butfly.albatis.kafka.config.KafkaInputConfig">
 		<property name="zookeeperConnect" value="${albatis.kafka.zookeeper.connect}" />
 		<property name="zookeeperConnectionTimeoutMs" value="${albatis.kafka.zookeeper.connection.timeout.ms}" />
 		<property name="zookeeperSyncTimeMs" value="${albatis.kafka.zookeeper.sync.time.ms}" />
