@@ -1,17 +1,13 @@
-package net.butfly.albatis.kafka;
+package net.butfly.albatis.kafka.backend;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 import com.leansoft.bigqueue.BigQueueImpl;
 import com.leansoft.bigqueue.IBigQueue;
 
-import scala.Tuple2;
-
-class QueueMixed extends Queue {
+public class QueueMixed extends Queue {
 	private IBigQueue queue;
 
 	public QueueMixed(String dataFolder, long batchSize) {
@@ -23,19 +19,6 @@ class QueueMixed extends Queue {
 		} catch (IOException e) {
 			throw new RuntimeException("Local cache create failure.", e);
 		}
-	}
-
-	@Override
-	public List<Tuple2<String, byte[]>> dequeue(String topic) {
-		List<Tuple2<String, byte[]>> batch = new ArrayList<>();
-		if (!contains(topic)) return batch;
-		while (batch.size() < batchSize && queue.isEmpty())
-			try {
-				batch.add(decode(queue.dequeue()));
-			} catch (IOException e) {
-				logger.error("Message dequeue/deserialize from local pool failure.", e);
-			}
-		return batch;
 	}
 
 	@Override

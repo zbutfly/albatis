@@ -1,11 +1,11 @@
-package net.butfly.albatis.impl.kafka.config;
+package net.butfly.albatis.kafka.config;
 
 import java.util.Properties;
 
 import kafka.consumer.ConsumerConfig;
 import net.butfly.albatis.kafka.KafkaException;
 
-public class KafkaConsumerConfig extends KafkaConfigBase {
+public class KafkaInputConfig extends KafkaConfigBase {
 	private static final long serialVersionUID = -3028341800709486625L;
 	public static final Properties DEFAULT_CONFIG = defaults();
 	protected int zookeeperSyncTimeMs;
@@ -17,17 +17,17 @@ public class KafkaConsumerConfig extends KafkaConfigBase {
 	protected String partitionAssignmentStrategy;
 	protected int fetchMessageMaxBytes;
 
-	public KafkaConsumerConfig(String zookeeperConnect, String groupId) {
+	public KafkaInputConfig(String zookeeperConnect, String groupId) {
 		this(DEFAULT_CONFIG);
 		this.zookeeperConnect = zookeeperConnect;
 		this.groupId = groupId;
 	}
 
-	public KafkaConsumerConfig(String classpathResourceName) {
+	public KafkaInputConfig(String classpathResourceName) {
 		super(classpathResourceName);
 	}
 
-	public KafkaConsumerConfig(Properties props) {
+	public KafkaInputConfig(Properties props) {
 		super(props);
 		zookeeperSyncTimeMs = Integer.valueOf(props.getProperty("zookeeper.sync.time.ms", "5000"));
 		groupId = props.getProperty("group.id");
