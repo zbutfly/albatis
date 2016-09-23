@@ -15,17 +15,18 @@ import net.butfly.albacore.lambda.Converter;
 import net.butfly.albacore.serder.BsonSerder;
 import net.butfly.albatis.kafka.backend.OutputThread;
 import net.butfly.albatis.kafka.backend.Queue;
-import net.butfly.albatis.kafka.backend.QueueMixed;
+import net.butfly.albatis.kafka.backend.Queue.Message;
 import net.butfly.albatis.kafka.config.KafkaOutputConfig;
 
 @SuppressWarnings("deprecation")
-public class KafkaOutput implements Output<String> {
+public class KafkaOutput implements Output<Message> {
 	private static final long serialVersionUID = -276336973758504567L;
 	private static final Logger logger = LoggerFactory.getLogger(KafkaOutput.class);
 
 	private Queue context;
 	private ExecutorService threads;
 	private BsonSerder serder;
+	private long batchSize;
 
 	/**
 	 * @param mixed:
@@ -36,37 +37,35 @@ public class KafkaOutput implements Output<String> {
 	 *            缓冲消息个数
 	 * @return
 	 */
-	public KafkaOutput(final String topic, final KafkaOutputConfig config, int batchSize) throws KafkaException {
+	public KafkaOutput(final String topic, final KafkaOutputConfig config, long poolSize, long batchSize) throws KafkaException {
 		super();
+		this.batchSize = batchSize;
 		this.serder = new BsonSerder();
 		threads = Executors.newFixedThreadPool(1);
-		context = new QueueMixed(curr(config.toString()), batchSize);
+		context = new Queue(curr(config.toString()), poolSize);
 		logger.info("Producer thread starting (max: " + 1 + ")...");
-		createProcuder(threads, config, batchSize);
+		createProcuder(threads, config);
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
-	public void write(String topic, Map<String, Object>... message) {
-		// TODO: create key
-		byte[] k = null;
-		for (Map<String, Object> m : message)
-			context.enqueue(topic, k, serder.ser(m));
+	public void write(Message... message) {
+		context.enqueue(message);
 	}
 
-	@SuppressWarnings("unchecked")
-	@Override
-	public <E> void write(String topic, E... object) {
-		// TODO: create key
-		byte[] k = null;
-		for (E e : object)
-			context.enqueue(topic, k, serder.ser(e));
+	@SafeVarargs
+	public final void write(String topic, Converter<Map<String, Object>, byte[]> keying, Map<String, Object>... object) {
+		Message[] messages = new Message[object.length];
+		for (int i = 0; i < object.length; i++)
+			messages[i] = new Message(topic, keying.apply(object[i]), serder.ser(object[i]));
+		write(messages);
 	}
 
-	@SuppressWarnings("unchecked")
-	public <E> void write(String topic, Converter<E, byte[]> keying, E... object) {
-		for (E e : object)
-			context.enqueue(topic, keying.apply(e), serder.ser(e));
+	@SafeVarargs
+	public final <E> void write(String topic, Converter<E, byte[]> keying, E... object) {
+		Message[] messages = new Message[object.length];
+		for (int i = 0; i < object.length; i++)
+			messages[i] = new Message(topic, keying.apply(object[i]), serder.ser(object[i]));
+		context.enqueue(messages);
 	}
 
 	public void close() {
@@ -84,13 +83,13 @@ public class KafkaOutput implements Output<String> {
 		}
 	}
 
-	private void createProcuder(ExecutorService threads, KafkaOutputConfig config, int batchSize) {
+	private void createProcuder(ExecutorService threads, KafkaOutputConfig config) {
 		Producer<byte[], byte[]> p;
 		try {
 			p = new Producer<>(config.getConfig());
 		} catch (KafkaException e) {
 			throw new RuntimeException(e);
 		}
-		threads.submit(new OutputThread(context, p));
+		threads.submit(new OutputThread(context, p, batchSize));
 	}
 }
