@@ -19,6 +19,7 @@ import kafka.consumer.KafkaStream;
 import kafka.javaapi.consumer.ConsumerConnector;
 import net.butfly.albacore.io.Input;
 import net.butfly.albacore.serder.BsonSerder;
+import net.butfly.albacore.utils.async.Tasks;
 import net.butfly.albatis.kafka.backend.InputThread;
 import net.butfly.albatis.kafka.backend.Queue;
 import net.butfly.albatis.kafka.backend.Queue.Message;
@@ -33,7 +34,7 @@ public class KafkaInput implements Input<Message> {
 	private String name;
 	private ConsumerConnector connect;
 	private Queue context;
-	private ExecutorService threads;
+	private ExecutorService executor;
 	private BsonSerder serder;
 	private long batchSize;
 
@@ -54,7 +55,7 @@ public class KafkaInput implements Input<Message> {
 		for (Integer t : topics.values())
 			if (null != t) total += t;
 		if (total == 0) throw new KafkaException("Kafka configuration has no topic definition.");
-		threads = Executors.newFixedThreadPool(topics.size());
+		executor = Executors.newFixedThreadPool(topics.size());
 		logger.info("[" + name + "] Consumer thread starting (max: " + total + ")...");
 		context = new Queue(curr(config.toString()), poolSize);
 		createConsumers(config.getConfig(), topics);
@@ -93,7 +94,7 @@ public class KafkaInput implements Input<Message> {
 
 	@Override
 	public void close() {
-		threads.shutdown();
+		Tasks.waitShutdown(executor);
 		connect.shutdown();
 		context.close();
 	}
@@ -115,7 +116,7 @@ public class KafkaInput implements Input<Message> {
 			Map<String, List<KafkaStream<byte[], byte[]>>> streamMap = connect.createMessageStreams(topics);
 			for (List<KafkaStream<byte[], byte[]>> streams : streamMap.values())
 				if (!streams.isEmpty()) for (final KafkaStream<byte[], byte[]> stream : streams) {
-					threads.submit(new InputThread(context, stream, batchSize, this::commit));
+					executor.submit(new InputThread(context, stream, batchSize, this::commit));
 					c++;
 				}
 		} catch (Exception e) {
