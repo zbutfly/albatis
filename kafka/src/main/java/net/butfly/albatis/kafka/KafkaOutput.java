@@ -23,10 +23,10 @@ public class KafkaOutput implements Output<Message> {
 	private static final long serialVersionUID = -276336973758504567L;
 	private static final Logger logger = LoggerFactory.getLogger(KafkaOutput.class);
 
-	private Queue context;
-	private ExecutorService threads;
-	private BsonSerder serder;
-	private long batchSize;
+	private final Queue context;
+	private final ExecutorService threads;
+	private final BsonSerder serder;
+	private final Producer<byte[], byte[]> connect;
 
 	/**
 	 * @param mixed:
@@ -37,14 +37,13 @@ public class KafkaOutput implements Output<Message> {
 	 *            缓冲消息个数
 	 * @return
 	 */
-	public KafkaOutput(final String topic, final KafkaOutputConfig config, long poolSize, long batchSize) throws KafkaException {
+	public KafkaOutput(final KafkaOutputConfig config) throws KafkaException {
 		super();
-		this.batchSize = batchSize;
 		this.serder = new BsonSerder();
 		threads = Executors.newFixedThreadPool(1);
-		context = new Queue(curr(config.toString()), poolSize);
+		context = new Queue(curr(config.toString()), config.getPoolSize());
 		logger.info("Producer thread starting (max: " + 1 + ")...");
-		createProcuder(threads, config);
+		this.connect = connect(threads, config);
 	}
 
 	@Override
@@ -71,6 +70,7 @@ public class KafkaOutput implements Output<Message> {
 	public void close() {
 		threads.shutdown();
 		context.close();
+		connect.close();
 	}
 
 	private String curr(String zookeeperConnect) throws KafkaException {
@@ -83,13 +83,14 @@ public class KafkaOutput implements Output<Message> {
 		}
 	}
 
-	private void createProcuder(ExecutorService threads, KafkaOutputConfig config) {
+	private Producer<byte[], byte[]> connect(ExecutorService threads, KafkaOutputConfig config) {
 		Producer<byte[], byte[]> p;
 		try {
 			p = new Producer<>(config.getConfig());
 		} catch (KafkaException e) {
 			throw new RuntimeException(e);
 		}
-		threads.submit(new OutputThread(context, p, batchSize));
+		threads.submit(new OutputThread(context, p, config.getBatchSize()));
+		return p;
 	}
 }

@@ -28,37 +28,26 @@ import scala.Tuple3;
 
 public class KafkaInput implements Input<Message> {
 	private static final long serialVersionUID = 7617065839861658802L;
-
 	private static final Logger logger = LoggerFactory.getLogger(KafkaInput.class);
 
-	private String name;
-	private ConsumerConnector connect;
-	private Queue context;
-	private ExecutorService executor;
-	private BsonSerder serder;
-	private long batchSize;
+	private final long batchSize;
+	private final ConsumerConnector connect;
+	private final Queue context;
+	private final ExecutorService executor;
+	private final BsonSerder serder;
 
-	/**
-	 * @param poolSize
-	 * @param batchSize
-	 * @param mixed:
-	 *            是否混合模式
-	 * @return
-	 */
-	public KafkaInput(String name, final KafkaInputConfig config, final Map<String, Integer> topics, long poolSize, long batchSize)
-			throws KafkaException {
+	public KafkaInput(final KafkaInputConfig config, final Map<String, Integer> topics) throws KafkaException {
 		super();
-		this.batchSize = batchSize;
-		this.name = name;
+		this.batchSize = config.getBatchSize();
 		this.serder = new BsonSerder();
 		int total = 0;
 		for (Integer t : topics.values())
 			if (null != t) total += t;
 		if (total == 0) throw new KafkaException("Kafka configuration has no topic definition.");
 		executor = Executors.newFixedThreadPool(topics.size());
-		logger.info("[" + name + "] Consumer thread starting (max: " + total + ")...");
-		context = new Queue(curr(config.toString()), poolSize);
-		createConsumers(config.getConfig(), topics);
+		logger.info("Consumer thread starting (max: " + total + ")...");
+		context = new Queue(curr(config.toString()), config.getPoolSize());
+		this.connect = connect(config.getConfig(), topics);
 	}
 
 	@Override
@@ -109,19 +98,20 @@ public class KafkaInput implements Input<Message> {
 		}
 	}
 
-	private void createConsumers(ConsumerConfig config, Map<String, Integer> topics) {
+	private ConsumerConnector connect(ConsumerConfig config, Map<String, Integer> topics) {
 		long c = 0;
 		try {
-			connect = Consumer.createJavaConsumerConnector(config);
+			ConsumerConnector connect = Consumer.createJavaConsumerConnector(config);
 			Map<String, List<KafkaStream<byte[], byte[]>>> streamMap = connect.createMessageStreams(topics);
 			for (List<KafkaStream<byte[], byte[]>> streams : streamMap.values())
 				if (!streams.isEmpty()) for (final KafkaStream<byte[], byte[]> stream : streams) {
 					executor.submit(new InputThread(context, stream, batchSize, this::commit));
 					c++;
 				}
+			logger.info("Consumer thread started (current: " + c + ").");
+			return connect;
 		} catch (Exception e) {
 			throw new RuntimeException("Kafka connecting failure.", e);
 		}
-		logger.info("[" + name + "] Consumer thread started (current: " + c + ").");
 	}
 }
