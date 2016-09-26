@@ -13,9 +13,9 @@ public abstract class KafkaConfigBase implements Serializable {
 
 	public KafkaConfigBase(Properties props) {
 		super();
-		zookeeperConnect = props.getProperty("zookeeper.connect");
-		zookeeperConnectionTimeoutMs = Integer.valueOf(props.getProperty("zookeeper.connection.timeout.ms", "15000"));
-		transferBufferBytes = Integer.valueOf(props.getProperty("transfer.buffer.bytes", "5242880"));
+		zookeeperConnect = props.getProperty("albatis.kafka.zookeeper");
+		zookeeperConnectionTimeoutMs = Integer.valueOf(props.getProperty("albatis.kafka.zookeeper.connection.timeout.ms", "15000"));
+		transferBufferBytes = Integer.valueOf(props.getProperty("albatis.kafka.transfer.buffer.bytes", "5242880"));
 	}
 
 	public KafkaConfigBase(String classpathResourceName) {

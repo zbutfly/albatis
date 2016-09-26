@@ -27,11 +27,11 @@ public class KafkaOutputConfig extends KafkaConfigBase {
 
 	public KafkaOutputConfig(Properties props) {
 		super(props);
-		metadataBrokerList = props.getProperty("metadata.broker.list");
-		requestRequiredAcks = Integer.parseInt(props.getProperty("request.required.acks", "-1"));
-		producerType = props.getProperty("producer.type", "sync");
-		compressionCodec = props.getProperty("compression.codec", "snappy");
-		keySerializerClass = props.getProperty("key.serializer.class", "kafka.serializer.StringEncoder");
+		metadataBrokerList = props.getProperty("albatis.kafka.metadata.broker.list");
+		requestRequiredAcks = Integer.parseInt(props.getProperty("albatis.kafka.request.required.acks", "-1"));
+		producerType = props.getProperty("albatis.kafka.producer.type", "sync");
+		compressionCodec = props.getProperty("albatis.kafka.compression.codec", "snappy");
+		keySerializerClass = props.getProperty("albatis.kafka.key.serializer.class", "kafka.serializer.StringEncoder");
 	}
 
 	public ProducerConfig getConfig() throws KafkaException {
