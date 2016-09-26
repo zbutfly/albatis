@@ -3,6 +3,7 @@ package net.butfly.albatis.kafka.config;
 import java.util.Properties;
 
 import kafka.producer.ProducerConfig;
+import net.butfly.albacore.utils.Reflections;
 import net.butfly.albatis.kafka.KafkaException;
 
 @SuppressWarnings("deprecation")
@@ -15,19 +16,14 @@ public class KafkaOutputConfig extends KafkaConfigBase {
 	private String compressionCodec;
 	private String keySerializerClass;
 
-	public KafkaOutputConfig(String zookeeperConnect, String metadataBrokerList) {
-		this(DEFAULT_CONFIG);
-		this.zookeeperConnect = zookeeperConnect;
-		this.metadataBrokerList = metadataBrokerList;
-	}
-
 	public KafkaOutputConfig(String classpathResourceName) {
-		super(classpathResourceName);
+		this(Reflections.loadAsProps(classpathResourceName));
 	}
 
 	public KafkaOutputConfig(Properties props) {
 		super(props);
 		metadataBrokerList = props.getProperty("albatis.kafka.metadata.broker.list");
+
 		requestRequiredAcks = Integer.parseInt(props.getProperty("albatis.kafka.request.required.acks", "-1"));
 		producerType = props.getProperty("albatis.kafka.producer.type", "sync");
 		compressionCodec = props.getProperty("albatis.kafka.compression.codec", "snappy");
@@ -37,14 +33,14 @@ public class KafkaOutputConfig extends KafkaConfigBase {
 	public ProducerConfig getConfig() throws KafkaException {
 		if (zookeeperConnect == null || metadataBrokerList == null) throw new KafkaException(
 				"Kafka configuration has no zookeeper and group definition.");
-		return new ProducerConfig(getProps());
+		return new ProducerConfig(props());
 	}
 
 	@Override
-	protected Properties getProps() {
-		Properties props = super.getProps();
-		props.setProperty("zookeeper.connectiontimeout.ms", Integer.toString(zookeeperConnectionTimeoutMs));
-		props.setProperty("send.buffer.bytes", Integer.toString(transferBufferBytes));
+	protected Properties props() {
+		Properties props = super.props();
+		props.setProperty("zookeeper.connectiontimeout.ms", Long.toString(zookeeperConnectionTimeoutMs));
+		props.setProperty("send.buffer.bytes", Long.toString(transferBufferBytes));
 		props.setProperty("metadata.broker.list", metadataBrokerList);
 		props.setProperty("request.required.acks", Integer.toString(requestRequiredAcks));
 		props.setProperty("producer.type", producerType);

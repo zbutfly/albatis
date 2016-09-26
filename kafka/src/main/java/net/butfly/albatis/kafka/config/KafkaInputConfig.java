@@ -3,34 +3,30 @@ package net.butfly.albatis.kafka.config;
 import java.util.Properties;
 
 import kafka.consumer.ConsumerConfig;
+import net.butfly.albacore.utils.Reflections;
 import net.butfly.albatis.kafka.KafkaException;
 
 public class KafkaInputConfig extends KafkaConfigBase {
 	private static final long serialVersionUID = -3028341800709486625L;
 	public static final Properties DEFAULT_CONFIG = defaults();
-	protected int zookeeperSyncTimeMs;
+	protected long zookeeperSyncTimeMs;
 	protected String groupId;
 	protected boolean autoCommitEnable;
-	protected int autoCommitIntervalMs;
+	protected long autoCommitIntervalMs;
 	protected String autoOffsetReset;
-	protected int sessionTimeoutMs;
+	protected long sessionTimeoutMs;
 	protected String partitionAssignmentStrategy;
-	protected int fetchMessageMaxBytes;
-
-	public KafkaInputConfig(String zookeeperConnect, String groupId) {
-		this(DEFAULT_CONFIG);
-		this.zookeeperConnect = zookeeperConnect;
-		this.groupId = groupId;
-	}
+	protected long fetchMessageMaxBytes;
 
 	public KafkaInputConfig(String classpathResourceName) {
-		super(classpathResourceName);
+		this(Reflections.loadAsProps(classpathResourceName));
 	}
 
 	public KafkaInputConfig(Properties props) {
 		super(props);
-		zookeeperSyncTimeMs = Integer.valueOf(props.getProperty("albatis.kafka.zookeeper.sync.time.ms", "5000"));
 		groupId = props.getProperty("albatis.kafka.group.id");
+
+		zookeeperSyncTimeMs = Integer.valueOf(props.getProperty("albatis.kafka.zookeeper.sync.time.ms", "5000"));
 		autoCommitEnable = Boolean.valueOf(props.getProperty("albatis.kafka.auto.commit.enable", "false"));
 		autoCommitIntervalMs = Integer.valueOf(props.getProperty("albatis.kafka.auto.commit.interval.ms", "1000"));
 		autoOffsetReset = props.getProperty("albatis.kafka.auto.offset.reset", "smallest");
@@ -42,22 +38,22 @@ public class KafkaInputConfig extends KafkaConfigBase {
 	public ConsumerConfig getConfig() throws KafkaException {
 		if (zookeeperConnect == null || groupId == null) throw new KafkaException(
 				"Kafka configuration has no zookeeper and group definition.");
-		return new ConsumerConfig(getProps());
+		return new ConsumerConfig(props());
 	}
 
 	@Override
-	protected Properties getProps() {
-		Properties props = super.getProps();
-		props.setProperty("albatis.kafka.zookeeper.connection.timeout.ms", Integer.toString(zookeeperConnectionTimeoutMs));
-		props.setProperty("zookeeper.sync.time.ms", Integer.toString(zookeeperSyncTimeMs));
+	protected Properties props() {
+		Properties props = super.props();
+		props.setProperty("albatis.kafka.zookeeper.connection.timeout.ms", Long.toString(zookeeperConnectionTimeoutMs));
+		props.setProperty("zookeeper.sync.time.ms", Long.toString(zookeeperSyncTimeMs));
 		props.setProperty("group.id", groupId);
 		props.setProperty("albatis.kafka.auto.commit.enable", Boolean.toString(autoCommitEnable));
-		props.setProperty("auto.commit.interval.ms", Integer.toString(autoCommitIntervalMs));
+		props.setProperty("auto.commit.interval.ms", Long.toString(autoCommitIntervalMs));
 		props.setProperty("auto.offset.reset", autoOffsetReset);
-		props.setProperty("session.timeout.ms", Integer.toString(sessionTimeoutMs));
+		props.setProperty("session.timeout.ms", Long.toString(sessionTimeoutMs));
 		props.setProperty("partition.assignment.strategy", partitionAssignmentStrategy);
-		props.setProperty("albatis.kafka.transfer.buffer.bytes", Integer.toString(transferBufferBytes));
-		props.setProperty("fetch.message.max.bytes", Integer.toString(fetchMessageMaxBytes));
+		props.setProperty("albatis.kafka.transfer.buffer.bytes", Long.toString(transferBufferBytes));
+		props.setProperty("fetch.message.max.bytes", Long.toString(fetchMessageMaxBytes));
 		return props;
 	}
 
