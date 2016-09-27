@@ -35,9 +35,11 @@ public class KafkaInput implements Input<Message> {
 	private final Queue context;
 	private final ExecutorService executor;
 	private final BsonSerder serder;
+	private boolean debug;
 
 	public KafkaInput(final KafkaInputConfig config, final Map<String, Integer> topics) throws KafkaException {
 		super();
+		this.debug = Boolean.parseBoolean(System.getProperty("albacore.debug"));
 		this.batchSize = config.getBatchSize();
 		this.serder = new BsonSerder();
 		int total = 0;
@@ -45,7 +47,7 @@ public class KafkaInput implements Input<Message> {
 			if (null != t) total += t;
 		if (total == 0) throw new KafkaException("Kafka configuration has no topic definition.");
 		executor = Executors.newFixedThreadPool(topics.size());
-		logger.info("Consumer thread starting (max: " + total + ")...");
+		logger.info("Kafka input thread starting (max: " + total + ")...");
 		context = new Queue(curr(config.toString()), config.getPoolSize());
 		this.connect = connect(config.getConfig(), topics);
 	}
@@ -61,8 +63,8 @@ public class KafkaInput implements Input<Message> {
 	public List<Tuple3<String, byte[], Map<String, Object>>> read(String... topic) {
 		List<Tuple3<String, byte[], Map<String, Object>>> l = new ArrayList<>();
 		for (Message message : context.dequeue(batchSize, topic))
-			l.add(new Tuple3<String, byte[], Map<String, Object>>(message.getTopic(), message.getKey(), serder.der(message.getMessage(),
-					T_MAP)));
+			l.add(new Tuple3<String, byte[], Map<String, Object>>(message.getTopic(), message.getKey(),
+					serder.der(message.getMessage(), T_MAP)));
 		return l;
 
 	}
@@ -78,7 +80,7 @@ public class KafkaInput implements Input<Message> {
 
 	@Override
 	public void commit() {
-		connect.commitOffsets();
+		if (!debug) connect.commitOffsets();
 	}
 
 	@Override
@@ -108,7 +110,7 @@ public class KafkaInput implements Input<Message> {
 					executor.submit(new InputThread(context, stream, batchSize, this::commit));
 					c++;
 				}
-			logger.info("Consumer thread started (current: " + c + ").");
+			logger.info("Kafka inputting thread started (current: " + c + ").");
 			return connect;
 		} catch (Exception e) {
 			throw new RuntimeException("Kafka connecting failure.", e);
