@@ -10,15 +10,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import net.butfly.albacore.utils.logger.Logger;
 
 import com.google.common.base.Charsets;
 import com.leansoft.bigqueue.BigQueueImpl;
 import com.leansoft.bigqueue.IBigQueue;
 
 public class Queue implements Closeable {
-	protected static final Logger logger = LoggerFactory.getLogger(Queue.class);
+	protected static final Logger logger = Logger.getLogger(Queue.class);
 	protected static final long WAIT_MS = 1000;
 	protected long poolSize;
 	protected Boolean closing;

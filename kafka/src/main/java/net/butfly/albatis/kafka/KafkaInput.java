@@ -8,8 +8,7 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import net.butfly.albacore.utils.logger.Logger;
 
 import com.google.common.reflect.TypeToken;
 
@@ -28,7 +27,7 @@ import scala.Tuple3;
 
 public class KafkaInput implements Input<Message> {
 	private static final long serialVersionUID = 7617065839861658802L;
-	private static final Logger logger = LoggerFactory.getLogger(KafkaInput.class);
+	private static final Logger logger = Logger.getLogger(KafkaInput.class);
 
 	private final long batchSize;
 	private final ConsumerConnector connect;

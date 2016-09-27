@@ -6,13 +6,12 @@
 //import java.util.List;
 //import java.util.Set;
 //
-//import org.slf4j.Logger;
-//import org.slf4j.LoggerFactory;
-//
+//import net.butfly.albacore.utils.logger.Logger;
+////
 //import com.leansoft.bigqueue.IBigQueue;
 //
 //public abstract class QueueBase implements Closeable {
-//	protected static final Logger logger = LoggerFactory.getLogger(QueueBase.class);
+//	protected static final Logger logger = Logger.getLogger(QueueBase.class);
 //	protected static final long WAIT_MS = 1000;
 //	protected long poolSize;
 //	protected boolean closing;

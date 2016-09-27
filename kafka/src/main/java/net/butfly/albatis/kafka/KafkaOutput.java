@@ -6,8 +6,7 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import net.butfly.albacore.utils.logger.Logger;
 
 import kafka.javaapi.producer.Producer;
 import net.butfly.albacore.io.Output;
@@ -21,7 +20,7 @@ import net.butfly.albatis.kafka.config.KafkaOutputConfig;
 @SuppressWarnings("deprecation")
 public class KafkaOutput implements Output<Message> {
 	private static final long serialVersionUID = -276336973758504567L;
-	private static final Logger logger = LoggerFactory.getLogger(KafkaOutput.class);
+	private static final Logger logger = Logger.getLogger(KafkaOutput.class);
 
 	private final Queue context;
 	private final ExecutorService threads;
