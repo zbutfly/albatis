@@ -9,7 +9,6 @@ import net.butfly.albatis.kafka.KafkaException;
 @SuppressWarnings("deprecation")
 public class KafkaOutputConfig extends KafkaConfigBase {
 	private static final long serialVersionUID = -3028341800709486625L;
-	public static final Properties DEFAULT_CONFIG = defaults();
 	private String metadataBrokerList;
 	private int requestRequiredAcks;
 	private String producerType;
@@ -47,17 +46,6 @@ public class KafkaOutputConfig extends KafkaConfigBase {
 		props.setProperty("compression.codec", compressionCodec);
 		props.setProperty("key.serializer.class", keySerializerClass);
 
-		return props;
-	}
-
-	private static Properties defaults() {
-		Properties props = new Properties();
-		props.setProperty("zookeeper.connectiontimeout.ms", "15000");
-		props.setProperty("send.buffer.bytes", "5120000");
-		props.setProperty("request.required.acks", "-1");
-		props.setProperty("producer.type", "sync");
-		props.setProperty("compression.codec", "snappy");
-		props.setProperty("key.serializer.class", "kafka.serializer.StringEncoder");
 		return props;
 	}
 }

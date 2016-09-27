@@ -37,7 +37,7 @@ public abstract class KafkaConfigBase implements Serializable {
 
 	protected Properties props() {
 		Properties props = new Properties();
-		props.setProperty("albatis.kafka.zookeeper.connect", zookeeperConnect);
+		props.setProperty("zookeeper.connect", zookeeperConnect);
 		return props;
 	}
 }
