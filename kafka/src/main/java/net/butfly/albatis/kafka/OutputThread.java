@@ -1,19 +1,19 @@
-package net.butfly.albatis.kafka.backend;
+package net.butfly.albatis.kafka;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import kafka.javaapi.producer.Producer;
 import kafka.producer.KeyedMessage;
-import net.butfly.albatis.kafka.backend.Queue.Message;
+import net.butfly.albatis.kafka.Queue.Message;
 
 @SuppressWarnings("deprecation")
-public class OutputThread extends Thread {
+class OutputThread extends Thread {
 	private Queue context;
 	private Producer<byte[], byte[]> producer;
 	private long batchSize;
 
-	public OutputThread(Queue context, Producer<byte[], byte[]> p, long batchSize) {
+	OutputThread(Queue context, Producer<byte[], byte[]> p, long batchSize) {
 		super();
 		this.context = context;
 		this.producer = p;

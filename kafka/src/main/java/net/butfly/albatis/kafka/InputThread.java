@@ -1,4 +1,4 @@
-package net.butfly.albatis.kafka.backend;
+package net.butfly.albatis.kafka;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -6,15 +6,15 @@ import java.util.List;
 import kafka.consumer.KafkaStream;
 import kafka.message.MessageAndMetadata;
 import net.butfly.albacore.lambda.Task;
-import net.butfly.albatis.kafka.backend.Queue.Message;
+import net.butfly.albatis.kafka.Queue.Message;
 
-public class InputThread extends Thread {
+class InputThread extends Thread {
 	private KafkaStream<byte[], byte[]> stream;
 	private Queue context;
 	private long batchSize;
 	private Task committing;
 
-	public InputThread(Queue context, KafkaStream<byte[], byte[]> stream, long batciSize, Task committing) {
+	InputThread(Queue context, KafkaStream<byte[], byte[]> stream, long batciSize, Task committing) {
 		super();
 		this.context = context;
 		this.stream = stream;
