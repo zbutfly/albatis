@@ -6,12 +6,11 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import net.butfly.albacore.utils.logger.Logger;
-
 import kafka.javaapi.producer.Producer;
 import net.butfly.albacore.io.Output;
 import net.butfly.albacore.lambda.Converter;
 import net.butfly.albacore.serder.BsonSerder;
+import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.kafka.Queue.Message;
 import net.butfly.albatis.kafka.config.KafkaOutputConfig;
 
@@ -52,7 +51,7 @@ public class KafkaOutput implements Output<Message> {
 	public final void write(String topic, Converter<Map<String, Object>, byte[]> keying, Map<String, Object>... object) {
 		Message[] messages = new Message[object.length];
 		for (int i = 0; i < object.length; i++)
-			messages[i] = new Message(topic, keying.apply(object[i]), serder.ser(object[i]));
+			messages[i] = new Message(topic, keying.apply(object[i]), serder.ser(object[i]).get());
 		writing(messages);
 	}
 
@@ -60,7 +59,7 @@ public class KafkaOutput implements Output<Message> {
 	public final <E> void write(String topic, Converter<E, byte[]> keying, E... object) {
 		Message[] messages = new Message[object.length];
 		for (int i = 0; i < object.length; i++)
-			messages[i] = new Message(topic, keying.apply(object[i]), serder.ser(object[i]));
+			messages[i] = new Message(topic, keying.apply(object[i]), serder.ser(object[i]).get());
 		writing(messages);
 	}
 
