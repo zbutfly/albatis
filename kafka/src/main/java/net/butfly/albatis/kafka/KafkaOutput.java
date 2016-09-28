@@ -12,9 +12,7 @@ import kafka.javaapi.producer.Producer;
 import net.butfly.albacore.io.Output;
 import net.butfly.albacore.lambda.Converter;
 import net.butfly.albacore.serder.BsonSerder;
-import net.butfly.albatis.kafka.backend.OutputThread;
-import net.butfly.albatis.kafka.backend.Queue;
-import net.butfly.albatis.kafka.backend.Queue.Message;
+import net.butfly.albatis.kafka.Queue.Message;
 import net.butfly.albatis.kafka.config.KafkaOutputConfig;
 
 @SuppressWarnings("deprecation")
@@ -46,7 +44,7 @@ public class KafkaOutput implements Output<Message> {
 	}
 
 	@Override
-	public void write(Message... message) {
+	public void writing(Message... message) {
 		context.enqueue(message);
 	}
 
@@ -55,7 +53,7 @@ public class KafkaOutput implements Output<Message> {
 		Message[] messages = new Message[object.length];
 		for (int i = 0; i < object.length; i++)
 			messages[i] = new Message(topic, keying.apply(object[i]), serder.ser(object[i]));
-		write(messages);
+		writing(messages);
 	}
 
 	@SafeVarargs
@@ -63,7 +61,7 @@ public class KafkaOutput implements Output<Message> {
 		Message[] messages = new Message[object.length];
 		for (int i = 0; i < object.length; i++)
 			messages[i] = new Message(topic, keying.apply(object[i]), serder.ser(object[i]));
-		context.enqueue(messages);
+		writing(messages);
 	}
 
 	public void close() {

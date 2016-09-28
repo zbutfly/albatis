@@ -1,4 +1,4 @@
-package net.butfly.albatis.kafka.backend;
+package net.butfly.albatis.kafka;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -16,7 +16,7 @@ import com.google.common.base.Charsets;
 import com.leansoft.bigqueue.BigQueueImpl;
 import com.leansoft.bigqueue.IBigQueue;
 
-public class Queue implements Closeable {
+class Queue implements Closeable {
 	protected static final Logger logger = Logger.getLogger(Queue.class);
 	protected static final long WAIT_MS = 1000;
 	protected long poolSize;
@@ -24,14 +24,14 @@ public class Queue implements Closeable {
 	protected String dataFolder;
 	private Map<String, IBigQueue> queue;
 
-	public Queue(String dataFolder, long poolSize) {
+	Queue(String dataFolder, long poolSize) {
 		this.dataFolder = dataFolder;
 		this.poolSize = poolSize;
 		this.closing = false;
 		this.queue = new ConcurrentHashMap<>();
 	}
 
-	public void enqueue(Message... message) {
+	void enqueue(Message... message) {
 		if (closing) return;
 		while (size() >= poolSize)
 			sleep();
@@ -45,7 +45,7 @@ public class Queue implements Closeable {
 		}
 	}
 
-	public List<Message> dequeue(long batchSize, String... topic) {
+	List<Message> dequeue(long batchSize, String... topic) {
 		topic = topics(topic);
 		List<Message> batch = new ArrayList<>();
 		long remain;
@@ -66,18 +66,18 @@ public class Queue implements Closeable {
 		return batch;
 	}
 
-	public long size(String... topic) {
+	long size(String... topic) {
 		long s = 0;
 		for (String t : topics(topic))
 			s += contains(t) ? 0 : queue.get(topic).size();
 		return s;
 	}
 
-	public String[] topics(String... topic) {
+	String[] topics(String... topic) {
 		return null == topic || topic.length == 0 ? queue.keySet().toArray(new String[0]) : topic;
 	}
 
-	public boolean contains(String... topic) {
+	boolean contains(String... topic) {
 		for (String t : topics(topic))
 			if (queue.containsKey(t)) return true;
 		return false;
@@ -116,25 +116,25 @@ public class Queue implements Closeable {
 		}
 	}
 
-	public final boolean sleep() {
+	final boolean sleep() {
 		Thread.yield();
 		return true;
 	}
 
-	public static class Message implements Serializable {
+	static class Message implements Serializable {
 		private static final long serialVersionUID = -8599938670114294267L;
 		private String topic;
 		private byte[] key;
 		private byte[] message;
 
-		public Message(String topic, byte[] key, byte[] message) {
+		Message(String topic, byte[] key, byte[] message) {
 			super();
 			this.topic = topic;
 			this.key = key;
 			this.message = message;
 		}
 
-		public Message(byte[] data) {
+		Message(byte[] data) {
 			try (ByteArrayInputStream bo = new ByteArrayInputStream(data)) {
 				topic = new String(read(bo), Charsets.UTF_8);
 				key = read(bo);
@@ -144,19 +144,19 @@ public class Queue implements Closeable {
 			}
 		}
 
-		public String getTopic() {
+		String getTopic() {
 			return topic;
 		}
 
-		public byte[] getKey() {
+		byte[] getKey() {
 			return key;
 		}
 
-		public byte[] getMessage() {
+		byte[] getMessage() {
 			return message;
 		}
 
-		byte[] toBytes() {
+		private byte[] toBytes() {
 			try (ByteArrayOutputStream bo = new ByteArrayOutputStream()) {
 				write(bo, topic.getBytes(Charsets.UTF_8));
 				write(bo, key);

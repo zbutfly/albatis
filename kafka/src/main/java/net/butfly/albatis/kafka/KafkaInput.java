@@ -19,9 +19,7 @@ import kafka.javaapi.consumer.ConsumerConnector;
 import net.butfly.albacore.io.Input;
 import net.butfly.albacore.serder.BsonSerder;
 import net.butfly.albacore.utils.async.Tasks;
-import net.butfly.albatis.kafka.backend.InputThread;
-import net.butfly.albatis.kafka.backend.Queue;
-import net.butfly.albatis.kafka.backend.Queue.Message;
+import net.butfly.albatis.kafka.Queue.Message;
 import net.butfly.albatis.kafka.config.KafkaInputConfig;
 import scala.Tuple3;
 
@@ -52,7 +50,7 @@ public class KafkaInput implements Input<Message> {
 	}
 
 	@Override
-	public List<Message> read() {
+	public List<Message> reading() {
 		return context.dequeue(batchSize);
 	}
 
