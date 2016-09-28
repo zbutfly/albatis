@@ -8,8 +8,6 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import net.butfly.albacore.utils.logger.Logger;
-
 import com.google.common.reflect.TypeToken;
 
 import kafka.consumer.Consumer;
@@ -18,7 +16,9 @@ import kafka.consumer.KafkaStream;
 import kafka.javaapi.consumer.ConsumerConnector;
 import net.butfly.albacore.io.Input;
 import net.butfly.albacore.serder.BsonSerder;
+import net.butfly.albacore.serder.support.ByteArray;
 import net.butfly.albacore.utils.async.Tasks;
+import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.kafka.Queue.Message;
 import net.butfly.albatis.kafka.config.KafkaInputConfig;
 import scala.Tuple3;
@@ -60,8 +60,8 @@ public class KafkaInput implements Input<Message> {
 	public List<Tuple3<String, byte[], Map<String, Object>>> read(String... topic) {
 		List<Tuple3<String, byte[], Map<String, Object>>> l = new ArrayList<>();
 		for (Message message : context.dequeue(batchSize, topic))
-			l.add(new Tuple3<String, byte[], Map<String, Object>>(message.getTopic(), message.getKey(),
-					serder.der(message.getMessage(), T_MAP)));
+			l.add(new Tuple3<String, byte[], Map<String, Object>>(message.getTopic(), message.getKey(), serder.der(new ByteArray(message
+					.getMessage()), T_MAP)));
 		return l;
 
 	}
@@ -71,7 +71,7 @@ public class KafkaInput implements Input<Message> {
 		TypeToken<E> tt = new TypeToken<E>() {};
 		List<Tuple3<String, byte[], E>> l = new ArrayList<>();
 		for (Message message : context.dequeue(batchSize, topic))
-			l.add(new Tuple3<String, byte[], E>(message.getTopic(), message.getKey(), serder.der(message.getMessage(), tt)));
+			l.add(new Tuple3<String, byte[], E>(message.getTopic(), message.getKey(), serder.der(new ByteArray(message.getMessage()), tt)));
 		return l;
 	}
 
