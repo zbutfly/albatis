@@ -15,7 +15,6 @@ import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.kafka.Queue.Message;
 import net.butfly.albatis.kafka.config.KafkaOutputConfig;
 
-@SuppressWarnings("deprecation")
 public class KafkaOutput implements Output<Message> {
 	private static final long serialVersionUID = -276336973758504567L;
 	private static final Logger logger = Logger.getLogger(KafkaOutput.class);
@@ -39,7 +38,7 @@ public class KafkaOutput implements Output<Message> {
 		this.serder = new BsonSerder();
 		threads = Executors.newFixedThreadPool(1);
 		context = new Queue(curr(config.toString()), config.getPoolSize());
-		logger.info("Producer thread starting (max: " + 1 + ")...");
+		logger.trace("Writing threads pool created (max: " + 1 + ").");
 		this.connect = connect(threads, config);
 	}
 

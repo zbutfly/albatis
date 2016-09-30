@@ -46,7 +46,7 @@ public class KafkaInput implements Input<Message> {
 			if (null != t) total += t;
 		if (total == 0) throw new KafkaException("Kafka configuration has no topic definition.");
 		executor = Executors.newFixedThreadPool(topics.size());
-		logger.info("Kafka input thread starting (max: " + total + ")...");
+		logger.trace("Reading threads pool created (max: " + total + ").");
 		context = new Queue(curr(config.toString()), config.getPoolSize());
 		this.connect = connect(config.getConfig(), topics);
 	}
@@ -61,9 +61,10 @@ public class KafkaInput implements Input<Message> {
 
 	public List<Tuple3<String, byte[], Map<String, Object>>> read(String... topic) {
 		List<Tuple3<String, byte[], Map<String, Object>>> l = new ArrayList<>();
-		for (Message message : context.dequeue(batchSize, topic))
-			l.add(new Tuple3<String, byte[], Map<String, Object>>(message.getTopic(), message.getKey(),
+		for (Message message : context.dequeue(batchSize, topic)) {
+			l.add(new Tuple3<>(message.getTopic(), message.getKey(),
 					serder.der(new ByteArray(message.getMessage()), T_MAP)));
+		}
 		return l;
 
 	}
@@ -102,21 +103,34 @@ public class KafkaInput implements Input<Message> {
 
 	private ConsumerConnector connect(ConsumerConfig config, Map<String, Integer> topics) {
 		try {
-			logger.debug("Connecting to Kafka: [" + config.zkConnect() + "] as (groupId): [" + config.groupId() + "].");
-			ConsumerConnector connect = Consumer.createJavaConsumerConnector(config);
-			logger.debug("Connected to Kafka: [" + config.zkConnect() + "] as (groupId): [" + config.groupId() + "].");
-			Map<String, List<KafkaStream<byte[], byte[]>>> streamMap = connect.createMessageStreams(topics);
+			logger.debug("Kafka [" + config.zkConnect() + "] connecting (groupId: [" + config.groupId() + "]).");
+			ConsumerConnector conn = Consumer.createJavaConsumerConnector(config);
+			logger.debug("Kafka [" + config.zkConnect() + "] Connected (groupId: [" + config.groupId() + "]).");
+			Map<String, List<KafkaStream<byte[], byte[]>>> streamMap = conn.createMessageStreams(topics);
+			Tasks.waitSleep(5000, () -> logger.warn("Fucking 300ms lazy initialization of kafka []."));
+
+			logger.debug("Kafka ready in [" + streamMap.size() + "] topics.");
 			for (String topic : streamMap.keySet()) {
 				List<KafkaStream<byte[], byte[]>> streams = streamMap.get(topic);
+				logger.debug("Kafka (topic: [" + topic + "]) in [" + streams.size() + "] streams.");
 				if (!streams.isEmpty()) {
-					logger.info("Kafka inputting threads on topic [" + topic + "] is creating... (concurrent: " + streams.size() + ").");
-					for (final KafkaStream<byte[], byte[]> stream : streams)
-						executor.submit(new InputThread(context, topic, stream, batchSize, this::commit));
+					for (final KafkaStream<byte[], byte[]> stream : streams) {
+						logger.debug("Kafka thread (topic: [" + topic + "]) is creating... ");
+						executor.submit(new InputThread(context, topic, stream.iterator(), batchSize, this::commit));
+					}
 				}
 			}
-			return connect;
+			return conn;
 		} catch (Exception e) {
 			throw new RuntimeException("Kafka connecting failure.", e);
 		}
 	}
+	// private boolean valid(ConsumerConnector connect) {
+	// ZookeeperConsumerConnector c = Reflections.get(connect, "underlying");
+	// Option<ConsumerFetcherManager> m =
+	// c.kafka$consumer$ZookeeperConsumerConnector$$fetcher();
+	// return !m.isEmpty() && Reflections.get(m.get(),
+	// "kafka$consumer$ConsumerFetcherManager$$cluster") != null;
+	// }
+
 }

@@ -34,11 +34,15 @@ class Queue implements Closeable {
 	void enqueue(Message... message) {
 		if (closing) return;
 		while (size() >= poolSize)
-			Tasks.waitSleep(500, () -> logger.info("Sleeping for 500 ms, cause: " + "Kafka pool full"));
+			Tasks.waitSleep(500, () -> logger.trace("Kafka pool full, sleeping for 500ms"));
+		logger.trace("Kafka pool enqueuing: [" + message.length + "] messages.");
 		for (Message m : message) {
+			// BSONObject b = new BasicBSONDecoder().readObject(m.getMessage());
+			// logger.warn(b.toMap().toString());
 			IBigQueue q = queue(m.topic);
 			try {
 				q.enqueue(m.toBytes());
+				q.peek();
 			} catch (IOException e) {
 				logger.error("Message enqueue/serialize to local pool failure.", e);
 			}
@@ -61,8 +65,9 @@ class Queue implements Closeable {
 					logger.error("Message dequeue/deserialize from local pool failure.", e);
 				}
 			}
-		} while (batch.size() < batchSize && !(prev == batch.size()
-				&& !Tasks.waitSleep(500, () -> logger.info("Sleeping for 500 ms, cause: " + "Kafka pool empty"))));
+		} while (batch.size() < batchSize
+				&& !(prev == batch.size() && !Tasks.waitSleep(500, () -> logger.trace("Kafka pool empty, sleeping for 500ms."))));
+		logger.trace("Kafka pool dequeued: [" + batch.size() + "] messages.");
 		return batch;
 	}
 
@@ -166,14 +171,21 @@ class Queue implements Closeable {
 		private static void write(ByteArrayOutputStream os, byte[] data) throws IOException {
 			if (null == data) os.write(-1);
 			else {
-				os.write(data.length);
+				int l = data.length;
+				os.write(l & 0x000000FF);
+				os.write((l >> 8) & 0x000000FF);
+				os.write((l >> 16) & 0x000000FF);
+				os.write((l >> 24) & 0x000000FF);
 				if (data.length > 0) os.write(data);
 			}
 		}
 
 		private static byte[] read(ByteArrayInputStream bo) throws IOException {
 			int len = bo.read();
-			if (len == -1) return null;
+			len = (bo.read() << 8) | len;
+			len = (bo.read() << 16) | len;
+			len = (bo.read() << 24) | len;
+			if (len < 0) return null;
 			if (len == 0) return new byte[0];
 			byte[] data = new byte[len];
 			if (bo.read(data) != len) throw new RuntimeException();
