@@ -5,10 +5,12 @@ import java.util.List;
 
 import kafka.javaapi.producer.Producer;
 import kafka.producer.KeyedMessage;
+import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.kafka.Queue.Message;
 
 @SuppressWarnings("deprecation")
 class OutputThread extends Thread {
+	private final static Logger logger = Logger.getLogger(OutputThread.class);
 	private Queue context;
 	private Producer<byte[], byte[]> producer;
 	private long batchSize;
@@ -23,13 +25,12 @@ class OutputThread extends Thread {
 	@Override
 	public void run() {
 		while (true) {
-			while (context.size() > 0) {
-				List<KeyedMessage<byte[], byte[]>> l = new ArrayList<>();
-				for (Message m : context.dequeue(batchSize))
-					l.add(new KeyedMessage<byte[], byte[]>(m.getTopic(), m.getKey(), m.getMessage()));
-				producer.send(l);
-			}
-			context.sleep();
+			List<Message> msgs = context.dequeue(batchSize);
+			List<KeyedMessage<byte[], byte[]>> l = new ArrayList<>(msgs.size());
+			for (Message m : msgs)
+				l.add(new KeyedMessage<byte[], byte[]>(m.getTopic(), m.getKey(), m.getMessage()));
+			producer.send(l);
+			logger.trace(() -> msgs.size() + " Kafka messages sent.");
 		}
 	}
 }

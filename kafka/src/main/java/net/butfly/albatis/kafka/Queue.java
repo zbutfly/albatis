@@ -10,19 +10,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import net.butfly.albacore.utils.logger.Logger;
-
 import com.google.common.base.Charsets;
 import com.leansoft.bigqueue.BigQueueImpl;
 import com.leansoft.bigqueue.IBigQueue;
 
+import net.butfly.albacore.utils.async.Tasks;
+import net.butfly.albacore.utils.logger.Logger;
+
 class Queue implements Closeable {
-	protected static final Logger logger = Logger.getLogger(Queue.class);
-	protected static final long WAIT_MS = 1000;
-	protected long poolSize;
-	protected Boolean closing;
-	protected String dataFolder;
-	private Map<String, IBigQueue> queue;
+	private static final Logger logger = Logger.getLogger(Queue.class);
+	private final long poolSize;
+	private Boolean closing;
+	private final String dataFolder;
+	private final Map<String, IBigQueue> queue;
 
 	Queue(String dataFolder, long poolSize) {
 		this.dataFolder = dataFolder;
@@ -34,7 +34,7 @@ class Queue implements Closeable {
 	void enqueue(Message... message) {
 		if (closing) return;
 		while (size() >= poolSize)
-			sleep();
+			Tasks.waitSleep(500, () -> logger.info("Sleeping for 500 ms, cause: " + "Kafka pool full"));
 		for (Message m : message) {
 			IBigQueue q = queue(m.topic);
 			try {
@@ -48,21 +48,21 @@ class Queue implements Closeable {
 	List<Message> dequeue(long batchSize, String... topic) {
 		topic = topics(topic);
 		List<Message> batch = new ArrayList<>();
-		long remain;
+		int prev;
 		do {
-			remain = 0;
+			prev = batch.size();
 			for (String t : topic) {
 				IBigQueue q = queue.get(t);
 				if (null == q || q.size() == 0) continue;
 				try {
-					batch.add(new Message(q.dequeue()));
+					byte[] m = q.dequeue();
+					if (null != m) batch.add(new Message(m));
 				} catch (IOException e) {
 					logger.error("Message dequeue/deserialize from local pool failure.", e);
 				}
-				remain += q.size();
-				logger.trace("Queue dequeue: [" + batch.size() + "] messages, remain: [" + remain + "] messages.");
 			}
-		} while (batch.size() < batchSize && !(remain <= 0 && !sleep()));
+		} while (batch.size() < batchSize && !(prev == batch.size()
+				&& !Tasks.waitSleep(500, () -> logger.info("Sleeping for 500 ms, cause: " + "Kafka pool empty"))));
 		return batch;
 	}
 
@@ -88,6 +88,7 @@ class Queue implements Closeable {
 		else {
 			IBigQueue q;
 			try {
+				logger.info("Off heap queue create at [" + dataFolder + "]");
 				q = new BigQueueImpl(dataFolder, topic);
 			} catch (IOException e) {
 				throw new RuntimeException("Local cache create failure.", e);
@@ -114,11 +115,6 @@ class Queue implements Closeable {
 			}
 			closing = false;
 		}
-	}
-
-	final boolean sleep() {
-		Thread.yield();
-		return true;
 	}
 
 	static class Message implements Serializable {
@@ -185,4 +181,7 @@ class Queue implements Closeable {
 		}
 	}
 
+	boolean full(String... topic) {
+		return size(topic) >= poolSize;
+	}
 }

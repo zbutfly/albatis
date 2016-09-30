@@ -17,6 +17,8 @@ import kafka.javaapi.consumer.ConsumerConnector;
 import net.butfly.albacore.io.Input;
 import net.butfly.albacore.serder.BsonSerder;
 import net.butfly.albacore.serder.support.ByteArray;
+import net.butfly.albacore.utils.IOs;
+import net.butfly.albacore.utils.Reflections;
 import net.butfly.albacore.utils.async.Tasks;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.kafka.Queue.Message;
@@ -36,7 +38,7 @@ public class KafkaInput implements Input<Message> {
 
 	public KafkaInput(final KafkaInputConfig config, final Map<String, Integer> topics) throws KafkaException {
 		super();
-		this.debug = Boolean.parseBoolean(System.getProperty("albacore.debug"));
+		this.debug = IOs.debug();
 		this.batchSize = config.getBatchSize();
 		this.serder = new BsonSerder();
 		int total = 0;
@@ -60,8 +62,8 @@ public class KafkaInput implements Input<Message> {
 	public List<Tuple3<String, byte[], Map<String, Object>>> read(String... topic) {
 		List<Tuple3<String, byte[], Map<String, Object>>> l = new ArrayList<>();
 		for (Message message : context.dequeue(batchSize, topic))
-			l.add(new Tuple3<String, byte[], Map<String, Object>>(message.getTopic(), message.getKey(), serder.der(new ByteArray(message
-					.getMessage()), T_MAP)));
+			l.add(new Tuple3<String, byte[], Map<String, Object>>(message.getTopic(), message.getKey(),
+					serder.der(new ByteArray(message.getMessage()), T_MAP)));
 		return l;
 
 	}
@@ -87,9 +89,10 @@ public class KafkaInput implements Input<Message> {
 		context.close();
 	}
 
-	private String curr(String zookeeperConnect) throws KafkaException {
+	private String curr(String folder) throws KafkaException {
 		try {
-			File f = new File("./" + zookeeperConnect.replaceAll("[:/\\,]", "-"));
+			String path = "./.queue/" + Reflections.getMainClass().getSimpleName() + "/" + folder.replaceAll("[:/\\,]", "-");
+			File f = new File(path);
 			f.mkdirs();
 			return f.getCanonicalPath();
 		} catch (IOException e) {
@@ -98,16 +101,19 @@ public class KafkaInput implements Input<Message> {
 	}
 
 	private ConsumerConnector connect(ConsumerConfig config, Map<String, Integer> topics) {
-		long c = 0;
 		try {
+			logger.debug("Connecting to Kafka: [" + config.zkConnect() + "] as (groupId): [" + config.groupId() + "].");
 			ConsumerConnector connect = Consumer.createJavaConsumerConnector(config);
+			logger.debug("Connected to Kafka: [" + config.zkConnect() + "] as (groupId): [" + config.groupId() + "].");
 			Map<String, List<KafkaStream<byte[], byte[]>>> streamMap = connect.createMessageStreams(topics);
-			for (List<KafkaStream<byte[], byte[]>> streams : streamMap.values())
-				if (!streams.isEmpty()) for (final KafkaStream<byte[], byte[]> stream : streams) {
-					executor.submit(new InputThread(context, stream, batchSize, this::commit));
-					c++;
+			for (String topic : streamMap.keySet()) {
+				List<KafkaStream<byte[], byte[]>> streams = streamMap.get(topic);
+				if (!streams.isEmpty()) {
+					logger.info("Kafka inputting threads on topic [" + topic + "] is creating... (concurrent: " + streams.size() + ").");
+					for (final KafkaStream<byte[], byte[]> stream : streams)
+						executor.submit(new InputThread(context, topic, stream, batchSize, this::commit));
 				}
-			logger.info("Kafka inputting thread started (current: " + c + ").");
+			}
 			return connect;
 		} catch (Exception e) {
 			throw new RuntimeException("Kafka connecting failure.", e);

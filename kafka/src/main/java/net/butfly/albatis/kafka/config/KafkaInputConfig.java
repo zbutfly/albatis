@@ -3,7 +3,7 @@ package net.butfly.albatis.kafka.config;
 import java.util.Properties;
 
 import kafka.consumer.ConsumerConfig;
-import net.butfly.albacore.utils.Reflections;
+import net.butfly.albacore.utils.IOs;
 import net.butfly.albatis.kafka.KafkaException;
 
 public class KafkaInputConfig extends KafkaConfigBase {
@@ -19,7 +19,7 @@ public class KafkaInputConfig extends KafkaConfigBase {
 	protected long fetchWaitTimeoutMs;
 
 	public KafkaInputConfig(String classpathResourceName) {
-		this(Reflections.loadAsProps(classpathResourceName));
+		this(IOs.loadAsProps(classpathResourceName));
 	}
 
 	public KafkaInputConfig(Properties props) {
@@ -58,5 +58,10 @@ public class KafkaInputConfig extends KafkaConfigBase {
 		props.setProperty("socket.receive.buffer.bytes", Long.toString(transferBufferBytes));
 		props.setProperty("fetch.message.max.bytes", Long.toString(fetchMessageMaxBytes));
 		return props;
+	}
+
+	@Override
+	public String toString() {
+		return this.zookeeperConnect + "@" + this.groupId;
 	}
 }

@@ -3,7 +3,7 @@ package net.butfly.albatis.kafka.config;
 import java.util.Properties;
 
 import kafka.producer.ProducerConfig;
-import net.butfly.albacore.utils.Reflections;
+import net.butfly.albacore.utils.IOs;
 import net.butfly.albatis.kafka.KafkaException;
 
 @SuppressWarnings("deprecation")
@@ -16,7 +16,7 @@ public class KafkaOutputConfig extends KafkaConfigBase {
 	private String keySerializerClass;
 
 	public KafkaOutputConfig(String classpathResourceName) {
-		this(Reflections.loadAsProps(classpathResourceName));
+		this(IOs.loadAsProps(classpathResourceName));
 	}
 
 	public KafkaOutputConfig(Properties props) {
@@ -30,8 +30,8 @@ public class KafkaOutputConfig extends KafkaConfigBase {
 	}
 
 	public ProducerConfig getConfig() throws KafkaException {
-		if (zookeeperConnect == null || metadataBrokerList == null) throw new KafkaException(
-				"Kafka configuration has no zookeeper and group definition.");
+		if (zookeeperConnect == null || metadataBrokerList == null)
+			throw new KafkaException("Kafka configuration has no zookeeper and group definition.");
 		return new ProducerConfig(props());
 	}
 
@@ -47,5 +47,10 @@ public class KafkaOutputConfig extends KafkaConfigBase {
 		props.setProperty("key.serializer.class", keySerializerClass);
 
 		return props;
+	}
+
+	@Override
+	public String toString() {
+		return this.zookeeperConnect + "@" + this.metadataBrokerList;
 	}
 }

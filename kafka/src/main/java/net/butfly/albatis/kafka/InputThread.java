@@ -1,24 +1,25 @@
 package net.butfly.albatis.kafka;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import kafka.consumer.KafkaStream;
 import kafka.message.MessageAndMetadata;
 import net.butfly.albacore.lambda.Task;
+import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.kafka.Queue.Message;
 
 class InputThread extends Thread {
-	private KafkaStream<byte[], byte[]> stream;
-	private Queue context;
-	private long batchSize;
-	private Task committing;
+	private final static Logger logger = Logger.getLogger(InputThread.class);
+	private final KafkaStream<byte[], byte[]> stream;
+	private final Queue context;
+	private final long batchSize;
+	private final Task committing;
+	private final String topic;
 
-	InputThread(Queue context, KafkaStream<byte[], byte[]> stream, long batciSize, Task committing) {
+	InputThread(Queue context, String topic, KafkaStream<byte[], byte[]> stream, long batchSize, Task committing) {
 		super();
+		this.topic = topic;
 		this.context = context;
 		this.stream = stream;
-		this.batchSize = batciSize;
+		this.batchSize = batchSize;
 		this.committing = committing;
 	}
 
@@ -26,20 +27,15 @@ class InputThread extends Thread {
 	public void run() {
 		long c = 0;
 		while (true) {
-			List<Message> messages = new ArrayList<>();
 			for (MessageAndMetadata<byte[], byte[]> msgAndMetadata : stream) {
-				messages.add(new Message(msgAndMetadata.topic(), msgAndMetadata.key(), msgAndMetadata.message()));
-				if (messages.size() > batchSize) break;
+				Message m = new Message(msgAndMetadata.topic(), msgAndMetadata.key(), msgAndMetadata.message());
+				context.enqueue(m);
+				if (++c > batchSize) {
+					committing.call();
+					if (logger.isTraceEnabled()) logger.trace(c + " Kafka messages on Topic@[" + topic + "] fetched and committed.");
+					c = 0;
+				}
 			}
-			long s = messages.size();
-			c += s;
-			context.enqueue(messages.toArray(new Message[messages.size()]));
-			if (c > batchSize) {
-				committing.call();
-				c = 0;
-			}
-			if (s < batchSize) context.sleep();
 		}
 	}
-
 }

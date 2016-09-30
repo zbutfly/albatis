@@ -3,7 +3,7 @@ package net.butfly.albatis.kafka.config;
 import java.io.Serializable;
 import java.util.Properties;
 
-import net.butfly.albacore.utils.Reflections;
+import net.butfly.albacore.utils.IOs;
 
 public abstract class KafkaConfigBase implements Serializable {
 	public long getPoolSize() {
@@ -32,7 +32,7 @@ public abstract class KafkaConfigBase implements Serializable {
 	}
 
 	public KafkaConfigBase(String classpathResourceName) {
-		this(Reflections.loadAsProps(classpathResourceName));
+		this(IOs.loadAsProps(classpathResourceName));
 	}
 
 	protected Properties props() {
