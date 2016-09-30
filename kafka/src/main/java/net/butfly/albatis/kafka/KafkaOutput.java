@@ -10,6 +10,7 @@ import kafka.javaapi.producer.Producer;
 import net.butfly.albacore.io.Output;
 import net.butfly.albacore.lambda.Converter;
 import net.butfly.albacore.serder.BsonSerder;
+import net.butfly.albacore.utils.Reflections;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.kafka.Queue.Message;
 import net.butfly.albatis.kafka.config.KafkaOutputConfig;
@@ -69,9 +70,10 @@ public class KafkaOutput implements Output<Message> {
 		connect.close();
 	}
 
-	private String curr(String zookeeperConnect) throws KafkaException {
+	private String curr(String folder) throws KafkaException {
 		try {
-			File f = new File("./" + zookeeperConnect.replaceAll("[:/\\,]", "-"));
+			String path = "./.queue/" + Reflections.getMainClass().getSimpleName() + "/" + folder.replaceAll("[:/\\,]", "-");
+			File f = new File(path);
 			f.mkdirs();
 			return f.getCanonicalPath();
 		} catch (IOException e) {
