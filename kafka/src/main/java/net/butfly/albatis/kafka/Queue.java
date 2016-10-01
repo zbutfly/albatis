@@ -34,7 +34,7 @@ class Queue implements Closeable {
 	void enqueue(Message... message) {
 		if (closing) return;
 		while (size() >= poolSize)
-			Concurrents.waitSleep(500, () -> logger.trace("Kafka pool full, sleeping for 500ms"));
+			Concurrents.waitSleep(500, logger, "Kafka pool full");
 		logger.trace("Kafka pool enqueuing: [" + message.length + "] messages.");
 		for (Message m : message) {
 			// BSONObject b = new BasicBSONDecoder().readObject(m.getMessage());
@@ -65,8 +65,7 @@ class Queue implements Closeable {
 					logger.error("Message dequeue/deserialize from local pool failure.", e);
 				}
 			}
-		} while (batch.size() < batchSize && !(prev == batch.size() && !Concurrents.waitSleep(15000, () -> logger.trace(
-				"Kafka pool empty, sleeping for 15s."))));
+		} while (batch.size() < batchSize && !(prev == batch.size() && !Concurrents.waitSleep(15000, logger, "Kafka pool empty")));
 		logger.trace("Kafka pool dequeued: [" + batch.size() + "] messages.");
 		return batch;
 	}

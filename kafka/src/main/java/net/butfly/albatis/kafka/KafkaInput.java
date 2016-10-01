@@ -105,7 +105,7 @@ public class KafkaInput implements Input<Message> {
 			ConsumerConnector conn = Consumer.createJavaConsumerConnector(config);
 			logger.debug("Kafka [" + config.zkConnect() + "] Connected (groupId: [" + config.groupId() + "]).");
 			Map<String, List<KafkaStream<byte[], byte[]>>> streamMap = conn.createMessageStreams(topics);
-			Concurrents.waitSleep(5000, () -> logger.warn("Fucking 300ms lazy initialization of kafka []."));
+			Concurrents.waitSleep(5000, logger, "FFFFFFFucking 300ms lazy initialization of Kafka.");
 
 			logger.debug("Kafka ready in [" + streamMap.size() + "] topics.");
 			for (String topic : streamMap.keySet()) {
