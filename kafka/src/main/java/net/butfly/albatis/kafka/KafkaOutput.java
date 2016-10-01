@@ -2,15 +2,18 @@ package net.butfly.albatis.kafka;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import kafka.javaapi.producer.Producer;
+import kafka.producer.KeyedMessage;
 import net.butfly.albacore.io.Output;
 import net.butfly.albacore.lambda.Converter;
 import net.butfly.albacore.serder.BsonSerder;
 import net.butfly.albacore.utils.Systems;
+import net.butfly.albacore.utils.async.Concurrents;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.kafka.Queue.Message;
 import net.butfly.albatis.kafka.config.KafkaOutputConfig;
@@ -20,9 +23,9 @@ public class KafkaOutput implements Output<Message> {
 	private static final Logger logger = Logger.getLogger(KafkaOutput.class);
 
 	private final Queue context;
-	private final ExecutorService threads;
 	private final BsonSerder serder;
 	private final Producer<byte[], byte[]> connect;
+	private AtomicBoolean closed;
 
 	/**
 	 * @param mixed:
@@ -35,11 +38,11 @@ public class KafkaOutput implements Output<Message> {
 	 */
 	public KafkaOutput(final KafkaOutputConfig config) throws KafkaException {
 		super();
+		closed = new AtomicBoolean(false);
 		this.serder = new BsonSerder();
-		threads = Executors.newFixedThreadPool(1);
-		context = new Queue(curr(config.toString()), config.getPoolSize());
+		context = new Queue(curr(config.getQueuePath(), config.toString()), config.getPoolSize());
 		logger.trace("Writing threads pool created (max: " + 1 + ").");
-		this.connect = connect(threads, config);
+		this.connect = connect(config);
 	}
 
 	@Override
@@ -64,14 +67,14 @@ public class KafkaOutput implements Output<Message> {
 	}
 
 	public void close() {
-		threads.shutdown();
-		context.close();
+		closed.set(true);
 		connect.close();
+		context.close();
 	}
 
-	private String curr(String folder) throws KafkaException {
+	private String curr(String base, String folder) throws KafkaException {
 		try {
-			String path = "./.queue/" + Systems.getMainClass().getSimpleName() + "/" + folder.replaceAll("[:/\\,]", "-");
+			String path = base + "/" + Systems.getMainClass().getSimpleName() + "/" + folder.replaceAll("[:/\\,]", "-");
 			File f = new File(path);
 			f.mkdirs();
 			return f.getCanonicalPath();
@@ -80,14 +83,39 @@ public class KafkaOutput implements Output<Message> {
 		}
 	}
 
-	private Producer<byte[], byte[]> connect(ExecutorService threads, KafkaOutputConfig config) {
+	private Producer<byte[], byte[]> connect(KafkaOutputConfig config) {
 		Producer<byte[], byte[]> p;
 		try {
 			p = new Producer<>(config.getConfig());
 		} catch (KafkaException e) {
 			throw new RuntimeException(e);
 		}
-		threads.submit(new OutputThread(context, p, config.getBatchSize()));
+		Concurrents.submit(new OutputThread(context, p, config.getBatchSize()));
 		return p;
+	}
+
+	class OutputThread extends Thread {
+		private Queue context;
+		private Producer<byte[], byte[]> producer;
+		private long batchSize;
+
+		OutputThread(Queue context, Producer<byte[], byte[]> p, long batchSize) {
+			super();
+			this.context = context;
+			this.producer = p;
+			this.batchSize = batchSize;
+		}
+
+		@Override
+		public void run() {
+			while (!closed.get()) {
+				List<Message> msgs = context.dequeue(batchSize);
+				List<KeyedMessage<byte[], byte[]>> l = new ArrayList<>(msgs.size());
+				for (Message m : msgs)
+					l.add(new KeyedMessage<byte[], byte[]>(m.getTopic(), m.getKey(), m.getMessage()));
+				producer.send(l);
+				logger.trace(() -> "Kafka service sent (amount: [" + msgs.size() + "]).");
+			}
+		}
 	}
 }

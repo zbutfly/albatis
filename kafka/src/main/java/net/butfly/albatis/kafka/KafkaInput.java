@@ -5,15 +5,16 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.google.common.reflect.TypeToken;
 
 import kafka.consumer.Consumer;
 import kafka.consumer.ConsumerConfig;
+import kafka.consumer.ConsumerIterator;
 import kafka.consumer.KafkaStream;
 import kafka.javaapi.consumer.ConsumerConnector;
+import kafka.message.MessageAndMetadata;
 import net.butfly.albacore.io.Input;
 import net.butfly.albacore.serder.BsonSerder;
 import net.butfly.albacore.serder.support.ByteArray;
@@ -31,12 +32,14 @@ public class KafkaInput implements Input<Message> {
 	private final long batchSize;
 	private final ConsumerConnector connect;
 	private final Queue context;
-	private final ExecutorService executor;
 	private final BsonSerder serder;
+
 	private boolean debug;
+	private AtomicBoolean closed;
 
 	public KafkaInput(final KafkaInputConfig config, final Map<String, Integer> topics) throws KafkaException {
 		super();
+		closed = new AtomicBoolean(false);
 		this.debug = Systems.isDebug();
 		this.batchSize = config.getBatchSize();
 		this.serder = new BsonSerder();
@@ -44,9 +47,9 @@ public class KafkaInput implements Input<Message> {
 		for (Integer t : topics.values())
 			if (null != t) total += t;
 		if (total == 0) throw new KafkaException("Kafka configuration has no topic definition.");
-		executor = Executors.newFixedThreadPool(topics.size());
 		logger.trace("Reading threads pool created (max: " + total + ").");
-		context = new Queue(curr(config.toString()), config.getPoolSize());
+		context = new Queue(curr(config.getQueuePath(), config.toString()), config.getPoolSize());
+		context.stats(config.getStatsMsgs());
 		this.connect = connect(config.getConfig(), topics);
 	}
 
@@ -78,19 +81,20 @@ public class KafkaInput implements Input<Message> {
 
 	@Override
 	public void commit() {
+		logger.trace(() -> "Kafka reading committed [" + (debug ? "Dry" : "Wet") + "].");
 		if (!debug) connect.commitOffsets();
 	}
 
 	@Override
 	public void close() {
-		Concurrents.waitShutdown(executor, logger);
+		closed.set(true);;
 		connect.shutdown();
 		context.close();
 	}
 
-	private String curr(String folder) throws KafkaException {
+	private String curr(String base, String folder) throws KafkaException {
 		try {
-			String path = "./.queue/" + Systems.getMainClass().getSimpleName() + "/" + folder.replaceAll("[:/\\,]", "-");
+			String path = base + "/" + Systems.getMainClass().getSimpleName() + "/" + folder.replaceAll("[:/\\,]", "-");
 			File f = new File(path);
 			f.mkdirs();
 			return f.getCanonicalPath();
@@ -105,7 +109,9 @@ public class KafkaInput implements Input<Message> {
 			ConsumerConnector conn = Consumer.createJavaConsumerConnector(config);
 			logger.debug("Kafka [" + config.zkConnect() + "] Connected (groupId: [" + config.groupId() + "]).");
 			Map<String, List<KafkaStream<byte[], byte[]>>> streamMap = conn.createMessageStreams(topics);
-			Concurrents.waitSleep(5000, logger, "FFFFFFFucking 300ms lazy initialization of Kafka.");
+
+			logger.error("FFFFFFFucking lazy initialization of Kafka, we sleeping.");
+			Concurrents.waitSleep(10000);
 
 			logger.debug("Kafka ready in [" + streamMap.size() + "] topics.");
 			for (String topic : streamMap.keySet()) {
@@ -114,7 +120,7 @@ public class KafkaInput implements Input<Message> {
 				if (!streams.isEmpty()) {
 					for (final KafkaStream<byte[], byte[]> stream : streams) {
 						logger.debug("Kafka thread (topic: [" + topic + "]) is creating... ");
-						executor.submit(new InputThread(context, topic, stream.iterator(), batchSize, this::commit));
+						Concurrents.submit(new InputThread(context, topic, stream.iterator()));
 					}
 				}
 			}
@@ -123,12 +129,38 @@ public class KafkaInput implements Input<Message> {
 			throw new RuntimeException("Kafka connecting failure.", e);
 		}
 	}
-	// private boolean valid(ConsumerConnector connect) {
-	// ZookeeperConsumerConnector c = Reflections.get(connect, "underlying");
-	// Option<ConsumerFetcherManager> m =
-	// c.kafka$consumer$ZookeeperConsumerConnector$$fetcher();
-	// return !m.isEmpty() && Reflections.get(m.get(),
-	// "kafka$consumer$ConsumerFetcherManager$$cluster") != null;
-	// }
 
+	class InputThread extends Thread {
+		private final ConsumerIterator<byte[], byte[]> iter;
+		private final Queue context;
+		private final String topic;
+
+		InputThread(Queue context, String topic, ConsumerIterator<byte[], byte[]> iter) {
+			super();
+			this.topic = topic;
+			this.context = context;
+			this.iter = iter;
+		}
+
+		@Override
+		public void run() {
+			long c = 0;
+			while (!closed.get()) {
+				if (!iter.hasNext()) Concurrents.waitSleep(500, logger, "Kafka service empty (topic: [" + topic + "]).");
+				else {
+					List<Message> batch = new ArrayList<>();
+					while (iter.hasNext()) {
+						MessageAndMetadata<byte[], byte[]> meta = iter.next();
+						batch.add(new Message(meta.topic(), meta.key(), meta.message()));
+						if (++c > batchSize || !iter.hasNext()) {
+							KafkaInput.this.commit();
+							context.enqueue(batch.toArray(new Message[batch.size()]));
+							batch.clear();
+							c = 0;
+						}
+					}
+				}
+			}
+		}
+	}
 }
