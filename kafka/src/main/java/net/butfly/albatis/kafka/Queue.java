@@ -5,10 +5,14 @@ import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.Serializable;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLongArray;
 
 import com.google.common.base.Charsets;
 import com.leansoft.bigqueue.BigQueueImpl;
@@ -19,30 +23,38 @@ import net.butfly.albacore.utils.logger.Logger;
 
 class Queue implements Closeable {
 	private static final Logger logger = Logger.getLogger(Queue.class);
+	private static final Logger slogger = Logger.getLogger("net.butfly.albatis.kafka.Queue.Staticstics");
 	private final long poolSize;
-	private Boolean closing;
+	private AtomicBoolean closed;
 	private final String dataFolder;
 	private final Map<String, IBigQueue> queue;
 
+	/* inStats: inMessages, inBytes, outMessages, outBytes, inTime, outTime */
+	private final AtomicLongArray inStats;
+	private final AtomicLongArray outStats;
+	private long statsMsgs = 0;
+
 	Queue(String dataFolder, long poolSize) {
+		this.closed = new AtomicBoolean(false);
+		long now = new Date().getTime();
+		this.inStats = new AtomicLongArray(new long[] { 0, 0, now });
+		this.outStats = new AtomicLongArray(new long[] { 0, 0, now });
 		this.dataFolder = dataFolder;
 		this.poolSize = poolSize;
-		this.closing = false;
 		this.queue = new ConcurrentHashMap<>();
 	}
 
 	void enqueue(Message... message) {
-		if (closing) return;
+		if (closed.get()) return;
 		while (size() >= poolSize)
-			Concurrents.waitSleep(500, logger, "Kafka pool full");
-		logger.trace("Kafka pool enqueuing: [" + message.length + "] messages.");
+			sleepFull();
+
 		for (Message m : message) {
-			// BSONObject b = new BasicBSONDecoder().readObject(m.getMessage());
-			// logger.warn(b.toMap().toString());
 			IBigQueue q = queue(m.topic);
 			try {
-				q.enqueue(m.toBytes());
-				q.peek();
+				byte[] data = m.toBytes();
+				q.enqueue(data);
+				if (statsMsgs > 0) slogger.trace(() -> stats(this.inStats, "enququed", data.length, q.size()));
 			} catch (IOException e) {
 				logger.error("Message enqueue/serialize to local pool failure.", e);
 			}
@@ -50,30 +62,41 @@ class Queue implements Closeable {
 	}
 
 	List<Message> dequeue(long batchSize, String... topic) {
-		topic = topics(topic);
+		if (closed.get()) return new ArrayList<>();
+		String[] topics = topics(topic);
+		while (topics.length == 0) {
+			sleepEmpty();
+			topics = topics(topic);
+		}
 		List<Message> batch = new ArrayList<>();
 		int prev;
 		do {
 			prev = batch.size();
-			for (String t : topic) {
-				IBigQueue q = queue.get(t);
+			for (String to : topics) {
+				IBigQueue q = queue.get(to);
 				if (null == q || q.size() == 0) continue;
 				try {
-					byte[] m = q.dequeue();
-					if (null != m) batch.add(new Message(m));
+					byte[] data = q.dequeue();
+					if (null != data) {
+						batch.add(new Message(data));
+						if (statsMsgs > 0) slogger.trace(() -> stats(this.outStats, "deququed", data.length, q.size()));
+					}
 				} catch (IOException e) {
 					logger.error("Message dequeue/deserialize from local pool failure.", e);
 				}
 			}
-		} while (batch.size() < batchSize && !(prev == batch.size() && !Concurrents.waitSleep(15000, logger, "Kafka pool empty")));
-		logger.trace("Kafka pool dequeued: [" + batch.size() + "] messages.");
+		} while (batch.size() < batchSize && !(prev == batch.size() && !sleepEmpty()));
 		return batch;
+	}
+
+	public void stats(long statsMsgs) {
+		this.statsMsgs = statsMsgs;
 	}
 
 	long size(String... topic) {
 		long s = 0;
 		for (String t : topics(topic))
-			s += contains(t) ? 0 : queue.get(topic).size();
+			s += contains(t) ? queue.get(t).size() : 0;
 		return s;
 	}
 
@@ -83,7 +106,7 @@ class Queue implements Closeable {
 
 	boolean contains(String... topic) {
 		for (String t : topics(topic))
-			if (queue.containsKey(t)) return true;
+			if (queue.get(t) != null) return true;
 		return false;
 	}
 
@@ -92,10 +115,15 @@ class Queue implements Closeable {
 		else {
 			IBigQueue q;
 			try {
-				logger.info("Off heap queue create at [" + dataFolder + "]");
+				logger.info("Off heap queue creating for topic [" + topic + "] at [" + dataFolder + "]");
 				q = new BigQueueImpl(dataFolder, topic);
 			} catch (IOException e) {
 				throw new RuntimeException("Local cache create failure.", e);
+			}
+			try {
+				q.gc();
+			} catch (IOException e) {
+				logger.error("Local queue GC failure", e);
 			}
 			synchronized (queue) {
 				queue.put(topic, q);
@@ -106,18 +134,14 @@ class Queue implements Closeable {
 
 	@Override
 	public final void close() {
-		synchronized (closing) {
-			if (closing) return;
-			closing = true;
-			for (String t : queue.keySet()) {
-				try {
-					queue.get(t).close();
-				} catch (IOException e) {
-					logger.error("QueueBase on [" + t + "] close failure.", e);
-				}
-				queue.remove(t);
+		closed.set(true);
+		for (String t : queue.keySet()) {
+			try {
+				queue.get(t).close();
+			} catch (IOException e) {
+				logger.error("QueueBase on [" + t + "] close failure.", e);
 			}
-			closing = false;
+			queue.remove(t);
 		}
 	}
 
@@ -190,9 +214,52 @@ class Queue implements Closeable {
 			if (bo.read(data) != len) throw new RuntimeException();
 			return data;
 		}
+
 	}
 
-	boolean full(String... topic) {
-		return size(topic) >= poolSize;
+	private static double K = 1024;
+	private static double M = K * K;
+	private static double G = M * K;
+	private static double T = G * K;
+	private static DecimalFormat f = new DecimalFormat("#.##");
+
+	private String stats(AtomicLongArray stats, String act, int bytes, long queueSize) {
+		long c = stats.incrementAndGet(0);
+		long b = stats.addAndGet(1, bytes);
+		if (c % statsMsgs != 0) return null;
+
+		long t = new Date().getTime();
+		t = (t - stats.getAndSet(2, t));
+
+		String bb;
+		if (b > T * 0.8) bb = f.format(b / T) + "TB";
+		else if (b > G * 0.8) bb = f.format(b / G) + "GB";
+		else if (b > M * 0.8) bb = f.format(b / M) + "MB";
+		else if (b > K * 0.8) bb = f.format(b / K) + "KB";
+		else bb = f.format(b) + "Byte";
+
+		return "Kafka data pool " + act + " total: " + c + " messages, " + bb + "; \n\tthis step (" + this.statsMsgs + " messages) spent "
+				+ f.format(t / 1000.0) + "seconds; \n\tcurrent messages: " + queueSize + ".";
+	}
+
+	private void sleepFull() {
+		logger.debug("Kafka pool full...gc it");
+		gc();
+		Concurrents.waitSleep(5000);
+	}
+
+	private boolean sleepEmpty() {
+		logger.debug("Kafka pool empty...gc it");
+		gc();
+		return Concurrents.waitSleep(1000);
+	}
+
+	private void gc() {
+		for (String topic : queue.keySet())
+			try {
+				queue.get(topic).gc();
+			} catch (IOException e) {
+				logger.error("Local queue GC failure", e);
+			}
 	}
 }
