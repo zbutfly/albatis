@@ -17,9 +17,8 @@ import kafka.javaapi.consumer.ConsumerConnector;
 import net.butfly.albacore.io.Input;
 import net.butfly.albacore.serder.BsonSerder;
 import net.butfly.albacore.serder.support.ByteArray;
-import net.butfly.albacore.utils.IOs;
-import net.butfly.albacore.utils.Reflections;
-import net.butfly.albacore.utils.async.Tasks;
+import net.butfly.albacore.utils.Systems;
+import net.butfly.albacore.utils.async.Concurrents;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.kafka.Queue.Message;
 import net.butfly.albatis.kafka.config.KafkaInputConfig;
@@ -38,7 +37,7 @@ public class KafkaInput implements Input<Message> {
 
 	public KafkaInput(final KafkaInputConfig config, final Map<String, Integer> topics) throws KafkaException {
 		super();
-		this.debug = IOs.debug();
+		this.debug = Systems.isDebug();
 		this.batchSize = config.getBatchSize();
 		this.serder = new BsonSerder();
 		int total = 0;
@@ -62,8 +61,7 @@ public class KafkaInput implements Input<Message> {
 	public List<Tuple3<String, byte[], Map<String, Object>>> read(String... topic) {
 		List<Tuple3<String, byte[], Map<String, Object>>> l = new ArrayList<>();
 		for (Message message : context.dequeue(batchSize, topic)) {
-			l.add(new Tuple3<>(message.getTopic(), message.getKey(),
-					serder.der(new ByteArray(message.getMessage()), T_MAP)));
+			l.add(new Tuple3<>(message.getTopic(), message.getKey(), serder.der(new ByteArray(message.getMessage()), T_MAP)));
 		}
 		return l;
 
@@ -85,14 +83,14 @@ public class KafkaInput implements Input<Message> {
 
 	@Override
 	public void close() {
-		Tasks.waitShutdown(executor);
+		Concurrents.waitShutdown(executor, logger);
 		connect.shutdown();
 		context.close();
 	}
 
 	private String curr(String folder) throws KafkaException {
 		try {
-			String path = "./.queue/" + Reflections.getMainClass().getSimpleName() + "/" + folder.replaceAll("[:/\\,]", "-");
+			String path = "./.queue/" + Systems.getMainClass().getSimpleName() + "/" + folder.replaceAll("[:/\\,]", "-");
 			File f = new File(path);
 			f.mkdirs();
 			return f.getCanonicalPath();
@@ -107,7 +105,7 @@ public class KafkaInput implements Input<Message> {
 			ConsumerConnector conn = Consumer.createJavaConsumerConnector(config);
 			logger.debug("Kafka [" + config.zkConnect() + "] Connected (groupId: [" + config.groupId() + "]).");
 			Map<String, List<KafkaStream<byte[], byte[]>>> streamMap = conn.createMessageStreams(topics);
-			Tasks.waitSleep(5000, () -> logger.warn("Fucking 300ms lazy initialization of kafka []."));
+			Concurrents.waitSleep(5000, () -> logger.warn("Fucking 300ms lazy initialization of kafka []."));
 
 			logger.debug("Kafka ready in [" + streamMap.size() + "] topics.");
 			for (String topic : streamMap.keySet()) {

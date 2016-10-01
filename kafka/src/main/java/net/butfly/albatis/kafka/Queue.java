@@ -14,7 +14,7 @@ import com.google.common.base.Charsets;
 import com.leansoft.bigqueue.BigQueueImpl;
 import com.leansoft.bigqueue.IBigQueue;
 
-import net.butfly.albacore.utils.async.Tasks;
+import net.butfly.albacore.utils.async.Concurrents;
 import net.butfly.albacore.utils.logger.Logger;
 
 class Queue implements Closeable {
@@ -34,7 +34,7 @@ class Queue implements Closeable {
 	void enqueue(Message... message) {
 		if (closing) return;
 		while (size() >= poolSize)
-			Tasks.waitSleep(500, () -> logger.trace("Kafka pool full, sleeping for 500ms"));
+			Concurrents.waitSleep(500, () -> logger.trace("Kafka pool full, sleeping for 500ms"));
 		logger.trace("Kafka pool enqueuing: [" + message.length + "] messages.");
 		for (Message m : message) {
 			// BSONObject b = new BasicBSONDecoder().readObject(m.getMessage());
@@ -65,8 +65,8 @@ class Queue implements Closeable {
 					logger.error("Message dequeue/deserialize from local pool failure.", e);
 				}
 			}
-		} while (batch.size() < batchSize
-				&& !(prev == batch.size() && !Tasks.waitSleep(500, () -> logger.trace("Kafka pool empty, sleeping for 500ms."))));
+		} while (batch.size() < batchSize && !(prev == batch.size() && !Concurrents.waitSleep(15000, () -> logger.trace(
+				"Kafka pool empty, sleeping for 15s."))));
 		logger.trace("Kafka pool dequeued: [" + batch.size() + "] messages.");
 		return batch;
 	}

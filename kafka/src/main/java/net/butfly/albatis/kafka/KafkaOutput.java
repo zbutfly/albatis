@@ -10,7 +10,7 @@ import kafka.javaapi.producer.Producer;
 import net.butfly.albacore.io.Output;
 import net.butfly.albacore.lambda.Converter;
 import net.butfly.albacore.serder.BsonSerder;
-import net.butfly.albacore.utils.Reflections;
+import net.butfly.albacore.utils.Systems;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.kafka.Queue.Message;
 import net.butfly.albatis.kafka.config.KafkaOutputConfig;
@@ -71,7 +71,7 @@ public class KafkaOutput implements Output<Message> {
 
 	private String curr(String folder) throws KafkaException {
 		try {
-			String path = "./.queue/" + Reflections.getMainClass().getSimpleName() + "/" + folder.replaceAll("[:/\\,]", "-");
+			String path = "./.queue/" + Systems.getMainClass().getSimpleName() + "/" + folder.replaceAll("[:/\\,]", "-");
 			File f = new File(path);
 			f.mkdirs();
 			return f.getCanonicalPath();
