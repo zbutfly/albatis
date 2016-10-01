@@ -28,10 +28,9 @@ class InputThread extends Thread {
 	public void run() {
 		long c = 0;
 		while (true) {
-			MessageAndMetadata<byte[], byte[]> meta = iter.next();
-			if (null == meta) Concurrents.waitSleep(500, () -> Concurrents.waitSleep(500, () -> logger.trace("Kafka service empty (topic: [" + topic
-					+ "]), sleeping for 500ms")));
+			if (!iter.hasNext()) Concurrents.waitSleep(500, logger, "Kafka service empty (topic: [" + topic + "]).");
 			else {
+				MessageAndMetadata<byte[], byte[]> meta = iter.next();
 				if (++c > batchSize || iter.hasNext()) {
 					committing.run();
 					final long cc = c;
