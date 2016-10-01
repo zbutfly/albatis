@@ -2,8 +2,8 @@ package net.butfly.albatis.kafka;
 
 import kafka.consumer.ConsumerIterator;
 import kafka.message.MessageAndMetadata;
-import net.butfly.albacore.lambda.Task;
-import net.butfly.albacore.utils.async.Tasks;
+import net.butfly.albacore.lambda.Runnable;
+import net.butfly.albacore.utils.async.Concurrents;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.kafka.Queue.Message;
 
@@ -12,10 +12,10 @@ class InputThread extends Thread {
 	private final ConsumerIterator<byte[], byte[]> iter;
 	private final Queue context;
 	private final long batchSize;
-	private final Task committing;
+	private final Runnable committing;
 	private final String topic;
 
-	InputThread(Queue context, String topic, ConsumerIterator<byte[], byte[]> iter, long batchSize, Task committing) {
+	InputThread(Queue context, String topic, ConsumerIterator<byte[], byte[]> iter, long batchSize, Runnable committing) {
 		super();
 		this.topic = topic;
 		this.context = context;
@@ -29,11 +29,11 @@ class InputThread extends Thread {
 		long c = 0;
 		while (true) {
 			MessageAndMetadata<byte[], byte[]> meta = iter.next();
-			if (null == meta) Tasks.waitSleep(500,
-					() -> Tasks.waitSleep(500, () -> logger.trace("Kafka service empty (topic: [" + topic + "]), sleeping for 500ms")));
+			if (null == meta) Concurrents.waitSleep(500, () -> Concurrents.waitSleep(500, () -> logger.trace("Kafka service empty (topic: [" + topic
+					+ "]), sleeping for 500ms")));
 			else {
 				if (++c > batchSize || iter.hasNext()) {
-					committing.call();
+					committing.run();
 					final long cc = c;
 					logger.trace(() -> "Kafka service committed (topic: [" + topic + "], amount: [" + cc + "]).");
 					c = 0;

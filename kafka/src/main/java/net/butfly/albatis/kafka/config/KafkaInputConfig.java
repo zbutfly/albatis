@@ -37,8 +37,8 @@ public class KafkaInputConfig extends KafkaConfigBase {
 	}
 
 	public ConsumerConfig getConfig() throws KafkaException {
-		if (zookeeperConnect == null || groupId == null)
-			throw new KafkaException("Kafka configuration has no zookeeper and group definition.");
+		if (zookeeperConnect == null || groupId == null) throw new KafkaException(
+				"Kafka configuration has no zookeeper and group definition.");
 		return new ConsumerConfig(props());
 	}
 

@@ -6,7 +6,6 @@ import kafka.producer.ProducerConfig;
 import net.butfly.albacore.utils.IOs;
 import net.butfly.albatis.kafka.KafkaException;
 
-@SuppressWarnings("deprecation")
 public class KafkaOutputConfig extends KafkaConfigBase {
 	private static final long serialVersionUID = -3028341800709486625L;
 	private String metadataBrokerList;
@@ -30,8 +29,8 @@ public class KafkaOutputConfig extends KafkaConfigBase {
 	}
 
 	public ProducerConfig getConfig() throws KafkaException {
-		if (zookeeperConnect == null || metadataBrokerList == null)
-			throw new KafkaException("Kafka configuration has no zookeeper and group definition.");
+		if (zookeeperConnect == null || metadataBrokerList == null) throw new KafkaException(
+				"Kafka configuration has no zookeeper and group definition.");
 		return new ProducerConfig(props());
 	}
 
