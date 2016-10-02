@@ -37,10 +37,10 @@ public abstract class KafkaConfigBase implements Serializable {
 		zookeeperConnect = props.getProperty("albatis.kafka.zookeeper");
 		zookeeperConnectionTimeoutMs = Long.valueOf(props.getProperty("albatis.kafka.zookeeper.connection.timeout.ms", "15000"));
 		transferBufferBytes = Long.valueOf(props.getProperty("albatis.kafka.transfer.buffer.bytes", "5242880"));
-		poolSize = Long.parseLong(props.getProperty("albatis.kafka.pool.size", "1000"));
-		batchSize = Long.parseLong(props.getProperty("albatis.kafka.batch.size", "100"));
+		poolSize = Long.parseLong(props.getProperty("albatis.kafka.pool.size", "100000"));
+		batchSize = Long.parseLong(props.getProperty("albatis.kafka.batch.size", "1000"));
 		queuePath = props.getProperty("albatis.kafka.queue.path", "./local-queue");
-		statsMsgs = Long.parseLong(props.getProperty("albatis.kafka.queue.stats.messages", "100000"));
+		statsMsgs = Long.parseLong(props.getProperty("albatis.kafka.queue.stats.messages", "1000000"));
 	}
 
 	public KafkaConfigBase(String classpathResourceName) {

@@ -4,6 +4,7 @@ import java.util.Properties;
 
 import kafka.consumer.ConsumerConfig;
 import net.butfly.albacore.utils.IOs;
+import net.butfly.albacore.utils.Systems;
 import net.butfly.albatis.kafka.KafkaException;
 
 public class KafkaInputConfig extends KafkaConfigBase {
@@ -24,7 +25,7 @@ public class KafkaInputConfig extends KafkaConfigBase {
 
 	public KafkaInputConfig(Properties props) {
 		super(props);
-		groupId = props.getProperty("albatis.kafka.group.id");
+		groupId = props.getProperty("albatis.kafka.group.id", Systems.getMainClass().getSimpleName());
 
 		zookeeperSyncTimeMs = Long.valueOf(props.getProperty("albatis.kafka.zookeeper.sync.time.ms", "5000"));
 		autoCommitEnable = Boolean.valueOf(props.getProperty("albatis.kafka.auto.commit.enable", "false"));
