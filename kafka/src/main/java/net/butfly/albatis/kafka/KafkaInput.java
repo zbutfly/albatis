@@ -63,9 +63,8 @@ public class KafkaInput implements Input<Message> {
 
 	public List<Tuple3<String, byte[], Map<String, Object>>> read(String... topic) {
 		List<Tuple3<String, byte[], Map<String, Object>>> l = new ArrayList<>();
-		for (Message message : context.dequeue(batchSize, topic)) {
+		for (Message message : context.dequeue(batchSize, topic))
 			l.add(new Tuple3<>(message.getTopic(), message.getKey(), serder.der(new ByteArray(message.getMessage()), T_MAP)));
-		}
 		return l;
 
 	}
