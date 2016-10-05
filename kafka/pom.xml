@@ -36,11 +36,6 @@
 			<artifactId>kafka-clients</artifactId>
 			<version>${version.kafka}</version>
 		</dependency>
-		<dependency>
-			<groupId>com.leansoft</groupId>
-			<artifactId>bigqueue</artifactId>
-			<version>0.7.0</version>
-		</dependency>
 	</dependencies>
 	<repositories>
 		<repository>

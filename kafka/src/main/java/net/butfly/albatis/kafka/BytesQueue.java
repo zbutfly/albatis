@@ -12,16 +12,21 @@
 //import net.butfly.albacore.utils.async.Concurrents;
 //import net.butfly.albacore.utils.logger.Logger;
 //
-//class Queue extends MapQueueImpl<byte[], OffHeapQueue> {
+//class BytesQueue extends MapQueueImpl<byte[], OffHeapQueue> {
 //	private static final long serialVersionUID = -6626377040690810087L;
-//	private static final Logger logger = Logger.getLogger(Queue.class);
+//	private static final Logger logger = Logger.getLogger(BytesQueue.class);
 //
-//	public Queue(String dataFolder, int capacity) {
+//	public BytesQueue(String dataFolder, int capacity) {
 //		super("kafka-queue", key -> new OffHeapQueue(key, dataFolder, capacity), capacity);
 //	}
 //
-//	void enqueue(Message... message) {
-//		if (!running()) return;
+//	@Override
+//	public boolean enqueue(byte[] e) {
+//		return false;
+//	}
+//
+//	@Override
+//	public long enqueue(byte[]... message) {
 //		while (size() >= capacity()) {
 //			logger.debug("Kafka pool full...gc it");
 //			gc();
@@ -136,6 +141,12 @@
 //			} catch (IOException e) {
 //				logger.error("Local queue GC failure", e);
 //			}
+//	}
+//
+//	@Override
+//	protected net.butfly.albacore.io.AbstractQueue.Policy policy() {
+//		// TODO Auto-generated method stub
+//		return null;
 //	}
 //
 //}

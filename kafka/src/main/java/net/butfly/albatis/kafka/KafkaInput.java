@@ -16,12 +16,13 @@ import kafka.consumer.KafkaStream;
 import kafka.javaapi.consumer.ConsumerConnector;
 import kafka.message.MessageAndMetadata;
 import net.butfly.albacore.io.Input;
+import net.butfly.albacore.io.MapQueue;
+import net.butfly.albacore.io.OffHeapQueue;
 import net.butfly.albacore.serder.BsonSerder;
 import net.butfly.albacore.serder.support.ByteArray;
 import net.butfly.albacore.utils.Systems;
 import net.butfly.albacore.utils.async.Concurrents;
 import net.butfly.albacore.utils.logger.Logger;
-import net.butfly.albatis.kafka.Queue.Message;
 import net.butfly.albatis.kafka.config.KafkaInputConfig;
 import scala.Tuple3;
 
@@ -31,7 +32,8 @@ public class KafkaInput implements Input<Message> {
 
 	private final long batchSize;
 	private final ConsumerConnector connect;
-	private final Queue context;
+	private final MapQueue<String, Message> context;
+	// XXX: should not include!
 	private final BsonSerder serder;
 
 	private boolean debug;
@@ -48,8 +50,10 @@ public class KafkaInput implements Input<Message> {
 			if (null != t) total += t;
 		if (total == 0) throw new KafkaException("Kafka configuration has no topic definition.");
 		logger.trace("Reading threads pool created (max: " + total + ").");
-		context = new Queue(curr(config.getQueuePath(), config.toString()), config.getPoolSize());
-		context.stats(config.getStatsMsgs());
+		MessageSerder msg = new MessageSerder();
+		String path = curr(config.getQueuePath(), config.toString());
+		context = new OffHeapQueue("kafka-input", path, config.getPoolSize()).fanout(m -> m.getTopic(), topic -> new OffHeapQueue(topic,
+				path, config.getPoolSize()).serder(msg.unconverter(), msg.converter()), msg.unconverter(), msg.converter());
 		this.connect = connect(config.getConfig(), topics);
 	}
 
@@ -64,7 +68,7 @@ public class KafkaInput implements Input<Message> {
 	public List<Tuple3<String, byte[], Map<String, Object>>> read(String... topic) {
 		List<Tuple3<String, byte[], Map<String, Object>>> l = new ArrayList<>();
 		for (Message message : context.dequeue(batchSize, topic))
-			l.add(new Tuple3<>(message.getTopic(), message.getKey(), serder.der(new ByteArray(message.getMessage()), T_MAP)));
+			l.add(new Tuple3<>(message.getTopic(), message.getKey(), serder.der(new ByteArray(message.getBody()), T_MAP)));
 		return l;
 
 	}
@@ -74,7 +78,7 @@ public class KafkaInput implements Input<Message> {
 		TypeToken<E> tt = new TypeToken<E>() {};
 		List<Tuple3<String, byte[], E>> l = new ArrayList<>();
 		for (Message message : context.dequeue(batchSize, topic))
-			l.add(new Tuple3<String, byte[], E>(message.getTopic(), message.getKey(), serder.der(new ByteArray(message.getMessage()), tt)));
+			l.add(new Tuple3<String, byte[], E>(message.getTopic(), message.getKey(), serder.der(new ByteArray(message.getBody()), tt)));
 		return l;
 	}
 
@@ -119,7 +123,7 @@ public class KafkaInput implements Input<Message> {
 				if (!streams.isEmpty()) {
 					for (final KafkaStream<byte[], byte[]> stream : streams) {
 						logger.debug("Kafka thread (topic: [" + topic + "]) is creating... ");
-						Concurrents.submit(new InputThread(context, topic, stream.iterator()));
+						Concurrents.submit(new InputThread(topic, stream.iterator()));
 					}
 				}
 			}
@@ -131,13 +135,11 @@ public class KafkaInput implements Input<Message> {
 
 	class InputThread extends Thread {
 		private final ConsumerIterator<byte[], byte[]> iter;
-		private final Queue context;
 		private final String topic;
 
-		InputThread(Queue context, String topic, ConsumerIterator<byte[], byte[]> iter) {
+		InputThread(String topic, ConsumerIterator<byte[], byte[]> iter) {
 			super();
 			this.topic = topic;
-			this.context = context;
 			this.iter = iter;
 		}
 

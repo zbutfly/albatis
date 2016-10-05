@@ -9,20 +9,21 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import kafka.javaapi.producer.Producer;
 import kafka.producer.KeyedMessage;
+import net.butfly.albacore.io.OffHeapQueue;
 import net.butfly.albacore.io.Output;
+import net.butfly.albacore.io.Queue;
 import net.butfly.albacore.lambda.Converter;
 import net.butfly.albacore.serder.BsonSerder;
 import net.butfly.albacore.utils.Systems;
 import net.butfly.albacore.utils.async.Concurrents;
 import net.butfly.albacore.utils.logger.Logger;
-import net.butfly.albatis.kafka.Queue.Message;
 import net.butfly.albatis.kafka.config.KafkaOutputConfig;
 
 public class KafkaOutput implements Output<Message> {
 	private static final long serialVersionUID = -276336973758504567L;
 	private static final Logger logger = Logger.getLogger(KafkaOutput.class);
 
-	private final Queue context;
+	private final Queue<Message> context;
 	private final BsonSerder serder;
 	private final Producer<byte[], byte[]> connect;
 	private AtomicBoolean closed;
@@ -40,7 +41,9 @@ public class KafkaOutput implements Output<Message> {
 		super();
 		closed = new AtomicBoolean(false);
 		this.serder = new BsonSerder();
-		context = new Queue(curr(config.getQueuePath(), config.toString()), config.getPoolSize());
+		MessageSerder msg = new MessageSerder();
+		context = new OffHeapQueue("kafka-output", curr(config.getQueuePath(), config.toString()), config.getPoolSize()).serder(msg
+				.unconverter(), msg.converter());
 		logger.trace("Writing threads pool created (max: " + 1 + ").");
 		this.connect = connect(config);
 	}
@@ -90,18 +93,16 @@ public class KafkaOutput implements Output<Message> {
 		} catch (KafkaException e) {
 			throw new RuntimeException(e);
 		}
-		Concurrents.submit(new OutputThread(context, p, config.getBatchSize()));
+		Concurrents.submit(new OutputThread(p, config.getBatchSize()));
 		return p;
 	}
 
 	class OutputThread extends Thread {
-		private Queue context;
 		private Producer<byte[], byte[]> producer;
 		private long batchSize;
 
-		OutputThread(Queue context, Producer<byte[], byte[]> p, long batchSize) {
+		OutputThread(Producer<byte[], byte[]> p, long batchSize) {
 			super();
-			this.context = context;
 			this.producer = p;
 			this.batchSize = batchSize;
 		}
@@ -112,7 +113,7 @@ public class KafkaOutput implements Output<Message> {
 				List<Message> msgs = context.dequeue(batchSize);
 				List<KeyedMessage<byte[], byte[]>> l = new ArrayList<>(msgs.size());
 				for (Message m : msgs)
-					l.add(new KeyedMessage<byte[], byte[]>(m.getTopic(), m.getKey(), m.getMessage()));
+					l.add(new KeyedMessage<byte[], byte[]>(m.getTopic(), m.getKey(), m.getBody()));
 				producer.send(l);
 				logger.trace(() -> "Kafka service sent (amount: [" + msgs.size() + "]).");
 			}
