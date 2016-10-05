@@ -19,5 +19,10 @@
 			<version>1.8.2</version>
 			<scope>runtime</scope>
 		</dependency>
+		<dependency>
+			<groupId>com.leansoft</groupId>
+			<artifactId>bigqueue</artifactId>
+			<version>0.7.0</version>
+		</dependency>
 	</dependencies>
 </project>
