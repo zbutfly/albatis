@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import kafka.javaapi.producer.Producer;
@@ -12,21 +11,20 @@ import kafka.producer.KeyedMessage;
 import net.butfly.albacore.io.OffHeapQueue;
 import net.butfly.albacore.io.Output;
 import net.butfly.albacore.io.Queue;
-import net.butfly.albacore.lambda.Converter;
-import net.butfly.albacore.serder.BsonSerder;
 import net.butfly.albacore.utils.Systems;
 import net.butfly.albacore.utils.async.Concurrents;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.kafka.config.KafkaOutputConfig;
 
-public class KafkaOutput implements Output<Message> {
+@SuppressWarnings("deprecation")
+public class KafkaOutput implements Output<KafkaMessage> {
 	private static final long serialVersionUID = -276336973758504567L;
 	private static final Logger logger = Logger.getLogger(KafkaOutput.class);
 
-	private final Queue<Message> context;
-	private final BsonSerder serder;
+	private final Queue<byte[]> context;
 	private final Producer<byte[], byte[]> connect;
 	private AtomicBoolean closed;
+	private OffHeapQueue q;
 
 	/**
 	 * @param mixed:
@@ -40,39 +38,24 @@ public class KafkaOutput implements Output<Message> {
 	public KafkaOutput(final KafkaOutputConfig config) throws KafkaException {
 		super();
 		closed = new AtomicBoolean(false);
-		this.serder = new BsonSerder();
-		MessageSerder msg = new MessageSerder();
-		context = new OffHeapQueue("kafka-output", curr(config.getQueuePath(), config.toString()), config.getPoolSize()).serder(msg
-				.unconverter(), msg.converter());
+		context = new OffHeapQueue("kafka-output", curr(config.getQueuePath(), config.toString()), config.getPoolSize());
 		logger.trace("Writing threads pool created (max: " + 1 + ").");
 		this.connect = connect(config);
 	}
 
 	@Override
-	public void writing(Message... message) {
-		context.enqueue(message);
-	}
-
-	@SafeVarargs
-	public final void write(String topic, Converter<Map<String, Object>, byte[]> keying, Map<String, Object>... object) {
-		Message[] messages = new Message[object.length];
-		for (int i = 0; i < object.length; i++)
-			messages[i] = new Message(topic, keying.apply(object[i]), serder.ser(object[i]).get());
-		writing(messages);
-	}
-
-	@SafeVarargs
-	public final <E> void write(String topic, Converter<E, byte[]> keying, E... object) {
-		Message[] messages = new Message[object.length];
-		for (int i = 0; i < object.length; i++)
-			messages[i] = new Message(topic, keying.apply(object[i]), serder.ser(object[i]).get());
-		writing(messages);
+	public void writing(KafkaMessage... message) {
+		byte[][] buf = new byte[message.length][];
+		for (int i = 0; i < message.length; i++)
+			buf[i] = KafkaMessage.SERDER.ser(message[i]);
+		context.enqueue(buf);
 	}
 
 	public void close() {
 		closed.set(true);
 		connect.close();
 		context.close();
+		q.close();
 	}
 
 	private String curr(String base, String folder) throws KafkaException {
@@ -110,10 +93,12 @@ public class KafkaOutput implements Output<Message> {
 		@Override
 		public void run() {
 			while (!closed.get()) {
-				List<Message> msgs = context.dequeue(batchSize);
+				List<byte[]> msgs = context.dequeue(batchSize);
 				List<KeyedMessage<byte[], byte[]>> l = new ArrayList<>(msgs.size());
-				for (Message m : msgs)
+				for (byte[] b : msgs) {
+					KafkaMessage m = KafkaMessage.SERDER.der(b, KafkaMessage.TOKEN);
 					l.add(new KeyedMessage<byte[], byte[]>(m.getTopic(), m.getKey(), m.getBody()));
+				}
 				producer.send(l);
 				logger.trace(() -> "Kafka service sent (amount: [" + msgs.size() + "]).");
 			}

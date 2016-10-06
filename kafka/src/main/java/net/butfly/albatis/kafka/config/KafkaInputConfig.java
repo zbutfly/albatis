@@ -1,5 +1,6 @@
 package net.butfly.albatis.kafka.config;
 
+import java.text.SimpleDateFormat;
 import java.util.Properties;
 
 import kafka.consumer.ConsumerConfig;
@@ -25,7 +26,10 @@ public class KafkaInputConfig extends KafkaConfigBase {
 
 	public KafkaInputConfig(Properties props) {
 		super(props);
-		groupId = props.getProperty("albatis.kafka.group.id", Systems.getMainClass().getSimpleName());
+		groupId = null;
+		if (props.containsKey("albatis.kafka.group.id")) groupId = props.getProperty("albatis.kafka.group.id");
+		if (groupId == null || "".equals(groupId)) groupId = Systems.getMainClass().getSimpleName();
+		if (Systems.isDebug()) groupId += "-DEBUG@" + new SimpleDateFormat("yyyyMMdd-HHmmss");
 
 		zookeeperSyncTimeMs = Long.valueOf(props.getProperty("albatis.kafka.zookeeper.sync.time.ms", "5000"));
 		autoCommitEnable = Boolean.valueOf(props.getProperty("albatis.kafka.auto.commit.enable", "false"));

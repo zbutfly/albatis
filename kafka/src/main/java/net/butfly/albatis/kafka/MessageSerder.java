@@ -6,11 +6,11 @@ import com.google.common.reflect.TypeToken;
 
 import net.butfly.albacore.serder.Serder;
 
-public class MessageSerder implements Serder<Message, byte[]> {
+public class MessageSerder implements Serder<KafkaMessage, byte[]> {
 	private static final long serialVersionUID = 7305698265437469539L;
 
 	@Override
-	public <T extends Message> byte[] ser(T from) {
+	public <T extends KafkaMessage> byte[] ser(T from) {
 		try {
 			return from.toBytes();
 		} catch (IOException e) {
@@ -20,9 +20,9 @@ public class MessageSerder implements Serder<Message, byte[]> {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public <T extends Message> T der(byte[] from, TypeToken<T> to) {
+	public <T extends KafkaMessage> T der(byte[] from, TypeToken<T> to) {
 		try {
-			return (T) new Message(from);
+			return (T) new KafkaMessage(from);
 		} catch (IOException e) {
 			return null;
 		}

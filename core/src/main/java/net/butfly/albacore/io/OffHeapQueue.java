@@ -36,13 +36,7 @@ public class OffHeapQueue extends AbstractQueue<byte[]> implements Queue<byte[]>
 			if (!Concurrents.waitSleep(FULL_WAIT_MS)) logger.warn("Wait for full interrupted");
 		long c = 0;
 		for (byte[] m : message)
-			try {
-				queue.enqueue(m);
-				c++;
-				stats.in(m.length);
-			} catch (IOException e) {
-				logger.error("Enqueue failure", e);
-			}
+			if (enqueueRaw(m)) c++;
 		return c;
 	}
 
@@ -86,6 +80,7 @@ public class OffHeapQueue extends AbstractQueue<byte[]> implements Queue<byte[]>
 		if (null == e) return false;
 		try {
 			queue.enqueue(e);
+			statsIn(e);
 			return true;
 		} catch (IOException ex) {
 			logger.error("Enqueue failure", ex);
@@ -96,7 +91,7 @@ public class OffHeapQueue extends AbstractQueue<byte[]> implements Queue<byte[]>
 	@Override
 	protected byte[] dequeueRaw() {
 		try {
-			return queue.dequeue();
+			return statsOut(queue.dequeue());
 		} catch (IOException e) {
 			logger.error("Dequeue failure", e);
 			return null;
