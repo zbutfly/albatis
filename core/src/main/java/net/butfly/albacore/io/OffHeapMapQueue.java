@@ -1,11 +1,19 @@
 package net.butfly.albacore.io;
 
 import net.butfly.albacore.lambda.Converter;
+import net.butfly.albacore.utils.logger.Logger;
 
-public class OffHeapMapQueue<K> extends MapQueueImpl<K, byte[], OffHeapQueue> {
+public final class OffHeapMapQueue extends MapQueueImpl<String, byte[], OffHeapQueue> {
 	private static final long serialVersionUID = 1135380051081571780L;
+	protected static final Logger logger = Logger.getLogger(OffHeapMapQueue.class);
 
-	protected OffHeapMapQueue(String name, Converter<byte[], K> keying, Converter<K, OffHeapQueue> constructor, long capacity) {
-		super(name, keying, constructor, capacity);
+	@SafeVarargs
+	public OffHeapMapQueue(String name, String folder, Converter<byte[], String> keying, long capacity, String... keys) {
+		super(name, keying, k -> new OffHeapQueue(k, folder, capacity), capacity, keys);
+	}
+
+	@Override
+	protected long statsSize(byte[] e) {
+		return null == e ? -1 : e.length;
 	}
 }

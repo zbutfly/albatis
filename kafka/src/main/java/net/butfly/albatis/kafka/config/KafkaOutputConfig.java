@@ -6,6 +6,7 @@ import kafka.producer.ProducerConfig;
 import net.butfly.albacore.utils.IOs;
 import net.butfly.albatis.kafka.KafkaException;
 
+@SuppressWarnings("deprecation")
 public class KafkaOutputConfig extends KafkaConfigBase {
 	private static final long serialVersionUID = -3028341800709486625L;
 	private String metadataBrokerList;
