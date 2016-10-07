@@ -71,8 +71,8 @@ public class OffHeapQueue extends AbstractQueue<byte[]> implements Queue<byte[]>
 	}
 
 	@Override
-	protected long statsSize(byte[] e) {
-		return null == e ? -1 : e.length;
+	public long statsSize(byte[] e) {
+		return null == e ? Statistical.SIZE_NULL : e.length;
 	}
 
 	@Override
@@ -80,8 +80,7 @@ public class OffHeapQueue extends AbstractQueue<byte[]> implements Queue<byte[]>
 		if (null == e) return false;
 		try {
 			queue.enqueue(e);
-			statsIn(e);
-			return true;
+			return null != stats(Act.INPUT, e, () -> size());
 		} catch (IOException ex) {
 			logger.error("Enqueue failure", ex);
 			return false;
@@ -91,7 +90,7 @@ public class OffHeapQueue extends AbstractQueue<byte[]> implements Queue<byte[]>
 	@Override
 	protected byte[] dequeueRaw() {
 		try {
-			return statsOut(queue.dequeue());
+			return stats(Act.OUTPUT, queue.dequeue(), () -> size());
 		} catch (IOException e) {
 			logger.error("Dequeue failure", e);
 			return null;
