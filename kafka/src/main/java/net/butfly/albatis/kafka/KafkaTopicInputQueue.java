@@ -8,13 +8,13 @@ import kafka.message.MessageAndMetadata;
 import net.butfly.albacore.io.AbstractQueue;
 import net.butfly.albacore.utils.Systems;
 
-class InputTopicQueue extends AbstractQueue<Message, Message, Message> {
+class KafkaTopicInputQueue extends AbstractQueue<Void, Message, Message> {
 	private static final long serialVersionUID = 8996444280873898467L;
 	private AtomicLong count = new AtomicLong(0);
 	private final ConsumerConnector connect;
 	private final ConsumerIterator<byte[], byte[]> iter;
 
-	public InputTopicQueue(String topic, ConsumerConnector connect, ConsumerIterator<byte[], byte[]> iter) {
+	public KafkaTopicInputQueue(String topic, ConsumerConnector connect, ConsumerIterator<byte[], byte[]> iter) {
 		super("kafka-topic-queue-" + topic, -1, v -> null, m -> m);
 		this.connect = connect;
 		this.iter = iter;
@@ -23,7 +23,7 @@ class InputTopicQueue extends AbstractQueue<Message, Message, Message> {
 
 	@Override
 	public long size() {
-		return -1;
+		return Long.MAX_VALUE;
 	}
 
 	@Override

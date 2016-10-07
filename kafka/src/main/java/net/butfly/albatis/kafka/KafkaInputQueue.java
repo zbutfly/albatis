@@ -11,26 +11,24 @@ import kafka.consumer.ConsumerConfig;
 import kafka.consumer.KafkaStream;
 import kafka.javaapi.consumer.ConsumerConnector;
 import net.butfly.albacore.io.MapQueue;
-import net.butfly.albacore.io.MapQueueImpl;
 import net.butfly.albacore.utils.async.Concurrents;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.kafka.config.KafkaInputConfig;
 
-public class InputMapQueue extends MapQueueImpl<String, Message, Message, Message, InputTopicQueue> implements
-		MapQueue<String, Message, Message, Message> {
+public class KafkaInputQueue extends MapQueue<String, Void, Message, Message, KafkaTopicInputQueue> {
 	private static final long serialVersionUID = 7617065839861658802L;
-	private static final Logger logger = Logger.getLogger(InputMapQueue.class);
+	private static final Logger logger = Logger.getLogger(KafkaInputQueue.class);
 	private final ConsumerConnector connect;
 
-	public InputMapQueue(final KafkaInputConfig config, final Map<String, Integer> topics) throws KafkaException {
-		super("kafka-input-queue", -1L, m -> m.getTopic(), C, C, C, C);
+	public KafkaInputQueue(final KafkaInputConfig config, final Map<String, Integer> topics) throws KafkaException {
+		super("kafka-input-queue", -1L, m -> null, v -> null, C, m -> null, C);
 		connect = connect(config.getConfig());
 		initialize(streaming(topics, Long.parseLong(System.getProperty("albatis.kafka.fucking.waiting", "15000"))));
 	}
 
 	@Override
 	public long size() {
-		return -1;
+		return Long.MAX_VALUE;
 	}
 
 	@Override
@@ -45,20 +43,20 @@ public class InputMapQueue extends MapQueueImpl<String, Message, Message, Messag
 		return conn;
 	}
 
-	private Map<String, InputTopicQueue> streaming(Map<String, Integer> topics, long fucking) {
+	private Map<String, KafkaTopicInputQueue> streaming(Map<String, Integer> topics, long fucking) {
 		Map<String, List<KafkaStream<byte[], byte[]>>> streamMap = connect.createMessageStreams(topics);
 		logger.error("FFFFFFFucking lazy initialization of Kafka, we are sleeping [" + fucking + "ms].");
 		Concurrents.waitSleep(fucking);
 		logger.error("We had waked up, are you ok, Kafka?");
 		logger.debug("Kafka ready in [" + streamMap.size() + "] topics.");
 
-		Map<String, InputTopicQueue> streamings = new HashMap<>();
+		Map<String, KafkaTopicInputQueue> streamings = new HashMap<>();
 		for (String topic : streamMap.keySet()) {
 			List<KafkaStream<byte[], byte[]>> streams = streamMap.get(topic);
 			logger.debug("Kafka (topic: [" + topic + "]) in [" + streams.size() + "] streams.");
 			if (!streams.isEmpty()) for (final KafkaStream<byte[], byte[]> stream : streams) {
 				logger.debug("Kafka thread (topic: [" + topic + "]) is creating... ");
-				streamings.put(topic, new InputTopicQueue(topic, connect, stream.iterator()));
+				streamings.put(topic, new KafkaTopicInputQueue(topic, connect, stream.iterator()));
 			}
 		}
 		return streamings;
