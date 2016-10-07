@@ -18,7 +18,7 @@ import net.butfly.albatis.kafka.KafkaException;
 import net.butfly.albatis.kafka.Message;
 import net.butfly.albatis.kafka.config.KafkaOutputConfig;
 
-@SuppressWarnings("deprecation")
+@Deprecated
 public class KafkaOutput implements Output<Message> {
 	private static final long serialVersionUID = -276336973758504567L;
 	private static final Logger logger = Logger.getLogger(KafkaOutput.class);

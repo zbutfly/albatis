@@ -18,7 +18,6 @@ import kafka.javaapi.consumer.ConsumerConnector;
 import kafka.message.MessageAndMetadata;
 import net.butfly.albacore.io.Input;
 import net.butfly.albacore.io.MapQueue;
-import net.butfly.albacore.io.MapQueueImpl;
 import net.butfly.albacore.io.OffHeapQueue;
 import net.butfly.albacore.utils.Systems;
 import net.butfly.albacore.utils.async.Concurrents;
@@ -27,13 +26,14 @@ import net.butfly.albatis.kafka.KafkaException;
 import net.butfly.albatis.kafka.Message;
 import net.butfly.albatis.kafka.config.KafkaInputConfig;
 
+@Deprecated
 public class KafkaInput implements Input<Message> {
 	private static final long serialVersionUID = 7617065839861658802L;
 	private static final Logger logger = Logger.getLogger(KafkaInput.class);
 
 	private final long batchSize;
 	private final ConsumerConnector connect;
-	private final MapQueue<String, byte[], byte[], byte[]> context;
+	private final MapQueue<String, byte[], byte[], byte[], OffHeapQueue<byte[], byte[]>> context;
 
 	private AtomicBoolean closed;
 
@@ -50,7 +50,7 @@ public class KafkaInput implements Input<Message> {
 		Map<String, OffHeapQueue<byte[], byte[]>> queues = new HashMap<String, OffHeapQueue<byte[], byte[]>>();
 		for (String topic : topics.keySet())
 			queues.put(topic, new OffHeapQueue<byte[], byte[]>(topic, folder, config.getPoolSize(), C, C));
-		context = new MapQueueImpl<String, byte[], byte[], byte[], OffHeapQueue<byte[], byte[]>>("kafka-input", config.getPoolSize(),
+		context = new MapQueue<String, byte[], byte[], byte[], OffHeapQueue<byte[], byte[]>>("kafka-input", config.getPoolSize(),
 				Message.KEYING, C, C, C, C).initialize(queues);
 		this.connect = connect(config.getConfig(), topics, Long.parseLong(System.getProperty("albatis.kafka.fucking.waiting", "15000")));
 	}
