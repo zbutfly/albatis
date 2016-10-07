@@ -29,7 +29,7 @@ public class KafkaInput implements Input<KafkaMessage> {
 
 	private final long batchSize;
 	private final ConsumerConnector connect;
-	private final MapQueue<String, byte[]> context;
+	private final MapQueue<String, byte[], byte[]> context;
 
 	private AtomicBoolean closed;
 
@@ -46,8 +46,8 @@ public class KafkaInput implements Input<KafkaMessage> {
 		Map<String, OffHeapQueue> queues = new HashMap<String, OffHeapQueue>();
 		for (String topic : topics.keySet())
 			queues.put(topic, new OffHeapQueue(topic, folder, config.getPoolSize()));
-		context = new MapQueueImpl<String, byte[], OffHeapQueue>("kafka-input", config.getPoolSize(), m -> KafkaMessage.SERDER.der(m,
-				KafkaMessage.TOKEN).getTopic(), queues);
+		context = new MapQueueImpl<String, byte[], byte[], OffHeapQueue>("kafka-input", config.getPoolSize(), m -> KafkaMessage.SERDER.der(
+				m, KafkaMessage.TOKEN).getTopic(), queues);
 		this.connect = connect(config.getConfig(), topics, Long.parseLong(System.getProperty("albatis.kafka.fucking.waiting", "15000")));
 	}
 

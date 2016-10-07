@@ -21,7 +21,7 @@ public class KafkaOutput implements Output<KafkaMessage> {
 	private static final long serialVersionUID = -276336973758504567L;
 	private static final Logger logger = Logger.getLogger(KafkaOutput.class);
 
-	private final Queue<byte[]> context;
+	private final Queue<byte[], byte[]> context;
 	private final Producer<byte[], byte[]> connect;
 	private AtomicBoolean closed;
 	private OffHeapQueue q;
