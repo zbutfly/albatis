@@ -50,7 +50,7 @@ public class KafkaInput implements Input<KafkaMessage> {
 			queues.put(topic, new OffHeapQueue(topic, folder, config.getPoolSize()));
 		context = new MapQueueImpl<String, byte[], OffHeapQueue>("kafka-input", config.getPoolSize(), m -> KafkaMessage.SERDER.der(m,
 				KafkaMessage.TOKEN).getTopic(), queues);
-		this.connect = connect(config.getConfig(), topics);
+		this.connect = connect(config.getConfig(), topics, config.getFuckingKafkaConnectWaiting());
 	}
 
 	@Override
@@ -85,7 +85,7 @@ public class KafkaInput implements Input<KafkaMessage> {
 		}
 	}
 
-	private ConsumerConnector connect(ConsumerConfig config, Map<String, Integer> topics) {
+	private ConsumerConnector connect(ConsumerConfig config, Map<String, Integer> topics, long fucking) {
 		try {
 			logger.debug("Kafka [" + config.zkConnect() + "] connecting (groupId: [" + config.groupId() + "]).");
 			ConsumerConnector conn = Consumer.createJavaConsumerConnector(config);
@@ -93,7 +93,7 @@ public class KafkaInput implements Input<KafkaMessage> {
 			Map<String, List<KafkaStream<byte[], byte[]>>> streamMap = conn.createMessageStreams(topics);
 
 			logger.error("FFFFFFFucking lazy initialization of Kafka, we sleeping.");
-			Concurrents.waitSleep(10000);
+			Concurrents.waitSleep(fucking);
 
 			logger.debug("Kafka ready in [" + streamMap.size() + "] topics.");
 			for (String topic : streamMap.keySet()) {
