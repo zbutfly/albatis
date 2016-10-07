@@ -13,7 +13,7 @@ public final class OffHeapMapQueue extends MapQueueImpl<String, byte[], OffHeapQ
 	}
 
 	@Override
-	protected long statsSize(byte[] e) {
-		return null == e ? -1 : e.length;
+	public long statsSize(byte[] e) {
+		return null == e ? Statistical.SIZE_NULL : e.length;
 	}
 }

@@ -1,15 +1,18 @@
 package net.butfly.albatis.kafka.config;
 
 import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Properties;
 
 import kafka.consumer.ConsumerConfig;
 import net.butfly.albacore.utils.IOs;
 import net.butfly.albacore.utils.Systems;
+import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.kafka.KafkaException;
 
 public class KafkaInputConfig extends KafkaConfigBase {
 	private static final long serialVersionUID = -3028341800709486625L;
+	private static final Logger logger = Logger.getLogger(KafkaInputConfig.class);
 	protected long zookeeperSyncTimeMs;
 	protected String groupId;
 	protected boolean autoCommitEnable;
@@ -29,7 +32,11 @@ public class KafkaInputConfig extends KafkaConfigBase {
 		groupId = null;
 		if (props.containsKey("albatis.kafka.group.id")) groupId = props.getProperty("albatis.kafka.group.id");
 		if (groupId == null || "".equals(groupId)) groupId = Systems.getMainClass().getSimpleName();
-		if (Systems.isDebug()) groupId += "-DEBUG@" + new SimpleDateFormat("yyyyMMdd-HHmmss");
+		if (Systems.isDebug()) {
+			String suffix = "-DEBUG-" + new SimpleDateFormat("yyyyMMdd").format(new Date());
+			groupId += suffix;
+			logger.warn("Debug mode, suffix [" + suffix + "] append to groupId, now: [" + groupId + "].");
+		}
 
 		zookeeperSyncTimeMs = Long.valueOf(props.getProperty("albatis.kafka.zookeeper.sync.time.ms", "5000"));
 		autoCommitEnable = Boolean.valueOf(props.getProperty("albatis.kafka.auto.commit.enable", "false"));
