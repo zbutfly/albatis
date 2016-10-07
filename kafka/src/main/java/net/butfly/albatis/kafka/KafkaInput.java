@@ -3,6 +3,7 @@ package net.butfly.albatis.kafka;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -15,7 +16,8 @@ import kafka.javaapi.consumer.ConsumerConnector;
 import kafka.message.MessageAndMetadata;
 import net.butfly.albacore.io.Input;
 import net.butfly.albacore.io.MapQueue;
-import net.butfly.albacore.io.OffHeapMapQueue;
+import net.butfly.albacore.io.MapQueueImpl;
+import net.butfly.albacore.io.OffHeapQueue;
 import net.butfly.albacore.utils.Systems;
 import net.butfly.albacore.utils.async.Concurrents;
 import net.butfly.albacore.utils.logger.Logger;
@@ -42,8 +44,12 @@ public class KafkaInput implements Input<KafkaMessage> {
 			if (null != t) total += t;
 		if (total == 0) throw new KafkaException("Kafka configuration has no topic definition.");
 		logger.trace("Reading threads pool created (max: " + total + ").");
-		context = new OffHeapMapQueue("kafka-input", curr(config.getQueuePath(), config.toString()), m -> KafkaMessage.SERDER.der(m,
-				KafkaMessage.TOKEN).getTopic(), config.getPoolSize(), topics.keySet().toArray(new String[topics.size()]));
+		String folder = curr(config.getQueuePath(), config.toString());
+		Map<String, OffHeapQueue> queues = new HashMap<String, OffHeapQueue>();
+		for (String topic : topics.keySet())
+			queues.put(topic, new OffHeapQueue(topic, folder, config.getPoolSize()));
+		context = new MapQueueImpl<String, byte[], OffHeapQueue>("kafka-input", config.getPoolSize(), m -> KafkaMessage.SERDER.der(m,
+				KafkaMessage.TOKEN).getTopic(), queues);
 		this.connect = connect(config.getConfig(), topics);
 	}
 
@@ -118,19 +124,20 @@ public class KafkaInput implements Input<KafkaMessage> {
 
 		@Override
 		public void run() {
-			while (!closed.get())
-				if (iter.hasNext()) {
-					List<byte[]> batch = new ArrayList<>();
-					while (iter.hasNext()) {
-						MessageAndMetadata<byte[], byte[]> meta = iter.next();
-						batch.add(KafkaMessage.SERDER.ser(new KafkaMessage(meta.topic(), meta.key(), meta.message())));
-						if (batch.size() > batchSize || !iter.hasNext()) {
-							KafkaInput.this.commit();
-							context.enqueue(batch);
-							batch.clear();
-						}
+			List<byte[]> batch = new ArrayList<>();
+			while (!closed.get()) {
+				while (!iter.hasNext())
+					Concurrents.waitSleep(500, logger, "Kafka service empty (topic: [" + topic + "]).");
+				while (iter.hasNext()) {
+					MessageAndMetadata<byte[], byte[]> meta = iter.next();
+					batch.add(KafkaMessage.SERDER.ser(new KafkaMessage(meta.topic(), meta.key(), meta.message())));
+					if (batch.size() > batchSize || !iter.hasNext()) {
+						KafkaInput.this.commit();
+						context.enqueue(batch);
+						batch.clear();
 					}
-				} else Concurrents.waitSleep(500, logger, "Kafka service empty (topic: [" + topic + "]).");
+				}
+			}
 		}
 	}
 }
