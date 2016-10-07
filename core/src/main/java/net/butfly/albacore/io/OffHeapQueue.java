@@ -5,20 +5,14 @@ import java.io.IOException;
 import com.leansoft.bigqueue.BigQueueImpl;
 import com.leansoft.bigqueue.IBigQueue;
 
-import net.butfly.albacore.lambda.Converter;
 import net.butfly.albacore.utils.async.Concurrents;
 import net.butfly.albacore.utils.logger.Logger;
 
-public class OffHeapQueue extends AbstractQueue<byte[]> implements Queue<byte[]> {
+public class OffHeapQueue extends AbstractQueue<byte[], byte[]> implements Queue<byte[], byte[]> {
 	private static final long serialVersionUID = -1813985267000339980L;
 	private static final Logger logger = Logger.getLogger(OffHeapQueue.class);
 	protected final String dataFolder;
 	protected final IBigQueue queue;
-
-	@Override
-	public long size() {
-		return queue.size();
-	}
 
 	public OffHeapQueue(String name, String dataFolder, long capacity) {
 		super("off-heap-queue-" + name, capacity);
@@ -29,6 +23,12 @@ public class OffHeapQueue extends AbstractQueue<byte[]> implements Queue<byte[]>
 		} catch (IOException e) {
 			throw new RuntimeException("Queue create failure", e);
 		}
+		stats(byte[].class, e -> null == e ? Statistical.SIZE_NULL : e.length);
+	}
+
+	@Override
+	public long size() {
+		return queue.size();
 	}
 
 	@Override
@@ -69,11 +69,6 @@ public class OffHeapQueue extends AbstractQueue<byte[]> implements Queue<byte[]>
 		} catch (IOException e) {
 			logger.error("Queue GC failure", e);
 		}
-	}
-
-	@Override
-	public Converter<byte[], Long> statsing() {
-		return e -> null == e ? Statistical.SIZE_NULL : e.length;
 	}
 
 	@Override
