@@ -31,13 +31,11 @@ public class KafkaInput implements Input<KafkaMessage> {
 	private final ConsumerConnector connect;
 	private final MapQueue<String, byte[]> context;
 
-	private boolean debug;
 	private AtomicBoolean closed;
 
 	public KafkaInput(final KafkaInputConfig config, final Map<String, Integer> topics) throws KafkaException {
 		super();
 		closed = new AtomicBoolean(false);
-		this.debug = Systems.isDebug();
 		this.batchSize = config.getBatchSize();
 		int total = 0;
 		for (Integer t : topics.values())
@@ -50,7 +48,7 @@ public class KafkaInput implements Input<KafkaMessage> {
 			queues.put(topic, new OffHeapQueue(topic, folder, config.getPoolSize()));
 		context = new MapQueueImpl<String, byte[], OffHeapQueue>("kafka-input", config.getPoolSize(), m -> KafkaMessage.SERDER.der(m,
 				KafkaMessage.TOKEN).getTopic(), queues);
-		this.connect = connect(config.getConfig(), topics, config.getFuckingKafkaConnectWaiting());
+		this.connect = connect(config.getConfig(), topics, Long.parseLong(System.getProperty("albatis.kafka.fucking.waiting", "15000")));
 	}
 
 	@Override
@@ -63,8 +61,8 @@ public class KafkaInput implements Input<KafkaMessage> {
 
 	@Override
 	public void commit() {
-		logger.trace(() -> "Kafka reading committed [" + (debug ? "Dry" : "Wet") + "].");
-		if (!debug) connect.commitOffsets();
+		logger.trace(() -> "Kafka reading committed [" + (Systems.isDebug() ? "Dry" : "Wet") + "].");
+		if (!Systems.isDebug()) connect.commitOffsets();
 	}
 
 	@Override
@@ -92,8 +90,9 @@ public class KafkaInput implements Input<KafkaMessage> {
 			logger.debug("Kafka [" + config.zkConnect() + "] Connected (groupId: [" + config.groupId() + "]).");
 			Map<String, List<KafkaStream<byte[], byte[]>>> streamMap = conn.createMessageStreams(topics);
 
-			logger.error("FFFFFFFucking lazy initialization of Kafka, we sleeping.");
+			logger.error("FFFFFFFucking lazy initialization of Kafka, we are sleeping [" + fucking + "ms].");
 			Concurrents.waitSleep(fucking);
+			logger.error("We had waked up, are you ok, Kafka?");
 
 			logger.debug("Kafka ready in [" + streamMap.size() + "] topics.");
 			for (String topic : streamMap.keySet()) {
