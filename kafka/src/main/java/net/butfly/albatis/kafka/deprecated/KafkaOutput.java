@@ -1,4 +1,4 @@
-package net.butfly.albatis.kafka;
+package net.butfly.albatis.kafka.deprecated;
 
 import java.io.File;
 import java.io.IOException;
@@ -14,17 +14,19 @@ import net.butfly.albacore.io.Queue;
 import net.butfly.albacore.utils.Systems;
 import net.butfly.albacore.utils.async.Concurrents;
 import net.butfly.albacore.utils.logger.Logger;
+import net.butfly.albatis.kafka.KafkaException;
+import net.butfly.albatis.kafka.Message;
 import net.butfly.albatis.kafka.config.KafkaOutputConfig;
 
 @SuppressWarnings("deprecation")
-public class KafkaOutput implements Output<KafkaMessage> {
+public class KafkaOutput implements Output<Message> {
 	private static final long serialVersionUID = -276336973758504567L;
 	private static final Logger logger = Logger.getLogger(KafkaOutput.class);
 
-	private final Queue<byte[], byte[]> context;
+	private final Queue<byte[], byte[], byte[]> context;
 	private final Producer<byte[], byte[]> connect;
 	private AtomicBoolean closed;
-	private OffHeapQueue q;
+	private OffHeapQueue<byte[], byte[]> q;
 
 	/**
 	 * @param mixed:
@@ -38,16 +40,17 @@ public class KafkaOutput implements Output<KafkaMessage> {
 	public KafkaOutput(final KafkaOutputConfig config) throws KafkaException {
 		super();
 		closed = new AtomicBoolean(false);
-		context = new OffHeapQueue("kafka-output", curr(config.getQueuePath(), config.toString()), config.getPoolSize());
+		String path = curr(config.getQueuePath(), config.toString());
+		context = new OffHeapQueue<byte[], byte[]>("kafka-output", path, config.getPoolSize(), OffHeapQueue.C, OffHeapQueue.C);
 		logger.trace("Writing threads pool created (max: " + 1 + ").");
 		this.connect = connect(config);
 	}
 
 	@Override
-	public void writing(KafkaMessage... message) {
+	public void writing(Message... message) {
 		byte[][] buf = new byte[message.length][];
 		for (int i = 0; i < message.length; i++)
-			buf[i] = KafkaMessage.SERDER.ser(message[i]);
+			buf[i] = Message.SERDER.ser(message[i]);
 		context.enqueue(buf);
 	}
 
@@ -96,7 +99,7 @@ public class KafkaOutput implements Output<KafkaMessage> {
 				List<byte[]> msgs = context.dequeue(batchSize);
 				List<KeyedMessage<byte[], byte[]>> l = new ArrayList<>(msgs.size());
 				for (byte[] b : msgs) {
-					KafkaMessage m = KafkaMessage.SERDER.der(b, KafkaMessage.TOKEN);
+					Message m = Message.SERDER.der(b, Message.TOKEN);
 					l.add(new KeyedMessage<byte[], byte[]>(m.getTopic(), m.getKey(), m.getBody()));
 				}
 				producer.send(l);

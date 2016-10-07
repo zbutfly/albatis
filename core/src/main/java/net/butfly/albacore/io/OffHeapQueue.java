@@ -5,17 +5,20 @@ import java.io.IOException;
 import com.leansoft.bigqueue.BigQueueImpl;
 import com.leansoft.bigqueue.IBigQueue;
 
+import net.butfly.albacore.lambda.Converter;
 import net.butfly.albacore.utils.async.Concurrents;
 import net.butfly.albacore.utils.logger.Logger;
 
-public class OffHeapQueue extends AbstractQueue<byte[], byte[]> implements Queue<byte[], byte[]> {
+public class OffHeapQueue<IN, OUT> extends AbstractQueue<IN, OUT, byte[]> implements Queue<IN, OUT, byte[]> {
 	private static final long serialVersionUID = -1813985267000339980L;
 	private static final Logger logger = Logger.getLogger(OffHeapQueue.class);
+	public static final Converter<byte[], byte[]> C = t -> t;
+
 	protected final String dataFolder;
 	protected final IBigQueue queue;
 
-	public OffHeapQueue(String name, String dataFolder, long capacity) {
-		super("off-heap-queue-" + name, capacity);
+	public OffHeapQueue(String name, String dataFolder, long capacity, Converter<IN, byte[]> in, Converter<byte[], OUT> out) {
+		super("off-heap-queue-" + name, capacity, in, out);
 		this.dataFolder = dataFolder;
 		try {
 			logger.info("Off heap queue (\"BigQueue\") creating as [" + name + "] at [" + dataFolder + "]");
@@ -31,13 +34,14 @@ public class OffHeapQueue extends AbstractQueue<byte[], byte[]> implements Queue
 		return queue.size();
 	}
 
+	@SafeVarargs
 	@Override
-	public long enqueue(byte[]... message) {
+	public final long enqueue(IN... message) {
 		while (full())
 			if (!Concurrents.waitSleep(FULL_WAIT_MS)) logger.warn("Wait for full interrupted");
 		long c = 0;
-		for (byte[] m : message)
-			if (enqueueRaw(m)) c++;
+		for (IN m : message)
+			if (enqueueRaw(conv._1.apply(m))) c++;
 		return c;
 	}
 
@@ -54,11 +58,6 @@ public class OffHeapQueue extends AbstractQueue<byte[], byte[]> implements Queue
 		} catch (IOException e) {
 			logger.error("Queue close failure", e);
 		}
-	}
-
-	@Override
-	public OffHeapQueue clone() {
-		return new OffHeapQueue(dataFolder, name, capacity());
 	}
 
 	@Override
