@@ -1,4 +1,6 @@
-package net.butfly.albatis.kafka;
+package net.butfly.albatis.kafka.deprecated;
+
+import static net.butfly.albacore.io.OffHeapQueue.C;
 
 import java.io.File;
 import java.io.IOException;
@@ -21,15 +23,17 @@ import net.butfly.albacore.io.OffHeapQueue;
 import net.butfly.albacore.utils.Systems;
 import net.butfly.albacore.utils.async.Concurrents;
 import net.butfly.albacore.utils.logger.Logger;
+import net.butfly.albatis.kafka.KafkaException;
+import net.butfly.albatis.kafka.Message;
 import net.butfly.albatis.kafka.config.KafkaInputConfig;
 
-public class KafkaInput implements Input<KafkaMessage> {
+public class KafkaInput implements Input<Message> {
 	private static final long serialVersionUID = 7617065839861658802L;
 	private static final Logger logger = Logger.getLogger(KafkaInput.class);
 
 	private final long batchSize;
 	private final ConsumerConnector connect;
-	private final MapQueue<String, byte[], byte[]> context;
+	private final MapQueue<String, byte[], byte[], byte[]> context;
 
 	private AtomicBoolean closed;
 
@@ -43,19 +47,19 @@ public class KafkaInput implements Input<KafkaMessage> {
 		if (total == 0) throw new KafkaException("Kafka configuration has no topic definition.");
 		logger.trace("Reading threads pool created (max: " + total + ").");
 		String folder = curr(config.getQueuePath(), config.toString());
-		Map<String, OffHeapQueue> queues = new HashMap<String, OffHeapQueue>();
+		Map<String, OffHeapQueue<byte[], byte[]>> queues = new HashMap<String, OffHeapQueue<byte[], byte[]>>();
 		for (String topic : topics.keySet())
-			queues.put(topic, new OffHeapQueue(topic, folder, config.getPoolSize()));
-		context = new MapQueueImpl<String, byte[], byte[], OffHeapQueue>("kafka-input", config.getPoolSize(), m -> KafkaMessage.SERDER.der(
-				m, KafkaMessage.TOKEN).getTopic(), queues);
+			queues.put(topic, new OffHeapQueue<byte[], byte[]>(topic, folder, config.getPoolSize(), C, C));
+		context = new MapQueueImpl<String, byte[], byte[], byte[], OffHeapQueue<byte[], byte[]>>("kafka-input", config.getPoolSize(),
+				Message.KEYING, C, C, C, C).initialize(queues);
 		this.connect = connect(config.getConfig(), topics, Long.parseLong(System.getProperty("albatis.kafka.fucking.waiting", "15000")));
 	}
 
 	@Override
-	public List<KafkaMessage> reading() {
-		List<KafkaMessage> msgs = new ArrayList<>();
+	public List<Message> reading() {
+		List<Message> msgs = new ArrayList<>();
 		for (byte[] b : context.dequeue(batchSize))
-			msgs.add(KafkaMessage.SERDER.der(b, KafkaMessage.TOKEN));
+			msgs.add(Message.SERDER.der(b, Message.TOKEN));
 		return msgs;
 	}
 
@@ -129,7 +133,7 @@ public class KafkaInput implements Input<KafkaMessage> {
 					Concurrents.waitSleep(500, logger, "Kafka service empty (topic: [" + topic + "]).");
 				while (iter.hasNext()) {
 					MessageAndMetadata<byte[], byte[]> meta = iter.next();
-					batch.add(KafkaMessage.SERDER.ser(new KafkaMessage(meta.topic(), meta.key(), meta.message())));
+					batch.add(Message.SERDER.ser(new Message(meta.topic(), meta.key(), meta.message())));
 					if (batch.size() > batchSize || !iter.hasNext()) {
 						KafkaInput.this.commit();
 						context.enqueue(batch);
