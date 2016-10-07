@@ -23,6 +23,8 @@ public class KafkaInputConfig extends KafkaConfigBase {
 	protected long fetchMessageMaxBytes;
 	protected long fetchWaitTimeoutMs;
 
+	private long fuckingWaiting;
+
 	public KafkaInputConfig(String classpathResourceName) {
 		this(IOs.loadAsProps(classpathResourceName));
 	}
@@ -46,6 +48,8 @@ public class KafkaInputConfig extends KafkaConfigBase {
 		fetchWaitTimeoutMs = Long.valueOf(props.getProperty("albatis.kafka.fetch.wait.timeout.ms", "5000"));
 		partitionAssignmentStrategy = props.getProperty("albatis.kafka.partition.assignment.strategy", "range");
 		fetchMessageMaxBytes = Long.valueOf(props.getProperty("albatis.kafka.fetch.message.max.bytes", "3145728"));
+
+		fuckingWaiting = Long.valueOf(props.getProperty("albatis.kafka.fucking.waiting", "10000"));
 	}
 
 	public ConsumerConfig getConfig() throws KafkaException {
@@ -75,5 +79,9 @@ public class KafkaInputConfig extends KafkaConfigBase {
 	@Override
 	public String toString() {
 		return this.zookeeperConnect + "@" + this.groupId;
+	}
+
+	public long getFuckingKafkaConnectWaiting() {
+		return fuckingWaiting;
 	}
 }
