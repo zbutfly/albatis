@@ -5,6 +5,7 @@ import java.io.IOException;
 import com.leansoft.bigqueue.BigQueueImpl;
 import com.leansoft.bigqueue.IBigQueue;
 
+import net.butfly.albacore.lambda.Converter;
 import net.butfly.albacore.utils.async.Concurrents;
 import net.butfly.albacore.utils.logger.Logger;
 
@@ -23,7 +24,7 @@ public class OffHeapQueue extends AbstractQueue<byte[]> implements Queue<byte[]>
 		super("off-heap-queue-" + name, capacity);
 		this.dataFolder = dataFolder;
 		try {
-			logger.info("Off heap queue creating as [" + name + "] at [" + dataFolder + "]");
+			logger.info("Off heap queue (\"BigQueue\") creating as [" + name + "] at [" + dataFolder + "]");
 			queue = new BigQueueImpl(dataFolder, name);
 		} catch (IOException e) {
 			throw new RuntimeException("Queue create failure", e);
@@ -71,8 +72,8 @@ public class OffHeapQueue extends AbstractQueue<byte[]> implements Queue<byte[]>
 	}
 
 	@Override
-	public long statsSize(byte[] e) {
-		return null == e ? Statistical.SIZE_NULL : e.length;
+	public Converter<byte[], Long> statsing() {
+		return e -> null == e ? Statistical.SIZE_NULL : e.length;
 	}
 
 	@Override
