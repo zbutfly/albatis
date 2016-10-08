@@ -25,7 +25,7 @@ public abstract class OffHeapQueueImpl<I, O> extends QueueImpl<I, O, byte[]> imp
 		} catch (IOException e) {
 			throw new RuntimeException("Queue create failure", e);
 		}
-		stats(byte[].class, e -> null == e ? Statistical.SIZE_NULL : e.length);
+		this.statsRegister(e -> null == e ? Statistical.SIZE_NULL : (long) e.length, Act.INPUT, Act.OUTPUT);
 	}
 
 	protected abstract byte[] conv(I e);
@@ -41,8 +41,8 @@ public abstract class OffHeapQueueImpl<I, O> extends QueueImpl<I, O, byte[]> imp
 	protected boolean enqueueRaw(I e) {
 		if (null == e) return false;
 		try {
-			queue.enqueue(conv(e));
-			return null != stats(Act.INPUT, e, () -> size());
+			queue.enqueue(statsRecord(Act.INPUT, conv(e), () -> size()));
+			return true;
 		} catch (IOException ex) {
 			logger.error("Enqueue failure", ex);
 			return false;
@@ -52,7 +52,7 @@ public abstract class OffHeapQueueImpl<I, O> extends QueueImpl<I, O, byte[]> imp
 	@Override
 	protected O dequeueRaw() {
 		try {
-			return stats(Act.OUTPUT, unconv(queue.dequeue()), () -> size());
+			return unconv(statsRecord(Act.OUTPUT, queue.dequeue(), () -> size()));
 		} catch (IOException e) {
 			logger.error("Dequeue failure", e);
 			return null;

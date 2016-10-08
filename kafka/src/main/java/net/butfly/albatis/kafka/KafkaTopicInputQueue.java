@@ -6,6 +6,7 @@ import kafka.consumer.ConsumerIterator;
 import kafka.javaapi.consumer.ConsumerConnector;
 import kafka.message.MessageAndMetadata;
 import net.butfly.albacore.io.InputQueueImpl;
+import net.butfly.albacore.io.stats.Statistical;
 import net.butfly.albacore.utils.Systems;
 
 class KafkaTopicInputQueue extends InputQueueImpl<Message, MessageAndMetadata<byte[], byte[]>> {
@@ -18,7 +19,7 @@ class KafkaTopicInputQueue extends InputQueueImpl<Message, MessageAndMetadata<by
 		super("kafka-topic-queue-" + topic, -1);
 		this.connect = connect;
 		this.iter = iter;
-		stats(byte[].class, b -> (long) b.length);
+		this.statsRegister(e -> null == e ? Statistical.SIZE_NULL : e.message().length, Act.OUTPUT);
 	}
 
 	@Override
@@ -27,22 +28,17 @@ class KafkaTopicInputQueue extends InputQueueImpl<Message, MessageAndMetadata<by
 	}
 
 	@Override
-	@Deprecated
-	protected boolean enqueueRaw(Void e) {
-		return false;
-	}
-
-	@Override
 	protected Message dequeueRaw() {
 		MessageAndMetadata<byte[], byte[]> meta = iter.next();
-		byte[] m = stats(Act.OUTPUT, meta.message(), () -> {
+		if (null == meta) return null;
+		byte[] m = statsRecord(Act.OUTPUT, meta, () -> {
 			long l = commitCount.incrementAndGet();
 			if (l % 10000 == 0) {
 				logger.trace(() -> "Kafka reading committed [" + (Systems.isDebug() ? "Dry" : "Wet") + "].");
 				if (!Systems.isDebug()) connect.commitOffsets();
 			}
 			return l;
-		});
+		}).message();
 		return new Message(meta.topic(), meta.key(), m);
 	}
 }

@@ -10,12 +10,13 @@ import kafka.consumer.KafkaStream;
 import kafka.javaapi.consumer.ConsumerConnector;
 import kafka.message.MessageAndMetadata;
 import net.butfly.albacore.exception.ConfigException;
+import net.butfly.albacore.io.InputQueue;
 import net.butfly.albacore.io.MapQueueImpl;
 import net.butfly.albacore.utils.async.Concurrents;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.kafka.config.KafkaInputConfig;
 
-public class KafkaInputQueue extends MapQueueImpl<String, Void, Message, MessageAndMetadata<byte[], byte[]>, KafkaTopicInputQueue> {
+public class KafkaInputQueue extends MapQueueImpl<String, Void, Message, MessageAndMetadata<byte[], byte[]>> {
 	private static final long serialVersionUID = 7617065839861658802L;
 	private static final Logger logger = Logger.getLogger(KafkaInputQueue.class);
 	private final ConsumerConnector connect;
@@ -23,7 +24,9 @@ public class KafkaInputQueue extends MapQueueImpl<String, Void, Message, Message
 	public KafkaInputQueue(final KafkaInputConfig config, final Map<String, Integer> topics) throws ConfigException {
 		super("kafka-input-queue", -1L);
 		connect = connect(config.getConfig());
-		initialize(streaming(topics, Long.parseLong(System.getProperty("albatis.kafka.fucking.waiting", "15000"))));
+		Map<String, InputQueue<Message>> map = streaming(topics, Long.parseLong(System.getProperty("albatis.kafka.fucking.waiting",
+				"15000")));
+		initialize(map);
 	}
 
 	@Override
@@ -48,14 +51,14 @@ public class KafkaInputQueue extends MapQueueImpl<String, Void, Message, Message
 		return conn;
 	}
 
-	private Map<String, KafkaTopicInputQueue> streaming(Map<String, Integer> topics, long fucking) {
+	private Map<String, InputQueue<Message>> streaming(Map<String, Integer> topics, long fucking) {
 		Map<String, List<KafkaStream<byte[], byte[]>>> streamMap = connect.createMessageStreams(topics);
 		logger.error("FFFFFFFucking lazy initialization of Kafka, we are sleeping [" + fucking + "ms].");
 		Concurrents.waitSleep(fucking);
 		logger.error("We had waked up, are you ok, Kafka?");
 		logger.debug("Kafka ready in [" + streamMap.size() + "] topics.");
 
-		Map<String, KafkaTopicInputQueue> streamings = new HashMap<>();
+		Map<String, InputQueue<Message>> streamings = new HashMap<>();
 		for (String topic : streamMap.keySet()) {
 			List<KafkaStream<byte[], byte[]>> streams = streamMap.get(topic);
 			logger.debug("Kafka (topic: [" + topic + "]) in [" + streams.size() + "] streams.");
