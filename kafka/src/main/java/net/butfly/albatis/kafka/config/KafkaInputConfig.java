@@ -5,10 +5,10 @@ import java.util.Date;
 import java.util.Properties;
 
 import kafka.consumer.ConsumerConfig;
+import net.butfly.albacore.exception.ConfigException;
 import net.butfly.albacore.utils.IOs;
 import net.butfly.albacore.utils.Systems;
 import net.butfly.albacore.utils.logger.Logger;
-import net.butfly.albatis.kafka.KafkaException;
 
 public class KafkaInputConfig extends KafkaConfigBase {
 	private static final long serialVersionUID = -3028341800709486625L;
@@ -48,8 +48,8 @@ public class KafkaInputConfig extends KafkaConfigBase {
 		fetchMessageMaxBytes = Long.valueOf(props.getProperty("albatis.kafka.fetch.message.max.bytes", "3145728"));
 	}
 
-	public ConsumerConfig getConfig() throws KafkaException {
-		if (zookeeperConnect == null || groupId == null) throw new KafkaException(
+	public ConsumerConfig getConfig() throws ConfigException {
+		if (zookeeperConnect == null || groupId == null) throw new ConfigException(
 				"Kafka configuration has no zookeeper and group definition.");
 		return new ConsumerConfig(props());
 	}
