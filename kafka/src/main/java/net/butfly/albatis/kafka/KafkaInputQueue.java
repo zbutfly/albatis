@@ -3,6 +3,7 @@ package net.butfly.albatis.kafka;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 
 import kafka.consumer.Consumer;
 import kafka.consumer.ConsumerConfig;
@@ -12,6 +13,7 @@ import kafka.message.MessageAndMetadata;
 import net.butfly.albacore.exception.ConfigException;
 import net.butfly.albacore.io.InputQueue;
 import net.butfly.albacore.io.MapQueueImpl;
+import net.butfly.albacore.utils.Systems;
 import net.butfly.albacore.utils.async.Concurrents;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.kafka.config.KafkaInputConfig;
@@ -20,9 +22,11 @@ public class KafkaInputQueue extends MapQueueImpl<String, Void, Message, Message
 	private static final long serialVersionUID = 7617065839861658802L;
 	private static final Logger logger = Logger.getLogger(KafkaInputQueue.class);
 	private final ConsumerConnector connect;
+	private final long commitStep;
 
-	public KafkaInputQueue(final KafkaInputConfig config, final Map<String, Integer> topics) throws ConfigException {
+	public KafkaInputQueue(final KafkaInputConfig config, final Map<String, Integer> topics, long commitStep) throws ConfigException {
 		super("kafka-input-queue", -1L);
+		this.commitStep = commitStep;
 		connect = connect(config.getConfig());
 		Map<String, InputQueue<Message>> map = streaming(topics, Long.parseLong(System.getProperty("albatis.kafka.fucking.waiting",
 				"15000")));
@@ -64,9 +68,24 @@ public class KafkaInputQueue extends MapQueueImpl<String, Void, Message, Message
 			logger.debug("Kafka (topic: [" + topic + "]) in [" + streams.size() + "] streams.");
 			if (!streams.isEmpty()) for (final KafkaStream<byte[], byte[]> stream : streams) {
 				logger.debug("Kafka thread (topic: [" + topic + "]) is creating... ");
-				streamings.put(topic, new KafkaTopicInputQueue(topic, connect, stream.iterator()));
+				streamings.put(topic, new KafkaTopicInputQueue(topic, connect, stream.iterator(), this::commit));
 			}
 		}
 		return streamings;
+	}
+
+	private final AtomicLong commits = new AtomicLong(0);
+
+	public List<Message> commit(List<Message> l) {
+		commits.updateAndGet(n -> {
+			n += l.size();
+			if (n >= commitStep) {
+				logger.trace("Kafka reading [" + (Systems.isDebug() ? "Dry" : "Wet") + "] committed: [" + n + "] messages.");
+				if (!Systems.isDebug()) connect.commitOffsets();
+				n = 0;
+			}
+			return n;
+		});
+		return l;
 	}
 }
