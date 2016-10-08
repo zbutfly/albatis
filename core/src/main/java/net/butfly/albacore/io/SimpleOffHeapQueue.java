@@ -27,7 +27,7 @@ public final class SimpleOffHeapQueue extends OffHeapQueueImpl<byte[], byte[]> i
 		if (null == e) return false;
 		try {
 			queue.enqueue(e);
-			return null != statsRecord(Act.INPUT, e, () -> size());
+			return null != stats(Act.INPUT, e);
 		} catch (IOException ex) {
 			logger.error("Enqueue failure", ex);
 			return false;
@@ -37,7 +37,7 @@ public final class SimpleOffHeapQueue extends OffHeapQueueImpl<byte[], byte[]> i
 	@Override
 	protected byte[] dequeueRaw() {
 		try {
-			return statsRecord(Act.OUTPUT, queue.dequeue(), () -> size());
+			return stats(Act.OUTPUT, queue.dequeue());
 		} catch (IOException e) {
 			logger.error("Dequeue failure", e);
 			return null;

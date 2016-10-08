@@ -5,7 +5,6 @@ import java.io.IOException;
 import com.leansoft.bigqueue.BigQueueImpl;
 import com.leansoft.bigqueue.IBigQueue;
 
-import net.butfly.albacore.io.stats.Statistical;
 import net.butfly.albacore.utils.async.Concurrents;
 import net.butfly.albacore.utils.logger.Logger;
 
@@ -25,7 +24,6 @@ public abstract class OffHeapQueueImpl<I, O> extends QueueImpl<I, O, byte[]> imp
 		} catch (IOException e) {
 			throw new RuntimeException("Queue create failure", e);
 		}
-		this.statsRegister(e -> null == e ? Statistical.SIZE_NULL : (long) e.length, Act.INPUT, Act.OUTPUT);
 	}
 
 	protected abstract byte[] conv(I e);
@@ -41,7 +39,7 @@ public abstract class OffHeapQueueImpl<I, O> extends QueueImpl<I, O, byte[]> imp
 	protected boolean enqueueRaw(I e) {
 		if (null == e) return false;
 		try {
-			queue.enqueue(statsRecord(Act.INPUT, conv(e), () -> size()));
+			queue.enqueue(stats(Act.INPUT, conv(e)));
 			return true;
 		} catch (IOException ex) {
 			logger.error("Enqueue failure", ex);
@@ -52,7 +50,7 @@ public abstract class OffHeapQueueImpl<I, O> extends QueueImpl<I, O, byte[]> imp
 	@Override
 	protected O dequeueRaw() {
 		try {
-			return unconv(statsRecord(Act.OUTPUT, queue.dequeue(), () -> size()));
+			return unconv(stats(Act.OUTPUT, queue.dequeue()));
 		} catch (IOException e) {
 			logger.error("Dequeue failure", e);
 			return null;

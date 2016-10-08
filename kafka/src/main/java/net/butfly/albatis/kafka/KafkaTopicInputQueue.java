@@ -1,25 +1,23 @@
 package net.butfly.albatis.kafka;
 
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.List;
 
 import kafka.consumer.ConsumerIterator;
 import kafka.javaapi.consumer.ConsumerConnector;
 import kafka.message.MessageAndMetadata;
 import net.butfly.albacore.io.InputQueueImpl;
-import net.butfly.albacore.io.stats.Statistical;
-import net.butfly.albacore.utils.Systems;
+import net.butfly.albacore.lambda.Converter;
 
 class KafkaTopicInputQueue extends InputQueueImpl<Message, MessageAndMetadata<byte[], byte[]>> {
 	private static final long serialVersionUID = 8996444280873898467L;
-	private AtomicLong commitCount = new AtomicLong(0);
-	private final ConsumerConnector connect;
+	private final Converter<List<Message>, List<Message>> committing;
 	private final ConsumerIterator<byte[], byte[]> iter;
 
-	public KafkaTopicInputQueue(String topic, ConsumerConnector connect, ConsumerIterator<byte[], byte[]> iter) {
+	public KafkaTopicInputQueue(String topic, ConsumerConnector connect, ConsumerIterator<byte[], byte[]> iter,
+			Converter<List<Message>, List<Message>> committing) {
 		super("kafka-topic-queue-" + topic, -1);
-		this.connect = connect;
+		this.committing = committing;
 		this.iter = iter;
-		this.statsRegister(e -> null == e ? Statistical.SIZE_NULL : e.message().length, Act.OUTPUT);
 	}
 
 	@Override
@@ -31,14 +29,12 @@ class KafkaTopicInputQueue extends InputQueueImpl<Message, MessageAndMetadata<by
 	protected Message dequeueRaw() {
 		MessageAndMetadata<byte[], byte[]> meta = iter.next();
 		if (null == meta) return null;
-		byte[] m = statsRecord(Act.OUTPUT, meta, () -> {
-			long l = commitCount.incrementAndGet();
-			if (l % 10000 == 0) {
-				logger.trace(() -> "Kafka reading committed [" + (Systems.isDebug() ? "Dry" : "Wet") + "].");
-				if (!Systems.isDebug()) connect.commitOffsets();
-			}
-			return l;
-		}).message();
+		byte[] m = stats(Act.OUTPUT, meta).message();
 		return new Message(meta.topic(), meta.key(), m);
+	}
+
+	@Override
+	public List<Message> dequeue(long batchSize) {
+		return committing.apply(super.dequeue(batchSize));
 	}
 }
