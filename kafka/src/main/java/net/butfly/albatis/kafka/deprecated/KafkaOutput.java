@@ -8,13 +8,14 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import kafka.javaapi.producer.Producer;
 import kafka.producer.KeyedMessage;
-import net.butfly.albacore.io.OffHeapQueue;
-import net.butfly.albacore.io.Output;
+import net.butfly.albacore.exception.ConfigException;
+import net.butfly.albacore.io.OffHeapQueueImpl;
 import net.butfly.albacore.io.Queue;
+import net.butfly.albacore.io.SimpleOffHeapQueue;
+import net.butfly.albacore.io.deprecated.Output;
 import net.butfly.albacore.utils.Systems;
 import net.butfly.albacore.utils.async.Concurrents;
 import net.butfly.albacore.utils.logger.Logger;
-import net.butfly.albatis.kafka.KafkaException;
 import net.butfly.albatis.kafka.Message;
 import net.butfly.albatis.kafka.config.KafkaOutputConfig;
 
@@ -23,10 +24,10 @@ public class KafkaOutput implements Output<Message> {
 	private static final long serialVersionUID = -276336973758504567L;
 	private static final Logger logger = Logger.getLogger(KafkaOutput.class);
 
-	private final Queue<byte[], byte[], byte[]> context;
+	private final Queue<byte[], byte[]> context;
 	private final Producer<byte[], byte[]> connect;
 	private AtomicBoolean closed;
-	private OffHeapQueue<byte[], byte[]> q;
+	private OffHeapQueueImpl<byte[], byte[]> q;
 
 	/**
 	 * @param mixed:
@@ -37,11 +38,11 @@ public class KafkaOutput implements Output<Message> {
 	 *            缓冲消息个数
 	 * @return
 	 */
-	public KafkaOutput(final KafkaOutputConfig config) throws KafkaException {
+	public KafkaOutput(final KafkaOutputConfig config) throws ConfigException {
 		super();
 		closed = new AtomicBoolean(false);
 		String path = curr(config.getQueuePath(), config.toString());
-		context = new OffHeapQueue<byte[], byte[]>("kafka-output", path, config.getPoolSize(), OffHeapQueue.C, OffHeapQueue.C);
+		context = new SimpleOffHeapQueue("kafka-output", path, config.getPoolSize());
 		logger.trace("Writing threads pool created (max: " + 1 + ").");
 		this.connect = connect(config);
 	}
@@ -50,7 +51,7 @@ public class KafkaOutput implements Output<Message> {
 	public void writing(Message... message) {
 		byte[][] buf = new byte[message.length][];
 		for (int i = 0; i < message.length; i++)
-			buf[i] = Message.SERDER.ser(message[i]);
+			buf[i] = message[i].toBytes();
 		context.enqueue(buf);
 	}
 
@@ -61,14 +62,14 @@ public class KafkaOutput implements Output<Message> {
 		q.close();
 	}
 
-	private String curr(String base, String folder) throws KafkaException {
+	private String curr(String base, String folder) throws ConfigException {
 		try {
 			String path = base + "/" + Systems.getMainClass().getSimpleName() + "/" + folder.replaceAll("[:/\\,]", "-");
 			File f = new File(path);
 			f.mkdirs();
 			return f.getCanonicalPath();
 		} catch (IOException e) {
-			throw new KafkaException(e);
+			throw new ConfigException(e);
 		}
 	}
 
@@ -76,7 +77,7 @@ public class KafkaOutput implements Output<Message> {
 		Producer<byte[], byte[]> p;
 		try {
 			p = new Producer<>(config.getConfig());
-		} catch (KafkaException e) {
+		} catch (ConfigException e) {
 			throw new RuntimeException(e);
 		}
 		Concurrents.submit(new OutputThread(p, config.getBatchSize()));
@@ -99,7 +100,7 @@ public class KafkaOutput implements Output<Message> {
 				List<byte[]> msgs = context.dequeue(batchSize);
 				List<KeyedMessage<byte[], byte[]>> l = new ArrayList<>(msgs.size());
 				for (byte[] b : msgs) {
-					Message m = Message.SERDER.der(b, Message.TOKEN);
+					Message m = new Message(b);
 					l.add(new KeyedMessage<byte[], byte[]>(m.getTopic(), m.getKey(), m.getBody()));
 				}
 				producer.send(l);

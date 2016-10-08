@@ -1,7 +1,5 @@
 package net.butfly.albatis.kafka;
 
-import static net.butfly.albatis.kafka.Message.C;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -10,20 +8,27 @@ import kafka.consumer.Consumer;
 import kafka.consumer.ConsumerConfig;
 import kafka.consumer.KafkaStream;
 import kafka.javaapi.consumer.ConsumerConnector;
-import net.butfly.albacore.io.MapQueue;
+import kafka.message.MessageAndMetadata;
+import net.butfly.albacore.exception.ConfigException;
+import net.butfly.albacore.io.MapQueueImpl;
 import net.butfly.albacore.utils.async.Concurrents;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.kafka.config.KafkaInputConfig;
 
-public class KafkaInputQueue extends MapQueue<String, Void, Message, Message, KafkaTopicInputQueue> {
+public class KafkaInputQueue extends MapQueueImpl<String, Void, Message, MessageAndMetadata<byte[], byte[]>, KafkaTopicInputQueue> {
 	private static final long serialVersionUID = 7617065839861658802L;
 	private static final Logger logger = Logger.getLogger(KafkaInputQueue.class);
 	private final ConsumerConnector connect;
 
-	public KafkaInputQueue(final KafkaInputConfig config, final Map<String, Integer> topics) throws KafkaException {
-		super("kafka-input-queue", -1L, m -> null, v -> null, C, m -> null, C);
+	public KafkaInputQueue(final KafkaInputConfig config, final Map<String, Integer> topics) throws ConfigException {
+		super("kafka-input-queue", -1L);
 		connect = connect(config.getConfig());
 		initialize(streaming(topics, Long.parseLong(System.getProperty("albatis.kafka.fucking.waiting", "15000"))));
+	}
+
+	@Override
+	protected String keying(Void e) {
+		return null;
 	}
 
 	@Override
@@ -61,5 +66,4 @@ public class KafkaInputQueue extends MapQueue<String, Void, Message, Message, Ka
 		}
 		return streamings;
 	}
-
 }

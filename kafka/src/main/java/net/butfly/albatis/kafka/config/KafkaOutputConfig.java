@@ -3,8 +3,8 @@ package net.butfly.albatis.kafka.config;
 import java.util.Properties;
 
 import kafka.producer.ProducerConfig;
+import net.butfly.albacore.exception.ConfigException;
 import net.butfly.albacore.utils.IOs;
-import net.butfly.albatis.kafka.KafkaException;
 
 @SuppressWarnings("deprecation")
 public class KafkaOutputConfig extends KafkaConfigBase {
@@ -29,8 +29,8 @@ public class KafkaOutputConfig extends KafkaConfigBase {
 		keySerializerClass = props.getProperty("albatis.kafka.key.serializer.class", "kafka.serializer.StringEncoder");
 	}
 
-	public ProducerConfig getConfig() throws KafkaException {
-		if (zookeeperConnect == null || metadataBrokerList == null) throw new KafkaException(
+	public ProducerConfig getConfig() throws ConfigException {
+		if (zookeeperConnect == null || metadataBrokerList == null) throw new ConfigException(
 				"Kafka configuration has no zookeeper and group definition.");
 		return new ProducerConfig(props());
 	}
