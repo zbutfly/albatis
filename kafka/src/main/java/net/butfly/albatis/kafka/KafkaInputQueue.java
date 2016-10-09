@@ -18,17 +18,18 @@ import net.butfly.albacore.utils.async.Concurrents;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.kafka.config.KafkaInputConfig;
 
-public class KafkaInputQueue extends MapQueueImpl<String, Void, Message, MessageAndMetadata<byte[], byte[]>> {
+public class KafkaInputQueue extends MapQueueImpl<String, Void, KafkaMessage, MessageAndMetadata<byte[], byte[]>> {
 	private static final long serialVersionUID = 7617065839861658802L;
 	private static final Logger logger = Logger.getLogger(KafkaInputQueue.class);
 	private final ConsumerConnector connect;
+	private final AtomicLong count = new AtomicLong(0);
 	private final long commitStep;
 
 	public KafkaInputQueue(final KafkaInputConfig config, final Map<String, Integer> topics, long commitStep) throws ConfigException {
-		super("kafka-input-queue", -1L);
+		super("kafka-input-queue", 0);
 		this.commitStep = commitStep;
 		connect = connect(config.getConfig());
-		Map<String, InputQueue<Message>> map = streaming(topics, Long.parseLong(System.getProperty("albatis.kafka.fucking.waiting",
+		Map<String, InputQueue<KafkaMessage>> map = streaming(topics, Long.parseLong(System.getProperty("albatis.kafka.fucking.waiting",
 				"15000")));
 		initialize(map);
 	}
@@ -55,14 +56,14 @@ public class KafkaInputQueue extends MapQueueImpl<String, Void, Message, Message
 		return conn;
 	}
 
-	private Map<String, InputQueue<Message>> streaming(Map<String, Integer> topics, long fucking) {
+	private Map<String, InputQueue<KafkaMessage>> streaming(Map<String, Integer> topics, long fucking) {
 		Map<String, List<KafkaStream<byte[], byte[]>>> streamMap = connect.createMessageStreams(topics);
 		logger.error("FFFFFFFucking lazy initialization of Kafka, we are sleeping [" + fucking + "ms].");
 		Concurrents.waitSleep(fucking);
 		logger.error("We had waked up, are you ok, Kafka?");
 		logger.debug("Kafka ready in [" + streamMap.size() + "] topics.");
 
-		Map<String, InputQueue<Message>> streamings = new HashMap<>();
+		Map<String, InputQueue<KafkaMessage>> streamings = new HashMap<>();
 		for (String topic : streamMap.keySet()) {
 			List<KafkaStream<byte[], byte[]>> streams = streamMap.get(topic);
 			logger.debug("Kafka (topic: [" + topic + "]) in [" + streams.size() + "] streams.");
@@ -74,11 +75,9 @@ public class KafkaInputQueue extends MapQueueImpl<String, Void, Message, Message
 		return streamings;
 	}
 
-	private final AtomicLong commits = new AtomicLong(0);
-
-	public List<Message> commit(List<Message> l) {
-		commits.updateAndGet(n -> {
-			n += l.size();
+	public void commit(int fetched) {
+		count.updateAndGet(n -> {
+			n += fetched;
 			if (n >= commitStep) {
 				logger.trace("Kafka reading [" + (Systems.isDebug() ? "Dry" : "Wet") + "] committed: [" + n + "] messages.");
 				if (!Systems.isDebug()) connect.commitOffsets();
@@ -86,6 +85,5 @@ public class KafkaInputQueue extends MapQueueImpl<String, Void, Message, Message
 			}
 			return n;
 		});
-		return l;
 	}
 }

@@ -13,7 +13,6 @@ public abstract class KafkaConfigBase implements Serializable {
 
 	private final long poolSize;
 	private final long batchSize;
-	private final String queuePath;
 
 	public long getPoolSize() {
 		return poolSize;
@@ -23,10 +22,6 @@ public abstract class KafkaConfigBase implements Serializable {
 		return batchSize;
 	}
 
-	public String getQueuePath() {
-		return queuePath;
-	}
-
 	public KafkaConfigBase(Properties props) {
 		super();
 		zookeeperConnect = props.getProperty("albatis.kafka.zookeeper");
@@ -34,14 +29,15 @@ public abstract class KafkaConfigBase implements Serializable {
 		transferBufferBytes = Long.valueOf(props.getProperty("albatis.kafka.transfer.buffer.bytes", "5242880"));
 		poolSize = Long.parseLong(props.getProperty("albatis.kafka.pool.size", "100000"));
 		batchSize = Long.parseLong(props.getProperty("albatis.kafka.batch.size", "1000"));
-		queuePath = props.getProperty("albatis.kafka.queue.path", "./local-queue");
+		// queuePath = props.getProperty("albatis.kafka.queue.path",
+		// "./local-queue");
 	}
 
 	public KafkaConfigBase(String classpathResourceName) {
 		this(IOs.loadAsProps(classpathResourceName));
 	}
 
-	protected Properties props() {
+	public Properties props() {
 		Properties props = new Properties();
 		props.setProperty("zookeeper.connect", zookeeperConnect);
 		return props;

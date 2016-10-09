@@ -6,7 +6,6 @@ import kafka.producer.ProducerConfig;
 import net.butfly.albacore.exception.ConfigException;
 import net.butfly.albacore.utils.IOs;
 
-@SuppressWarnings("deprecation")
 public class KafkaOutputConfig extends KafkaConfigBase {
 	private static final long serialVersionUID = -3028341800709486625L;
 	private String metadataBrokerList;
@@ -36,7 +35,7 @@ public class KafkaOutputConfig extends KafkaConfigBase {
 	}
 
 	@Override
-	protected Properties props() {
+	public Properties props() {
 		Properties props = super.props();
 		props.setProperty("zookeeper.connectiontimeout.ms", Long.toString(zookeeperConnectionTimeoutMs));
 		props.setProperty("send.buffer.bytes", Long.toString(transferBufferBytes));
