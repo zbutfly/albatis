@@ -13,17 +13,12 @@ public class KafkaOutputQueue extends OutputQueueImpl<KafkaMessage, KafkaMessage
 	private final KafkaProducer<byte[], byte[]> connect;
 
 	public KafkaOutputQueue(final KafkaOutputConfig config) throws ConfigException {
-		super("kafka-output-queue", Long.MAX_VALUE);
+		super("kafka-output-queue");
 		connect = new KafkaProducer<byte[], byte[]>(config.props());
 	}
 
 	public void close() {
 		connect.close();
-	}
-
-	@Override
-	public long size() {
-		return 0;
 	}
 
 	@Override

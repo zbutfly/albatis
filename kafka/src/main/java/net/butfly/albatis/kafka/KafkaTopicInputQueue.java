@@ -15,14 +15,9 @@ class KafkaTopicInputQueue extends InputQueueImpl<KafkaMessage, MessageAndMetada
 
 	public KafkaTopicInputQueue(String topic, ConsumerConnector connect, ConsumerIterator<byte[], byte[]> iter,
 			Consumer<Integer> committing) {
-		super("kafka-topic-queue-" + topic, -1);
+		super("kafka-topic-queue-" + topic);
 		this.committing = committing;
 		this.iter = iter;
-	}
-
-	@Override
-	public long size() {
-		return Long.MAX_VALUE;
 	}
 
 	@Override
