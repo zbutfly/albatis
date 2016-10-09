@@ -8,11 +8,11 @@ import net.butfly.albacore.io.OutputQueue;
 import net.butfly.albacore.io.OutputQueueImpl;
 import net.butfly.albatis.kafka.config.KafkaOutputConfig;
 
-public class KafkaOutputQueue extends OutputQueueImpl<KafkaMessage, KafkaMessage> implements OutputQueue<KafkaMessage> {
+public class KafkaOutput extends OutputQueueImpl<KafkaMessage, KafkaMessage> implements OutputQueue<KafkaMessage> {
 	private static final long serialVersionUID = -8630366328993414430L;
 	private final KafkaProducer<byte[], byte[]> connect;
 
-	public KafkaOutputQueue(final KafkaOutputConfig config) throws ConfigException {
+	public KafkaOutput(final KafkaOutputConfig config) throws ConfigException {
 		super("kafka-output-queue");
 		connect = new KafkaProducer<byte[], byte[]>(config.props());
 	}

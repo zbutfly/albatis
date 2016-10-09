@@ -8,12 +8,12 @@ import kafka.message.MessageAndMetadata;
 import net.butfly.albacore.io.InputQueueImpl;
 import net.butfly.albacore.lambda.Consumer;
 
-class KafkaTopicInputQueue extends InputQueueImpl<KafkaMessage, MessageAndMetadata<byte[], byte[]>> {
+class KafkaTopicInput extends InputQueueImpl<KafkaMessage, MessageAndMetadata<byte[], byte[]>> {
 	private static final long serialVersionUID = 8996444280873898467L;
 	private final Consumer<Integer> committing;
 	private final ConsumerIterator<byte[], byte[]> iter;
 
-	public KafkaTopicInputQueue(String topic, ConsumerConnector connect, ConsumerIterator<byte[], byte[]> iter,
+	public KafkaTopicInput(String topic, ConsumerConnector connect, ConsumerIterator<byte[], byte[]> iter,
 			Consumer<Integer> committing) {
 		super("kafka-topic-queue-" + topic);
 		this.committing = committing;
