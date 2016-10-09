@@ -13,7 +13,6 @@ import kafka.consumer.KafkaStream;
 import kafka.javaapi.consumer.ConsumerConnector;
 import kafka.message.MessageAndMetadata;
 import net.butfly.albacore.exception.ConfigException;
-import net.butfly.albacore.io.MapQueue;
 import net.butfly.albacore.io.SimpleMapQueue;
 import net.butfly.albacore.io.SimpleOffHeapQueue;
 import net.butfly.albacore.io.SimpleQueue;
@@ -32,7 +31,7 @@ public class KafkaInput implements Input<KafkaMessage> {
 
 	private final long batchSize;
 	private final ConsumerConnector connect;
-	private final MapQueue<String, byte[], byte[]> context;
+	private final SimpleMapQueue<String, byte[]> context;
 
 	private AtomicBoolean closed;
 
@@ -44,12 +43,13 @@ public class KafkaInput implements Input<KafkaMessage> {
 		for (Integer t : topics.values())
 			if (null != t) total += t;
 		if (total == 0) throw new ConfigException("Kafka configuration has no topic definition.");
-		logger.trace("Reading threads pool created (max: " + total + ").");
+
 		String folder = Local.curr(queuePath, config.toString());
 		Map<String, SimpleQueue<byte[]>> queues = new HashMap<>();
 		for (String topic : topics.keySet())
 			queues.put(topic, new SimpleOffHeapQueue(topic, folder, config.getPoolSize()));
 		Converter<byte[], String> c = v -> new KafkaMessage(v).getTopic();
+
 		context = new SimpleMapQueue<String, byte[]>("kafka-input", config.getPoolSize(), c);
 		context.initialize(queues);
 		this.connect = connect(config.getConfig(), topics, Long.parseLong(System.getProperty("albatis.kafka.fucking.waiting", "15000")));

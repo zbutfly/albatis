@@ -18,14 +18,14 @@ import net.butfly.albacore.utils.async.Concurrents;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.kafka.config.KafkaInputConfig;
 
-public class KafkaInputQueue extends MapQueueImpl<String, Void, KafkaMessage, MessageAndMetadata<byte[], byte[]>> {
+public class KafkaInput extends MapQueueImpl<String, Void, KafkaMessage, MessageAndMetadata<byte[], byte[]>> {
 	private static final long serialVersionUID = 7617065839861658802L;
-	private static final Logger logger = Logger.getLogger(KafkaInputQueue.class);
+	private static final Logger logger = Logger.getLogger(KafkaInput.class);
 	private final ConsumerConnector connect;
 	private final AtomicLong count = new AtomicLong(0);
 	private final long commitStep;
 
-	public KafkaInputQueue(final KafkaInputConfig config, final Map<String, Integer> topics, long commitStep) throws ConfigException {
+	public KafkaInput(final KafkaInputConfig config, final Map<String, Integer> topics, long commitStep) throws ConfigException {
 		super("kafka-input-queue", 0);
 		this.commitStep = commitStep;
 		connect = connect(config.getConfig());
@@ -69,7 +69,7 @@ public class KafkaInputQueue extends MapQueueImpl<String, Void, KafkaMessage, Me
 			logger.debug("Kafka (topic: [" + topic + "]) in [" + streams.size() + "] streams.");
 			if (!streams.isEmpty()) for (final KafkaStream<byte[], byte[]> stream : streams) {
 				logger.debug("Kafka thread (topic: [" + topic + "]) is creating... ");
-				streamings.put(topic, new KafkaTopicInputQueue(topic, connect, stream.iterator(), this::commit));
+				streamings.put(topic, new KafkaTopicInput(topic, connect, stream.iterator(), this::commit));
 			}
 		}
 		return streamings;
