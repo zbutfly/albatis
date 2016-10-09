@@ -6,15 +6,15 @@ import kafka.consumer.ConsumerIterator;
 import kafka.javaapi.consumer.ConsumerConnector;
 import kafka.message.MessageAndMetadata;
 import net.butfly.albacore.io.InputQueueImpl;
-import net.butfly.albacore.lambda.Converter;
+import net.butfly.albacore.lambda.Consumer;
 
-class KafkaTopicInputQueue extends InputQueueImpl<Message, MessageAndMetadata<byte[], byte[]>> {
+class KafkaTopicInputQueue extends InputQueueImpl<KafkaMessage, MessageAndMetadata<byte[], byte[]>> {
 	private static final long serialVersionUID = 8996444280873898467L;
-	private final Converter<List<Message>, List<Message>> committing;
+	private final Consumer<Integer> committing;
 	private final ConsumerIterator<byte[], byte[]> iter;
 
 	public KafkaTopicInputQueue(String topic, ConsumerConnector connect, ConsumerIterator<byte[], byte[]> iter,
-			Converter<List<Message>, List<Message>> committing) {
+			Consumer<Integer> committing) {
 		super("kafka-topic-queue-" + topic, -1);
 		this.committing = committing;
 		this.iter = iter;
@@ -26,15 +26,17 @@ class KafkaTopicInputQueue extends InputQueueImpl<Message, MessageAndMetadata<by
 	}
 
 	@Override
-	protected Message dequeueRaw() {
+	protected KafkaMessage dequeueRaw() {
 		MessageAndMetadata<byte[], byte[]> meta = iter.next();
 		if (null == meta) return null;
 		byte[] m = stats(Act.OUTPUT, meta).message();
-		return new Message(meta.topic(), meta.key(), m);
+		return new KafkaMessage(meta.topic(), meta.key(), m);
 	}
 
 	@Override
-	public List<Message> dequeue(long batchSize) {
-		return committing.apply(super.dequeue(batchSize));
+	public List<KafkaMessage> dequeue(long batchSize) {
+		List<KafkaMessage> l = super.dequeue(batchSize);
+		committing.accept(l.size());
+		return l;
 	}
 }

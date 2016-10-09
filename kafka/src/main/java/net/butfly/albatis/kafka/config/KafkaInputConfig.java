@@ -55,7 +55,7 @@ public class KafkaInputConfig extends KafkaConfigBase {
 	}
 
 	@Override
-	protected Properties props() {
+	public Properties props() {
 		Properties props = super.props();
 		props.setProperty("group.id", groupId);
 

@@ -1,7 +1,5 @@
 package net.butfly.albatis.kafka.deprecated;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -24,11 +22,11 @@ import net.butfly.albacore.lambda.Converter;
 import net.butfly.albacore.utils.Systems;
 import net.butfly.albacore.utils.async.Concurrents;
 import net.butfly.albacore.utils.logger.Logger;
-import net.butfly.albatis.kafka.Message;
+import net.butfly.albatis.kafka.KafkaMessage;
 import net.butfly.albatis.kafka.config.KafkaInputConfig;
 
 @Deprecated
-public class KafkaInput implements Input<Message> {
+public class KafkaInput implements Input<KafkaMessage> {
 	private static final long serialVersionUID = 7617065839861658802L;
 	private static final Logger logger = Logger.getLogger(KafkaInput.class);
 
@@ -38,7 +36,7 @@ public class KafkaInput implements Input<Message> {
 
 	private AtomicBoolean closed;
 
-	public KafkaInput(final KafkaInputConfig config, final Map<String, Integer> topics) throws ConfigException {
+	public KafkaInput(final KafkaInputConfig config, final Map<String, Integer> topics, String queuePath) throws ConfigException {
 		super();
 		closed = new AtomicBoolean(false);
 		this.batchSize = config.getBatchSize();
@@ -47,21 +45,21 @@ public class KafkaInput implements Input<Message> {
 			if (null != t) total += t;
 		if (total == 0) throw new ConfigException("Kafka configuration has no topic definition.");
 		logger.trace("Reading threads pool created (max: " + total + ").");
-		String folder = curr(config.getQueuePath(), config.toString());
+		String folder = Local.curr(queuePath, config.toString());
 		Map<String, SimpleQueue<byte[]>> queues = new HashMap<>();
 		for (String topic : topics.keySet())
 			queues.put(topic, new SimpleOffHeapQueue(topic, folder, config.getPoolSize()));
-		Converter<byte[], String> c = v -> new Message(v).getTopic();
+		Converter<byte[], String> c = v -> new KafkaMessage(v).getTopic();
 		context = new SimpleMapQueue<String, byte[]>("kafka-input", config.getPoolSize(), c);
 		context.initialize(queues);
 		this.connect = connect(config.getConfig(), topics, Long.parseLong(System.getProperty("albatis.kafka.fucking.waiting", "15000")));
 	}
 
 	@Override
-	public List<Message> reading() {
-		List<Message> msgs = new ArrayList<>();
+	public List<KafkaMessage> reading() {
+		List<KafkaMessage> msgs = new ArrayList<>();
 		for (byte[] b : context.dequeue(batchSize))
-			msgs.add(new Message(b));
+			msgs.add(new KafkaMessage(b));
 		return msgs;
 	}
 
@@ -76,17 +74,6 @@ public class KafkaInput implements Input<Message> {
 		closed.set(true);;
 		connect.shutdown();
 		context.close();
-	}
-
-	private String curr(String base, String folder) throws ConfigException {
-		try {
-			String path = base + "/" + Systems.getMainClass().getSimpleName() + "/" + folder.replaceAll("[:/\\,]", "-");
-			File f = new File(path);
-			f.mkdirs();
-			return f.getCanonicalPath();
-		} catch (IOException e) {
-			throw new ConfigException(e);
-		}
 	}
 
 	private ConsumerConnector connect(ConsumerConfig config, Map<String, Integer> topics, long fucking) {
@@ -135,7 +122,7 @@ public class KafkaInput implements Input<Message> {
 					Concurrents.waitSleep(500, logger, "Kafka service empty (topic: [" + topic + "]).");
 				while (iter.hasNext()) {
 					MessageAndMetadata<byte[], byte[]> meta = iter.next();
-					batch.add(new Message(meta.topic(), meta.key(), meta.message()).toBytes());
+					batch.add(new KafkaMessage(meta.topic(), meta.key(), meta.message()).toBytes());
 					if (batch.size() > batchSize || !iter.hasNext()) {
 						KafkaInput.this.commit();
 						context.enqueue(batch);

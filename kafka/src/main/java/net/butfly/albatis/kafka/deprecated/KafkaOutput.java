@@ -1,7 +1,5 @@
 package net.butfly.albatis.kafka.deprecated;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -13,14 +11,13 @@ import net.butfly.albacore.io.OffHeapQueueImpl;
 import net.butfly.albacore.io.Queue;
 import net.butfly.albacore.io.SimpleOffHeapQueue;
 import net.butfly.albacore.io.deprecated.Output;
-import net.butfly.albacore.utils.Systems;
 import net.butfly.albacore.utils.async.Concurrents;
 import net.butfly.albacore.utils.logger.Logger;
-import net.butfly.albatis.kafka.Message;
+import net.butfly.albatis.kafka.KafkaMessage;
 import net.butfly.albatis.kafka.config.KafkaOutputConfig;
 
 @Deprecated
-public class KafkaOutput implements Output<Message> {
+public class KafkaOutput implements Output<KafkaMessage> {
 	private static final long serialVersionUID = -276336973758504567L;
 	private static final Logger logger = Logger.getLogger(KafkaOutput.class);
 
@@ -30,6 +27,7 @@ public class KafkaOutput implements Output<Message> {
 	private OffHeapQueueImpl<byte[], byte[]> q;
 
 	/**
+	 * @param queuePath
 	 * @param mixed:
 	 *            是否混合模式
 	 * @param maxPackageMix:
@@ -38,17 +36,17 @@ public class KafkaOutput implements Output<Message> {
 	 *            缓冲消息个数
 	 * @return
 	 */
-	public KafkaOutput(final KafkaOutputConfig config) throws ConfigException {
+	public KafkaOutput(final KafkaOutputConfig config, String queuePath) throws ConfigException {
 		super();
 		closed = new AtomicBoolean(false);
-		String path = curr(config.getQueuePath(), config.toString());
+		String path = Local.curr(queuePath, config.toString());
 		context = new SimpleOffHeapQueue("kafka-output", path, config.getPoolSize());
 		logger.trace("Writing threads pool created (max: " + 1 + ").");
 		this.connect = connect(config);
 	}
 
 	@Override
-	public void writing(Message... message) {
+	public void writing(KafkaMessage... message) {
 		byte[][] buf = new byte[message.length][];
 		for (int i = 0; i < message.length; i++)
 			buf[i] = message[i].toBytes();
@@ -60,17 +58,6 @@ public class KafkaOutput implements Output<Message> {
 		connect.close();
 		context.close();
 		q.close();
-	}
-
-	private String curr(String base, String folder) throws ConfigException {
-		try {
-			String path = base + "/" + Systems.getMainClass().getSimpleName() + "/" + folder.replaceAll("[:/\\,]", "-");
-			File f = new File(path);
-			f.mkdirs();
-			return f.getCanonicalPath();
-		} catch (IOException e) {
-			throw new ConfigException(e);
-		}
 	}
 
 	private Producer<byte[], byte[]> connect(KafkaOutputConfig config) {
@@ -100,7 +87,7 @@ public class KafkaOutput implements Output<Message> {
 				List<byte[]> msgs = context.dequeue(batchSize);
 				List<KeyedMessage<byte[], byte[]>> l = new ArrayList<>(msgs.size());
 				for (byte[] b : msgs) {
-					Message m = new Message(b);
+					KafkaMessage m = new KafkaMessage(b);
 					l.add(new KeyedMessage<byte[], byte[]>(m.getTopic(), m.getKey(), m.getBody()));
 				}
 				producer.send(l);
