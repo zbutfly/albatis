@@ -17,6 +17,7 @@ public class KafkaOutput extends OutputQueueImpl<KafkaMessage, KafkaMessage> imp
 		connect = new KafkaProducer<byte[], byte[]>(config.props());
 	}
 
+	@Override
 	public void close() {
 		connect.close();
 	}
