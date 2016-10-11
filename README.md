@@ -12,3 +12,10 @@
 	当前版本：1.0.0-SNAPSHOT
 ### [albatis-kafka](kafka)
 	当前版本：3.0.0-SNAPSHOT
+## Demo
+- [Demo项目](demo)
+	- DAO Demo
+		- [DAO Interface](http://git.corp.hzcominfo.com:6082/projects/ALB/repos/albatis/browse/demo/src/main/java/net/butfly/albacore/demo/dao/UserDAO.java)
+		- [DAO Implementation](http://git.corp.hzcominfo.com:6082/projects/ALB/repos/albatis/browse/demo/src/main/java/net/butfly/albacore/demo/dao/UserDAOImpl.java)
+	- [Dual Key Demo](http://git.corp.hzcominfo.com:6082/projects/ALB/repos/albatis/browse/demo/src/main/java/net/butfly/albacore/demo/mapper/PermitKey.java)
+	
