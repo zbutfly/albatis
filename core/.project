@@ -22,6 +22,11 @@
 	</natures>
 	<linkedResources>
 		<link>
+			<name>README.md</name>
+			<type>1</type>
+			<location>C:/Workspaces/alfames/albatis/README.md</location>
+		</link>
+		<link>
 			<name>albatis.pom</name>
 			<type>1</type>
 			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/pom.xml</locationURI>
