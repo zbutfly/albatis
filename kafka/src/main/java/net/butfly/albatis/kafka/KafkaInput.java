@@ -40,11 +40,6 @@ public class KafkaInput extends MapQueueImpl<String, Void, KafkaMessage, Message
 	}
 
 	@Override
-	public long size() {
-		return Long.MAX_VALUE;
-	}
-
-	@Override
 	public void close() {
 		connect.shutdown();
 	}
