@@ -17,5 +17,10 @@
 	- DAO Demo
 		- [DAO Interface](http://git.corp.hzcominfo.com:6082/projects/ALB/repos/albatis/browse/demo/src/main/java/net/butfly/albacore/demo/dao/UserDAO.java)
 		- [DAO Implementation](http://git.corp.hzcominfo.com:6082/projects/ALB/repos/albatis/browse/demo/src/main/java/net/butfly/albacore/demo/dao/UserDAOImpl.java)
-	- [Dual Key Demo](http://git.corp.hzcominfo.com:6082/projects/ALB/repos/albatis/browse/demo/src/main/java/net/butfly/albacore/demo/mapper/PermitKey.java)
-	
+		- [Dual Key](http://git.corp.hzcominfo.com:6082/projects/ALB/repos/albatis/browse/demo/src/main/java/net/butfly/albacore/demo/mapper/PermitKey.java)
+
+```java
+public static final void main(String... args) {
+	System.out.println("Hello, world!");
+}
+```

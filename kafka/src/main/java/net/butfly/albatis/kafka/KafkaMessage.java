@@ -54,4 +54,9 @@ public class KafkaMessage implements Serializable {
 			return null;
 		}
 	}
+
+	@Override
+	public String toString() {
+		return topic + ":" + new String(key, Charsets.UTF_8) + "[" + body.length + "]";
+	}
 }
