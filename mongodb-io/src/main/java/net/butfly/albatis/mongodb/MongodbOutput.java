@@ -17,7 +17,7 @@ public class MongodbOutput extends OutputQueueImpl<DBObject, DBObject> implement
 	private final MDB mdb;
 	private final DBCollection collection;
 
-	public MongodbOutput(final String table, final String configFile, boolean upsert, final boolean continuous) throws IOException {
+	public MongodbOutput(final String table, final String configFile, boolean upsert) throws IOException {
 		super("mongodb-output-queue");
 		this.upsert = upsert;
 		this.mdb = Mongos.mongoConnect(configFile);
