@@ -12,14 +12,9 @@ public abstract class KafkaConfigBase implements Serializable {
 	protected final long transferBufferBytes;
 
 	private final long poolSize;
-	private final long batchSize;
 
 	public long getPoolSize() {
 		return poolSize;
-	}
-
-	public long getBatchSize() {
-		return batchSize;
 	}
 
 	public KafkaConfigBase(Properties props) {
@@ -28,9 +23,6 @@ public abstract class KafkaConfigBase implements Serializable {
 		zookeeperConnectionTimeoutMs = Long.valueOf(props.getProperty("albatis.kafka.zookeeper.connection.timeout.ms", "15000"));
 		transferBufferBytes = Long.valueOf(props.getProperty("albatis.kafka.transfer.buffer.bytes", "5242880"));
 		poolSize = Long.parseLong(props.getProperty("albatis.kafka.pool.size", "100000"));
-		batchSize = Long.parseLong(props.getProperty("albatis.kafka.batch.size", "1000"));
-		// queuePath = props.getProperty("albatis.kafka.queue.path",
-		// "./local-queue");
 	}
 
 	public KafkaConfigBase(String classpathResourceName) {

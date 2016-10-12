@@ -64,14 +64,18 @@ public class MongodbInput extends InputQueueImpl<DBObject, DBObject> {
 	@Override
 	public boolean empty() {
 		for (Cursor c : cursors)
-			if (c.hasNext()) return false;
+			synchronized (c) {
+				if (c.hasNext()) return false;
+			}
 		return true;
 	}
 
 	@Override
 	protected DBObject dequeueRaw() {
 		for (Cursor c : Collections.disorderize(cursors))// XXX
-			if (c.hasNext()) return c.next();
+			synchronized (c) {
+				if (c.hasNext()) return c.next();
+			}
 		return null;
 	}
 
