@@ -17,7 +17,7 @@ import net.butfly.albacore.utils.Utils;
 import net.butfly.albacore.utils.logger.Logger;
 
 public final class Hbases extends Utils {
-	private static final Logger logger = Logger.getLogger(Hbases.class);
+	protected static final Logger logger = Logger.getLogger(Hbases.class);
 
 	public static Connection connect() throws IOException {
 		Configuration hconf = HBaseConfiguration.create();
