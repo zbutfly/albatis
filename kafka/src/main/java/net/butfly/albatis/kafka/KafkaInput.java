@@ -73,11 +73,7 @@ public class KafkaInput extends MapQueueImpl<String, Void, KafkaMessage, Message
 	public void commit(int fetched) {
 		count.updateAndGet(n -> {
 			n += fetched;
-			if (n >= commitStep) {
-				logger.trace("Kafka reading [" + (Systems.isDebug() ? "Dry" : "Wet") + "] committed: [" + n + "] messages.");
-				if (!Systems.isDebug()) connect.commitOffsets();
-				n = 0;
-			}
+			if (n >= commitStep) Systems.dryDebug(() -> connect.commitOffsets(), logger, "committed: [" + n + "] messages");
 			return n;
 		});
 	}
