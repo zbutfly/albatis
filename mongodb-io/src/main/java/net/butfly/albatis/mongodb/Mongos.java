@@ -39,7 +39,7 @@ public final class Mongos extends Utils {
 	}
 
 	@SuppressWarnings("deprecation")
-	public static MDB mongoConnect(String configFile) {
+	public static MDB connect(String configFile) {
 		Properties conf = IOs.loadAsProps(configFile);
 		String host = conf.getProperty("mongodb.host", "localhost");
 		int port = Integer.parseInt(conf.getProperty("mongodb.port", "30012"));

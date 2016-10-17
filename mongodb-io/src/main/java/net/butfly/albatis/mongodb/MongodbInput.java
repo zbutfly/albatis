@@ -32,7 +32,7 @@ public class MongodbInput extends InputQueueImpl<DBObject, DBObject> {
 			final DBObject... filter) throws IOException {
 		super("mongodb-input-queue");
 		this.continuous = continuous;
-		this.mdb = Mongos.mongoConnect(configFile);
+		this.mdb = Mongos.connect(configFile);
 		this.collection = mdb.db().getCollection(table);
 		if (parallelism > 1) {
 			ParallelScanOptions op = ParallelScanOptions.builder().batchSize(inputBatchSize).numCursors(parallelism).build();

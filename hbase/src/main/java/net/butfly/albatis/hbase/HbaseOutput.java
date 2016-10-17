@@ -12,14 +12,15 @@ import org.apache.hadoop.hbase.client.Table;
 
 import net.butfly.albacore.io.OutputQueue;
 import net.butfly.albacore.io.OutputQueueImpl;
+import net.butfly.albacore.lambda.Converter;
 
-public class HbaseOutput extends OutputQueueImpl<HbaseMessage, Put> implements OutputQueue<HbaseMessage> {
+public final class HbaseOutput<T> extends OutputQueueImpl<T, HbaseResult> implements OutputQueue<T> {
 	private static final long serialVersionUID = 2141020043117686747L;
 	private final Connection connect;
 	private final Table table;
 
-	public HbaseOutput(final String table) throws IOException {
-		super("hbase-output-queue");
+	public HbaseOutput(final String table, Converter<T, HbaseResult> conv) throws IOException {
+		super("hbase-output-queue", conv);
 		this.connect = Hbases.connect();
 		this.table = connect.getTable(TableName.valueOf(table));
 	}
@@ -34,9 +35,9 @@ public class HbaseOutput extends OutputQueueImpl<HbaseMessage, Put> implements O
 	}
 
 	@Override
-	protected boolean enqueueRaw(HbaseMessage r) {
+	protected boolean enqueueRaw(T r) {
 		try {
-			table.put(r.put());
+			table.put(conv.apply(r).put());
 			return true;
 		} catch (IOException ex) {
 			logger.error("Hbase output failure", ex);
@@ -45,31 +46,10 @@ public class HbaseOutput extends OutputQueueImpl<HbaseMessage, Put> implements O
 	}
 
 	@Override
-	public long enqueue(Iterator<HbaseMessage> iter) {
+	public long enqueue(Iterator<T> iter) {
 		List<Put> puts = new ArrayList<>();
 		while (iter.hasNext()) {
-			HbaseMessage m = iter.next();
-			if (null != m) try {
-				puts.add(m.put());
-			} catch (IOException e) {
-				logger.error("Hbase message to put failure, message ignored", e);
-			}
-		}
-		try {
-			table.put(puts);
-			return puts.size();
-		} catch (IOException e) {
-			logger.error("Hbase output failure", e);
-			return 0;
-		}
-	}
-
-	@Override
-	public long enqueue(HbaseMessage... r) {
-		if (null == r || r.length == 0) return 0;
-		List<Put> puts = new ArrayList<>();
-		for (int i = 0; i < r.length; i++) {
-			HbaseMessage m = r[i];
+			HbaseResult m = conv.apply(iter.next());
 			if (null != m) try {
 				puts.add(m.put());
 			} catch (IOException e) {
