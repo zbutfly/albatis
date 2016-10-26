@@ -10,9 +10,9 @@ public class MongodbIOTest {
 
 	public static void main(String[] args) throws IOException {
 		try (ConsoleOutput<DBObject> out = new ConsoleOutput<>(dbo -> dbo.toMap().toString());
-				MongodbInput in = new MongodbInput("CZRK_TEST", "mongodb.properties", 1, 1000, false);
-				Pump<DBObject> p = in.pump(out, 100, 10);) {
-			p.startAndWait();
+				MongodbInput in = new MongodbInput("CZRK_TEST", "mongodb.properties", 1, 1000, false);) {
+			Pump p = in.pump(out, 100, 10);
+			p.start().waiting();
 		}
 	}
 }
