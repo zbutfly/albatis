@@ -2,6 +2,7 @@ package net.butfly.albatis.solr;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -15,7 +16,9 @@ import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.impl.HttpClientUtil;
+import org.apache.solr.client.solrj.impl.HttpSolrClient;
 import org.apache.solr.client.solrj.impl.HttpSolrClient.Builder;
+import org.apache.solr.client.solrj.impl.CloudSolrClient;
 import org.apache.solr.client.solrj.impl.XMLResponseParser;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.common.SolrDocumentList;
@@ -59,10 +62,20 @@ public final class Solrs extends Utils {
 	}
 
 	private static SolrClient client(String url, Class<? extends ResponseParser> parserClass) {
-		if (null == parserClass) parserClass = XMLResponseParser.class;
-		logger.info("Solr client create: " + url + ", with " + parserClass.getName());
-		return new Builder(url).allowCompression(true).withHttpClient(DEFAULT_HTTP_CLIENT).withResponseParser(parsers.computeIfAbsent(
-				parserClass, clz -> parser(clz))).build();
+		if (url.startsWith("http://") || url.startsWith("https://")) {
+			Builder b = new HttpSolrClient.Builder(url).allowCompression(true).withHttpClient(DEFAULT_HTTP_CLIENT);
+			if (null != parserClass) b = b.withResponseParser(parsers.computeIfAbsent(parserClass, clz -> parser(clz)));
+			logger.info("Solr client create: " + url);
+			return b.build();
+		} else if (url.startsWith("zookeeper://")) {
+			CloudSolrClient.Builder b = new CloudSolrClient.Builder();
+			String hosts = url.substring(12);
+			int pos;
+			while ((pos = hosts.indexOf("/")) >= 0)
+				hosts = hosts.substring(0, pos);
+			logger.info("Solr client create by zookeeper: " + hosts);
+			return b.withZkHost(Arrays.asList(hosts.split(","))).withHttpClient(DEFAULT_HTTP_CLIENT).build();
+		} else throw new RuntimeException("Solr open failure, invalid url: " + url);
 	}
 
 	private static ResponseParser parser(Class<? extends ResponseParser> clz) {

@@ -6,10 +6,7 @@ import java.util.List;
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServerException;
-import org.apache.solr.client.solrj.impl.CloudSolrClient;
-import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.common.SolrDocument;
-import org.apache.solr.common.SolrDocumentList;
 
 import net.butfly.albacore.io.InputQueueImpl;
 import net.butfly.albacore.utils.logger.Logger;
@@ -33,9 +30,9 @@ public class SolrInput extends InputQueueImpl<SolrDocument, SolrDocument> {
 
 	public SolrInput(final String solrZookeeper, String collection, final SolrQuery filter) throws IOException, SolrServerException {
 		super("solr-input-queue");
-		solr = new CloudSolrClient(solrZookeeper);
-		QueryResponse r = solr.query(collection, filter);
-		SolrDocumentList sds = r.getResults();
+		solr = Solrs.open(solrZookeeper);
+		// QueryResponse r = solr.query(collection, filter);
+		// SolrDocumentList sds = r.getResults();
 	}
 
 	@Override

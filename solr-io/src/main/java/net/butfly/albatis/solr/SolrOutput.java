@@ -29,7 +29,7 @@ public class SolrOutput<T> extends OutputQueueImpl<T, SolrInputDocument> impleme
 	public SolrOutput(final String url, final Converter<T, SolrInputDocument> conv, final int parallelism, final int outputBatchBytes)
 			throws IOException {
 		super("solr-output-queue", conv);
-		if (parallelism <= 1) solr = new CloudSolrClient(url);
+		if (parallelism <= 1) solr = Solrs.open(url);
 		else solr = new ConcurrentUpdateSolrClient(url, outputBatchBytes, parallelism);
 	}
 
