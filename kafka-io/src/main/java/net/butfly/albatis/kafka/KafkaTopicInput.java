@@ -8,13 +8,12 @@ import kafka.message.MessageAndMetadata;
 import net.butfly.albacore.io.InputQueueImpl;
 import net.butfly.albacore.lambda.Consumer;
 
-class KafkaTopicInput extends InputQueueImpl<KafkaMessage, MessageAndMetadata<byte[], byte[]>> {
+class KafkaTopicInput extends InputQueueImpl<KafkaMessage> {
 	private static final long serialVersionUID = 8996444280873898467L;
 	private final Consumer<Integer> committing;
 	private final ConsumerIterator<byte[], byte[]> iter;
 
-	public KafkaTopicInput(String topic, ConsumerConnector connect, ConsumerIterator<byte[], byte[]> iter,
-			Consumer<Integer> committing) {
+	public KafkaTopicInput(String topic, ConsumerConnector connect, ConsumerIterator<byte[], byte[]> iter, Consumer<Integer> committing) {
 		super("kafka-topic-queue-" + topic);
 		this.committing = committing;
 		this.iter = iter;
@@ -24,8 +23,7 @@ class KafkaTopicInput extends InputQueueImpl<KafkaMessage, MessageAndMetadata<by
 	protected KafkaMessage dequeueRaw() {
 		MessageAndMetadata<byte[], byte[]> meta = iter.next();
 		if (null == meta) return null;
-		byte[] m = stats(Act.OUTPUT, meta).message();
-		return new KafkaMessage(meta.topic(), meta.key(), m);
+		return stats(Act.OUTPUT, new KafkaMessage(meta.topic(), meta.key(), meta.message()));
 	}
 
 	@Override

@@ -12,15 +12,14 @@ import org.apache.hadoop.hbase.client.Table;
 
 import net.butfly.albacore.io.OutputQueue;
 import net.butfly.albacore.io.OutputQueueImpl;
-import net.butfly.albacore.lambda.Converter;
 
-public final class HbaseOutput<T> extends OutputQueueImpl<T, HbaseResult> implements OutputQueue<T> {
+public final class HbaseOutput extends OutputQueueImpl<HbaseResult> implements OutputQueue<HbaseResult> {
 	private static final long serialVersionUID = 2141020043117686747L;
 	private final Connection connect;
 	private final Table table;
 
-	public HbaseOutput(final String table, Converter<T, HbaseResult> conv) throws IOException {
-		super("hbase-output-queue", conv);
+	public HbaseOutput(final String table) throws IOException {
+		super("hbase-output-queue");
 		this.connect = Hbases.connect();
 		this.table = connect.getTable(TableName.valueOf(table));
 	}
@@ -35,9 +34,9 @@ public final class HbaseOutput<T> extends OutputQueueImpl<T, HbaseResult> implem
 	}
 
 	@Override
-	protected boolean enqueueRaw(T r) {
+	protected boolean enqueueRaw(HbaseResult r) {
 		try {
-			table.put(conv.apply(r).put());
+			table.put(r.put());
 			return true;
 		} catch (IOException ex) {
 			logger.error("Hbase output failure", ex);
@@ -46,10 +45,10 @@ public final class HbaseOutput<T> extends OutputQueueImpl<T, HbaseResult> implem
 	}
 
 	@Override
-	public long enqueue(Iterator<T> iter) {
+	public long enqueue(Iterator<HbaseResult> iter) {
 		List<Put> puts = new ArrayList<>();
 		while (iter.hasNext()) {
-			HbaseResult m = conv.apply(iter.next());
+			HbaseResult m = iter.next();
 			if (null != m) try {
 				puts.add(m.put());
 			} catch (IOException e) {

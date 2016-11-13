@@ -16,7 +16,7 @@ public abstract class OffHeapQueueImpl<I, O> extends QueueImpl<I, O, byte[]> imp
 	protected final IBigQueue queue;
 
 	public OffHeapQueueImpl(String name, String dataFolder, long capacity) {
-		super("off-heap-queue-" + name, capacity);
+		super(name, capacity);
 		this.dataFolder = dataFolder;
 		try {
 			logger.info("Off heap queue (\"BigQueue\") creating as [" + name + "] at [" + dataFolder + "]");

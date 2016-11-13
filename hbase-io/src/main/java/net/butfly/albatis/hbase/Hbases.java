@@ -18,7 +18,7 @@ import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import net.butfly.albacore.lambda.Converter;
-import net.butfly.albacore.utils.IOs;
+import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.Utils;
 import net.butfly.albacore.utils.logger.Logger;
 
@@ -27,7 +27,7 @@ public final class Hbases extends Utils {
 
 	public static Connection connect() throws IOException {
 		Configuration hconf = HBaseConfiguration.create();
-		Properties conf = IOs.loadAsProps("hbase.properties");
+		Properties conf = Configs.read("hbase.properties");
 		Set<String> keys = conf.stringPropertyNames();
 		for (Field f : HConstants.class.getFields()) {
 			int mod = f.getModifiers();

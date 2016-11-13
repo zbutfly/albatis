@@ -1,6 +1,8 @@
 package net.butfly.albatis.solr;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -15,10 +17,10 @@ import org.apache.solr.client.solrj.ResponseParser;
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServerException;
+import org.apache.solr.client.solrj.impl.CloudSolrClient;
 import org.apache.solr.client.solrj.impl.HttpClientUtil;
 import org.apache.solr.client.solrj.impl.HttpSolrClient;
 import org.apache.solr.client.solrj.impl.HttpSolrClient.Builder;
-import org.apache.solr.client.solrj.impl.CloudSolrClient;
 import org.apache.solr.client.solrj.impl.XMLResponseParser;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.common.SolrDocumentList;
@@ -62,20 +64,29 @@ public final class Solrs extends Utils {
 	}
 
 	private static SolrClient client(String url, Class<? extends ResponseParser> parserClass) {
-		if (url.startsWith("http://") || url.startsWith("https://")) {
-			Builder b = new HttpSolrClient.Builder(url).allowCompression(true).withHttpClient(DEFAULT_HTTP_CLIENT);
-			if (null != parserClass) b = b.withResponseParser(parsers.computeIfAbsent(parserClass, clz -> parser(clz)));
+		URI uri;
+		try {
+			uri = new URI(url);
+		} catch (URISyntaxException e) {
+			throw new RuntimeException(e);
+		}
+		switch (uri.getScheme().toLowerCase()) {
+		case "http":
+			Builder hb = new HttpSolrClient.Builder(url).allowCompression(true).withHttpClient(DEFAULT_HTTP_CLIENT);
+			if (null != parserClass) hb = hb.withResponseParser(parsers.computeIfAbsent(parserClass, clz -> parser(clz)));
 			logger.info("Solr client create: " + url);
-			return b.build();
-		} else if (url.startsWith("zookeeper://")) {
-			CloudSolrClient.Builder b = new CloudSolrClient.Builder();
-			String hosts = url.substring(12);
-			int pos;
-			while ((pos = hosts.indexOf("/")) >= 0)
-				hosts = hosts.substring(0, pos);
-			logger.info("Solr client create by zookeeper: " + hosts);
-			return b.withZkHost(Arrays.asList(hosts.split(","))).withHttpClient(DEFAULT_HTTP_CLIENT).build();
-		} else throw new RuntimeException("Solr open failure, invalid url: " + url);
+			return hb.build();
+		case "zookeeper":
+			CloudSolrClient.Builder cb = new CloudSolrClient.Builder();
+			logger.info("Solr client create by zookeeper: " + uri.getAuthority());
+			CloudSolrClient c = cb.withZkHost(Arrays.asList(uri.getAuthority().split(","))).withHttpClient(DEFAULT_HTTP_CLIENT).build();
+			c.setZkClientTimeout(Integer.parseInt(System.getProperty("albatis.io.zkclient.timeout", "15000")));
+			c.setZkConnectTimeout(Integer.parseInt(System.getProperty("albatis.io.zkconnect.timeout", "15000")));
+			c.setParallelUpdates(true);
+			return c;
+		default:
+			throw new RuntimeException("Solr open failure, invalid url: " + url);
+		}
 	}
 
 	private static ResponseParser parser(Class<? extends ResponseParser> clz) {

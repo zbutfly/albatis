@@ -1,10 +1,11 @@
 package net.butfly.albatis.kafka.config;
 
+import java.io.IOException;
 import java.util.Properties;
 
 import kafka.consumer.ConsumerConfig;
 import net.butfly.albacore.exception.ConfigException;
-import net.butfly.albacore.utils.IOs;
+import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.Systems;
 import net.butfly.albacore.utils.logger.Logger;
 
@@ -21,8 +22,8 @@ public class KafkaInputConfig extends KafkaConfigBase {
 	protected long fetchMessageMaxBytes;
 	protected long fetchWaitTimeoutMs;
 
-	public KafkaInputConfig(String classpathResourceName) {
-		this(IOs.loadAsProps(classpathResourceName));
+	public KafkaInputConfig(String classpathResourceName) throws IOException {
+		this(Configs.read(classpathResourceName));
 	}
 
 	public KafkaInputConfig(Properties props) {
