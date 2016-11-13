@@ -6,46 +6,43 @@ import java.util.Iterator;
 import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.update.UpdateRequest;
-import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.client.transport.TransportClient;
 
 import net.butfly.albacore.io.OutputQueue;
 import net.butfly.albacore.io.OutputQueueImpl;
-import net.butfly.albacore.lambda.Converter;
 import net.butfly.albacore.utils.Systems;
 
-public class ElasticOutput<T> extends OutputQueueImpl<T, ElasticOutputDoc> implements OutputQueue<T> {
+public class ElasticOutput extends OutputQueueImpl<ElasticOutputDoc> implements OutputQueue<ElasticOutputDoc> {
 	private static final long serialVersionUID = 1227554461265245482L;
 	protected final TransportClient elastic;
 
-	public ElasticOutput(final String cluster, final String hostports, Converter<T, ElasticOutputDoc> conv) throws IOException {
-		this(cluster, hostports, conv, 1);
+	public ElasticOutput(final String cluster, final String hostports) throws IOException {
+		this(cluster, hostports, 1);
 	}
 
-	public ElasticOutput(final String cluster, final String hostports, Converter<T, ElasticOutputDoc> conv, final int parallelism)
+	public ElasticOutput(final String cluster, final String hostports, final int parallelism) throws IOException {
+		this(cluster, hostports, parallelism, 4096);
+	}
+
+	public ElasticOutput(final String cluster, final String hostports, final int parallelism, final int outputBatchBytes)
 			throws IOException {
-		this(cluster, hostports, conv, parallelism, 4096);
-	}
-
-	public ElasticOutput(final String cluster, final String hostports, Converter<T, ElasticOutputDoc> conv, final int parallelism,
-			final int outputBatchBytes) throws IOException {
-		super("elastic-output-queue", conv);
+		super("elastic-output-queue");
 		elastic = Elastics.connect(cluster, hostports.split(","));
 	}
 
 	@Override
-	protected boolean enqueueRaw(T s) {
-		UpdateRequest req = build(conv.apply(s));
+	protected boolean enqueueRaw(ElasticOutputDoc s) {
+		UpdateRequest req = build(s);
 		if (null == req) return false;
-		UpdateResponse r = elastic.update(req).actionGet();
+		elastic.update(req).actionGet();
 		return true;
 	}
 
 	@Override
-	public long enqueue(Iterator<T> iter) {
+	public long enqueue(Iterator<ElasticOutputDoc> iter) {
 		BulkRequest req = new BulkRequest();
 		while (iter.hasNext()) {
-			UpdateRequest r = build(conv.apply(iter.next()));
+			UpdateRequest r = build(iter.next());
 			if (null != r) req.add(r);
 		}
 		long s = 0;

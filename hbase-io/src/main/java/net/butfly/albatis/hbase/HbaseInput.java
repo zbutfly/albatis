@@ -15,21 +15,18 @@ import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterList;
 
 import net.butfly.albacore.io.InputQueueImpl;
-import net.butfly.albacore.lambda.Converter;
 import net.butfly.albacore.utils.Collections;
 
-public class HbaseInput<T> extends InputQueueImpl<T, HbaseResult> {
+public class HbaseInput extends InputQueueImpl<HbaseResult> {
 	private static final long serialVersionUID = 8805176327882596072L;
 	protected final Connection connect;
 	protected final String tableName;
 	protected final Table table;
 	protected final ResultScanner scaner;
-	private final Converter<HbaseResult, T> conv;
 
-	public HbaseInput(final String table, final Converter<HbaseResult, T> conv, final Filter... filter) throws IOException {
+	public HbaseInput(final String table, final Filter... filter) throws IOException {
 		super("hbase-input-queue");
 		this.tableName = table;
-		this.conv = conv;
 		this.connect = Hbases.connect();
 		this.table = connect.getTable(TableName.valueOf(table));
 		if (null != filter && filter.length > 0) {
@@ -55,17 +52,17 @@ public class HbaseInput<T> extends InputQueueImpl<T, HbaseResult> {
 	}
 
 	@Override
-	protected T dequeueRaw() {
+	protected HbaseResult dequeueRaw() {
 		try {
-			return conv.apply(new HbaseResult(tableName, scaner.next()));
+			return new HbaseResult(tableName, scaner.next());
 		} catch (IOException e) {
 			return null;
 		}
 	}
 
 	@Override
-	public List<T> dequeue(long batchSize) {
-		List<T> l = new ArrayList<>();
+	public List<HbaseResult> dequeue(long batchSize) {
+		List<HbaseResult> l = new ArrayList<>();
 		Result[] results;
 		try {
 			results = scaner.next((int) batchSize);
@@ -80,13 +77,12 @@ public class HbaseInput<T> extends InputQueueImpl<T, HbaseResult> {
 				logger.error("HBase read failure", e);
 				continue;
 			}
-			T rr = conv.apply(new HbaseResult(tableName, r));
-			if (null != rr) l.add(rr);
+			l.add(new HbaseResult(tableName, r));
 		}
 		return l;
 	}
 
-	public List<T> get(List<Get> gets) throws IOException {
-		return Collections.transform(r -> conv.apply(new HbaseResult(tableName, r)), table.get(gets));
+	public List<HbaseResult> get(List<Get> gets) throws IOException {
+		return Collections.transform(r -> new HbaseResult(tableName, r), table.get(gets));
 	}
 }

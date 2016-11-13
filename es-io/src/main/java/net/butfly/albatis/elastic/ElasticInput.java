@@ -9,7 +9,7 @@ import org.elasticsearch.client.transport.TransportClient;
 import net.butfly.albacore.io.InputQueueImpl;
 import net.butfly.albacore.utils.logger.Logger;
 
-public class ElasticInput extends InputQueueImpl<GetMappingsRequest, GetMappingsRequest> {
+public class ElasticInput extends InputQueueImpl<GetMappingsRequest> {
 	private static final long serialVersionUID = -5666669099160512388L;
 	protected static final Logger logger = Logger.getLogger(ElasticInput.class);
 	private final TransportClient elastic;

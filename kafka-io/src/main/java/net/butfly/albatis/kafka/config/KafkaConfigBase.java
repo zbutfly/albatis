@@ -1,9 +1,10 @@
 package net.butfly.albatis.kafka.config;
 
+import java.io.IOException;
 import java.io.Serializable;
 import java.util.Properties;
 
-import net.butfly.albacore.utils.IOs;
+import net.butfly.albacore.utils.Configs;
 
 public abstract class KafkaConfigBase implements Serializable {
 	private static final long serialVersionUID = -4020530608706621876L;
@@ -25,8 +26,8 @@ public abstract class KafkaConfigBase implements Serializable {
 		poolSize = Long.parseLong(props.getProperty("albatis.kafka.pool.size", "100000"));
 	}
 
-	public KafkaConfigBase(String classpathResourceName) {
-		this(IOs.loadAsProps(classpathResourceName));
+	public KafkaConfigBase(String classpathResourceName) throws IOException {
+		this(Configs.read(classpathResourceName));
 	}
 
 	public Properties props() {

@@ -1,10 +1,12 @@
 package net.butfly.albatis.kafka.config;
 
+import java.io.IOException;
 import java.util.Properties;
 
 import kafka.producer.ProducerConfig;
+import kafka.serializer.StringEncoder;
 import net.butfly.albacore.exception.ConfigException;
-import net.butfly.albacore.utils.IOs;
+import net.butfly.albacore.utils.Configs;
 
 public class KafkaOutputConfig extends KafkaConfigBase {
 	private static final long serialVersionUID = -3028341800709486625L;
@@ -14,8 +16,8 @@ public class KafkaOutputConfig extends KafkaConfigBase {
 	private String compressionCodec;
 	private String keySerializerClass;
 
-	public KafkaOutputConfig(String classpathResourceName) {
-		this(IOs.loadAsProps(classpathResourceName));
+	public KafkaOutputConfig(String classpathResourceName) throws IOException {
+		this(Configs.read(classpathResourceName));
 	}
 
 	public KafkaOutputConfig(Properties props) {
@@ -25,7 +27,7 @@ public class KafkaOutputConfig extends KafkaConfigBase {
 		requestRequiredAcks = Integer.parseInt(props.getProperty("albatis.kafka.request.required.acks", "-1"));
 		producerType = props.getProperty("albatis.kafka.producer.type", "sync");
 		compressionCodec = props.getProperty("albatis.kafka.compression.codec", "snappy");
-		keySerializerClass = props.getProperty("albatis.kafka.key.serializer.class", "kafka.serializer.StringEncoder");
+		keySerializerClass = props.getProperty("albatis.kafka.key.serializer.class", StringEncoder.class.getName());
 	}
 
 	public ProducerConfig getConfig() throws ConfigException {

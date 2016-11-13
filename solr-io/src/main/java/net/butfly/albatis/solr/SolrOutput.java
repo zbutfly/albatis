@@ -5,42 +5,36 @@ import java.util.Iterator;
 
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrServerException;
-import org.apache.solr.client.solrj.impl.CloudSolrClient;
-import org.apache.solr.client.solrj.impl.ConcurrentUpdateSolrClient;
+import org.apache.solr.client.solrj.response.UpdateResponse;
 import org.apache.solr.common.SolrInputDocument;
 
 import net.butfly.albacore.io.OutputQueue;
 import net.butfly.albacore.io.OutputQueueImpl;
-import net.butfly.albacore.lambda.Converter;
-import net.butfly.albacore.utils.Collections;
+import net.butfly.albacore.utils.logger.Logger;
 
-public class SolrOutput<T> extends OutputQueueImpl<T, SolrInputDocument> implements OutputQueue<T> {
+public class SolrOutput extends OutputQueueImpl<SolrInputDocument> implements OutputQueue<SolrInputDocument> {
 	private static final long serialVersionUID = -2897525987426418020L;
+	private static final Logger logger = Logger.getLogger(SolrOutput.class);
 	private final SolrClient solr;
+	private final String core;
 
-	public SolrOutput(final String url, final Converter<T, SolrInputDocument> conv) throws IOException {
-		this(url, conv, 1);
+	public SolrOutput(final String name, final String url) throws IOException {
+		this(name, url, null);
 	}
 
-	public SolrOutput(final String url, final Converter<T, SolrInputDocument> conv, final int parallelism) throws IOException {
-		this(url, conv, parallelism, 4096);
-	}
-
-	public SolrOutput(final String url, final Converter<T, SolrInputDocument> conv, final int parallelism, final int outputBatchBytes)
-			throws IOException {
-		super("solr-output-queue", conv);
-		if (parallelism <= 1) solr = Solrs.open(url);
-		else solr = new ConcurrentUpdateSolrClient(url, outputBatchBytes, parallelism);
+	public SolrOutput(final String name, final String url, String core) throws IOException {
+		super(name);
+		logger.info("SolrOutput: [" + url + "], with core: [" + core + "]");
+		solr = Solrs.open(url);
+		this.core = core;
 	}
 
 	@Override
-	protected boolean enqueueRaw(T s) {
-		int status;
+	protected boolean enqueueRaw(SolrInputDocument d) {
 		try {
-			SolrInputDocument d = conv.apply(s);
 			if (null == d) return false;
-			status = solr.add(d).getStatus();
-			return status >= 200 && status < 300;
+			UpdateResponse resp = null == core ? solr.add(d) : solr.add(core, d);
+			return resp.getStatus() >= 200 && resp.getStatus() < 300;
 		} catch (SolrServerException | IOException e) {
 			logger.error("Solr sent not successed", e);
 			return false;
@@ -48,14 +42,23 @@ public class SolrOutput<T> extends OutputQueueImpl<T, SolrInputDocument> impleme
 	}
 
 	@Override
-	public long enqueue(Iterator<T> iter) {
-		// XXX
+	public long enqueue(Iterator<SolrInputDocument> iter) {
+		if (!iter.hasNext()) return 0;
 		try {
-			int status = solr.add(Collections.transform(iter, conv)).getStatus();
-			if (status >= 200 && status < 300) return Long.MAX_VALUE;
+			UpdateResponse resp = null == core ? solr.add(iter) : solr.add(core, iter);
+			if (resp.getStatus() >= 200 && resp.getStatus() < 300) return 1;
 		} catch (SolrServerException | IOException e) {
 			logger.error("Solr sent not successed", e);
 		}
 		return 0;
+	}
+
+	@Override
+	public void close() {
+		try {
+			solr.close();
+		} catch (IOException e) {
+			logger.error("Solr close failure", e);
+		}
 	}
 }

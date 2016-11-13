@@ -11,7 +11,7 @@ import org.apache.solr.common.SolrDocument;
 import net.butfly.albacore.io.InputQueueImpl;
 import net.butfly.albacore.utils.logger.Logger;
 
-public class SolrInput extends InputQueueImpl<SolrDocument, SolrDocument> {
+public class SolrInput extends InputQueueImpl<SolrDocument> {
 	private static final long serialVersionUID = -1756036095144276450L;
 	private static final Logger logger = Logger.getLogger(SolrInput.class);
 	private final SolrClient solr;
