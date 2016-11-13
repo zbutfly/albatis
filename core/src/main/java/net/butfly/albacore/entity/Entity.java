@@ -2,6 +2,7 @@ package net.butfly.albacore.entity;
 
 import java.io.Serializable;
 
+import net.butfly.albacore.support.Beans;
 import net.butfly.albacore.utils.Objects;
 
 public abstract class Entity<K extends Serializable> extends AbstractEntityBase<K> implements AbstractEntity<K> {
@@ -20,7 +21,8 @@ public abstract class Entity<K extends Serializable> extends AbstractEntityBase<
 
 	@SuppressWarnings("rawtypes")
 	@Override
-	public int compareTo(AbstractEntity other) {
-		return Objects.compare(this.id, other.getId());
+	public int compareTo(Beans<AbstractEntity<K>> o) {
+		if (null != o && o instanceof Entity) return Objects.compare(this.id, ((Entity) o).id);
+		else return -1;
 	}
 }

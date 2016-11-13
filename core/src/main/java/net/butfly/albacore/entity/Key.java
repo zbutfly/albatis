@@ -1,6 +1,7 @@
 package net.butfly.albacore.entity;
 
 import net.butfly.albacore.support.Bean;
+import net.butfly.albacore.support.Beans;
 import net.butfly.albacore.utils.Objects;
 
 public abstract class Key<K extends Key<K>> extends Bean<AbstractEntity<K>> implements AbstractEntity<K> {
@@ -19,7 +20,8 @@ public abstract class Key<K extends Key<K>> extends Bean<AbstractEntity<K>> impl
 
 	@SuppressWarnings("rawtypes")
 	@Override
-	public int compareTo(AbstractEntity other) {
-		return Objects.compare(this, other.getId());
+	public int compareTo(Beans<AbstractEntity<K>> o) {
+		if (null != o && o instanceof Entity) return Objects.compare(this, ((Entity) o).id);
+		else return -1;
 	}
 }
