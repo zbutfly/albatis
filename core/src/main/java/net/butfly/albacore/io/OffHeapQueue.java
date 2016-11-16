@@ -5,18 +5,23 @@ import java.io.IOException;
 import com.leansoft.bigqueue.BigQueueImpl;
 import com.leansoft.bigqueue.IBigQueue;
 
+import net.butfly.albacore.lambda.Converter;
 import net.butfly.albacore.utils.async.Concurrents;
 import net.butfly.albacore.utils.logger.Logger;
 
-public abstract class OffHeapQueueImpl<I, O> extends QueueImpl<I, O, byte[]> implements Queue<I, O> {
+public class OffHeapQueue<I, O> extends QueueImpl<I, O> implements Queue<I, O> {
 	private static final long serialVersionUID = -1L;
-	private static final Logger logger = Logger.getLogger(OffHeapQueueImpl.class);
+	private static final Logger logger = Logger.getLogger(OffHeapQueue.class);
 
 	protected final String dataFolder;
 	protected final IBigQueue queue;
+	protected final Converter<byte[], O> oconv;
+	protected final Converter<I, byte[]> iconv;
 
-	public OffHeapQueueImpl(String name, String dataFolder, long capacity) {
+	public OffHeapQueue(String name, String dataFolder, long capacity, Converter<I, byte[]> iconv, Converter<byte[], O> oconv) {
 		super(name, capacity);
+		this.iconv = iconv;
+		this.oconv = oconv;
 		this.dataFolder = dataFolder;
 		try {
 			logger.info("Off heap queue (\"BigQueue\") creating as [" + name + "] at [" + dataFolder + "]");
@@ -25,10 +30,6 @@ public abstract class OffHeapQueueImpl<I, O> extends QueueImpl<I, O, byte[]> imp
 			throw new RuntimeException("Queue create failure", e);
 		}
 	}
-
-	protected abstract byte[] conv(I e);
-
-	protected abstract O unconv(byte[] e);
 
 	@Override
 	public final long size() {
@@ -39,7 +40,9 @@ public abstract class OffHeapQueueImpl<I, O> extends QueueImpl<I, O, byte[]> imp
 	protected boolean enqueueRaw(I e) {
 		if (null == e) return false;
 		try {
-			queue.enqueue(stats(Act.INPUT, conv(e)));
+			byte[] v = iconv.apply(e);
+			if (null == v) return true;
+			queue.enqueue(v);
 			return true;
 		} catch (IOException ex) {
 			logger.error("Enqueue failure", ex);
@@ -50,7 +53,7 @@ public abstract class OffHeapQueueImpl<I, O> extends QueueImpl<I, O, byte[]> imp
 	@Override
 	protected O dequeueRaw() {
 		try {
-			return unconv(stats(Act.OUTPUT, queue.dequeue()));
+			return oconv.apply(queue.dequeue());
 		} catch (IOException e) {
 			logger.error("Dequeue failure", e);
 			return null;

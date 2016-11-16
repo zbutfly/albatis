@@ -1,7 +1,10 @@
 package net.butfly.albatis.kafka;
 
+import java.util.concurrent.Future;
+
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.clients.producer.RecordMetadata;
 
 import net.butfly.albacore.exception.ConfigException;
 import net.butfly.albacore.io.OutputQueue;
@@ -25,9 +28,9 @@ public class KafkaOutput extends OutputQueueImpl<KafkaMessage> implements Output
 	@Override
 	protected boolean enqueueRaw(KafkaMessage m) {
 		if (null == m) return false;
-		connect.send(new ProducerRecord<byte[], byte[]>(m.getTopic(), m.getKey(), m.getBody()), (meta, ex) -> {
-			if (null != ex) logger.error("Kafka send failure on topic [" + m.getTopic() + "] with key: [" + new String(m.getKey()) + "]", ex);
-			stats(Act.INPUT, m);
+		Future<RecordMetadata> f = connect.send(new ProducerRecord<byte[], byte[]>(m.getTopic(), m.getKey(), m.getBody()), (meta, ex) -> {
+			if (null != ex) logger.error("Kafka send failure on topic [" + m.getTopic() + "] with key: [" + new String(m.getKey()) + "]",
+					ex);
 		});
 		return true;
 	}

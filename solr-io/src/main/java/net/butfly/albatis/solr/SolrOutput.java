@@ -31,12 +31,14 @@ public class SolrOutput extends OutputQueueImpl<SolrInputDocument> implements Ou
 
 	@Override
 	protected boolean enqueueRaw(SolrInputDocument d) {
+		if (null == d) return false;
+		UpdateResponse resp;
 		try {
-			if (null == d) return false;
-			UpdateResponse resp = null == core ? solr.add(d) : solr.add(core, d);
+			if (null == core) resp = solr.add(d, 5000);
+			else resp = solr.add(core, d, 5000);
 			return resp.getStatus() >= 200 && resp.getStatus() < 300;
 		} catch (SolrServerException | IOException e) {
-			logger.error("Solr sent not successed", e);
+			logger.error("SolrOutput sent not successed", e);
 			return false;
 		}
 	}
@@ -44,11 +46,18 @@ public class SolrOutput extends OutputQueueImpl<SolrInputDocument> implements Ou
 	@Override
 	public long enqueue(Iterator<SolrInputDocument> iter) {
 		if (!iter.hasNext()) return 0;
+		UpdateResponse resp, resp2;
 		try {
-			UpdateResponse resp = null == core ? solr.add(iter) : solr.add(core, iter);
-			if (resp.getStatus() >= 200 && resp.getStatus() < 300) return 1;
+			if (null == core) {
+				resp = solr.add(iter);
+				resp2 = solr.commit(false, false);
+			} else {
+				resp = solr.add(core, iter);
+				resp2 = solr.commit(core, false, false);
+			}
+			if (resp.getStatus() == 0 && resp2.getStatus() == 0) return 1;
 		} catch (SolrServerException | IOException e) {
-			logger.error("Solr sent not successed", e);
+			logger.error("SolrOutput sent not successed", e);
 		}
 		return 0;
 	}
@@ -56,9 +65,14 @@ public class SolrOutput extends OutputQueueImpl<SolrInputDocument> implements Ou
 	@Override
 	public void close() {
 		try {
+			solr.commit();
+		} catch (IOException | SolrServerException e) {
+			logger.error("SolrOutput close failure", e);
+		}
+		try {
 			solr.close();
 		} catch (IOException e) {
-			logger.error("Solr close failure", e);
+			logger.error("SolrOutput close failure", e);
 		}
 	}
 }
