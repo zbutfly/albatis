@@ -23,7 +23,7 @@ class KafkaTopicInput extends InputQueueImpl<KafkaMessage> {
 	protected KafkaMessage dequeueRaw() {
 		MessageAndMetadata<byte[], byte[]> meta = iter.next();
 		if (null == meta) return null;
-		return stats(Act.OUTPUT, new KafkaMessage(meta.topic(), meta.key(), meta.message()));
+		return new KafkaMessage(meta.topic(), meta.key(), meta.message());
 	}
 
 	@Override

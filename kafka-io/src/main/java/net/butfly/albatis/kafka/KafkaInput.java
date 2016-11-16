@@ -9,7 +9,6 @@ import kafka.consumer.Consumer;
 import kafka.consumer.ConsumerConfig;
 import kafka.consumer.KafkaStream;
 import kafka.javaapi.consumer.ConsumerConnector;
-import kafka.message.MessageAndMetadata;
 import net.butfly.albacore.exception.ConfigException;
 import net.butfly.albacore.io.InputQueue;
 import net.butfly.albacore.io.MapQueueImpl;
@@ -18,7 +17,7 @@ import net.butfly.albacore.utils.async.Concurrents;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.kafka.config.KafkaInputConfig;
 
-public class KafkaInput extends MapQueueImpl<String, Void, KafkaMessage, MessageAndMetadata<byte[], byte[]>> {
+public class KafkaInput extends MapQueueImpl<String, Void, KafkaMessage> {
 	private static final long serialVersionUID = 7617065839861658802L;
 	private static final Logger logger = Logger.getLogger(KafkaInput.class);
 	private final ConsumerConnector connect;
