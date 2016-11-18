@@ -50,8 +50,8 @@ public final class Solrs extends Utils {
 		params.set(HttpClientUtil.PROP_MAX_CONNECTIONS_PER_HOST, 1024);
 		// not allow redirects
 		params.set(HttpClientUtil.PROP_FOLLOW_REDIRECTS, false);
-		params.set(HttpClientUtil.PROP_CONNECTION_TIMEOUT, 10000);
-		params.set(HttpClientUtil.PROP_SO_TIMEOUT, 10000);
+		params.set(HttpClientUtil.PROP_CONNECTION_TIMEOUT, 5000);
+		params.set(HttpClientUtil.PROP_SO_TIMEOUT, 180000);
 
 		DEFAULT_HTTP_CLIENT = HttpClientUtil.createClient(params);
 	}
@@ -80,8 +80,8 @@ public final class Solrs extends Utils {
 			CloudSolrClient.Builder cb = new CloudSolrClient.Builder();
 			logger.info("Solr client create by zookeeper: " + uri.getAuthority());
 			CloudSolrClient c = cb.withZkHost(Arrays.asList(uri.getAuthority().split(","))).withHttpClient(DEFAULT_HTTP_CLIENT).build();
-			c.setZkClientTimeout(Integer.parseInt(System.getProperty("albatis.io.zkclient.timeout", "15000")));
-			c.setZkConnectTimeout(Integer.parseInt(System.getProperty("albatis.io.zkconnect.timeout", "15000")));
+			c.setZkClientTimeout(Integer.parseInt(System.getProperty("albatis.io.zkclient.timeout", "5000")));
+			c.setZkConnectTimeout(Integer.parseInt(System.getProperty("albatis.io.zkconnect.timeout", "5000")));
 			c.setParallelUpdates(true);
 			return c;
 		default:
