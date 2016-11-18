@@ -57,6 +57,8 @@ public class OffHeapQueue<I, O> extends QueueImpl<I, O> implements Queue<I, O> {
 		} catch (IOException e) {
 			logger.error("Dequeue failure", e);
 			return null;
+		} finally {
+			if (queue.isEmpty()) gc();
 		}
 	}
 
@@ -86,9 +88,7 @@ public class OffHeapQueue<I, O> extends QueueImpl<I, O> implements Queue<I, O> {
 		}
 	}
 
-	@Override
 	public final void gc() {
-		super.gc();
 		try {
 			queue.gc();
 		} catch (IOException e) {

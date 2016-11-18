@@ -1,12 +1,15 @@
 package net.butfly.albatis.solr;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Iterator;
 
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.response.UpdateResponse;
 import org.apache.solr.common.SolrInputDocument;
+
+import com.google.common.collect.Lists;
 
 import net.butfly.albacore.io.OutputQueue;
 import net.butfly.albacore.io.OutputQueueImpl;
@@ -15,6 +18,7 @@ import net.butfly.albacore.utils.logger.Logger;
 public class SolrOutput extends OutputQueueImpl<SolrInputDocument> implements OutputQueue<SolrInputDocument> {
 	private static final long serialVersionUID = -2897525987426418020L;
 	private static final Logger logger = Logger.getLogger(SolrOutput.class);
+	private static final int AUTO_COMMIT_MS = 30000;
 	private final SolrClient solr;
 	private final String core;
 
@@ -24,38 +28,35 @@ public class SolrOutput extends OutputQueueImpl<SolrInputDocument> implements Ou
 
 	public SolrOutput(final String name, final String url, String core) throws IOException {
 		super(name);
-		logger.info("SolrOutput: [" + url + "], with core: [" + core + "]");
+		logger.info("SolrOutput [" + name + "] from [" + url + "], core [" + core + "]");
 		solr = Solrs.open(url);
 		this.core = core;
 	}
 
 	@Override
 	protected boolean enqueueRaw(SolrInputDocument d) {
-		if (null == d) return false;
-		UpdateResponse resp;
 		try {
-			if (null == core) resp = solr.add(d, 5000);
-			else resp = solr.add(core, d, 5000);
-			return resp.getStatus() >= 200 && resp.getStatus() < 300;
+			UpdateResponse resp = null == core ? solr.add(d, AUTO_COMMIT_MS) : solr.add(core, d, AUTO_COMMIT_MS);
+			return (resp.getStatus() == 0);
 		} catch (SolrServerException | IOException e) {
 			logger.error("SolrOutput sent not successed", e);
 			return false;
 		}
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public long enqueue(Iterator<SolrInputDocument> iter) {
 		if (!iter.hasNext()) return 0;
-		UpdateResponse resp, resp2;
+		Collection<SolrInputDocument> c;
+		if (iter instanceof Collection) c = (Collection<SolrInputDocument>) iter;
+		else c = Lists.newArrayList(iter);
 		try {
-			if (null == core) {
-				resp = solr.add(iter);
-				resp2 = solr.commit(false, false);
-			} else {
-				resp = solr.add(core, iter);
-				resp2 = solr.commit(core, false, false);
+			UpdateResponse resp = null == core ? solr.add(c, AUTO_COMMIT_MS) : solr.add(core, c, AUTO_COMMIT_MS);
+			if (resp.getStatus() == 0) {
+				logger.trace("SolrOutput: " + c.size() + " docs in " + resp.getQTime() + " ms.");
+				return c.size();
 			}
-			if (resp.getStatus() == 0 && resp2.getStatus() == 0) return 1;
 		} catch (SolrServerException | IOException e) {
 			logger.error("SolrOutput sent not successed", e);
 		}
@@ -64,8 +65,10 @@ public class SolrOutput extends OutputQueueImpl<SolrInputDocument> implements Ou
 
 	@Override
 	public void close() {
+		logger.debug("SolrOutput [" + name() + "] closing...");
 		try {
-			solr.commit();
+			if (null == core) solr.commit();
+			else solr.commit(core);
 		} catch (IOException | SolrServerException e) {
 			logger.error("SolrOutput close failure", e);
 		}
@@ -74,5 +77,6 @@ public class SolrOutput extends OutputQueueImpl<SolrInputDocument> implements Ou
 		} catch (IOException e) {
 			logger.error("SolrOutput close failure", e);
 		}
+		logger.info("SolrOutput [" + name() + "] closed.");
 	}
 }
