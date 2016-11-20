@@ -9,7 +9,6 @@ import com.google.common.base.Charsets;
 import com.google.common.reflect.TypeToken;
 
 import net.butfly.albacore.utils.IOs;
-import scala.Tuple3;
 
 public class KafkaMessage implements Serializable {
 	private static final long serialVersionUID = -8599938670114294267L;
