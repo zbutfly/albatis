@@ -7,12 +7,11 @@ import com.mongodb.BasicDBList;
 import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 
-import net.butfly.albacore.io.OutputQueue;
-import net.butfly.albacore.io.OutputQueueImpl;
+import net.butfly.albacore.io.OutputImpl;
 import net.butfly.albacore.utils.Systems;
 import net.butfly.albatis.mongodb.Mongos.MConnection;
 
-public class MongodbOutput extends OutputQueueImpl<DBObject> implements OutputQueue<DBObject> {
+public class MongodbOutput extends OutputImpl<DBObject> {
 	private static final long serialVersionUID = 2141020043117686747L;
 	private final boolean upsert;
 	private final MConnection mdb;
@@ -31,7 +30,7 @@ public class MongodbOutput extends OutputQueueImpl<DBObject> implements OutputQu
 	}
 
 	@Override
-	protected boolean enqueueRaw(DBObject dbo) {
+	public boolean enqueue(DBObject dbo) {
 		if (null == dbo) return false;
 		if (!upsert) return collection.insert(dbo).getN() == 1;
 		else return collection.save(dbo).getN() == 1;

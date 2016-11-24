@@ -8,11 +8,10 @@ import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.client.transport.TransportClient;
 
-import net.butfly.albacore.io.OutputQueue;
-import net.butfly.albacore.io.OutputQueueImpl;
+import net.butfly.albacore.io.OutputImpl;
 import net.butfly.albacore.utils.Systems;
 
-public class ElasticOutput extends OutputQueueImpl<ElasticOutputDoc> implements OutputQueue<ElasticOutputDoc> {
+public class ElasticOutput extends OutputImpl<ElasticOutputDoc> {
 	private static final long serialVersionUID = 1227554461265245482L;
 	protected final TransportClient elastic;
 
@@ -31,7 +30,7 @@ public class ElasticOutput extends OutputQueueImpl<ElasticOutputDoc> implements 
 	}
 
 	@Override
-	protected boolean enqueueRaw(ElasticOutputDoc s) {
+	public boolean enqueue(ElasticOutputDoc s) {
 		UpdateRequest req = build(s);
 		if (null == req) return false;
 		elastic.update(req).actionGet();
