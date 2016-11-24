@@ -1,14 +1,20 @@
 package net.butfly.albatis.dao;
 
-import org.springframework.context.ConfigurableApplicationContext;
-import org.springframework.context.support.ClassPathXmlApplicationContext;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+
+import net.butfly.albacore.exception.ConfigException;
+import net.butfly.albatis.kafka.KafkaInput;
 
 public class KafkaTest {
-	public static void main(String[] args) {
-		ConfigurableApplicationContext context = new ClassPathXmlApplicationContext("/net/butfly/albatis/kafka/test/spring/beans-test.xml");
-		// KafkaDao dao = context.getBean("kafkaTestDao", KafkaDao.class);
-		// User[] users = dao.select(User.class);
-		// System.out.println(users.length);
-		context.close();
+	public static void main(String[] args) throws ConfigException, IOException {
+		Map<String, Integer> topics = new HashMap<>();
+		topics.put("HZGA_GAZHK_CZRK", 1);
+		try (KafkaInput in = new KafkaInput("KafkaInput", "kafka.properties", topics);) {
+			//			in.enqueue0(it);
+
+		}
+
 	}
 }

@@ -9,12 +9,12 @@ import com.mongodb.Bytes;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 
-import net.butfly.albacore.io.InputImpl;
+import net.butfly.albacore.io.Input;
 import net.butfly.albacore.serder.JsonSerder;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.mongodb.Mongos.MongoDB;
 
-public class MongodbInput extends InputImpl<DBObject> {
+public class MongodbInput extends Input<DBObject> {
 	private static final long serialVersionUID = -142784733788535129L;
 	private static final Logger logger = Logger.getLogger(MongodbInput.class);
 	private final MongoDB mdb;
@@ -60,7 +60,7 @@ public class MongodbInput extends InputImpl<DBObject> {
 	}
 
 	@Override
-	public DBObject dequeue() {
+	public DBObject dequeue0() {
 		synchronized (cursor) {
 			return cursor.hasNext() ? cursor.next() : null;
 		}

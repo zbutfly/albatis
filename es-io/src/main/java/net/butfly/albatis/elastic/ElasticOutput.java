@@ -1,17 +1,17 @@
 package net.butfly.albatis.elastic;
 
 import java.io.IOException;
-import java.util.Iterator;
+import java.util.List;
 
 import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.client.transport.TransportClient;
 
-import net.butfly.albacore.io.OutputImpl;
+import net.butfly.albacore.io.Output;
 import net.butfly.albacore.utils.Systems;
 
-public class ElasticOutput extends OutputImpl<ElasticOutputDoc> {
+public class ElasticOutput extends Output<ElasticMessage> {
 	private static final long serialVersionUID = 1227554461265245482L;
 	protected final TransportClient elastic;
 
@@ -30,28 +30,24 @@ public class ElasticOutput extends OutputImpl<ElasticOutputDoc> {
 	}
 
 	@Override
-	public boolean enqueue(ElasticOutputDoc s) {
-		UpdateRequest req = build(s);
-		if (null == req) return false;
-		elastic.update(req).actionGet();
+	public boolean enqueue0(ElasticMessage s) {
+		if (s == null) return false;
+		elastic.update(build(s)).actionGet();
 		return true;
 	}
 
 	@Override
-	public long enqueue(Iterator<ElasticOutputDoc> iter) {
+	public long enqueue(List<ElasticMessage> docs) {
 		BulkRequest req = new BulkRequest();
-		while (iter.hasNext()) {
-			UpdateRequest r = build(iter.next());
-			if (null != r) req.add(r);
-		}
+		for (ElasticMessage d : docs)
+			if (null != d) req.add(build(d));
 		long s = 0;
 		for (BulkItemResponse r : elastic.bulk(req).actionGet())
 			if (!r.isFailed()) s++;
 		return s;
 	}
 
-	private UpdateRequest build(ElasticOutputDoc d) {
-		if (d == null) return null;
+	private UpdateRequest build(ElasticMessage d) {
 		UpdateRequest req = new UpdateRequest();
 		req.docAsUpsert(d.isUpsert());
 		req.index(d.getIndex());

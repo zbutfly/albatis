@@ -1,17 +1,16 @@
 package net.butfly.albatis.mongodb;
 
 import java.io.IOException;
-import java.util.Iterator;
+import java.util.List;
 
-import com.mongodb.BasicDBList;
 import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 
-import net.butfly.albacore.io.OutputImpl;
+import net.butfly.albacore.io.Output;
 import net.butfly.albacore.utils.Systems;
 import net.butfly.albatis.mongodb.Mongos.MConnection;
 
-public class MongodbOutput extends OutputImpl<DBObject> {
+public class MongodbOutput extends Output<DBObject> {
 	private static final long serialVersionUID = 2141020043117686747L;
 	private final boolean upsert;
 	private final MConnection mdb;
@@ -30,17 +29,14 @@ public class MongodbOutput extends OutputImpl<DBObject> {
 	}
 
 	@Override
-	public boolean enqueue(DBObject dbo) {
+	public boolean enqueue0(DBObject dbo) {
 		if (null == dbo) return false;
 		if (!upsert) return collection.insert(dbo).getN() == 1;
 		else return collection.save(dbo).getN() == 1;
 	}
 
 	@Override
-	public long enqueue(Iterator<DBObject> iter) {
-		BasicDBList l = new BasicDBList();
-		while (iter.hasNext())
-			l.add(iter.next());
-		return collection.insert(l).getN();
+	public long enqueue(List<DBObject> dbos) {
+		return collection.insert(dbos).getN();
 	}
 }

@@ -3,7 +3,7 @@ package net.butfly.albatis.elastic;
 import java.io.Serializable;
 import java.util.Map;
 
-public class ElasticOutputDoc implements Serializable {
+public class ElasticMessage implements Serializable {
 	private static final long serialVersionUID = -125189207796104302L;
 	private final Map<String, Object> values;
 
@@ -12,11 +12,11 @@ public class ElasticOutputDoc implements Serializable {
 	private final String type;
 	private final String id;
 
-	public ElasticOutputDoc(String type, String id, Map<String, Object> values, String index) {
+	public ElasticMessage(String type, String id, Map<String, Object> values, String index) {
 		this(type, id, values, index, true);
 	}
 
-	public ElasticOutputDoc(String type, String id, Map<String, Object> values, String index, boolean upsert) {
+	public ElasticMessage(String type, String id, Map<String, Object> values, String index, boolean upsert) {
 		super();
 		this.values = values;
 		this.upsert = upsert;

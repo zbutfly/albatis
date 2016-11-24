@@ -2,7 +2,6 @@ package net.butfly.albatis.hbase;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 import org.apache.hadoop.hbase.TableName;
@@ -10,9 +9,9 @@ import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Table;
 
-import net.butfly.albacore.io.OutputImpl;
+import net.butfly.albacore.io.Output;
 
-public final class HbaseOutput extends OutputImpl<HbaseResult> {
+public final class HbaseOutput extends Output<HbaseResult> {
 	private static final long serialVersionUID = 2141020043117686747L;
 	private final Connection connect;
 	private final Table table;
@@ -33,7 +32,7 @@ public final class HbaseOutput extends OutputImpl<HbaseResult> {
 	}
 
 	@Override
-	public boolean enqueue(HbaseResult r) {
+	public boolean enqueue0(HbaseResult r) {
 		try {
 			table.put(r.put());
 			return true;
@@ -44,16 +43,16 @@ public final class HbaseOutput extends OutputImpl<HbaseResult> {
 	}
 
 	@Override
-	public long enqueue(Iterator<HbaseResult> iter) {
+	public long enqueue(List<HbaseResult> results) {
 		List<Put> puts = new ArrayList<>();
-		while (iter.hasNext()) {
-			HbaseResult m = iter.next();
-			if (null != m) try {
-				puts.add(m.put());
+		for (HbaseResult r : results) {
+			if (null != r) try {
+				puts.add(r.put());
 			} catch (IOException e) {
 				logger.error("Hbase message to put failure, message ignored", e);
 			}
 		}
+		if (puts.isEmpty()) return 0;
 		try {
 			table.put(puts);
 			return puts.size();

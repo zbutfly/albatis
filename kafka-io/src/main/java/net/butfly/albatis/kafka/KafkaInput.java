@@ -1,11 +1,12 @@
 package net.butfly.albatis.kafka;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Iterator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import com.google.common.collect.Lists;
 
 import kafka.consumer.Consumer;
 import kafka.consumer.ConsumerConfig;
@@ -13,16 +14,19 @@ import kafka.consumer.ConsumerIterator;
 import kafka.consumer.KafkaStream;
 import kafka.javaapi.consumer.ConsumerConnector;
 import net.butfly.albacore.exception.ConfigException;
-import net.butfly.albacore.io.MapInputImpl;
+import net.butfly.albacore.io.MapInput;
 import net.butfly.albacore.io.queue.Q;
+import net.butfly.albacore.io.queue.SimpleQ;
+import net.butfly.albacore.utils.Collections;
 import net.butfly.albacore.utils.async.Concurrents;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.kafka.config.KafkaInputConfig;
 
-public class KafkaInput extends MapInputImpl<String, KafkaMessage> {
+public class KafkaInput extends MapInput<String, KafkaMessage> {
 	private static final long serialVersionUID = 7617065839861658802L;
 	private static final Logger logger = Logger.getLogger(KafkaInput.class);
 	private final ConsumerConnector connect;
+	private final Map<String, SimpleQ<KafkaMessage>> queues;
 	private final Map<String, List<KafkaStream<byte[], byte[]>>> topicStreams;
 	// private KafkaConsumer<byte[], byte[]> consumer;
 
@@ -33,6 +37,9 @@ public class KafkaInput extends MapInputImpl<String, KafkaMessage> {
 	public KafkaInput(String name, final KafkaInputConfig config, final Map<String, Integer> topics) throws ConfigException {
 		super(name);
 		connect = connect(config.getConfig());
+		queues = new HashMap<>();
+		for (String topic : topics.keySet())
+			queues.put(topic, new SimpleQ<KafkaMessage>(name() + "_LOCAL_POOL_" + topic, 10000));
 
 		long fucking = Long.parseLong(System.getProperty("albatis.kafka.fucking.waiting", "15000"));
 
@@ -44,17 +51,15 @@ public class KafkaInput extends MapInputImpl<String, KafkaMessage> {
 	}
 
 	@Override
-	public List<KafkaMessage> dequeue(long batchSize, String key) {
-		List<KafkaMessage> r = new ArrayList<>();
-		Iterator<KafkaStream<byte[], byte[]>> streamItor = topicStreams.get(key).iterator();
-		while (streamItor.hasNext()) {
-			ConsumerIterator<byte[], byte[]> it = streamItor.next().iterator();
-			while (it.hasNext()) {
-				r.add(new KafkaMessage(it.next()));
-				if (r.size() >= batchSize) return r;
-			}
-		}
-		return r;
+	public KafkaMessage dequeue0(String topic) {
+		SimpleQ<KafkaMessage> q = queues.get(topic);
+		KafkaMessage m = q.dequeue0();
+		if (null != m) return m;
+		ConsumerIterator<byte[], byte[]> it = topicStreams.get(topic).get(0).iterator();
+		if (it.hasNext()) {
+			q.enqueue(Collections.transform(Lists.newArrayList(it), meta -> new KafkaMessage(meta)));
+			return q.dequeue0();
+		} else return null;
 	}
 
 	@Override
