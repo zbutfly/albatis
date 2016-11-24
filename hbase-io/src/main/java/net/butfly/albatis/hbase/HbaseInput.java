@@ -14,10 +14,10 @@ import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterList;
 
-import net.butfly.albacore.io.InputQueueImpl;
+import net.butfly.albacore.io.InputImpl;
 import net.butfly.albacore.utils.Collections;
 
-public class HbaseInput extends InputQueueImpl<HbaseResult> {
+public class HbaseInput extends InputImpl<HbaseResult> {
 	private static final long serialVersionUID = 8805176327882596072L;
 	protected final Connection connect;
 	protected final String tableName;
@@ -52,7 +52,7 @@ public class HbaseInput extends InputQueueImpl<HbaseResult> {
 	}
 
 	@Override
-	protected HbaseResult dequeueRaw() {
+	public HbaseResult dequeue() {
 		try {
 			return new HbaseResult(tableName, scaner.next());
 		} catch (IOException e) {

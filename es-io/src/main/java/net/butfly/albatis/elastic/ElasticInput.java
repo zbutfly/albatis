@@ -6,10 +6,10 @@ import java.util.List;
 import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsRequest;
 import org.elasticsearch.client.transport.TransportClient;
 
-import net.butfly.albacore.io.InputQueueImpl;
+import net.butfly.albacore.io.InputImpl;
 import net.butfly.albacore.utils.logger.Logger;
 
-public class ElasticInput extends InputQueueImpl<GetMappingsRequest> {
+public class ElasticInput extends InputImpl<GetMappingsRequest> {
 	private static final long serialVersionUID = -5666669099160512388L;
 	protected static final Logger logger = Logger.getLogger(ElasticInput.class);
 	private final TransportClient elastic;
@@ -38,13 +38,8 @@ public class ElasticInput extends InputQueueImpl<GetMappingsRequest> {
 	}
 
 	@Override
-	protected GetMappingsRequest dequeueRaw() {
-		return null;
-	}
-
-	@Override
 	public GetMappingsRequest dequeue() {
-		return super.dequeue();
+		return null;
 	}
 
 	@Override

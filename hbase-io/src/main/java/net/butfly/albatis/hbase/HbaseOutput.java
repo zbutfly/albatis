@@ -10,10 +10,9 @@ import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Table;
 
-import net.butfly.albacore.io.OutputQueue;
-import net.butfly.albacore.io.OutputQueueImpl;
+import net.butfly.albacore.io.OutputImpl;
 
-public final class HbaseOutput extends OutputQueueImpl<HbaseResult> implements OutputQueue<HbaseResult> {
+public final class HbaseOutput extends OutputImpl<HbaseResult> {
 	private static final long serialVersionUID = 2141020043117686747L;
 	private final Connection connect;
 	private final Table table;
@@ -34,7 +33,7 @@ public final class HbaseOutput extends OutputQueueImpl<HbaseResult> implements O
 	}
 
 	@Override
-	protected boolean enqueueRaw(HbaseResult r) {
+	public boolean enqueue(HbaseResult r) {
 		try {
 			table.put(r.put());
 			return true;

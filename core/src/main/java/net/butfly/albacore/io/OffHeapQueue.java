@@ -5,11 +5,13 @@ import java.io.IOException;
 import com.leansoft.bigqueue.BigQueueImpl;
 import com.leansoft.bigqueue.IBigQueue;
 
+import net.butfly.albacore.io.queue.Q;
+import net.butfly.albacore.io.queue.QImpl;
 import net.butfly.albacore.lambda.Converter;
 import net.butfly.albacore.utils.async.Concurrents;
 import net.butfly.albacore.utils.logger.Logger;
 
-public class OffHeapQueue<I, O> extends QueueImpl<I, O> implements Queue<I, O> {
+public class OffHeapQueue<I, O> extends QImpl<I, O> implements Q<I, O> {
 	private static final long serialVersionUID = -1L;
 	private static final Logger logger = Logger.getLogger(OffHeapQueue.class);
 
@@ -37,7 +39,7 @@ public class OffHeapQueue<I, O> extends QueueImpl<I, O> implements Queue<I, O> {
 	}
 
 	@Override
-	protected boolean enqueueRaw(I e) {
+	public boolean enqueue(I e) {
 		if (null == e) return false;
 		try {
 			byte[] v = iconv.apply(e);
@@ -51,7 +53,7 @@ public class OffHeapQueue<I, O> extends QueueImpl<I, O> implements Queue<I, O> {
 	}
 
 	@Override
-	protected O dequeueRaw() {
+	public O dequeue() {
 		try {
 			return oconv.apply(queue.dequeue());
 		} catch (IOException e) {
@@ -69,7 +71,7 @@ public class OffHeapQueue<I, O> extends QueueImpl<I, O> implements Queue<I, O> {
 			if (!Concurrents.waitSleep(FULL_WAIT_MS)) logger.warn("Wait for full interrupted");
 		long c = 0;
 		for (I m : message)
-			if (enqueueRaw(m)) c++;
+			if (enqueue(m)) c++;
 		return c;
 	}
 
