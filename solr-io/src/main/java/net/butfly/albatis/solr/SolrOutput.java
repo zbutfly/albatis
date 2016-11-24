@@ -1,20 +1,23 @@
 package net.butfly.albatis.solr;
 
 import java.io.IOException;
-import java.util.Iterator;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.common.SolrInputDocument;
 
-import net.butfly.albacore.io.MapOutputImpl;
+import net.butfly.albacore.io.MapOutput;
 import net.butfly.albacore.io.queue.Q;
-import net.butfly.albacore.utils.Collections;
+import net.butfly.albacore.lambda.Converter;
 import net.butfly.albacore.utils.logger.Logger;
 
-public class SolrOutput extends MapOutputImpl<String, SolrMessage<SolrInputDocument>> {
+public class SolrOutput extends MapOutput<String, SolrMessage<SolrInputDocument>> {
 	private static final long serialVersionUID = -2897525987426418020L;
 	private static final Logger logger = Logger.getLogger(SolrOutput.class);
 	private static final int AUTO_COMMIT_MS = 30000;
@@ -27,14 +30,28 @@ public class SolrOutput extends MapOutputImpl<String, SolrMessage<SolrInputDocum
 	}
 
 	@Override
-	public long enqueue(String core, Iterator<SolrMessage<SolrInputDocument>> docs) {
-		List<SolrInputDocument> ds = Collections.transform(docs, d -> d.getDoc());
+	public boolean enqueue0(String core, SolrMessage<SolrInputDocument> doc) {
 		try {
-			return solr.add(core, ds, AUTO_COMMIT_MS).getStatus() == 0 ? ds.size() : 0;
+			return solr.add(core, doc.getDoc(), AUTO_COMMIT_MS).getStatus() == 0;
 		} catch (SolrServerException | IOException e) {
 			logger.error("SolrOutput sent not successed", e);
-			return 0;
+			return false;
 		}
+	}
+
+	@Override
+	public long enqueue(Converter<SolrMessage<SolrInputDocument>, String> keying, List<SolrMessage<SolrInputDocument>> docs) {
+		Map<String, List<SolrInputDocument>> map = new HashMap<>();
+		for (SolrMessage<SolrInputDocument> d : docs)
+			map.computeIfAbsent(d.getCore(), core -> new ArrayList<>()).add(d.getDoc());
+		int count = 0;
+		for (Entry<String, List<SolrInputDocument>> e : map.entrySet())
+			try {
+				if (solr.add(e.getKey(), e.getValue(), AUTO_COMMIT_MS).getStatus() == 0) count += e.getValue().size();
+			} catch (SolrServerException | IOException ex) {
+				logger.error("SolrOutput sent not successed", ex);
+			}
+		return count;
 	}
 
 	@Override

@@ -28,6 +28,10 @@ public class KafkaMessage implements Serializable {
 		this(record.topic(), record.key(), record.value());
 	}
 
+	public void setTopic(String topic) {
+		this.topic = topic;
+	}
+
 	public KafkaMessage(String topic, byte[] key, byte[] body) {
 		this.topic = topic;
 		this.key = key;
