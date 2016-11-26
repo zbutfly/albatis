@@ -62,11 +62,7 @@ public class SolrOutput extends MapOutput<String, SolrMessage<SolrInputDocument>
 		} catch (IOException | SolrServerException e) {
 			logger.error("SolrOutput close failure", e);
 		}
-		try {
-			solr.close();
-		} catch (IOException e) {
-			logger.error("SolrOutput close failure", e);
-		}
+		Solrs.close(solr);
 		logger.info("SolrOutput [" + name() + "] closed.");
 	}
 

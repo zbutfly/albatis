@@ -5,6 +5,8 @@ import java.util.Properties;
 
 import kafka.consumer.ConsumerConfig;
 import net.butfly.albacore.exception.ConfigException;
+import net.butfly.albacore.io.URIs;
+import net.butfly.albacore.io.URIs.Schema;
 import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.Systems;
 import net.butfly.albacore.utils.logger.Logger;
@@ -22,8 +24,11 @@ public class KafkaInputConfig extends KafkaConfigBase {
 	protected long fetchMessageMaxBytes;
 	protected long fetchWaitTimeoutMs;
 
-	public KafkaInputConfig(String classpathResourceName) throws IOException {
-		this(Configs.read(classpathResourceName));
+	// not for kafka, for albatis
+	private boolean parallelismEnable;
+
+	public KafkaInputConfig(String uri) throws IOException {
+		this(Configs.read(URIs.open(uri, Schema.FILE, Schema.CLASSPATH, Schema.ZOOKEEPER)));
 	}
 
 	public KafkaInputConfig(Properties props) {
@@ -34,13 +39,18 @@ public class KafkaInputConfig extends KafkaConfigBase {
 		groupId = Systems.suffixDebug(groupId, logger);
 
 		zookeeperSyncTimeMs = Long.valueOf(props.getProperty("albatis.kafka.zookeeper.sync.time.ms", "5000"));
-		autoCommitEnable = Boolean.valueOf(props.getProperty("albatis.kafka.auto.commit.enable", "false"));
-		autoCommitIntervalMs = Long.valueOf(props.getProperty("albatis.kafka.auto.commit.interval.ms", "1000"));
+		autoCommitEnable = Boolean.valueOf(props.getProperty("albatis.kafka.auto.commit.enable", "true"));
+		autoCommitIntervalMs = Long.valueOf(props.getProperty("albatis.kafka.auto.commit.interval.ms", "60000"));
 		autoOffsetReset = props.getProperty("albatis.kafka.auto.offset.reset", "smallest");
 		sessionTimeoutMs = Long.valueOf(props.getProperty("albatis.kafka.session.timeout.ms", "30000"));
-		fetchWaitTimeoutMs = Long.valueOf(props.getProperty("albatis.kafka.fetch.wait.timeout.ms", "5000"));
+		fetchWaitTimeoutMs = Long.valueOf(props.getProperty("albatis.kafka.fetch.wait.timeout.ms", "500"));
 		partitionAssignmentStrategy = props.getProperty("albatis.kafka.partition.assignment.strategy", "range");
 		fetchMessageMaxBytes = Long.valueOf(props.getProperty("albatis.kafka.fetch.message.max.bytes", "3145728"));
+		parallelismEnable = Boolean.valueOf(props.getProperty("albatis.kafka.parallelism.enable", "false"));
+	}
+
+	public boolean isParallelismEnable() {
+		return parallelismEnable;
 	}
 
 	public ConsumerConfig getConfig() throws ConfigException {
@@ -61,6 +71,7 @@ public class KafkaInputConfig extends KafkaConfigBase {
 		props.setProperty("auto.offset.reset", autoOffsetReset);
 		props.setProperty("socket.timeout.ms", Long.toString(sessionTimeoutMs));
 		props.setProperty("fetch.wait.max.ms", Long.toString(fetchWaitTimeoutMs));
+		props.setProperty("consumer.timeout.ms", Long.toString(fetchWaitTimeoutMs));
 		props.setProperty("partition.assignment.strategy", partitionAssignmentStrategy);
 		props.setProperty("socket.receive.buffer.bytes", Long.toString(transferBufferBytes));
 		props.setProperty("fetch.message.max.bytes", Long.toString(fetchMessageMaxBytes));

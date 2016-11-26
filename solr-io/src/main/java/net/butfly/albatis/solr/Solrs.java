@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
@@ -21,9 +22,13 @@ import org.apache.solr.client.solrj.impl.CloudSolrClient;
 import org.apache.solr.client.solrj.impl.HttpClientUtil;
 import org.apache.solr.client.solrj.impl.HttpSolrClient;
 import org.apache.solr.client.solrj.impl.HttpSolrClient.Builder;
+import org.apache.solr.client.solrj.impl.HttpSolrClient.RemoteSolrException;
 import org.apache.solr.client.solrj.impl.XMLResponseParser;
+import org.apache.solr.client.solrj.request.CoreAdminRequest;
+import org.apache.solr.client.solrj.response.CoreAdminResponse;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.common.SolrDocumentList;
+import org.apache.solr.common.params.CoreAdminParams.CoreAdminAction;
 import org.apache.solr.common.params.ModifiableSolrParams;
 import org.apache.solr.common.util.Pair;
 
@@ -32,8 +37,10 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 
+import net.butfly.albacore.io.URIs;
 import net.butfly.albacore.utils.Utils;
 import net.butfly.albacore.utils.logger.Logger;
+import scala.Tuple3;
 
 public final class Solrs extends Utils {
 	protected static final Logger logger = Logger.getLogger(Solrs.class);
@@ -63,30 +70,37 @@ public final class Solrs extends Utils {
 		return clients.computeIfAbsent(solrURL, url -> client(url, parserClass));
 	}
 
-	private static SolrClient client(String url, Class<? extends ResponseParser> parserClass) {
-		URI uri;
+	public static void close(SolrClient solr) {
+		logger.debug("Solr close: " + solr.toString());
+		for (Entry<String, SolrClient> e : clients.entrySet())
+			if (e.getValue().equals(solr)) clients.remove(e.getKey());
 		try {
-			uri = new URI(url);
-		} catch (URISyntaxException e) {
-			throw new RuntimeException(e);
+			solr.close();
+		} catch (IOException e) {
+			logger.error("Solr close failure", e);
 		}
-		switch (uri.getScheme().toLowerCase()) {
-		case "http":
-			Builder hb = new HttpSolrClient.Builder(url).allowCompression(true).withHttpClient(DEFAULT_HTTP_CLIENT);
-			if (null != parserClass) hb = hb.withResponseParser(parsers.computeIfAbsent(parserClass, clz -> parser(clz)));
-			logger.info("Solr client create: " + url);
-			return hb.build();
-		case "zookeeper":
-			CloudSolrClient.Builder cb = new CloudSolrClient.Builder();
-			logger.info("Solr client create by zookeeper: " + uri.getAuthority());
-			CloudSolrClient c = cb.withZkHost(Arrays.asList(uri.getAuthority().split(","))).withHttpClient(DEFAULT_HTTP_CLIENT).build();
-			c.setZkClientTimeout(Integer.parseInt(System.getProperty("albatis.io.zkclient.timeout", "5000")));
-			c.setZkConnectTimeout(Integer.parseInt(System.getProperty("albatis.io.zkconnect.timeout", "5000")));
-			c.setParallelUpdates(true);
-			return c;
-		default:
-			throw new RuntimeException("Solr open failure, invalid url: " + url);
-		}
+	}
+
+	private static SolrClient client(String url, Class<? extends ResponseParser> parserClass) {
+		return URIs.parse(url, (schema, uri) -> {
+			switch (schema) {
+			case HTTP:
+				Builder hb = new HttpSolrClient.Builder(url).allowCompression(true).withHttpClient(DEFAULT_HTTP_CLIENT);
+				if (null != parserClass) hb = hb.withResponseParser(parsers.computeIfAbsent(parserClass, clz -> parser(clz)));
+				logger.info("Solr client create: " + url);
+				return hb.build();
+			case ZOOKEEPER:
+				CloudSolrClient.Builder cb = new CloudSolrClient.Builder();
+				logger.info("Solr client create by zookeeper: " + uri.getAuthority());
+				CloudSolrClient c = cb.withZkHost(Arrays.asList(uri.getAuthority().split(","))).withHttpClient(DEFAULT_HTTP_CLIENT).build();
+				c.setZkClientTimeout(Integer.parseInt(System.getProperty("albatis.io.zkclient.timeout", "5000")));
+				c.setZkConnectTimeout(Integer.parseInt(System.getProperty("albatis.io.zkconnect.timeout", "5000")));
+				c.setParallelUpdates(true);
+				return c;
+			default:
+				throw new RuntimeException("Solr open failure, invalid url: " + url);
+			}
+		});
 	}
 
 	private static ResponseParser parser(Class<? extends ResponseParser> clz) {
@@ -255,6 +269,49 @@ public final class Solrs extends Utils {
 			return new QueryResponse[0];
 		} finally {
 			ex.shutdown();
+		}
+	}
+
+	/**
+	 * @param url
+	 * @return Tuple3: <baseURL, defaultCore[maybe null], allCores>, or null for
+	 *         invalid url
+	 * @throws IOException
+	 * @throws SolrServerException
+	 * @throws URISyntaxException
+	 */
+	public static Tuple3<String, String, String[]> parseSolrURL(String url) throws IOException, SolrServerException, URISyntaxException {
+		url = new URI(url).toASCIIString();
+		CoreAdminRequest req = new CoreAdminRequest();
+		req.setAction(CoreAdminAction.STATUS);
+		try (SolrClient solr = Solrs.open(url);) {
+			CoreAdminResponse resp2 = req.process(solr);
+			String[] cores = new String[resp2.getCoreStatus().size()];
+			for (int i = 0; i < resp2.getCoreStatus().size(); i++)
+				cores[i] = resp2.getCoreStatus().getName(i);
+			return new Tuple3<>(url, null, cores);
+		} catch (RemoteSolrException e) {
+			String path;
+			try {
+				path = new URI(url).getPath();
+			} catch (URISyntaxException e1) {
+				throw new SolrServerException("Solr url invalid: " + url);
+			}
+			if (null == path) throw new SolrServerException("Solr url invalid: " + url);
+			List<String> segs = new ArrayList<>(Arrays.asList(path.split("/+")));
+			if (segs.isEmpty()) throw new SolrServerException("Solr url invalid: " + url);
+			String core = segs.remove(segs.size() - 1);
+
+			String base = url.replaceAll("/?" + core + "/?$", "");
+			try (SolrClient solr = Solrs.open(base);) {
+				CoreAdminResponse resp2 = req.process(solr);
+				String[] cores = new String[resp2.getCoreStatus().size()];
+				for (int i = 0; i < resp2.getCoreStatus().size(); i++)
+					cores[i] = resp2.getCoreStatus().getName(i);
+				return new Tuple3<>(base, core, cores);
+			} catch (RemoteSolrException ee) {
+				throw new SolrServerException("Solr url base parsing failure: " + url);
+			}
 		}
 	}
 }
