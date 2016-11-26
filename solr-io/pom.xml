@@ -33,5 +33,10 @@
 			<artifactId>httpclient</artifactId>
 			<version>4.5.2</version>
 		</dependency>
+<!-- 		<dependency> --><!-- no httpcore-nio-4.4.5 -->
+<!-- 			<groupId>org.apache.httpcomponents</groupId> -->
+<!-- 			<artifactId>httpasyncclient</artifactId> -->
+<!-- 			<version>4.1.2</version> -->
+<!-- 		</dependency> -->
 	</dependencies>
 </project>

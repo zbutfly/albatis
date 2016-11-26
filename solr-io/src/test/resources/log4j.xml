@@ -6,10 +6,6 @@
 			<param name="ConversionPattern" value="%d{HH:mm:ss,SSS} %-5.5p [%t] %-20.20c{1.} - %m%n" />
 		</layout>
 	</appender>
-<!-- 	<logger name="org.apache.kafka.clients.NetworkClient" additivity="false"> -->
-<!-- 		<level value="error" /> -->
-<!-- 		<appender-ref ref="log-console-stdout" /> -->
-<!-- 	</logger> -->
 	<logger name="net.butfly" additivity="false">
 		<level value="trace" />
 		<appender-ref ref="log-console-stdout" />
