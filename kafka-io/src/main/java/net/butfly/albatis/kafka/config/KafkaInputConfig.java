@@ -38,15 +38,23 @@ public class KafkaInputConfig extends KafkaConfigBase {
 		if (groupId == null || "".equals(groupId)) groupId = Systems.getMainClass().getSimpleName();
 		groupId = Systems.suffixDebug(groupId, logger);
 
-		zookeeperSyncTimeMs = Long.valueOf(props.getProperty("albatis.kafka.zookeeper.sync.time.ms", "5000"));
-		autoCommitEnable = Boolean.valueOf(props.getProperty("albatis.kafka.auto.commit.enable", "true"));
-		autoCommitIntervalMs = Long.valueOf(props.getProperty("albatis.kafka.auto.commit.interval.ms", "60000"));
+		String v;
+		v = props.getProperty("albatis.kafka.zookeeper.sync.time.ms", "5000");
+		zookeeperSyncTimeMs = Long.parseLong(v.trim());
+		v = props.getProperty("albatis.kafka.auto.commit.enable", "true");
+		autoCommitEnable = Boolean.parseBoolean(v.trim());
+		v = props.getProperty("albatis.kafka.auto.commit.interval.ms", "60000");
+		autoCommitIntervalMs = Long.parseLong(v.trim());
 		autoOffsetReset = props.getProperty("albatis.kafka.auto.offset.reset", "smallest");
-		sessionTimeoutMs = Long.valueOf(props.getProperty("albatis.kafka.session.timeout.ms", "30000"));
-		fetchWaitTimeoutMs = Long.valueOf(props.getProperty("albatis.kafka.fetch.wait.timeout.ms", "500"));
+		v = props.getProperty("albatis.kafka.session.timeout.ms", "30000");
+		sessionTimeoutMs = Long.parseLong(v.trim());
+		v = props.getProperty("albatis.kafka.fetch.wait.timeout.ms", "500");
+		fetchWaitTimeoutMs = Long.parseLong(v.trim());
 		partitionAssignmentStrategy = props.getProperty("albatis.kafka.partition.assignment.strategy", "range");
-		fetchMessageMaxBytes = Long.valueOf(props.getProperty("albatis.kafka.fetch.message.max.bytes", "3145728"));
-		parallelismEnable = Boolean.valueOf(props.getProperty("albatis.kafka.parallelism.enable", "false"));
+		v = props.getProperty("albatis.kafka.fetch.message.max.bytes", "3145728");
+		fetchMessageMaxBytes = Long.parseLong(v.trim());
+		v = props.getProperty("albatis.kafka.parallelism.enable", "false");
+		parallelismEnable = Boolean.parseBoolean(v.trim());
 	}
 
 	public boolean isParallelismEnable() {
@@ -63,7 +71,6 @@ public class KafkaInputConfig extends KafkaConfigBase {
 	public Properties props() {
 		Properties props = super.props();
 		props.setProperty("group.id", groupId);
-
 		props.setProperty("zookeeper.connection.timeout.ms", Long.toString(zookeeperConnectionTimeoutMs));
 		props.setProperty("zookeeper.sync.time.ms", Long.toString(zookeeperSyncTimeMs));
 		props.setProperty("auto.commit.enable", Boolean.toString(autoCommitEnable));

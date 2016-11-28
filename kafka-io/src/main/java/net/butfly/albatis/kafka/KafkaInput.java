@@ -13,6 +13,7 @@ import kafka.consumer.Consumer;
 import kafka.consumer.ConsumerIterator;
 import kafka.consumer.KafkaStream;
 import kafka.javaapi.consumer.ConsumerConnector;
+import kafka.message.MessageAndMetadata;
 import net.butfly.albacore.exception.ConfigException;
 import net.butfly.albacore.io.MapInput;
 import net.butfly.albacore.io.queue.Q;
@@ -29,6 +30,8 @@ public class KafkaInput extends MapInput<String, KafkaMessage> {
 	private final Map<String, List<Integer>> orders;
 	private final Map<String, Integer> topics;
 	private final Map<String, List<KafkaStream<byte[], byte[]>>> streams;
+	// private final Map<String, Map<Prefetcher, KafkaStream<byte[], byte[]>>>
+	// streams;
 
 	public KafkaInput(String name, final String config, String... topic) throws ConfigException, IOException {
 		super(name);
@@ -38,10 +41,10 @@ public class KafkaInput extends MapInput<String, KafkaMessage> {
 		if (kic.isParallelismEnable()) try (KafkaProducer<byte[], byte[]> kc = new KafkaProducer<>(new KafkaOutputConfig(config)
 				.props());) {
 			for (String t : topic)
-				f(t, topics, orders, kc.partitionsFor(t).size());
+				f(t, kc.partitionsFor(t).size());
 		}
 		else for (String t : topic)
-			f(t, topics, orders, 1);
+			f(t, 1);
 
 		logger.debug("Kafka [" + config.toString() + "] connecting.");
 		connect = Consumer.createJavaConsumerConnector(kic.getConfig());
@@ -51,7 +54,7 @@ public class KafkaInput extends MapInput<String, KafkaMessage> {
 		logger.debug("KafkaInput ready in [" + streams.size() + "] topics: " + topics.toString());
 	}
 
-	private void f(String t, Map<String, Integer> topics2, Map<String, List<Integer>> orders2, int partitions) {
+	private void f(String t, int partitions) {
 		logger.info("Topic [" + t + "] partitions detected: " + partitions);
 		topics.put(t, partitions);
 		orders.compute(t, (k, v) -> {
@@ -68,7 +71,11 @@ public class KafkaInput extends MapInput<String, KafkaMessage> {
 		for (Integer i : orders.compute(topic, (k, v) -> Collections.disorderize(v))) {
 			ConsumerIterator<byte[], byte[]> it = l.get(i).iterator();
 			if (it.hasNext()) try {
-				return new KafkaMessage(it.next());
+				MessageAndMetadata<byte[], byte[]> e;
+				synchronized (it) {
+					e = it.next();
+				}
+				return new KafkaMessage(e);
 			} finally {
 				connect.commitOffsets(false);
 			}
@@ -87,7 +94,11 @@ public class KafkaInput extends MapInput<String, KafkaMessage> {
 					for (KafkaStream<byte[], byte[]> s : streams.get(t)) {
 						ConsumerIterator<byte[], byte[]> it = s.iterator();
 						try {
-							batch.add(new KafkaMessage(it.next()));
+							MessageAndMetadata<byte[], byte[]> e;
+							synchronized (it) {
+								e = it.next();
+							}
+							batch.add(new KafkaMessage(e));
 						} catch (Exception ex) {}
 					}
 				}
