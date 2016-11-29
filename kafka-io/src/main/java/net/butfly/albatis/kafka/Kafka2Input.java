@@ -163,10 +163,7 @@ public class Kafka2Input extends MapInput<String, KafkaMessage> {
 					while (it.hasNext()) {
 						pool.put(new KafkaMessage(it.next()));
 					}
-				} catch (Exception e) {
-					// logger.error("Fetcher [" + getName() + "] error, pool
-					// size: [" + pool.size() + "].", e);
-				}
+				} catch (Exception e) {}
 		}
 
 		public KafkaMessage get() {

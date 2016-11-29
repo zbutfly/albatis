@@ -1,4 +1,4 @@
-package net.butfly.albatis.dao;
+package net.butfly.albatis.kafka;
 
 import java.io.IOException;
 import java.text.DateFormat;
@@ -11,13 +11,11 @@ import java.util.List;
 import java.util.Map;
 
 import net.butfly.albacore.exception.ConfigException;
-import net.butfly.albatis.kafka.Kafka2Input;
-import net.butfly.albatis.kafka.KafkaMessage;
 
 public class KafkaTest {
-
-	public static void main(String[] args) throws ConfigException, IOException {
-		String[] topics = new String[] { "HZGA_GAZHK_HZKK", "HZGA_GAZHK_LGY_NB", "HZGA_GAZHK_WBXT_SWRY_XXB" };
+	public static void main(String[] topics) throws ConfigException, IOException {
+		// String[] topics = new String[] { "HZGA_GAZHK_HZKK",
+		// "HZGA_GAZHK_LGY_NB", "HZGA_GAZHK_WBXT_SWRY_XXB" };
 		//
 		Map<String, Integer> counts = new HashMap<>();
 		for (String t : topics)
@@ -27,9 +25,9 @@ public class KafkaTest {
 		double total = 0;
 		long begin = new Date().getTime();
 		long now = begin;
-		try (Kafka2Input in = new Kafka2Input("KafkaInput", "kafka.properties", topics);) {
+		try (KafkaInput in = new KafkaInput("KafkaInput", "kafka.properties", topics);) {
 			do {
-				List<KafkaMessage> l = in.dequeue(10000);
+				List<KafkaMessage> l = in.dequeue(10);
 				long size = 0;
 				for (KafkaMessage m : l) {
 					counts.compute(m.getTopic(), (k, v) -> v + 1);
@@ -41,7 +39,9 @@ public class KafkaTest {
 						+ "size: <" + nf.format(size / 1024.0 / 1024) + " MByte>, "//
 						+ "total: <" + nf.format(total / 1024) + " Gbytes>, "//
 						+ "avg: <" + nf.format(total / ((curr - begin) / 1000.0)) + " MBytes/sec>, " //
-						+ "count detail: <" + counts + ">, " + "pool: <" + in.poolStatus() + ">.");
+						+ "pool: <" + in.poolStatus() + ">."//
+						+ "\n\tcount detail: <" + counts + ">, " //
+				);
 				now = new Date().getTime();
 			} while (true);
 		}
