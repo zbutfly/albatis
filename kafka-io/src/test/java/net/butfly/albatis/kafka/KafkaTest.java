@@ -5,6 +5,7 @@ import java.text.DateFormat;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -13,10 +14,10 @@ import java.util.Map;
 import net.butfly.albacore.exception.ConfigException;
 
 public class KafkaTest {
-	public static void main(String[] topics) throws ConfigException, IOException {
-		// String[] topics = new String[] { "HZGA_GAZHK_HZKK",
-		// "HZGA_GAZHK_LGY_NB", "HZGA_GAZHK_WBXT_SWRY_XXB" };
-		//
+	public static void main(String[] args) throws ConfigException, IOException {
+		int batchSize = Integer.parseInt(args[0]);
+		String[] topics = Arrays.copyOfRange(args, 1, args.length);
+
 		Map<String, Integer> counts = new HashMap<>();
 		for (String t : topics)
 			counts.put(t, 0);
@@ -27,7 +28,7 @@ public class KafkaTest {
 		long now = begin;
 		try (KafkaInput in = new KafkaInput("KafkaInput", "kafka.properties", topics);) {
 			do {
-				List<KafkaMessage> l = in.dequeue(10);
+				List<KafkaMessage> l = in.dequeue(batchSize);
 				long size = 0;
 				for (KafkaMessage m : l) {
 					counts.compute(m.getTopic(), (k, v) -> v + 1);
