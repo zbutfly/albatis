@@ -29,7 +29,7 @@ public class Kafka2Input extends MapInput<String, KafkaMessage> {
 	private static final Logger logger = Logger.getLogger(Kafka2Input.class);
 	private final ConsumerConnector connect;
 	private final Map<String, Integer> topics;
-	private final Map<String, Map<KafkaStream<byte[], byte[]>, Prefetcher>> streams;
+	private final Map<String, Map<KafkaStream<byte[], byte[]>, KafkaInputFetch>> streams;
 
 	public Kafka2Input(String name, final String config, String... topic) throws ConfigException, IOException {
 		super(name);
@@ -58,7 +58,7 @@ public class Kafka2Input extends MapInput<String, KafkaMessage> {
 
 	@Override
 	public KafkaMessage dequeue0(String topic) {
-		Map<KafkaStream<byte[], byte[]>, Prefetcher> iters = streams.get(topic);
+		Map<KafkaStream<byte[], byte[]>, KafkaInputFetch> iters = streams.get(topic);
 		for (KafkaStream<byte[], byte[]> stream : Collections.disorderize(iters.keySet())) {
 			KafkaMessage e = iters.get(stream).get();
 			if (null != e) return e;
@@ -74,7 +74,7 @@ public class Kafka2Input extends MapInput<String, KafkaMessage> {
 			do {
 				prev = batch.size();
 				for (String t : topic) {
-					Map<KafkaStream<byte[], byte[]>, Prefetcher> iters = streams.get(t);
+					Map<KafkaStream<byte[], byte[]>, KafkaInputFetch> iters = streams.get(t);
 					for (KafkaStream<byte[], byte[]> stream : Collections.disorderize(iters.keySet())) {
 						KafkaMessage e = iters.get(stream).get();
 						if (null != e) batch.add(e);
@@ -127,14 +127,15 @@ public class Kafka2Input extends MapInput<String, KafkaMessage> {
 		logger.info("KafkaInput [" + name() + "] closed.");
 	}
 
-	private Map<String, Map<KafkaStream<byte[], byte[]>, Prefetcher>> parseStreams(Map<String, List<KafkaStream<byte[], byte[]>>> streams) {
-		Map<String, Map<KafkaStream<byte[], byte[]>, Prefetcher>> s = new HashMap<>();
+	private Map<String, Map<KafkaStream<byte[], byte[]>, KafkaInputFetch>> parseStreams(
+			Map<String, List<KafkaStream<byte[], byte[]>>> streams) {
+		Map<String, Map<KafkaStream<byte[], byte[]>, KafkaInputFetch>> s = new HashMap<>();
 		AtomicInteger i = new AtomicInteger();
 		for (String topic : streams.keySet())
 			for (KafkaStream<byte[], byte[]> stream : streams.get(topic))
 				s.compute(topic, (t, m) -> {
-					Map<KafkaStream<byte[], byte[]>, Prefetcher> threads = m == null ? new HashMap<>() : m;
-					Prefetcher p = new Prefetcher(stream, i.incrementAndGet());
+					Map<KafkaStream<byte[], byte[]>, KafkaInputFetch> threads = m == null ? new HashMap<>() : m;
+					KafkaInputFetch p = new KafkaInputFetch(stream, i.incrementAndGet());
 					threads.put(stream, p);
 					p.start();
 					return threads;
@@ -142,16 +143,24 @@ public class Kafka2Input extends MapInput<String, KafkaMessage> {
 		return s;
 	}
 
-	private static final class Prefetcher extends Thread {
+	public long poolStatus() {
+		long count = 0;
+		for (Map<KafkaStream<byte[], byte[]>, KafkaInputFetch> m : streams.values())
+			for (KafkaInputFetch p : m.values())
+				count += p.pool.size();
+		return count;
+	}
+
+	private static final class KafkaInputFetch extends Thread {
 		private final LinkedBlockingQueue<KafkaMessage> pool;
 		private final KafkaStream<byte[], byte[]> stream;
 
-		public Prefetcher(KafkaStream<byte[], byte[]> stream, int i) {
+		public KafkaInputFetch(KafkaStream<byte[], byte[]> stream, int i) {
 			pool = new LinkedBlockingQueue<>(10000);
 			this.stream = stream;
 			this.setName("Kafka2InputFetcher-" + i);
 			this.setUncaughtExceptionHandler((t, e) -> {
-				logger.error("Fetcher [" + t.getName() + "] error, pool size: [" + ((Prefetcher) t).pool.size() + "].", e);
+				logger.error("Fetcher [" + t.getName() + "] error, pool size: [" + ((KafkaInputFetch) t).pool.size() + "].", e);
 			});
 		}
 
@@ -169,13 +178,5 @@ public class Kafka2Input extends MapInput<String, KafkaMessage> {
 		public KafkaMessage get() {
 			return pool.poll();
 		}
-	}
-
-	public long poolStatus() {
-		long count = 0;
-		for (Map<KafkaStream<byte[], byte[]>, Prefetcher> m : streams.values())
-			for (Prefetcher p : m.values())
-				count += p.pool.size();
-		return count;
 	}
 }
