@@ -92,14 +92,13 @@ public class KafkaInput extends MapInput<String, KafkaMessage> {
 				prev = batch.size();
 				for (String t : topic) {
 					for (KafkaStream<byte[], byte[]> s : streams.get(t)) {
-						ConsumerIterator<byte[], byte[]> it = s.iterator();
-						try {
-							MessageAndMetadata<byte[], byte[]> e;
-							synchronized (it) {
-								e = it.next();
-							}
-							batch.add(new KafkaMessage(e));
-						} catch (Exception ex) {}
+						synchronized (s) {
+							MessageAndMetadata<byte[], byte[]> e = null;
+							try {
+								e = s.iterator().next();
+							} catch (Exception ex) {}
+							if (null != e) batch.add(new KafkaMessage(e));
+						}
 					}
 				}
 				if (batch.size() >= batchSize) return batch;
@@ -147,5 +146,9 @@ public class KafkaInput extends MapInput<String, KafkaMessage> {
 		connect.commitOffsets(true);
 		connect.shutdown();
 		logger.info("KafkaInput [" + name() + "] closed.");
+	}
+
+	public long poolStatus() {
+		return -1;
 	}
 }

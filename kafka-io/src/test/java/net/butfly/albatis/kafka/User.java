@@ -1,4 +1,4 @@
-package net.butfly.albatis.dao;
+package net.butfly.albatis.kafka;
 
 import net.butfly.albacore.entity.Entity;
 
