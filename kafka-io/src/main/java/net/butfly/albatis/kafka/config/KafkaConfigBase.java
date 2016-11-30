@@ -36,7 +36,7 @@ public abstract class KafkaConfigBase implements Serializable {
 			if (bootstrapServers != null) logger.warn(
 					"Zookeeper detect broken list automatically, configured [albatis.kafka.bootstrap.servers] is not used (current value: ["
 							+ bootstrapServers + "])");
-			bootstrapServers = Joiner.on(",").join(Kafkas.getBorkens(zookeeperConnect));
+			bootstrapServers = Joiner.on(",").join(Kafkas.getBorkers(zookeeperConnect));
 			logger.info("Zookeeper detect broken list automatically: [" + bootstrapServers + "])");
 		} else if (bootstrapServers == null) throw new ConfigException(
 				"Neither [albatis.kafka.zookeeper] nor [albatis.kafka.bootstrap.servers] found");
@@ -58,5 +58,9 @@ public abstract class KafkaConfigBase implements Serializable {
 		props.setProperty("key.serializer", keySerializerClass);
 		props.setProperty("value.serializer", valueSerializerClass);
 		return props;
+	}
+
+	public String getZookeeperConnect() {
+		return zookeeperConnect;
 	}
 }
