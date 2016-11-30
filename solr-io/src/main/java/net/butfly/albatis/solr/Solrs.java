@@ -13,7 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 
-import org.apache.http.client.HttpClient;
+import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.solr.client.solrj.ResponseParser;
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrQuery;
@@ -44,13 +44,22 @@ import scala.Tuple3;
 
 public final class Solrs extends Utils {
 	protected static final Logger logger = Logger.getLogger(Solrs.class);
-	private static final Map<Class<? extends ResponseParser>, ResponseParser> parsers = new ConcurrentHashMap<>();
+	// private static final RequestConfig HTTP_REQ_CONFIG =
+	// RequestConfig.custom().setSocketTimeout(180000).setConnectTimeout(5000).build();
+	private static final CloseableHttpClient HTTP_CLIENT;
+	// =
+	// HttpClients.custom().setDefaultRequestConfig(HTTP_REQ_CONFIG).setMaxConnPerRoute(1024).setMaxConnTotal(4096).build();
+	// private static final CloseableHttpAsyncClient HTTP_CLIENT =
+	// HttpAsyncClients.custom().setDefaultRequestConfig(HTTP_REQ_CONFIG)
+	// .setMaxConnPerRoute(1024).setMaxConnTotal(4096).build();
+
+	private static final Map<Class<? extends ResponseParser>, ResponseParser> PARSER_POOL = new ConcurrentHashMap<>();
 	static {
 		XMLResponseParser d = new XMLResponseParser();
-		parsers.put(d.getClass(), d);
+		PARSER_POOL.put(d.getClass(), d);
 	}
 	private static final Map<String, SolrClient> clients = new ConcurrentHashMap<>();
-	private static final HttpClient DEFAULT_HTTP_CLIENT;
+
 	static {
 		ModifiableSolrParams params = new ModifiableSolrParams();
 		params.set(HttpClientUtil.PROP_MAX_CONNECTIONS, 4096);
@@ -59,8 +68,7 @@ public final class Solrs extends Utils {
 		params.set(HttpClientUtil.PROP_FOLLOW_REDIRECTS, false);
 		params.set(HttpClientUtil.PROP_CONNECTION_TIMEOUT, 5000);
 		params.set(HttpClientUtil.PROP_SO_TIMEOUT, 180000);
-
-		DEFAULT_HTTP_CLIENT = HttpClientUtil.createClient(params);
+		HTTP_CLIENT = HttpClientUtil.createClient(params);
 	}
 
 	private Solrs() {}
@@ -85,14 +93,14 @@ public final class Solrs extends Utils {
 		return URIs.parse(url, (schema, uri) -> {
 			switch (schema) {
 			case HTTP:
-				Builder hb = new HttpSolrClient.Builder(url).allowCompression(true).withHttpClient(DEFAULT_HTTP_CLIENT);
-				if (null != parserClass) hb = hb.withResponseParser(parsers.computeIfAbsent(parserClass, clz -> parser(clz)));
+				Builder hb = new HttpSolrClient.Builder(url).allowCompression(true).withHttpClient(HTTP_CLIENT);
+				if (null != parserClass) hb = hb.withResponseParser(PARSER_POOL.computeIfAbsent(parserClass, clz -> parser(clz)));
 				logger.info("Solr client create: " + url);
 				return hb.build();
 			case ZOOKEEPER:
 				CloudSolrClient.Builder cb = new CloudSolrClient.Builder();
 				logger.info("Solr client create by zookeeper: " + uri.getAuthority());
-				CloudSolrClient c = cb.withZkHost(Arrays.asList(uri.getAuthority().split(","))).withHttpClient(DEFAULT_HTTP_CLIENT).build();
+				CloudSolrClient c = cb.withZkHost(Arrays.asList(uri.getAuthority().split(","))).withHttpClient(HTTP_CLIENT).build();
 				c.setZkClientTimeout(Integer.parseInt(System.getProperty("albatis.io.zkclient.timeout", "5000")));
 				c.setZkConnectTimeout(Integer.parseInt(System.getProperty("albatis.io.zkconnect.timeout", "5000")));
 				c.setParallelUpdates(true);
