@@ -10,9 +10,12 @@ import org.I0Itec.zkclient.ZkClient;
 import kafka.utils.ZkUtils;
 import net.butfly.albacore.serder.JsonSerder;
 import net.butfly.albacore.utils.Utils;
+import net.butfly.albacore.utils.logger.Logger;
 
 @SuppressWarnings("unchecked")
 public final class Kafkas extends Utils {
+	private final static Logger logger = Logger.getLogger(Kafkas.class);
+
 	private Kafkas() {}
 
 	public static String[] getBorkers(String zkconn) {
@@ -49,8 +52,13 @@ public final class Kafkas extends Utils {
 		ZkClient zk = ZkUtils.createZkClient(zkconn, 500, 500);
 		try {
 			for (String t : topic) {
-				Map<String, Object> info = JsonSerder.JSON_MAPPER.der(zk.readData(ZkUtils.BrokerTopicsPath() + "/" + t));;
-				topics.put(t, ((Map<Integer, int[]>) info.get("partitions")).keySet().size());
+				try {
+					Map<String, Object> info = JsonSerder.JSON_MAPPER.der(zk.readData(ZkUtils.BrokerTopicsPath() + "/" + t));;
+					topics.put(t, ((Map<Integer, int[]>) info.get("partitions")).keySet().size());
+				} catch (Exception e) {
+					logger.error("Topic info fetch failure, return topic with count -1", e);
+					topics.put(t, -1);
+				}
 			}
 		} finally {
 			zk.close();
