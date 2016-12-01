@@ -7,15 +7,11 @@
 		</layout>
 	</appender>
 	<logger name="net.butfly" additivity="false">
-		<level value="info" />
+		<level value="trace" />
 		<appender-ref ref="log-console-stdout" />
 	</logger>
 	<logger name="com.hzcominfo" additivity="false">
-		<level value="info" />
-		<appender-ref ref="log-console-stdout" />
-	</logger>
-	<logger name="kafka.client" additivity="false">
-		<level value="info" />
+		<level value="trace" />
 		<appender-ref ref="log-console-stdout" />
 	</logger>
 
@@ -24,7 +20,7 @@
 		<appender-ref ref="log-console-stdout" />
 	</logger>
 	<root>
-		<level value="warn" />
+		<level value="info" />
 		<appender-ref ref="log-console-stdout" />
 	</root>
 </log4j:configuration>

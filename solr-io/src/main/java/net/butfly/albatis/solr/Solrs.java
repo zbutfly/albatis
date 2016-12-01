@@ -62,8 +62,8 @@ public final class Solrs extends Utils {
 
 	static {
 		ModifiableSolrParams params = new ModifiableSolrParams();
-		params.set(HttpClientUtil.PROP_MAX_CONNECTIONS, 4096);
-		params.set(HttpClientUtil.PROP_MAX_CONNECTIONS_PER_HOST, 1024);
+		params.set(HttpClientUtil.PROP_MAX_CONNECTIONS, 10240);
+		params.set(HttpClientUtil.PROP_MAX_CONNECTIONS_PER_HOST, 4096);
 		// not allow redirects
 		params.set(HttpClientUtil.PROP_FOLLOW_REDIRECTS, false);
 		params.set(HttpClientUtil.PROP_CONNECTION_TIMEOUT, 5000);
@@ -95,11 +95,11 @@ public final class Solrs extends Utils {
 			case HTTP:
 				Builder hb = new HttpSolrClient.Builder(url).allowCompression(true).withHttpClient(HTTP_CLIENT);
 				if (null != parserClass) hb = hb.withResponseParser(PARSER_POOL.computeIfAbsent(parserClass, clz -> parser(clz)));
-				logger.info("Solr client create: " + url);
+				logger.debug("Solr client create: " + url);
 				return hb.build();
 			case ZOOKEEPER:
 				CloudSolrClient.Builder cb = new CloudSolrClient.Builder();
-				logger.info("Solr client create by zookeeper: " + uri.getAuthority());
+				logger.debug("Solr client create by zookeeper: " + uri.getAuthority());
 				CloudSolrClient c = cb.withZkHost(Arrays.asList(uri.getAuthority().split(","))).withHttpClient(HTTP_CLIENT).build();
 				c.setZkClientTimeout(Integer.parseInt(System.getProperty("albatis.io.zkclient.timeout", "5000")));
 				c.setZkConnectTimeout(Integer.parseInt(System.getProperty("albatis.io.zkconnect.timeout", "5000")));
