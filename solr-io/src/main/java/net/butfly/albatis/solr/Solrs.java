@@ -13,7 +13,15 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 
+import org.apache.http.HttpRequestInterceptor;
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.config.ConnectionConfig;
+import org.apache.http.config.SocketConfig;
 import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
+import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
+import org.apache.http.impl.nio.client.HttpAsyncClients;
 import org.apache.solr.client.solrj.ResponseParser;
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrQuery;
@@ -44,14 +52,7 @@ import scala.Tuple3;
 
 public final class Solrs extends Utils {
 	protected static final Logger logger = Logger.getLogger(Solrs.class);
-	// private static final RequestConfig HTTP_REQ_CONFIG =
-	// RequestConfig.custom().setSocketTimeout(180000).setConnectTimeout(5000).build();
-	private static final CloseableHttpClient HTTP_CLIENT;
-	// =
-	// HttpClients.custom().setDefaultRequestConfig(HTTP_REQ_CONFIG).setMaxConnPerRoute(1024).setMaxConnTotal(4096).build();
-	// private static final CloseableHttpAsyncClient HTTP_CLIENT =
-	// HttpAsyncClients.custom().setDefaultRequestConfig(HTTP_REQ_CONFIG)
-	// .setMaxConnPerRoute(1024).setMaxConnTotal(4096).build();
+	private static final CloseableHttpClient HTTP_CLIENT = SolrHttpContext.createDefaultHttpclient();
 
 	private static final Map<Class<? extends ResponseParser>, ResponseParser> PARSER_POOL = new ConcurrentHashMap<>();
 	static {
@@ -59,17 +60,6 @@ public final class Solrs extends Utils {
 		PARSER_POOL.put(d.getClass(), d);
 	}
 	private static final Map<String, SolrClient> clients = new ConcurrentHashMap<>();
-
-	static {
-		ModifiableSolrParams params = new ModifiableSolrParams();
-		params.set(HttpClientUtil.PROP_MAX_CONNECTIONS, 10240);
-		params.set(HttpClientUtil.PROP_MAX_CONNECTIONS_PER_HOST, 4096);
-		// not allow redirects
-		params.set(HttpClientUtil.PROP_FOLLOW_REDIRECTS, false);
-		params.set(HttpClientUtil.PROP_CONNECTION_TIMEOUT, 5000);
-		params.set(HttpClientUtil.PROP_SO_TIMEOUT, 180000);
-		HTTP_CLIENT = HttpClientUtil.createClient(params);
-	}
 
 	private Solrs() {}
 
@@ -320,6 +310,59 @@ public final class Solrs extends Utils {
 			} catch (RemoteSolrException ee) {
 				throw new SolrServerException("Solr url base parsing failure: " + url);
 			}
+		}
+	}
+
+	interface SolrHttpContext {
+		static final int SOLR_HTTP_MAX_TOTAL = 1024;
+		static final int SOLR_HTTP_MAX_PER_ROUTE = 64;
+		static final int SOLR_HTTP_SO_TIMEOUT = 18000;
+		static final int SOLR_HTTP_CONN_TIMEOUT = 5000;
+		static final int SOLR_HTTP_BUFFER_SIZE = 10240;
+		static final RequestConfig SOLR_HTTP_REQ_CONFIG = RequestConfig.custom()//
+				.setSocketTimeout(SOLR_HTTP_SO_TIMEOUT)//
+				.setConnectTimeout(SOLR_HTTP_CONN_TIMEOUT)//
+				.setRedirectsEnabled(false)//
+				.build();
+		static final HttpRequestInterceptor SOLR_HTTP_ICPT = (req, ctx) -> {
+			req.setHeader("Connection", "Keep-Alive");
+			logger.trace("Solr sent: " + req.toString());
+		};
+
+		static CloseableHttpClient createDefaultHttpclientBySolr() {
+			ModifiableSolrParams params = new ModifiableSolrParams();
+			params.set(HttpClientUtil.PROP_MAX_CONNECTIONS, SolrHttpContext.SOLR_HTTP_MAX_TOTAL);
+			params.set(HttpClientUtil.PROP_MAX_CONNECTIONS_PER_HOST, SolrHttpContext.SOLR_HTTP_MAX_PER_ROUTE);
+			// not allow redirects
+			params.set(HttpClientUtil.PROP_FOLLOW_REDIRECTS, false);
+			params.set(HttpClientUtil.PROP_CONNECTION_TIMEOUT, SolrHttpContext.SOLR_HTTP_CONN_TIMEOUT);
+			params.set(HttpClientUtil.PROP_SO_TIMEOUT, SolrHttpContext.SOLR_HTTP_SO_TIMEOUT);
+			HttpClientUtil.addRequestInterceptor((req, ctx) -> {});
+			return HttpClientUtil.createClient(params);
+		}
+
+		static CloseableHttpClient createDefaultHttpclient() {
+			// return
+			// HttpClients.custom().setDefaultRequestConfig(HTTP_REQ_CONFIG).setMaxConnPerRoute(HTTP_MAX_PER_ROUTE).setMaxConnTotal(HTTP_MAX_TOTAL).build();
+			PoolingHttpClientConnectionManager m = new PoolingHttpClientConnectionManager();
+			m.setMaxTotal(SolrHttpContext.SOLR_HTTP_MAX_TOTAL);
+			m.setDefaultMaxPerRoute(SolrHttpContext.SOLR_HTTP_MAX_PER_ROUTE);
+			m.setDefaultSocketConfig(SocketConfig.custom().setSoTimeout(SolrHttpContext.SOLR_HTTP_SO_TIMEOUT).build());
+			m.setDefaultConnectionConfig(ConnectionConfig.custom().setBufferSize(SolrHttpContext.SOLR_HTTP_BUFFER_SIZE).build());
+			return HttpClientBuilder.create()//
+					.addInterceptorLast(SolrHttpContext.SOLR_HTTP_ICPT)//
+					.setConnectionManager(m)//
+					.setDefaultRequestConfig(SolrHttpContext.SOLR_HTTP_REQ_CONFIG)//
+					.build();
+		}
+
+		static CloseableHttpAsyncClient createDefaultAsyncHttpclient() {
+			return HttpAsyncClients.custom()//
+					.addInterceptorLast(SolrHttpContext.SOLR_HTTP_ICPT)//
+					.setDefaultRequestConfig(SolrHttpContext.SOLR_HTTP_REQ_CONFIG)//
+					.setMaxConnPerRoute(SolrHttpContext.SOLR_HTTP_MAX_PER_ROUTE)//
+					.setMaxConnTotal(SolrHttpContext.SOLR_HTTP_MAX_TOTAL)//
+					.build();
 		}
 	}
 }
