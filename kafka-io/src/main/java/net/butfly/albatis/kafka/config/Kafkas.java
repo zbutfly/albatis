@@ -54,7 +54,9 @@ public final class Kafkas extends Utils {
 			for (String t : topic) {
 				try {
 					Map<String, Object> info = JsonSerder.JSON_MAPPER.der(zk.readData(ZkUtils.BrokerTopicsPath() + "/" + t));;
-					topics.put(t, ((Map<Integer, int[]>) info.get("partitions")).keySet().size());
+					Map<Integer, int[]> counts = (Map<Integer, int[]>) info.get("partitions");
+					logger.debug(() -> "Kafka topic [" + t + "] info fetch from zk [" + zkconn + "]: " + counts.toString());
+					topics.put(t, counts.keySet().size());
 				} catch (Exception e) {
 					logger.error("Topic info fetch failure, return topic with count -1", e);
 					topics.put(t, -1);

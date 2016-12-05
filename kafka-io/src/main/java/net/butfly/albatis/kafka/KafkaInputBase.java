@@ -33,15 +33,14 @@ abstract class KafkaInputBase<T> extends MapInput<String, KafkaMessage> {
 			throws ConfigException, IOException {
 		super(name);
 		KafkaInputConfig kic = new KafkaInputConfig(config);
+		logger.debug("Kafka [" + kic.toString() + "] connecting.");
 		topics = new HashMap<>();
 		if (kic.isParallelismEnable()) topics.putAll(Kafkas.getTopicInfo(kic.getZookeeperConnect(), topic));
 		else for (String t : topic)
 			topics.put(t, 1);
-		logger.debug("Kafka [" + config.toString() + "] parallelism: " + topics.toString() + ".");
-
-		logger.debug("Kafka [" + config.toString() + "] connecting.");
+		logger.debug("Kafka [" + kic.toString() + "] parallelism: " + topics.toString() + ".");
 		connect = Consumer.createJavaConsumerConnector(kic.getConfig());
-		logger.debug("Kafka [" + config.toString() + "] Connected.");
+		logger.debug("Kafka [" + kic.toString() + "] Connected.");
 		Map<String, List<KafkaStream<byte[], byte[]>>> s = connect.createMessageStreams(topics);
 
 		streams = new HashMap<>();

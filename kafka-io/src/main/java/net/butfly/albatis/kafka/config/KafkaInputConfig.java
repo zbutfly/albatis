@@ -87,6 +87,6 @@ public class KafkaInputConfig extends KafkaConfigBase {
 
 	@Override
 	public String toString() {
-		return this.zookeeperConnect + "@" + this.groupId;
+		return groupId + "@" + zookeeperConnect;
 	}
 }
