@@ -39,7 +39,7 @@
 	## 5*1024*1024
 	#albatis.kafka.transfer.buffer.bytes=5242880
 	## 3*1024*1024
-	#albatis.kafka.fetch.message.max.bytes=3145728
+	#albatis.kafka.fetch.message.max.bytes=10485760
 
 	test.buffer.mix=
 	test.msg.buffers=
