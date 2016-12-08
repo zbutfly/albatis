@@ -48,6 +48,7 @@ public class KafkaInputConfig extends KafkaConfigBase {
 	protected long fetchMessageMaxBytes;
 	protected long fetchWaitTimeoutMs;
 	protected long rebalanceBackoffMs;
+	protected int rebalanceRetries;
 	protected long zookeeperSessionTimeoutMs;
 
 	// not for kafka, for albatis
@@ -77,10 +78,12 @@ public class KafkaInputConfig extends KafkaConfigBase {
 		v = props.getProperty("albatis.kafka.fetch.wait.timeout.ms", "500");
 		fetchWaitTimeoutMs = Long.parseLong(v.trim());
 		partitionAssignmentStrategy = props.getProperty("albatis.kafka.partition.assignment.strategy", "range");
-		v = props.getProperty("albatis.kafka.fetch.message.max.bytes", "3145728");
+		v = props.getProperty("albatis.kafka.fetch.message.max.bytes", "10485760");
 		fetchMessageMaxBytes = Long.parseLong(v.trim());
 		v = props.getProperty("albatis.kafka.rebalance.backoff.ms", "10000");
 		rebalanceBackoffMs = Long.parseLong(v);
+		v = props.getProperty("albatis.kafka.rebalance.retries", "2");
+		rebalanceRetries = Integer.parseInt(v);
 		v = props.getProperty("albatis.kafka.zookeeper.session.timeout.ms", "30000");
 		zookeeperSessionTimeoutMs = Long.parseLong(v);
 
@@ -110,6 +113,7 @@ public class KafkaInputConfig extends KafkaConfigBase {
 		props.setProperty("fetch.wait.max.ms", Long.toString(fetchWaitTimeoutMs));
 		props.setProperty("consumer.timeout.ms", Long.toString(fetchWaitTimeoutMs));
 		props.setProperty("rebalance.backoff.ms", Long.toString(rebalanceBackoffMs));
+		props.setProperty("rebalance.max.retries", Integer.toString(rebalanceRetries));
 		props.setProperty("auto.commit.interval.ms", Long.toString(autoCommitIntervalMs));
 
 		props.setProperty("auto.commit.enable", Boolean.toString(autoCommitEnable));
@@ -120,7 +124,6 @@ public class KafkaInputConfig extends KafkaConfigBase {
 		props.setProperty("auto.offset.reset", autoOffsetReset);
 		props.setProperty("partition.assignment.strategy", partitionAssignmentStrategy);
 
-		props.setProperty("rebalance.max.retries", "10");
 		return props;
 	}
 
