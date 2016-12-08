@@ -36,15 +36,20 @@ public abstract class KafkaConfigBase implements Serializable {
 			if (bootstrapServers != null) logger.warn(
 					"Zookeeper detect broken list automatically, configured [albatis.kafka.bootstrap.servers] is not used (current value: ["
 							+ bootstrapServers + "])");
-			bootstrapServers = Joiner.on(",").join(Kafkas.getBorkers(zookeeperConnect));
-			logger.info("Zookeeper detect broken list automatically: [" + bootstrapServers + "])");
+			try {
+				bootstrapServers = Joiner.on(",").join(Kafkas.getBorkers(zookeeperConnect));
+				logger.info("Zookeeper detect broken list automatically: [" + bootstrapServers + "])");
+			} catch (IOException e) {
+				bootstrapServers = null;
+				logger.warn("Zookeeper detect broken list failure", e);
+			}
 		} else if (bootstrapServers == null) throw new ConfigException(
 				"Neither [albatis.kafka.zookeeper] nor [albatis.kafka.bootstrap.servers] found");
-		zookeeperConnectionTimeoutMs = Long.valueOf(props.getProperty("albatis.kafka.zookeeper.connection.timeout.ms", "15000"));
+		zookeeperConnectionTimeoutMs = Long.valueOf(props.getProperty("albatis.kafka.zookeeper.connection.timeout.ms", "20000"));
 		transferBufferBytes = Long.valueOf(props.getProperty("albatis.kafka.transfer.buffer.bytes", "5242880"));
 		keySerializerClass = props.getProperty("albatis.kafka.key.serializer.class", ByteArraySerializer.class.getName());
 		valueSerializerClass = props.getProperty("albatis.kafka.value.serializer.class", ByteArraySerializer.class.getName());
-		poolSize = Long.parseLong(props.getProperty("albatis.kafka.pool.size", "100000"));
+		poolSize = Long.parseLong(props.getProperty("albatis.kafka.internal.pool.size", "100000"));
 	}
 
 	public KafkaConfigBase(String classpathResourceName) throws IOException {
@@ -53,10 +58,10 @@ public abstract class KafkaConfigBase implements Serializable {
 
 	public Properties props() {
 		Properties props = new Properties();
-		props.setProperty("zookeeper.connect", zookeeperConnect);
-		props.setProperty("bootstrap.servers", bootstrapServers);
-		props.setProperty("key.serializer", keySerializerClass);
-		props.setProperty("value.serializer", valueSerializerClass);
+		if (null != zookeeperConnect) props.setProperty("zookeeper.connect", zookeeperConnect);
+		if (null != bootstrapServers) props.setProperty("bootstrap.servers", bootstrapServers);
+		if (null != keySerializerClass) props.setProperty("key.serializer", keySerializerClass);
+		if (null != valueSerializerClass) props.setProperty("value.serializer", valueSerializerClass);
 		return props;
 	}
 

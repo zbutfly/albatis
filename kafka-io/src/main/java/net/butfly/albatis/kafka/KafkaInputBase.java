@@ -7,15 +7,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
 
-import kafka.consumer.Consumer;
 import kafka.consumer.KafkaStream;
 import kafka.javaapi.consumer.ConsumerConnector;
 import net.butfly.albacore.exception.ConfigException;
 import net.butfly.albacore.io.MapInput;
 import net.butfly.albacore.io.queue.Q;
-import net.butfly.albacore.lambda.ConverterPair;
+import net.butfly.albacore.lambda.Consumer;
 import net.butfly.albacore.utils.Collections;
 import net.butfly.albacore.utils.async.Concurrents;
 import net.butfly.albacore.utils.logger.Logger;
@@ -28,36 +26,29 @@ abstract class KafkaInputBase<T> extends MapInput<String, KafkaMessage> {
 	protected final ConsumerConnector connect;
 	protected final Map<String, Integer> topics;
 	protected final Map<String, Map<KafkaStream<byte[], byte[]>, T>> streams;
+	protected final long internalPoolSize;
 
-	public KafkaInputBase(String name, final String config, ConverterPair<KafkaStream<byte[], byte[]>, Integer, T> sync, String... topic)
-			throws ConfigException, IOException {
+	public KafkaInputBase(String name, final String config, String... topic) throws ConfigException, IOException {
 		super(name);
 		KafkaInputConfig kic = new KafkaInputConfig(config);
-		logger.debug("Kafka [" + kic.toString() + "] connecting.");
+		logger.info("KafkaInput [" + name() + "] connecting with config [" + kic.toString() + "].");
+		internalPoolSize = kic.getPoolSize();
 		topics = new HashMap<>();
-		if (kic.isParallelismEnable()) topics.putAll(Kafkas.getTopicInfo(kic.getZookeeperConnect(), topic));
+		if (kic.isAutoParallelismEnable()) topics.putAll(Kafkas.getTopicInfo(kic.getZookeeperConnect(), topic));
 		else for (String t : topic)
 			topics.put(t, 1);
-		logger.debug("Kafka [" + kic.toString() + "] parallelism: " + topics.toString() + ".");
-		connect = Consumer.createJavaConsumerConnector(kic.getConfig());
-		logger.debug("Kafka [" + kic.toString() + "] Connected.");
+		logger.debug("KafkaInput [" + name() + "] parallelism of topics: " + topics.toString() + ".");
+		connect = kafka.consumer.Consumer.createJavaConsumerConnector(kic.getConfig());
 		Map<String, List<KafkaStream<byte[], byte[]>>> s = connect.createMessageStreams(topics);
 
-		streams = new HashMap<>();
-		AtomicInteger i = new AtomicInteger();
-		for (String t : s.keySet())
-			for (KafkaStream<byte[], byte[]> stream : s.get(t))
-				streams.compute(t, (k, v) -> {
-					Map<KafkaStream<byte[], byte[]>, T> v1 = v == null ? new HashMap<>() : v;
-					v1.put(stream, sync.apply(stream, i.incrementAndGet()));
-					return v1;
-				});
-
-		logger.info("KafkaInput " + name + " ready.");
+		streams = parseStreams(s);
+		logger.debug("KafkaInput [" + name() + "] connected.");
 	}
 
-	protected abstract KafkaMessage fetch(KafkaStream<byte[], byte[]> stream, T lock,
-			net.butfly.albacore.lambda.Consumer<KafkaMessage> result);
+	protected abstract Map<String, Map<KafkaStream<byte[], byte[]>, T>> parseStreams(
+			Map<String, List<KafkaStream<byte[], byte[]>>> streams);
+
+	protected abstract KafkaMessage fetch(KafkaStream<byte[], byte[]> stream, T lock, Consumer<KafkaMessage> result);
 
 	public long poolStatus() {
 		return -1;

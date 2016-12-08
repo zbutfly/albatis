@@ -20,6 +20,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import net.butfly.albacore.io.MapOutput;
 import net.butfly.albacore.io.queue.Q;
 import net.butfly.albacore.lambda.Converter;
+import net.butfly.albacore.utils.async.Concurrents;
 import net.butfly.albacore.utils.logger.Logger;
 
 public class SolrOutput extends MapOutput<String, SolrMessage<SolrInputDocument>> {
@@ -59,6 +60,8 @@ public class SolrOutput extends MapOutput<String, SolrMessage<SolrInputDocument>
 
 	@Override
 	public void close() {
+		ex.shutdown();
+		Concurrents.waitShutdown(ex, logger);
 		logger.debug("SolrOutput [" + name() + "] closing...");
 		try {
 			for (String core : cores)

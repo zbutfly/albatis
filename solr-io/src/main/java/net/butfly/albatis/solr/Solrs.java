@@ -69,9 +69,22 @@ public final class Solrs extends Utils {
 	}
 
 	public static void close(SolrClient solr) {
-		logger.debug("Solr close: " + solr.toString());
+		List<String> keys = new ArrayList<>();
 		for (Entry<String, SolrClient> e : clients.entrySet())
-			if (e.getValue().equals(solr)) clients.remove(e.getKey());
+			if (e.getValue().equals(solr)) {
+				logger.debug("Solr close: " + e.getKey());
+				keys.add(e.getKey());
+			}
+		if (keys.isEmpty()) {
+			CoreAdminRequest req = new CoreAdminRequest();
+			req.setAction(CoreAdminAction.STATUS);
+			try {
+				logger.debug("Solr close: not registered client with url [" + req.process(solr).getRequestUrl() + "]");
+			} catch (SolrServerException | IOException e) {
+				logger.debug("Solr close: not registered client with unknown url.");
+			}
+		} else for (String k : keys)
+			clients.remove(k);
 		try {
 			solr.close();
 		} catch (IOException e) {
@@ -91,8 +104,8 @@ public final class Solrs extends Utils {
 				CloudSolrClient.Builder cb = new CloudSolrClient.Builder();
 				logger.debug("Solr client create by zookeeper: " + uri.getAuthority());
 				CloudSolrClient c = cb.withZkHost(Arrays.asList(uri.getAuthority().split(","))).withHttpClient(HTTP_CLIENT).build();
-				c.setZkClientTimeout(Integer.parseInt(System.getProperty("albatis.io.zkclient.timeout", "5000")));
-				c.setZkConnectTimeout(Integer.parseInt(System.getProperty("albatis.io.zkconnect.timeout", "5000")));
+				c.setZkClientTimeout(Integer.parseInt(System.getProperty("albatis.io.zkclient.timeout", "30000")));
+				c.setZkConnectTimeout(Integer.parseInt(System.getProperty("albatis.io.zkconnect.timeout", "30000")));
 				c.setParallelUpdates(true);
 				return c;
 			default:
@@ -283,10 +296,10 @@ public final class Solrs extends Utils {
 		CoreAdminRequest req = new CoreAdminRequest();
 		req.setAction(CoreAdminAction.STATUS);
 		try (SolrClient solr = Solrs.open(url);) {
-			CoreAdminResponse resp2 = req.process(solr);
-			String[] cores = new String[resp2.getCoreStatus().size()];
-			for (int i = 0; i < resp2.getCoreStatus().size(); i++)
-				cores[i] = resp2.getCoreStatus().getName(i);
+			CoreAdminResponse resp = req.process(solr);
+			String[] cores = new String[resp.getCoreStatus().size()];
+			for (int i = 0; i < resp.getCoreStatus().size(); i++)
+				cores[i] = resp.getCoreStatus().getName(i);
 			return new Tuple3<>(url, null, cores);
 		} catch (RemoteSolrException e) {
 			String path;
@@ -302,10 +315,10 @@ public final class Solrs extends Utils {
 
 			String base = url.replaceAll("/?" + core + "/?$", "");
 			try (SolrClient solr = Solrs.open(base);) {
-				CoreAdminResponse resp2 = req.process(solr);
-				String[] cores = new String[resp2.getCoreStatus().size()];
-				for (int i = 0; i < resp2.getCoreStatus().size(); i++)
-					cores[i] = resp2.getCoreStatus().getName(i);
+				CoreAdminResponse resp = req.process(solr);
+				String[] cores = new String[resp.getCoreStatus().size()];
+				for (int i = 0; i < resp.getCoreStatus().size(); i++)
+					cores[i] = resp.getCoreStatus().getName(i);
 				return new Tuple3<>(base, core, cores);
 			} catch (RemoteSolrException ee) {
 				throw new SolrServerException("Solr url base parsing failure: " + url);

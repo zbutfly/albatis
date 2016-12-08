@@ -11,6 +11,30 @@ import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.Systems;
 import net.butfly.albacore.utils.logger.Logger;
 
+/**
+ * Valid prop names:
+ * <ul>
+ * <li>zookeeper.connect</li>
+ * <li>group.id</li>
+ * <li>auto.commit.enable</li>
+ * <li>auto.commit.interval.ms</li>
+ * <li>auto.offset.reset</li>
+ * <li>partition.assignment.strategy</li>
+ * <li>zookeeper.connection.timeout.ms</li>
+ * <li>zookeeper.session.timeout.ms</li>
+ * <li>zookeeper.sync.time.ms</li>
+ * <li>fetch.message.max.bytes</li>
+ * <li>fetch.wait.max.ms</li>
+ * <li>socket.timeout.ms</li>
+ * <li>socket.receive.buffer.bytes</li>
+ * <li>consumer.timeout.ms</li>
+ * <li>rebalance.backoff.ms</li>
+ * <li>rebalance.max.retries</li>
+ * </ul>
+ * 
+ * @author zx
+ *
+ */
 public class KafkaInputConfig extends KafkaConfigBase {
 	private static final long serialVersionUID = -3028341800709486625L;
 	private static final Logger logger = Logger.getLogger(KafkaInputConfig.class);
@@ -23,6 +47,8 @@ public class KafkaInputConfig extends KafkaConfigBase {
 	protected String partitionAssignmentStrategy;
 	protected long fetchMessageMaxBytes;
 	protected long fetchWaitTimeoutMs;
+	protected long rebalanceBackoffMs;
+	protected long zookeeperSessionTimeoutMs;
 
 	// not for kafka, for albatis
 	private boolean parallelismEnable;
@@ -39,9 +65,9 @@ public class KafkaInputConfig extends KafkaConfigBase {
 		groupId = Systems.suffixDebug(groupId, logger);
 
 		String v;
-		v = props.getProperty("albatis.kafka.zookeeper.sync.time.ms", "5000");
+		v = props.getProperty("albatis.kafka.zookeeper.sync.time.ms", "15000");
 		zookeeperSyncTimeMs = Long.parseLong(v.trim());
-		v = props.getProperty("albatis.kafka.auto.commit.enable", "true");
+		v = props.getProperty("albatis.kafka.auto.commit.enable", "false");
 		autoCommitEnable = Boolean.parseBoolean(v.trim());
 		v = props.getProperty("albatis.kafka.auto.commit.interval.ms", "60000");
 		autoCommitIntervalMs = Long.parseLong(v.trim());
@@ -53,18 +79,24 @@ public class KafkaInputConfig extends KafkaConfigBase {
 		partitionAssignmentStrategy = props.getProperty("albatis.kafka.partition.assignment.strategy", "range");
 		v = props.getProperty("albatis.kafka.fetch.message.max.bytes", "3145728");
 		fetchMessageMaxBytes = Long.parseLong(v.trim());
-		v = props.getProperty("albatis.kafka.parallelism.enable", "false");
+		v = props.getProperty("albatis.kafka.rebalance.backoff.ms", "10000");
+		rebalanceBackoffMs = Long.parseLong(v);
+		v = props.getProperty("albatis.kafka.zookeeper.session.timeout.ms", "30000");
+		zookeeperSessionTimeoutMs = Long.parseLong(v);
+
+		v = props.getProperty("albatis.kafka.auto.parallelism.enable", "false");
 		parallelismEnable = Boolean.parseBoolean(v.trim());
 	}
 
-	public boolean isParallelismEnable() {
+	public boolean isAutoParallelismEnable() {
 		return parallelismEnable;
 	}
 
 	public ConsumerConfig getConfig() throws ConfigException {
 		if (zookeeperConnect == null || groupId == null) throw new ConfigException(
 				"Kafka configuration has no zookeeper and group definition.");
-		return new ConsumerConfig(props());
+		ConsumerConfig conf = new ConsumerConfig(props());
+		return conf;
 	}
 
 	@Override
@@ -72,16 +104,23 @@ public class KafkaInputConfig extends KafkaConfigBase {
 		Properties props = super.props();
 		props.setProperty("group.id", groupId);
 		props.setProperty("zookeeper.connection.timeout.ms", Long.toString(zookeeperConnectionTimeoutMs));
+		props.setProperty("zookeeper.session.timeout.ms", Long.toString(zookeeperSessionTimeoutMs));
 		props.setProperty("zookeeper.sync.time.ms", Long.toString(zookeeperSyncTimeMs));
-		props.setProperty("auto.commit.enable", Boolean.toString(autoCommitEnable));
-		props.setProperty("auto.commit.interval.ms", Long.toString(autoCommitIntervalMs));
-		props.setProperty("auto.offset.reset", autoOffsetReset);
 		props.setProperty("socket.timeout.ms", Long.toString(sessionTimeoutMs));
 		props.setProperty("fetch.wait.max.ms", Long.toString(fetchWaitTimeoutMs));
 		props.setProperty("consumer.timeout.ms", Long.toString(fetchWaitTimeoutMs));
-		props.setProperty("partition.assignment.strategy", partitionAssignmentStrategy);
+		props.setProperty("rebalance.backoff.ms", Long.toString(rebalanceBackoffMs));
+		props.setProperty("auto.commit.interval.ms", Long.toString(autoCommitIntervalMs));
+
+		props.setProperty("auto.commit.enable", Boolean.toString(autoCommitEnable));
+
 		props.setProperty("socket.receive.buffer.bytes", Long.toString(transferBufferBytes));
 		props.setProperty("fetch.message.max.bytes", Long.toString(fetchMessageMaxBytes));
+
+		props.setProperty("auto.offset.reset", autoOffsetReset);
+		props.setProperty("partition.assignment.strategy", partitionAssignmentStrategy);
+
+		props.setProperty("rebalance.max.retries", "10");
 		return props;
 	}
 
