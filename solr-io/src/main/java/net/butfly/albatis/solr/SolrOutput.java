@@ -20,13 +20,16 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import net.butfly.albacore.io.MapOutput;
 import net.butfly.albacore.io.queue.Q;
 import net.butfly.albacore.lambda.Converter;
+import net.butfly.albacore.utils.Collections;
 import net.butfly.albacore.utils.async.Concurrents;
 import net.butfly.albacore.utils.logger.Logger;
 
 public class SolrOutput extends MapOutput<String, SolrMessage<SolrInputDocument>> {
 	private static final long serialVersionUID = -2897525987426418020L;
 	private static final Logger logger = Logger.getLogger(SolrOutput.class);
-	private static final int AUTO_COMMIT_MS = 30000;
+	private static final int DEFAULT_AUTO_COMMIT_MS = 30000;
+	private static final int DEFAULT_PACKAGE_SIZE = 500;
+	private static final int DEFAULT_PARALLELISM = 20;
 	private final SolrClient solr;
 	private final Set<String> cores;
 	private final ExecutorService ex;
@@ -34,7 +37,7 @@ public class SolrOutput extends MapOutput<String, SolrMessage<SolrInputDocument>
 	public SolrOutput(String name, String baseUrl) throws IOException {
 		super(name, m -> m.getCore());
 		logger.info("SolrOutput [" + name + "] from [" + baseUrl + "]");
-		ex = Executors.newFixedThreadPool(20, new ThreadFactoryBuilder().setNameFormat("SolrOutputSender-%d").setPriority(
+		ex = Executors.newFixedThreadPool(DEFAULT_PARALLELISM, new ThreadFactoryBuilder().setNameFormat("SolrOutputSender-%d").setPriority(
 				Thread.MAX_PRIORITY).setUncaughtExceptionHandler((t, e) -> logger.error("SolrOutput failure in async", e)).build());
 		cores = new HashSet<>();
 		solr = Solrs.open(baseUrl);
@@ -43,7 +46,7 @@ public class SolrOutput extends MapOutput<String, SolrMessage<SolrInputDocument>
 	@Override
 	public boolean enqueue0(String core, SolrMessage<SolrInputDocument> doc) {
 		cores.add(core);
-		ex.submit(() -> solr.add(core, doc.getDoc(), AUTO_COMMIT_MS));
+		ex.submit(() -> solr.add(core, doc.getDoc(), DEFAULT_AUTO_COMMIT_MS));
 		return true;
 	}
 
@@ -54,7 +57,20 @@ public class SolrOutput extends MapOutput<String, SolrMessage<SolrInputDocument>
 			map.computeIfAbsent(d.getCore(), core -> new ArrayList<>()).add(d.getDoc());
 		cores.addAll(map.keySet());
 		for (Entry<String, List<SolrInputDocument>> e : map.entrySet())
-			ex.submit(() -> solr.add(e.getKey(), e.getValue(), AUTO_COMMIT_MS));
+			ex.submit(() -> {
+				for (List<SolrInputDocument> pkg : Collections.chopped(e.getValue(), DEFAULT_PACKAGE_SIZE))
+					try {
+						solr.add(e.getKey(), pkg);
+					} catch (Exception ex) {
+						logger.error("SolrOutput [" + name() + "] add failure on core [" + e.getKey() + "] with [" + pkg.size() + "] docs",
+								e);
+					}
+				try {
+					solr.commit(e.getKey());
+				} catch (Exception ex) {
+					logger.error("SolrOutput [" + name() + "] commit failure on core [" + e.getKey() + "]", e);
+				}
+			});
 		return docs.size();
 	}
 
