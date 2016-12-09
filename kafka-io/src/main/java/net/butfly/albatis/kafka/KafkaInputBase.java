@@ -23,30 +23,28 @@ import net.butfly.albatis.kafka.config.Kafkas;
 abstract class KafkaInputBase<T> extends MapInput<String, KafkaMessage> {
 	private static final long serialVersionUID = -9180560064999614528L;
 	protected static final Logger logger = Logger.getLogger(Kafka2Input.class);
-	protected final ConsumerConnector connect;
-	protected final Map<String, Integer> topics;
-	protected final Map<String, Map<KafkaStream<byte[], byte[]>, T>> streams;
-	protected final long internalPoolSize;
+
+	private final ConsumerConnector connect;
+	private final Map<String, Map<KafkaStream<byte[], byte[]>, T>> streams;
 
 	public KafkaInputBase(String name, final String config, String... topic) throws ConfigException, IOException {
 		super(name);
 		KafkaInputConfig kic = new KafkaInputConfig(config);
 		logger.info("KafkaInput [" + name() + "] connecting with config [" + kic.toString() + "].");
-		internalPoolSize = kic.getPoolSize();
-		topics = new HashMap<>();
-		if (kic.isAutoParallelismEnable()) topics.putAll(Kafkas.getTopicInfo(kic.getZookeeperConnect(), topic));
-		else for (String t : topic)
-			topics.put(t, 1);
+		Map<String, Integer> topics = new HashMap<>();
+		for (Entry<String, Integer> info : Kafkas.getTopicInfo(kic.getZookeeperConnect(), topic).entrySet())
+			topics.put(info.getKey(), (int) Math.ceil(info.getValue() * 1.0 / kic.getPartitionParallelism()));
+
 		logger.debug("KafkaInput [" + name() + "] parallelism of topics: " + topics.toString() + ".");
 		connect = kafka.consumer.Consumer.createJavaConsumerConnector(kic.getConfig());
 		Map<String, List<KafkaStream<byte[], byte[]>>> s = connect.createMessageStreams(topics);
 
-		streams = parseStreams(s);
+		streams = parseStreams(s, kic.getPoolSize());
 		logger.debug("KafkaInput [" + name() + "] connected.");
 	}
 
-	protected abstract Map<String, Map<KafkaStream<byte[], byte[]>, T>> parseStreams(
-			Map<String, List<KafkaStream<byte[], byte[]>>> streams);
+	protected abstract Map<String, Map<KafkaStream<byte[], byte[]>, T>> parseStreams(Map<String, List<KafkaStream<byte[], byte[]>>> streams,
+			long poolSize);
 
 	protected abstract KafkaMessage fetch(KafkaStream<byte[], byte[]> stream, T lock, Consumer<KafkaMessage> result);
 
@@ -87,6 +85,13 @@ abstract class KafkaInputBase<T> extends MapInput<String, KafkaMessage> {
 	@Override
 	public void close() {
 		logger.debug("KafkaInput [" + name() + "] closing...");
+		for (Map<KafkaStream<byte[], byte[]>, T> tm : streams.values())
+			for (T f : tm.values())
+				if (f instanceof AutoCloseable) try {
+					((AutoCloseable) f).close();
+				} catch (Exception e) {
+					logger.error("KafkaInput [" + name() + "] internal fetcher close failure", e);
+				}
 		connect.commitOffsets(true);
 		connect.shutdown();
 		logger.info("KafkaInput [" + name() + "] closed.");

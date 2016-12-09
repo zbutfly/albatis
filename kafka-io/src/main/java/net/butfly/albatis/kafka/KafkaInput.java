@@ -10,6 +10,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import kafka.consumer.KafkaStream;
 import kafka.message.MessageAndMetadata;
 import net.butfly.albacore.exception.ConfigException;
+import net.butfly.albacore.lambda.Consumer;
 
 @Deprecated
 public class KafkaInput extends KafkaInputBase<ReentrantLock> {
@@ -20,8 +21,7 @@ public class KafkaInput extends KafkaInputBase<ReentrantLock> {
 	}
 
 	@Override
-	protected KafkaMessage fetch(KafkaStream<byte[], byte[]> stream, ReentrantLock lock,
-			net.butfly.albacore.lambda.Consumer<KafkaMessage> result) {
+	protected KafkaMessage fetch(KafkaStream<byte[], byte[]> stream, ReentrantLock lock, Consumer<KafkaMessage> result) {
 		try {
 			if (!lock.tryLock(10, TimeUnit.MILLISECONDS)) return null;
 		} catch (InterruptedException e) {
@@ -41,10 +41,11 @@ public class KafkaInput extends KafkaInputBase<ReentrantLock> {
 	}
 
 	@Override
-	protected Map<String, Map<KafkaStream<byte[], byte[]>, ReentrantLock>> parseStreams(Map<String, List<KafkaStream<byte[], byte[]>>> s) {
+	protected Map<String, Map<KafkaStream<byte[], byte[]>, ReentrantLock>> parseStreams(
+			Map<String, List<KafkaStream<byte[], byte[]>>> streams, long poolSize) {
 		Map<String, Map<KafkaStream<byte[], byte[]>, ReentrantLock>> ss = new HashMap<>();
-		for (String t : s.keySet())
-			for (KafkaStream<byte[], byte[]> stream : s.get(t))
+		for (String t : streams.keySet())
+			for (KafkaStream<byte[], byte[]> stream : streams.get(t))
 				ss.compute(t, (k, v) -> {
 					Map<KafkaStream<byte[], byte[]>, ReentrantLock> v1 = v == null ? new HashMap<>() : v;
 					v1.put(stream, new ReentrantLock());
