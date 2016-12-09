@@ -52,7 +52,7 @@ public class KafkaInputConfig extends KafkaConfigBase {
 	protected long zookeeperSessionTimeoutMs;
 
 	// not for kafka, for albatis
-	private boolean parallelismEnable;
+	private int partitionParallelism;
 
 	public KafkaInputConfig(String uri) throws IOException {
 		this(Configs.read(URIs.open(uri, Schema.FILE, Schema.CLASSPATH, Schema.ZOOKEEPER)));
@@ -87,12 +87,12 @@ public class KafkaInputConfig extends KafkaConfigBase {
 		v = props.getProperty("albatis.kafka.zookeeper.session.timeout.ms", "30000");
 		zookeeperSessionTimeoutMs = Long.parseLong(v);
 
-		v = props.getProperty("albatis.kafka.auto.parallelism.enable", "false");
-		parallelismEnable = Boolean.parseBoolean(v.trim());
+		v = props.getProperty("albatis.kafka.partition.parallelism", "3");
+		partitionParallelism = Integer.parseInt(v.trim());
 	}
 
-	public boolean isAutoParallelismEnable() {
-		return parallelismEnable;
+	public int getPartitionParallelism() {
+		return partitionParallelism;
 	}
 
 	public ConsumerConfig getConfig() throws ConfigException {

@@ -30,8 +30,8 @@ public class Kafka2Input extends KafkaInputBase<Kafka2Input.KafkaInputFetcher> {
 
 	@Override
 	protected Map<String, Map<KafkaStream<byte[], byte[]>, KafkaInputFetcher>> parseStreams(
-			Map<String, List<KafkaStream<byte[], byte[]>>> s) {
-		pool = new LinkedBlockingQueue<>((int) internalPoolSize);
+			Map<String, List<KafkaStream<byte[], byte[]>>> s, long poolSize) {
+		pool = new LinkedBlockingQueue<>((int) poolSize);
 		Map<String, Map<KafkaStream<byte[], byte[]>, KafkaInputFetcher>> ss = new HashMap<>();
 		AtomicInteger i = new AtomicInteger(0);
 		for (String t : s.keySet())
@@ -48,7 +48,7 @@ public class Kafka2Input extends KafkaInputBase<Kafka2Input.KafkaInputFetcher> {
 		return ss;
 	}
 
-	static final class KafkaInputFetcher extends Thread {
+	static final class KafkaInputFetcher extends Thread implements AutoCloseable {
 		public AtomicBoolean closed = new AtomicBoolean(false);
 		private final KafkaStream<byte[], byte[]> stream;
 		private final LinkedBlockingQueue<KafkaMessage> pool;
@@ -72,25 +72,11 @@ public class Kafka2Input extends KafkaInputBase<Kafka2Input.KafkaInputFetcher> {
 					}
 				} catch (Exception e) {}
 		}
-	}
 
-	@Override
-	public long poolStatus() {
-		long count = 0;
-		for (Map<KafkaStream<byte[], byte[]>, KafkaInputFetcher> m : streams.values())
-			for (KafkaInputFetcher p : m.values())
-				count += p.pool.size();
-		return count;
-	}
-
-	@Override
-	public void close() {
-		super.close();
-		for (Map<KafkaStream<byte[], byte[]>, KafkaInputFetcher> tm : streams.values()) {
-			for (KafkaInputFetcher f : tm.values()) {
-				f.closed.set(true);
-				f.interrupt();
-			}
+		@Override
+		public void close() {
+			closed.set(true);
+			interrupt();
 		}
 	}
 }
