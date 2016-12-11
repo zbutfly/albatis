@@ -1,6 +1,8 @@
 package net.butfly.albatis.mongodb;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -83,8 +85,7 @@ public class MongodbInput extends Input<DBObject> {
 
 	@Override
 	public DBObject dequeue0() {
-		lock.lock();
-		try {
+		if (lock.tryLock()) try {
 			return cursor.hasNext() ? cursor.next() : null;
 		} catch (MongoException ex) {
 			logger.warn("MongoDBInput [" + name() + "] read failure but processing will continue", ex);
@@ -92,6 +93,28 @@ public class MongodbInput extends Input<DBObject> {
 		} finally {
 			lock.unlock();
 		}
+		else return null;
+	}
+
+	@Override
+	public List<DBObject> dequeue(long batchSize) {
+		boolean retry;
+		List<DBObject> batch = new ArrayList<>();
+		do {
+			retry = false;
+			if (lock.tryLock()) try {
+				while (batch.size() < batchSize) {
+					if (!cursor.hasNext()) return batch;
+					batch.add(cursor.next());
+				}
+			} catch (MongoException ex) {
+				logger.warn("MongoDBInput [" + name() + "] read failure but processing will continue", ex);
+				retry = true;
+			} finally {
+				lock.unlock();
+			}
+		} while (retry && batch.size() == 0);
+		return batch;
 	}
 
 	public final void limit(int limit) {
