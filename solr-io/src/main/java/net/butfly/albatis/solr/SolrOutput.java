@@ -29,7 +29,7 @@ public class SolrOutput extends MapOutput<String, SolrMessage<SolrInputDocument>
 	private static final Logger logger = Logger.getLogger(SolrOutput.class);
 	private static final int DEFAULT_AUTO_COMMIT_MS = 30000;
 	private static final int DEFAULT_PACKAGE_SIZE = 500;
-	private static final int DEFAULT_PARALLELISM = 20;
+	private static final int DEFAULT_PARALLELISM = 10;
 	private final SolrClient solr;
 	private final Set<String> cores;
 	private final ExecutorService ex;
@@ -61,14 +61,14 @@ public class SolrOutput extends MapOutput<String, SolrMessage<SolrInputDocument>
 				for (List<SolrInputDocument> pkg : Collections.chopped(e.getValue(), DEFAULT_PACKAGE_SIZE))
 					try {
 						solr.add(e.getKey(), pkg);
-					} catch (Exception ex) {
+					} catch (Exception err) {
 						logger.error("SolrOutput [" + name() + "] add failure on core [" + e.getKey() + "] with [" + pkg.size() + "] docs",
-								e);
+								err);
 					}
 				try {
 					solr.commit(e.getKey());
-				} catch (Exception ex) {
-					logger.error("SolrOutput [" + name() + "] commit failure on core [" + e.getKey() + "]", e);
+				} catch (Exception err) {
+					logger.error("SolrOutput [" + name() + "] commit failure on core [" + e.getKey() + "]", err);
 				}
 			});
 		return docs.size();
