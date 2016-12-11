@@ -32,8 +32,12 @@ abstract class KafkaInputBase<T> extends MapInput<String, KafkaMessage> {
 		KafkaInputConfig kic = new KafkaInputConfig(config);
 		logger.info("KafkaInput [" + name() + "] connecting with config [" + kic.toString() + "].");
 		Map<String, Integer> topics = new HashMap<>();
-		for (Entry<String, Integer> info : Kafkas.getTopicInfo(kic.getZookeeperConnect(), topic).entrySet())
-			topics.put(info.getKey(), (int) Math.ceil(info.getValue() * 1.0 / kic.getPartitionParallelism()));
+		int kp = kic.getPartitionParallelism();
+		for (Entry<String, Integer> info : Kafkas.getTopicInfo(kic.getZookeeperConnect(), topic).entrySet()) {
+			if (kp <= 0) topics.put(info.getKey(), 1);
+			else if (kp >= info.getValue()) topics.put(info.getKey(), info.getValue());
+			else topics.put(info.getKey(), (int) Math.ceil(info.getValue() * 1.0 / kp));
+		}
 
 		logger.debug("KafkaInput [" + name() + "] parallelism of topics: " + topics.toString() + ".");
 		connect = kafka.consumer.Consumer.createJavaConsumerConnector(kic.getConfig());
