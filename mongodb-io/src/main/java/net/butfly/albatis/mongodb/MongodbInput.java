@@ -68,7 +68,7 @@ public class MongodbInput extends Input<DBObject> {
 		if (lock.tryLock()) try {
 			return !cursor.hasNext();
 		} catch (MongoException ex) {
-			logger.error("MongoDBInput [" + name() + "] check failure", ex);
+			logger.warn("MongoDBInput [" + name() + "] check failure but processing will continue", ex);
 			return false;
 		} finally {
 			lock.unlock();
@@ -87,7 +87,7 @@ public class MongodbInput extends Input<DBObject> {
 		try {
 			return cursor.hasNext() ? cursor.next() : null;
 		} catch (MongoException ex) {
-			logger.error("MongoDBInput [" + name() + "] read failure", ex);
+			logger.warn("MongoDBInput [" + name() + "] read failure but processing will continue", ex);
 			return null;
 		} finally {
 			lock.unlock();
