@@ -9,7 +9,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrServerException;
@@ -34,10 +34,15 @@ public class SolrOutput extends MapOutput<String, SolrMessage<SolrInputDocument>
 	private final Set<String> cores;
 	private final ExecutorService ex;
 
+	// for reconnect
+	// private final Map<String, LinkedBlockingQueue<SolrInputDocument>>
+	// failover = new ConcurrentHashMap<>();
+	private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
+
 	public SolrOutput(String name, String baseUrl) throws IOException {
 		super(name, m -> m.getCore());
 		logger.info("SolrOutput [" + name + "] from [" + baseUrl + "]");
-		ex = Executors.newFixedThreadPool(DEFAULT_PARALLELISM, new ThreadFactoryBuilder().setNameFormat("SolrOutputSender-%d").setPriority(
+		ex = Concurrents.executor(DEFAULT_PARALLELISM, new ThreadFactoryBuilder().setNameFormat(name + "-Sender-%d").setPriority(
 				Thread.MAX_PRIORITY).setUncaughtExceptionHandler((t, e) -> logger.error("SolrOutput failure in async", e)).build());
 		cores = new HashSet<>();
 		solr = Solrs.open(baseUrl);
@@ -45,8 +50,18 @@ public class SolrOutput extends MapOutput<String, SolrMessage<SolrInputDocument>
 
 	@Override
 	public boolean enqueue0(String core, SolrMessage<SolrInputDocument> doc) {
+		logger.trace(() -> "SolrOutput [" + name() + "] pending solr request: [" + lock.getReadLockCount() + "].");
 		cores.add(core);
-		ex.submit(() -> solr.add(core, doc.getDoc(), DEFAULT_AUTO_COMMIT_MS));
+		ex.submit(() -> {
+			lock.readLock().lock();
+			try {
+				solr.add(core, doc.getDoc(), DEFAULT_AUTO_COMMIT_MS);
+			} catch (Exception err) {
+				logger.error("SolrOutput [" + name() + "] add failure on core [" + core + "] with [1] docs", err);
+			} finally {
+				lock.readLock().unlock();
+			}
+		});
 		return true;
 	}
 
@@ -58,19 +73,27 @@ public class SolrOutput extends MapOutput<String, SolrMessage<SolrInputDocument>
 		cores.addAll(map.keySet());
 		for (Entry<String, List<SolrInputDocument>> e : map.entrySet())
 			ex.submit(() -> {
-				for (List<SolrInputDocument> pkg : Collections.chopped(e.getValue(), DEFAULT_PACKAGE_SIZE))
+				for (List<SolrInputDocument> pkg : Collections.chopped(e.getValue(), DEFAULT_PACKAGE_SIZE)) {
+					lock.readLock().lock();
 					try {
 						solr.add(e.getKey(), pkg);
 					} catch (Exception err) {
 						logger.error("SolrOutput [" + name() + "] add failure on core [" + e.getKey() + "] with [" + pkg.size() + "] docs",
 								err);
+					} finally {
+						lock.readLock().unlock();
 					}
+				}
+				lock.readLock().lock();
 				try {
 					solr.commit(e.getKey());
 				} catch (Exception err) {
 					logger.error("SolrOutput [" + name() + "] commit failure on core [" + e.getKey() + "]", err);
+				} finally {
+					lock.readLock().unlock();
 				}
 			});
+		logger.trace(() -> "SolrOutput [" + name() + "] pending solr request: [" + lock.getReadLockCount() + "].");
 		return docs.size();
 	}
 
