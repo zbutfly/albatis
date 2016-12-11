@@ -2,12 +2,14 @@ package net.butfly.albatis.mongodb;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.concurrent.locks.ReentrantLock;
 
 import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;
 import com.mongodb.Bytes;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
+import com.mongodb.MongoException;
 
 import net.butfly.albacore.io.Input;
 import net.butfly.albacore.serder.JsonSerder;
@@ -19,14 +21,22 @@ public class MongodbInput extends Input<DBObject> {
 	private static final Logger logger = Logger.getLogger(MongodbInput.class);
 	private final MongoDB mdb;
 	private DBCursor cursor;
+	private final ReentrantLock lock;
 
 	public MongodbInput(final String name, String uri, final String table, int inputBatchSize, final String... filter) throws IOException {
 		super(name);
+		lock = new ReentrantLock();
 		logger.info("MongoDBInput [" + name + "] from [" + uri + "], core [" + table + "]");
 		this.mdb = new MongoDB(uri);
-		if (null == filter || filter.length == 0) cursor = mdb.connect().getCollection(table).find();
-		else if (filter.length == 1) {
+		long now;
+		logger.debug("MongoDBInput [" + name + "] find begin...");
+		if (null == filter || filter.length == 0) {
+			now = System.nanoTime();
+			cursor = mdb.connect().getCollection(table).find();
+		} else if (filter.length == 1) {
 			Map<String, Object> m = JsonSerder.JSON_MAPPER.der(filter[0]);
+
+			now = System.nanoTime();
 			cursor = mdb.connect().getCollection(table).find(new BasicDBObject(m));
 		} else {
 			BasicDBList filters = new BasicDBList();
@@ -36,8 +46,12 @@ public class MongodbInput extends Input<DBObject> {
 			}
 			DBObject and = new BasicDBObject();
 			and.put("$and", filters);
+
+			now = System.nanoTime();
 			cursor = mdb.connect().getCollection(table).find(and);
 		}
+		logger.info(() -> "MongoDBInput [" + name + "] find end in [" + (System.nanoTime() - now) / 1000 + " ms].");
+		logger.trace(() -> "MongoDBInput [" + name + "] find [" + cursor.size() + " records].");
 		cursor = cursor.batchSize(inputBatchSize).addOption(Bytes.QUERYOPTION_NOTIMEOUT);
 	}
 
@@ -51,7 +65,15 @@ public class MongodbInput extends Input<DBObject> {
 
 	@Override
 	public boolean empty() {
-		return !cursor.hasNext();
+		if (lock.tryLock()) try {
+			return !cursor.hasNext();
+		} catch (MongoException ex) {
+			logger.error("MongoDBInput [" + name() + "] check failure", ex);
+			return false;
+		} finally {
+			lock.unlock();
+		}
+		else return false;
 	}
 
 	@Override
@@ -61,8 +83,14 @@ public class MongodbInput extends Input<DBObject> {
 
 	@Override
 	public DBObject dequeue0() {
-		synchronized (cursor) {
+		lock.lock();
+		try {
 			return cursor.hasNext() ? cursor.next() : null;
+		} catch (MongoException ex) {
+			logger.error("MongoDBInput [" + name() + "] read failure", ex);
+			return null;
+		} finally {
+			lock.unlock();
 		}
 	}
 
