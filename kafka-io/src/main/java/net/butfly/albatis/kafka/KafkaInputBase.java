@@ -23,16 +23,17 @@ import net.butfly.albatis.kafka.config.Kafkas;
 abstract class KafkaInputBase<T> extends MapInput<String, KafkaMessage> {
 	private static final long serialVersionUID = -9180560064999614528L;
 	protected static final Logger logger = Logger.getLogger(Kafka2Input.class);
-
 	protected final KafkaInputConfig conf;
-	private final ConsumerConnector connect;
-	private final Map<String, Map<KafkaStream<byte[], byte[]>, T>> streams;
+	protected final Map<String, Integer> topics;
+	protected final ConsumerConnector connect;
+	protected final Map<String, List<KafkaStream<byte[], byte[]>>> raws;
+	protected final Map<String, Map<KafkaStream<byte[], byte[]>, T>> streams;
 
 	public KafkaInputBase(String name, final String config, String... topic) throws ConfigException, IOException {
 		super(name);
 		conf = new KafkaInputConfig(config);
 		logger.info("KafkaInput [" + name() + "] connecting with config [" + conf.toString() + "].");
-		Map<String, Integer> topics = new HashMap<>();
+		topics = new HashMap<>();
 		int kp = conf.getPartitionParallelism();
 		for (Entry<String, Integer> info : Kafkas.getTopicInfo(conf.getZookeeperConnect(), topic).entrySet()) {
 			if (kp <= 0) topics.put(info.getKey(), 1);
@@ -42,14 +43,17 @@ abstract class KafkaInputBase<T> extends MapInput<String, KafkaMessage> {
 
 		logger.debug("KafkaInput [" + name() + "] parallelism of topics: " + topics.toString() + ".");
 		connect = kafka.consumer.Consumer.createJavaConsumerConnector(conf.getConfig());
-		Map<String, List<KafkaStream<byte[], byte[]>>> s = connect.createMessageStreams(topics);
-
-		streams = parseStreams(s, conf.getPoolSize());
+		raws = connect.createMessageStreams(topics);
 		logger.debug("KafkaInput [" + name() + "] connected.");
+		streams = new HashMap<>();
 	}
 
-	protected abstract Map<String, Map<KafkaStream<byte[], byte[]>, T>> parseStreams(Map<String, List<KafkaStream<byte[], byte[]>>> streams,
-			long poolSize);
+	/**
+	 * should invoked in impl constructor
+	 * 
+	 * @throws ConfigException
+	 */
+	protected void initialize() throws ConfigException {}
 
 	protected abstract KafkaMessage fetch(KafkaStream<byte[], byte[]> stream, T lock, Consumer<KafkaMessage> result);
 

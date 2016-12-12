@@ -11,14 +11,14 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.common.SolrInputDocument;
 
+import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import net.butfly.albacore.io.MapOutput;
@@ -35,13 +35,14 @@ public class SolrOutput extends MapOutput<String, SolrMessage<SolrInputDocument>
 	private static final int DEFAULT_AUTO_COMMIT_MS = 30000;
 	private static final int DEFAULT_PACKAGE_SIZE = 500;
 	private static final int DEFAULT_PARALLELISM = 10;
+	private static final int MAX_FAILOVER = 50000;
 	private final SolrClient solr;
 	private final Set<String> cores;
-	private final ExecutorService ex;
+	private final ListeningExecutorService ex;
+	private final AtomicBoolean failoverRetry;
 
 	// for reconnect
 	private final Map<String, LinkedBlockingQueue<SolrInputDocument>> failover = new ConcurrentHashMap<>();
-	private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
 
 	public SolrOutput(String name, String baseUrl) throws IOException {
 		super(name, m -> m.getCore());
@@ -56,46 +57,47 @@ public class SolrOutput extends MapOutput<String, SolrMessage<SolrInputDocument>
 		}
 		cores = new HashSet<>(Arrays.asList(t._3()));
 		solr = Solrs.open(baseUrl);
+		failoverRetry = new AtomicBoolean(true);
 		new Thread() {
 			@Override
 			public void run() {
 				List<SolrInputDocument> retries = new ArrayList<>(DEFAULT_PACKAGE_SIZE);
-				while (true) {
+				while (failoverRetry.get())
 					for (String core : failover.keySet()) {
 						LinkedBlockingQueue<SolrInputDocument> fails = failover.get(core);
 						while (!fails.isEmpty() && retries.size() < DEFAULT_PACKAGE_SIZE)
 							retries.add(fails.poll());
-						try {
-							solr.add(retries);
+						if (!retries.isEmpty()) try {
+							solr.add(core, retries);
 							retries.clear();
 						} catch (Exception err) {
-							fails.addAll(retries);
-							logger.error("SolrOutput [" + name() + "] retries failure on core [" + core + "] with [" + retries.size()
-									+ "] docs, push back to failover, now [" + fails.size() + "] in this core", err);
+							try {
+								fails.addAll(retries);
+								logger.warn("SolrOutput [" + name() + "] retry failure on core [" + core + "] "//
+										+ "with [" + retries.size() + "] docs, "//
+										+ "push back to failover, now [" + fails.size() + "] failover on core [" + core + "]", err);
+							} catch (IllegalStateException ex) {
+								logger.error("SolrOutput [" + name() + "] failover full, [" + retries.size() + "] docs lost for core ["
+										+ core + "] ");
+							}
 						}
 					}
-				}
 			}
 		}.start();
-
 	}
 
 	@Override
 	public boolean enqueue0(String core, SolrMessage<SolrInputDocument> doc) {
-		logger.trace(() -> "SolrOutput [" + name() + "] pending solr request: [" + lock.getReadLockCount() + "].");
 		cores.add(core);
 		ex.submit(() -> {
-			lock.readLock().lock();
 			try {
 				solr.add(core, doc.getDoc(), DEFAULT_AUTO_COMMIT_MS);
 			} catch (Exception err) {
-				LinkedBlockingQueue<SolrInputDocument> fails = failover.compute(core, (k, l) -> null == l
-						? new LinkedBlockingQueue<SolrInputDocument>() : l);
-				fails.offer(doc.getDoc());
-				logger.error("SolrOutput [" + name() + "] add failure on core [" + core + "] with [1] docs, push to failover and now ["
-						+ fails.size() + "] in this core", err);
-			} finally {
-				lock.readLock().unlock();
+				LinkedBlockingQueue<SolrInputDocument> fails = failover.computeIfAbsent(core, k -> new LinkedBlockingQueue<>(MAX_FAILOVER));
+				if (fails.offer(doc.getDoc())) logger.warn("SolrOutput [" + name() + "] add failure on core [" + core + "] "//
+						+ "with [1] docs, "//
+						+ "push to failover, now [" + fails.size() + "] failover on core [" + core + "]", err);
+				else logger.error("SolrOutput [" + name() + "] failover full, [1] docs lost for core [" + core + "] ");
 			}
 		});
 		return true;
@@ -110,29 +112,29 @@ public class SolrOutput extends MapOutput<String, SolrMessage<SolrInputDocument>
 		for (Entry<String, List<SolrInputDocument>> e : map.entrySet())
 			ex.submit(() -> {
 				for (List<SolrInputDocument> pkg : Collections.chopped(e.getValue(), DEFAULT_PACKAGE_SIZE)) {
-					lock.readLock().lock();
 					try {
 						solr.add(e.getKey(), pkg);
 					} catch (Exception err) {
-						LinkedBlockingQueue<SolrInputDocument> fails = failover.compute(e.getKey(), (k, l) -> null == l
-								? new LinkedBlockingQueue<SolrInputDocument>() : l);
-						fails.addAll(e.getValue());
-						logger.error("SolrOutput [" + name() + "] add failure on core [" + e.getKey() + "] with [" + pkg.size()
-								+ "] docs, push to failover and now [" + fails.size() + "] in this core", err);
-					} finally {
-						lock.readLock().unlock();
+						LinkedBlockingQueue<SolrInputDocument> fails = failover.computeIfAbsent(e.getKey(), k -> new LinkedBlockingQueue<>(
+								MAX_FAILOVER));
+						try {
+							fails.addAll(pkg);
+							logger.warn("SolrOutput [" + name() + "] add failure on core [" + e.getKey() + "] "//
+									+ "with [" + pkg.size() + "] docs, "//
+									+ "push to failover, now [" + fails.size() + "] failover on core [" + e.getKey() + "]", err);
+						} catch (IllegalStateException ex) {
+							logger.error("SolrOutput [" + name() + "] failover full, [" + pkg.size() + "] docs lost for core [" + e.getKey()
+									+ "] ");
+						}
 					}
 				}
-				lock.readLock().lock();
 				try {
-					solr.commit(e.getKey());
+					solr.commit(e.getKey(), false, false, true);
 				} catch (Exception err) {
-					logger.error("SolrOutput [" + name() + "] commit failure on core [" + e.getKey() + "]", err);
-				} finally {
-					lock.readLock().unlock();
+					logger.warn("SolrOutput [" + name() + "] commit failure on core [" + e.getKey() + "]", err);
 				}
 			});
-		logger.trace(() -> "SolrOutput [" + name() + "] pending solr request: [" + lock.getReadLockCount() + "].");
+		System.gc();
 		return docs.size();
 	}
 
@@ -141,9 +143,11 @@ public class SolrOutput extends MapOutput<String, SolrMessage<SolrInputDocument>
 		ex.shutdown();
 		Concurrents.waitShutdown(ex, logger);
 		logger.debug("SolrOutput [" + name() + "] closing...");
+		failoverRetry.set(false);
+		if (!failover.isEmpty()) logger.error("SolrOutput [" + name() + "] contain faiover [" + failover.size() + "].");
 		try {
 			for (String core : cores)
-				solr.commit(core);
+				solr.commit(core, false, false);
 		} catch (IOException | SolrServerException e) {
 			logger.error("SolrOutput close failure", e);
 		}
@@ -159,5 +163,9 @@ public class SolrOutput extends MapOutput<String, SolrMessage<SolrInputDocument>
 	@Override
 	public Q<SolrMessage<SolrInputDocument>, Void> q(String key) {
 		throw new UnsupportedOperationException();
+	}
+
+	public int fails() {
+		return failover.size();
 	}
 }

@@ -2,7 +2,6 @@ package net.butfly.albatis.kafka;
 
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
@@ -18,6 +17,13 @@ public class KafkaInput extends KafkaInputBase<ReentrantLock> {
 
 	public KafkaInput(String name, final String config, String... topic) throws ConfigException, IOException {
 		super(name, config, topic);
+		for (String t : raws.keySet())
+			for (KafkaStream<byte[], byte[]> stream : raws.get(t))
+				streams.compute(t, (k, v) -> {
+					Map<KafkaStream<byte[], byte[]>, ReentrantLock> v1 = v == null ? new HashMap<>() : v;
+					v1.put(stream, new ReentrantLock());
+					return v1;
+				});
 	}
 
 	@Override
@@ -38,19 +44,5 @@ public class KafkaInput extends KafkaInputBase<ReentrantLock> {
 			result.accept(km);
 			return km;
 		} else return null;
-	}
-
-	@Override
-	protected Map<String, Map<KafkaStream<byte[], byte[]>, ReentrantLock>> parseStreams(
-			Map<String, List<KafkaStream<byte[], byte[]>>> streams, long poolSize) {
-		Map<String, Map<KafkaStream<byte[], byte[]>, ReentrantLock>> ss = new HashMap<>();
-		for (String t : streams.keySet())
-			for (KafkaStream<byte[], byte[]> stream : streams.get(t))
-				ss.compute(t, (k, v) -> {
-					Map<KafkaStream<byte[], byte[]>, ReentrantLock> v1 = v == null ? new HashMap<>() : v;
-					v1.put(stream, new ReentrantLock());
-					return v1;
-				});
-		return ss;
 	}
 }
