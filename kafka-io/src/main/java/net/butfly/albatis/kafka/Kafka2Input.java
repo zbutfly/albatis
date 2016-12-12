@@ -4,9 +4,11 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import com.leansoft.bigqueue.BigQueueImpl;
+import com.leansoft.bigqueue.IBigQueue;
 
 import kafka.consumer.ConsumerIterator;
 import kafka.consumer.KafkaStream;
@@ -15,23 +17,27 @@ import net.butfly.albacore.lambda.Consumer;
 
 public class Kafka2Input extends KafkaInputBase<Kafka2Input.KafkaInputFetcher> {
 	private static final long serialVersionUID = 1813167082084278062L;
-	private LinkedBlockingQueue<KafkaMessage> pool;
+	private IBigQueue pool;
 
-	public Kafka2Input(String name, final String config, String... topic) throws ConfigException, IOException {
+	public Kafka2Input(String name, final String config, final String poolPath, String... topic) throws ConfigException, IOException {
 		super(name, config, topic);
+		this.pool = new BigQueueImpl(poolPath, conf.toString());
 	}
 
 	@Override
 	protected KafkaMessage fetch(KafkaStream<byte[], byte[]> stream, KafkaInputFetcher fetcher, Consumer<KafkaMessage> result) {
-		KafkaMessage m = pool.poll();
-		if (null != m) result.accept(m);
-		return m;
+		try {
+			KafkaMessage m = new KafkaMessage(pool.dequeue());
+			result.accept(m);
+			return m;
+		} catch (IOException e) {
+			return null;
+		}
 	}
 
 	@Override
 	protected Map<String, Map<KafkaStream<byte[], byte[]>, KafkaInputFetcher>> parseStreams(
 			Map<String, List<KafkaStream<byte[], byte[]>>> s, long poolSize) {
-		pool = new LinkedBlockingQueue<>((int) poolSize);
 		Map<String, Map<KafkaStream<byte[], byte[]>, KafkaInputFetcher>> ss = new HashMap<>();
 		AtomicInteger i = new AtomicInteger(0);
 		for (String t : s.keySet())
@@ -51,9 +57,9 @@ public class Kafka2Input extends KafkaInputBase<Kafka2Input.KafkaInputFetcher> {
 	static final class KafkaInputFetcher extends Thread implements AutoCloseable {
 		public AtomicBoolean closed = new AtomicBoolean(false);
 		private final KafkaStream<byte[], byte[]> stream;
-		private final LinkedBlockingQueue<KafkaMessage> pool;
+		private final IBigQueue pool;
 
-		public KafkaInputFetcher(String inputName, KafkaStream<byte[], byte[]> stream, int i, LinkedBlockingQueue<KafkaMessage> pool) {
+		public KafkaInputFetcher(String inputName, KafkaStream<byte[], byte[]> stream, int i, IBigQueue pool) {
 			this.stream = stream;
 			this.pool = pool;
 			this.setName("Kafka2InputFetcher-" + i);
@@ -67,9 +73,8 @@ public class Kafka2Input extends KafkaInputBase<Kafka2Input.KafkaInputFetcher> {
 			ConsumerIterator<byte[], byte[]> it = stream.iterator();
 			while (!closed.get())
 				try {
-					while (it.hasNext()) {
-						pool.put(new KafkaMessage(it.next()));
-					}
+					while (it.hasNext())
+						pool.enqueue(new KafkaMessage(it.next()).toBytes());
 				} catch (Exception e) {}
 		}
 
