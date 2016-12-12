@@ -24,26 +24,27 @@ abstract class KafkaInputBase<T> extends MapInput<String, KafkaMessage> {
 	private static final long serialVersionUID = -9180560064999614528L;
 	protected static final Logger logger = Logger.getLogger(Kafka2Input.class);
 
+	protected final KafkaInputConfig conf;
 	private final ConsumerConnector connect;
 	private final Map<String, Map<KafkaStream<byte[], byte[]>, T>> streams;
 
 	public KafkaInputBase(String name, final String config, String... topic) throws ConfigException, IOException {
 		super(name);
-		KafkaInputConfig kic = new KafkaInputConfig(config);
-		logger.info("KafkaInput [" + name() + "] connecting with config [" + kic.toString() + "].");
+		conf = new KafkaInputConfig(config);
+		logger.info("KafkaInput [" + name() + "] connecting with config [" + conf.toString() + "].");
 		Map<String, Integer> topics = new HashMap<>();
-		int kp = kic.getPartitionParallelism();
-		for (Entry<String, Integer> info : Kafkas.getTopicInfo(kic.getZookeeperConnect(), topic).entrySet()) {
+		int kp = conf.getPartitionParallelism();
+		for (Entry<String, Integer> info : Kafkas.getTopicInfo(conf.getZookeeperConnect(), topic).entrySet()) {
 			if (kp <= 0) topics.put(info.getKey(), 1);
 			else if (kp >= info.getValue()) topics.put(info.getKey(), info.getValue());
 			else topics.put(info.getKey(), (int) Math.ceil(info.getValue() * 1.0 / kp));
 		}
 
 		logger.debug("KafkaInput [" + name() + "] parallelism of topics: " + topics.toString() + ".");
-		connect = kafka.consumer.Consumer.createJavaConsumerConnector(kic.getConfig());
+		connect = kafka.consumer.Consumer.createJavaConsumerConnector(conf.getConfig());
 		Map<String, List<KafkaStream<byte[], byte[]>>> s = connect.createMessageStreams(topics);
 
-		streams = parseStreams(s, kic.getPoolSize());
+		streams = parseStreams(s, conf.getPoolSize());
 		logger.debug("KafkaInput [" + name() + "] connected.");
 	}
 

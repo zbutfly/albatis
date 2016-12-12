@@ -329,9 +329,9 @@ public final class Solrs extends Utils {
 	interface SolrHttpContext {
 		static final int SOLR_HTTP_MAX_TOTAL = 1024;
 		static final int SOLR_HTTP_MAX_PER_ROUTE = 64;
-		static final int SOLR_HTTP_SO_TIMEOUT = 18000;
-		static final int SOLR_HTTP_CONN_TIMEOUT = 5000;
-		static final int SOLR_HTTP_BUFFER_SIZE = 10240;
+		static final int SOLR_HTTP_SO_TIMEOUT = 180000;
+		static final int SOLR_HTTP_CONN_TIMEOUT = 10000;
+		static final int SOLR_HTTP_BUFFER_SIZE = 102400;
 		static final RequestConfig SOLR_HTTP_REQ_CONFIG = RequestConfig.custom()//
 				.setSocketTimeout(SOLR_HTTP_SO_TIMEOUT)//
 				.setConnectTimeout(SOLR_HTTP_CONN_TIMEOUT)//
