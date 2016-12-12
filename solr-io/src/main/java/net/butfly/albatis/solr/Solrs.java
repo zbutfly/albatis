@@ -295,8 +295,8 @@ public final class Solrs extends Utils {
 		url = new URI(url).toASCIIString();
 		CoreAdminRequest req = new CoreAdminRequest();
 		req.setAction(CoreAdminAction.STATUS);
-		try (SolrClient solr = Solrs.open(url);) {
-			CoreAdminResponse resp = req.process(solr);
+		try {
+			CoreAdminResponse resp = req.process(Solrs.open(url));
 			String[] cores = new String[resp.getCoreStatus().size()];
 			for (int i = 0; i < resp.getCoreStatus().size(); i++)
 				cores[i] = resp.getCoreStatus().getName(i);
@@ -314,8 +314,8 @@ public final class Solrs extends Utils {
 			String core = segs.remove(segs.size() - 1);
 
 			String base = url.replaceAll("/?" + core + "/?$", "");
-			try (SolrClient solr = Solrs.open(base);) {
-				CoreAdminResponse resp = req.process(solr);
+			try {
+				CoreAdminResponse resp = req.process(Solrs.open(base));
 				String[] cores = new String[resp.getCoreStatus().size()];
 				for (int i = 0; i < resp.getCoreStatus().size(); i++)
 					cores[i] = resp.getCoreStatus().getName(i);
@@ -330,7 +330,7 @@ public final class Solrs extends Utils {
 		static final int SOLR_HTTP_MAX_TOTAL = 1024;
 		static final int SOLR_HTTP_MAX_PER_ROUTE = 64;
 		static final int SOLR_HTTP_SO_TIMEOUT = 180000;
-		static final int SOLR_HTTP_CONN_TIMEOUT = 10000;
+		static final int SOLR_HTTP_CONN_TIMEOUT = 60000;
 		static final int SOLR_HTTP_BUFFER_SIZE = 102400;
 		static final RequestConfig SOLR_HTTP_REQ_CONFIG = RequestConfig.custom()//
 				.setSocketTimeout(SOLR_HTTP_SO_TIMEOUT)//

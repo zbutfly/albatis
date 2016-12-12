@@ -19,39 +19,67 @@ public class Kafka2Input extends KafkaInputBase<Kafka2Input.KafkaInputFetcher> {
 	private static final long serialVersionUID = 1813167082084278062L;
 	private IBigQueue pool;
 
-	public Kafka2Input(String name, final String config, final String poolPath, String... topic) throws ConfigException, IOException {
-		super(name, config, topic);
-		this.pool = new BigQueueImpl(poolPath, conf.toString());
-	}
-
 	@Override
-	protected KafkaMessage fetch(KafkaStream<byte[], byte[]> stream, KafkaInputFetcher fetcher, Consumer<KafkaMessage> result) {
+	public void close() {
+		super.close();
 		try {
-			KafkaMessage m = new KafkaMessage(pool.dequeue());
-			result.accept(m);
-			return m;
+			pool.close();
 		} catch (IOException e) {
-			return null;
+			logger.error("KafkaInput [" + name() + "] local cache close failure", e);
 		}
 	}
 
-	@Override
-	protected Map<String, Map<KafkaStream<byte[], byte[]>, KafkaInputFetcher>> parseStreams(
-			Map<String, List<KafkaStream<byte[], byte[]>>> s, long poolSize) {
-		Map<String, Map<KafkaStream<byte[], byte[]>, KafkaInputFetcher>> ss = new HashMap<>();
+	public Kafka2Input(String name, final String config, final String poolPath, String... topic) throws ConfigException, IOException {
+		super(name, config, topic);
+		try {
+			pool = new BigQueueImpl(poolPath, conf.toString());
+		} catch (IOException e) {
+			throw new RuntimeException("Offheap pool init failure", e);
+		}
+		logger.info("KafkaInput [" + name + "] local cache init: [" + poolPath + "] with name [" + conf.toString() + "].");
 		AtomicInteger i = new AtomicInteger(0);
-		for (String t : s.keySet())
-			for (KafkaStream<byte[], byte[]> stream : s.get(t)) {
-				ss.compute(t, (k, v) -> {
+		for (String t : raws.keySet())
+			for (KafkaStream<byte[], byte[]> stream : raws.get(t))
+				streams.compute(t, (k, v) -> {
 					Map<KafkaStream<byte[], byte[]>, KafkaInputFetcher> v1 = v == null ? new HashMap<>() : v;
-					KafkaInputFetcher f = new KafkaInputFetcher(name(), stream, i.incrementAndGet(), pool);
-					logger.info("KafkaInput [" + name() + "] fetcher [" + i.get() + "] started.");
+					KafkaInputFetcher f = new KafkaInputFetcher(name, stream, i.incrementAndGet(), pool);
+					logger.info("KafkaInput [" + name + "] fetcher [" + i.get() + "] started.");
 					f.start();
 					v1.put(stream, f);
 					return v1;
 				});
+	}
+
+	@Override
+	protected KafkaMessage fetch(KafkaStream<byte[], byte[]> stream, KafkaInputFetcher fetcher, Consumer<KafkaMessage> result) {
+		byte[] buf;
+		try {
+			buf = pool.dequeue();
+		} catch (IOException e) {
+			return null;
+		}
+		if (null == buf) return null;
+		KafkaMessage m = new KafkaMessage(buf);
+		result.accept(m);
+		return m;
+	}
+
+	@Override
+	public List<KafkaMessage> dequeue(long batchSize, String... topic) {
+		try {
+			return super.dequeue(batchSize, topic);
+		} finally {
+			try {
+				pool.gc();
+			} catch (IOException e) {
+				logger.warn("KafkaInput [" + name() + "] local cache gc failure", e);
 			}
-		return ss;
+			System.gc();
+		}
+	}
+
+	public long poolSize() {
+		return pool.size();
 	}
 
 	static final class KafkaInputFetcher extends Thread implements AutoCloseable {
@@ -73,9 +101,13 @@ public class Kafka2Input extends KafkaInputBase<Kafka2Input.KafkaInputFetcher> {
 			ConsumerIterator<byte[], byte[]> it = stream.iterator();
 			while (!closed.get())
 				try {
-					while (it.hasNext())
-						pool.enqueue(new KafkaMessage(it.next()).toBytes());
-				} catch (Exception e) {}
+					while (it.hasNext()) {
+						byte[] km = new KafkaMessage(it.next()).toBytes();
+						pool.enqueue(km);
+					}
+				} catch (Exception e) {
+					logger.trace("KafkaInputFetcher [" + getName() + "] failure, pool size: [" + pool.size() + "].", e);
+				}
 		}
 
 		@Override
