@@ -2,7 +2,6 @@ package net.butfly.albatis.solr;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -11,7 +10,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -33,94 +31,45 @@ import scala.Tuple3;
 public class SolrOutput extends MapOutput<String, SolrMessage<SolrInputDocument>> {
 	private static final long serialVersionUID = -2897525987426418020L;
 	private static final Logger logger = Logger.getLogger(SolrOutput.class);
-	private static final int DEFAULT_AUTO_COMMIT_MS = 30000;
-	private static final int DEFAULT_PACKAGE_SIZE = 500;
+	static final int DEFAULT_AUTO_COMMIT_MS = 30000;
+	static final int DEFAULT_PACKAGE_SIZE = 500;
 	private static final int DEFAULT_PARALLELISM = 5;
-	private static final int MAX_FAILOVER = 50000;
-	private final SolrClient solr;
+	final SolrClient solr;
+	final AtomicBoolean closed;
+
 	private final Set<String> cores;
 	private final LinkedBlockingQueue<Runnable> tasks;
 	private final ListeningExecutorService ex;
-	private final AtomicBoolean closed;
-
-	// for reconnect
-	private final Map<String, LinkedBlockingQueue<SolrInputDocument>> failover = new ConcurrentHashMap<>();
+	private final SolrFailover failover;
+	private final List<SolrSender> senders;
 
 	public SolrOutput(String name, String baseUrl) throws IOException {
+		this(name, baseUrl, null);
+	}
+
+	public SolrOutput(String name, String baseUrl, String failoverPath) throws IOException {
 		super(name, m -> m.getCore());
 		logger.info("SolrOutput [" + name + "] from [" + baseUrl + "]");
-		ex = Concurrents.executor(DEFAULT_PARALLELISM, new ThreadFactoryBuilder().setNameFormat(name + "-Sender-%d").setPriority(
+		ex = Concurrents.executor(DEFAULT_PARALLELISM, new ThreadFactoryBuilder().setNameFormat("SolrSender-" + name + "-%d").setPriority(
 				Thread.MAX_PRIORITY).setUncaughtExceptionHandler((t, e) -> logger.error("SolrOutput [" + name() + "] failure in async", e))
 				.build());
 		Tuple3<String, String, String[]> t;
 		try {
 			t = Solrs.parseSolrURL(baseUrl);
 		} catch (SolrServerException | URISyntaxException e) {
-			throw new RuntimeException(e);
+			throw new IOException(e);
 		}
 		cores = new HashSet<>(Arrays.asList(t._3()));
 		solr = Solrs.open(baseUrl);
 		closed = new AtomicBoolean(false);
 		tasks = new LinkedBlockingQueue<>(DEFAULT_PARALLELISM);
-		ex.submit(() -> {
-			List<SolrInputDocument> retries = new ArrayList<>(DEFAULT_PACKAGE_SIZE);
-			int remained;
-			while (!closed.get()) {
-				remained = 0;
-				for (String core : failover.keySet()) {
-					LinkedBlockingQueue<SolrInputDocument> fails = failover.get(core);
-					fails.drainTo(retries, DEFAULT_PACKAGE_SIZE);
-					remained += fails.size();
-					if (!retries.isEmpty()) try {
-						solr.add(core, retries);
-						retries.clear();
-					} catch (Exception err) {
-						try {
-							fails.addAll(retries);
-							logger.warn(MessageFormat.format(
-									"SolrOutput [{0}] retry failure on core [{1}] with [{2}] docs, push back to failover, now [{3}] failover on core [{4}]",
-									name(), core, retries.size(), fails.size(), core), err);
-						} catch (IllegalStateException ex) {
-							logger.error(MessageFormat.format("SolrOutput [{0}] failover full, [{1}] docs lost for core [{2}] ", name(),
-									retries.size(), core));
-						}
-					}
-				}
-				if (remained > 0) logger.trace(MessageFormat.format("SolrOutput [{0}] retried, failover remained: [{1}].", name(),
-						remained));
-			}
-			remained = 0;
-			for (String core : failover.keySet())
-				remained += failover.get(core).size();
-			if (remained > 0) logger.error(MessageFormat.format("SolrOutput [{0}] failover task finished, failover remained : [{1}].",
-					name(), remained));
-		});
+		failover = failoverPath == null ? new SolrMemoryFailover(this) : new SolrPersistFailover(this, failoverPath, baseUrl);
+		failover.start();
+		senders = new ArrayList<>();
 		for (int i = 0; i < DEFAULT_PARALLELISM; i++) {
-			final int seq = i;
-			ex.submit(() -> {
-				while (!closed.get()) {
-					Runnable r = null;
-					try {
-						r = tasks.take();
-					} catch (InterruptedException e) {
-						logger.error("SolrOutput [" + name() + "] interrupted", e);
-					}
-					if (null != r) try {
-						r.run();
-					} catch (Exception e) {
-						logger.error("SolrOutput [" + name() + "] failure", e);
-					}
-				}
-				logger.info("SolrOutput [" + name() + "] processing [" + seq + "] finishing");
-				Runnable remained;
-				while ((remained = tasks.poll()) != null)
-					try {
-						remained.run();
-					} catch (Exception e) {
-						logger.error("SolrOutput [" + name() + "] failure", e);
-					}
-				logger.info("SolrOutput [" + name() + "] processing [" + seq + "] finished");
-			});
+			SolrSender s = new SolrSender(i);
+			senders.add(s);
+			s.start();
 		}
 	}
 
@@ -132,12 +81,7 @@ public class SolrOutput extends MapOutput<String, SolrMessage<SolrInputDocument>
 				try {
 					solr.add(core, doc.getDoc(), DEFAULT_AUTO_COMMIT_MS);
 				} catch (Exception err) {
-					LinkedBlockingQueue<SolrInputDocument> fails = failover.computeIfAbsent(core, k -> new LinkedBlockingQueue<>(
-							MAX_FAILOVER));
-					if (fails.offer(doc.getDoc())) logger.warn("SolrOutput [" + name() + "] add failure on core [" + core + "] "//
-							+ "with [1] docs, "//
-							+ "push to failover, now [" + fails.size() + "] failover on core [" + core + "]", err);
-					else logger.error("SolrOutput [" + name() + "] failover full, [1] docs lost for core [" + core + "] ");
+					failover.fail(core, doc.getDoc(), err);
 				}
 			});
 		} catch (InterruptedException e) {
@@ -159,17 +103,7 @@ public class SolrOutput extends MapOutput<String, SolrMessage<SolrInputDocument>
 						try {
 							solr.add(e.getKey(), pkg);
 						} catch (Exception err) {
-							LinkedBlockingQueue<SolrInputDocument> fails = failover.computeIfAbsent(e.getKey(),
-									k -> new LinkedBlockingQueue<>(MAX_FAILOVER));
-							try {
-								fails.addAll(pkg);
-								logger.warn(MessageFormat.format(
-										"SolrOutput [{0}] add failure on core [{1}] with [{2}] docs, push to failover, now [{3}] failover on core [{4}]",
-										name(), e.getKey(), pkg.size(), fails.size(), e.getKey()), err);
-							} catch (IllegalStateException ex) {
-								logger.error(MessageFormat.format("SolrOutput [{0}] failover full, [{1}] docs lost for core [{2}] ", name(),
-										pkg.size(), e.getKey()));
-							}
+							failover.fail(e.getKey(), pkg, err);
 						}
 					}
 					try {
@@ -190,7 +124,6 @@ public class SolrOutput extends MapOutput<String, SolrMessage<SolrInputDocument>
 		Concurrents.waitShutdown(ex, logger);
 		logger.debug("SolrOutput [" + name() + "] closing...");
 		closed.set(false);
-		if (!failover.isEmpty()) logger.error("SolrOutput [" + name() + "] contain faiover [" + failover.size() + "].");
 		try {
 			for (String core : cores)
 				solr.commit(core, false, false);
@@ -211,7 +144,43 @@ public class SolrOutput extends MapOutput<String, SolrMessage<SolrInputDocument>
 		throw new UnsupportedOperationException();
 	}
 
-	public int fails() {
+	public long fails() {
 		return failover.size();
+	}
+
+	private class SolrSender extends Thread {
+		private final int seq;
+
+		public SolrSender(int i) {
+			super();
+			this.seq = i;
+			setName("SolrSender-" + SolrOutput.this.name() + "-" + i);
+		}
+
+		@Override
+		public void run() {
+			while (!closed.get()) {
+				Runnable r = null;
+				try {
+					r = tasks.take();
+				} catch (InterruptedException e) {
+					logger.error("SolrOutput [" + name() + "] interrupted", e);
+				}
+				if (null != r) try {
+					r.run();
+				} catch (Exception e) {
+					logger.error("SolrOutput [" + name() + "] failure", e);
+				}
+			}
+			logger.info("SolrOutput [" + name() + "] processing [" + seq + "] finishing");
+			Runnable remained;
+			while ((remained = tasks.poll()) != null)
+				try {
+					remained.run();
+				} catch (Exception e) {
+					logger.error("SolrOutput [" + name() + "] failure", e);
+				}
+			logger.info("SolrOutput [" + name() + "] processing [" + seq + "] finished");
+		}
 	}
 }
