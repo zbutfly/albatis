@@ -14,25 +14,16 @@ import kafka.consumer.ConsumerIterator;
 import kafka.consumer.KafkaStream;
 import net.butfly.albacore.exception.ConfigException;
 import net.butfly.albacore.lambda.Consumer;
+import net.butfly.albacore.utils.IOs;
 
 public class Kafka2Input extends KafkaInputBase<Kafka2Input.KafkaInputFetcher> {
 	private static final long serialVersionUID = 1813167082084278062L;
 	private IBigQueue pool;
 
-	@Override
-	public void close() {
-		super.close();
-		try {
-			pool.close();
-		} catch (IOException e) {
-			logger.error("KafkaInput [" + name() + "] local cache close failure", e);
-		}
-	}
-
 	public Kafka2Input(String name, final String config, final String poolPath, String... topic) throws ConfigException, IOException {
 		super(name, config, topic);
 		try {
-			pool = new BigQueueImpl(poolPath, conf.toString());
+			pool = new BigQueueImpl(IOs.mkdirs(poolPath + "/" + name), conf.toString());
 		} catch (IOException e) {
 			throw new RuntimeException("Offheap pool init failure", e);
 		}
@@ -74,6 +65,16 @@ public class Kafka2Input extends KafkaInputBase<Kafka2Input.KafkaInputFetcher> {
 			} catch (IOException e) {
 				logger.warn("KafkaInput [" + name() + "] local cache gc failure", e);
 			}
+		}
+	}
+
+	@Override
+	public void close() {
+		super.close();
+		try {
+			pool.close();
+		} catch (IOException e) {
+			logger.error("KafkaInput [" + name() + "] local cache close failure", e);
 		}
 	}
 

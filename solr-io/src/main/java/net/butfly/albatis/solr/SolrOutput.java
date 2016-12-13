@@ -2,6 +2,7 @@ package net.butfly.albatis.solr;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -34,7 +35,7 @@ public class SolrOutput extends MapOutput<String, SolrMessage<SolrInputDocument>
 	private static final Logger logger = Logger.getLogger(SolrOutput.class);
 	private static final int DEFAULT_AUTO_COMMIT_MS = 30000;
 	private static final int DEFAULT_PACKAGE_SIZE = 500;
-	private static final int DEFAULT_PARALLELISM = 10;
+	private static final int DEFAULT_PARALLELISM = 5;
 	private static final int MAX_FAILOVER = 50000;
 	private final SolrClient solr;
 	private final Set<String> cores;
@@ -63,30 +64,36 @@ public class SolrOutput extends MapOutput<String, SolrMessage<SolrInputDocument>
 		tasks = new LinkedBlockingQueue<>(DEFAULT_PARALLELISM);
 		ex.submit(() -> {
 			List<SolrInputDocument> retries = new ArrayList<>(DEFAULT_PACKAGE_SIZE);
-			while (!closed.get())
+			int remained;
+			while (!closed.get()) {
+				remained = 0;
 				for (String core : failover.keySet()) {
 					LinkedBlockingQueue<SolrInputDocument> fails = failover.get(core);
-					while (!fails.isEmpty() && retries.size() < DEFAULT_PACKAGE_SIZE)
-						retries.add(fails.poll());
+					fails.drainTo(retries, DEFAULT_PACKAGE_SIZE);
+					remained += fails.size();
 					if (!retries.isEmpty()) try {
 						solr.add(core, retries);
 						retries.clear();
 					} catch (Exception err) {
 						try {
 							fails.addAll(retries);
-							logger.warn("SolrOutput [" + name() + "] retry failure on core [" + core + "] "//
-									+ "with [" + retries.size() + "] docs, "//
-									+ "push back to failover, now [" + fails.size() + "] failover on core [" + core + "]", err);
+							logger.warn(MessageFormat.format(
+									"SolrOutput [{0}] retry failure on core [{1}] with [{2}] docs, push back to failover, now [{3}] failover on core [{4}]",
+									name(), core, retries.size(), fails.size(), core), err);
 						} catch (IllegalStateException ex) {
-							logger.error("SolrOutput [" + name() + "] failover full, [" + retries.size() + "] docs lost for core [" + core
-									+ "] ");
+							logger.error(MessageFormat.format("SolrOutput [{0}] failover full, [{1}] docs lost for core [{2}] ", name(),
+									retries.size(), core));
 						}
 					}
 				}
-			int remained = 0;
+				if (remained > 0) logger.trace(MessageFormat.format("SolrOutput [{0}] retried, failover remained: [{1}].", name(),
+						remained));
+			}
+			remained = 0;
 			for (String core : failover.keySet())
 				remained += failover.get(core).size();
-			if (remained > 0) logger.error("SolrOutput [" + name() + "] failover task finished, failover remain: [" + remained + "].");
+			if (remained > 0) logger.error(MessageFormat.format("SolrOutput [{0}] failover task finished, failover remained : [{1}].",
+					name(), remained));
 		});
 		for (int i = 0; i < DEFAULT_PARALLELISM; i++) {
 			final int seq = i;
@@ -156,12 +163,12 @@ public class SolrOutput extends MapOutput<String, SolrMessage<SolrInputDocument>
 									k -> new LinkedBlockingQueue<>(MAX_FAILOVER));
 							try {
 								fails.addAll(pkg);
-								logger.warn("SolrOutput [" + name() + "] add failure on core [" + e.getKey() + "] "//
-										+ "with [" + pkg.size() + "] docs, "//
-										+ "push to failover, now [" + fails.size() + "] failover on core [" + e.getKey() + "]", err);
+								logger.warn(MessageFormat.format(
+										"SolrOutput [{0}] add failure on core [{1}] with [{2}] docs, push to failover, now [{3}] failover on core [{4}]",
+										name(), e.getKey(), pkg.size(), fails.size(), e.getKey()), err);
 							} catch (IllegalStateException ex) {
-								logger.error("SolrOutput [" + name() + "] failover full, [" + pkg.size() + "] docs lost for core [" + e
-										.getKey() + "] ");
+								logger.error(MessageFormat.format("SolrOutput [{0}] failover full, [{1}] docs lost for core [{2}] ", name(),
+										pkg.size(), e.getKey()));
 							}
 						}
 					}
