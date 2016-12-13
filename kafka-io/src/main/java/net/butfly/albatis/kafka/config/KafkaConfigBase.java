@@ -49,7 +49,7 @@ public abstract class KafkaConfigBase implements Serializable {
 		transferBufferBytes = Long.valueOf(props.getProperty("albatis.kafka.transfer.buffer.bytes", "5242880"));
 		keySerializerClass = props.getProperty("albatis.kafka.key.serializer.class", ByteArraySerializer.class.getName());
 		valueSerializerClass = props.getProperty("albatis.kafka.value.serializer.class", ByteArraySerializer.class.getName());
-		poolSize = Long.parseLong(props.getProperty("albatis.kafka.internal.pool.size", "100000"));
+		poolSize = Long.parseLong(props.getProperty("albatis.kafka.internal.pool.size", "3000000"));
 	}
 
 	public KafkaConfigBase(String classpathResourceName) throws IOException {

@@ -42,7 +42,7 @@ public class Kafka2Input extends KafkaInputBase<Kafka2Input.KafkaInputFetcher> {
 			for (KafkaStream<byte[], byte[]> stream : raws.get(t))
 				streams.compute(t, (k, v) -> {
 					Map<KafkaStream<byte[], byte[]>, KafkaInputFetcher> v1 = v == null ? new HashMap<>() : v;
-					KafkaInputFetcher f = new KafkaInputFetcher(name, stream, i.incrementAndGet(), pool);
+					KafkaInputFetcher f = new KafkaInputFetcher(name, stream, i.incrementAndGet(), pool, conf.getPoolSize());
 					logger.info("KafkaInput [" + name + "] fetcher [" + i.get() + "] started.");
 					f.start();
 					v1.put(stream, f);
@@ -74,7 +74,6 @@ public class Kafka2Input extends KafkaInputBase<Kafka2Input.KafkaInputFetcher> {
 			} catch (IOException e) {
 				logger.warn("KafkaInput [" + name() + "] local cache gc failure", e);
 			}
-			System.gc();
 		}
 	}
 
@@ -86,10 +85,12 @@ public class Kafka2Input extends KafkaInputBase<Kafka2Input.KafkaInputFetcher> {
 		public AtomicBoolean closed = new AtomicBoolean(false);
 		private final KafkaStream<byte[], byte[]> stream;
 		private final IBigQueue pool;
+		private final long poolSize;
 
-		public KafkaInputFetcher(String inputName, KafkaStream<byte[], byte[]> stream, int i, IBigQueue pool) {
+		public KafkaInputFetcher(String inputName, KafkaStream<byte[], byte[]> stream, int i, IBigQueue pool, long poolSize) {
 			this.stream = stream;
 			this.pool = pool;
+			this.poolSize = poolSize;
 			this.setName("Kafka2InputFetcher-" + i);
 			this.setUncaughtExceptionHandler((t, e) -> {
 				logger.error("KafkaInput [" + inputName + "] fetcher [" + t.getName() + "] error, pool size: [" + pool.size() + "].", e);
@@ -103,6 +104,8 @@ public class Kafka2Input extends KafkaInputBase<Kafka2Input.KafkaInputFetcher> {
 				try {
 					while (it.hasNext()) {
 						byte[] km = new KafkaMessage(it.next()).toBytes();
+						while (pool.size() > poolSize)
+							sleep(1000);
 						pool.enqueue(km);
 					}
 				} catch (Exception e) {
