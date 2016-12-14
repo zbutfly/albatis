@@ -36,12 +36,12 @@ class SolrPersistFailover extends SolrFailover {
 		}
 		failover = new BigQueueImpl(IOs.mkdirs(path + "/" + solr.name()), qname);
 		logger.info(MessageFormat.format("SolrOutput [{0}] failover [persist mode] init: [{1}/{2}] with name [{3}], init size [{4}].", solr
-				.name(), path, solr.name(), qname, failover.size()));
+				.name(), path, solr.name(), qname, size()));
 	}
 
 	@Override
 	protected void failover() {
-		while (failover.isEmpty())
+		while (failover.isEmpty() && !solr.closed.get())
 			Concurrents.waitSleep(1000);
 		Map<String, List<SolrInputDocument>> fails = new HashMap<>();
 		while (!failover.isEmpty() && !solr.closed.get()) {
@@ -68,6 +68,14 @@ class SolrPersistFailover extends SolrFailover {
 				fail(sm.getCore(), l, e);
 			}
 		}
+		for (String core : fails.keySet()) {
+			List<SolrInputDocument> l = fails.remove(core);
+			try {
+				solr.solr.add(core, l, SolrOutput.DEFAULT_AUTO_COMMIT_MS);
+			} catch (SolrServerException | IOException e) {
+				fail(core, l, e);
+			}
+		}
 	}
 
 	@Override
@@ -81,35 +89,38 @@ class SolrPersistFailover extends SolrFailover {
 	}
 
 	@Override
-	public void fail(String core, List<SolrInputDocument> docs, Exception err) {
+	public int fail(String core, List<SolrInputDocument> docs, Exception err) {
+		int c = 0;
 		for (SolrInputDocument doc : docs)
 			try {
 				failover.enqueue(toBytes(new SolrMessage<SolrInputDocument>(core, doc)));
+				c++;
 			} catch (IOException e) {
 				if (null != err) logger.error(MessageFormat.format("SolrOutput [{0}] failover full, [{1}] docs lost on [{2}]", solr.name(),
 						docs.size(), core), err);
 				else logger.error(MessageFormat.format("SolrOutput [{0}] failover full, [{1}] docs lost on [{2}]", solr.name(), docs.size(),
 						core), e);
-				return;
 			}
 		if (null != err) logger.warn(MessageFormat.format(
 				"SolrOutput [{0}] add failure on [{1}] with [{2}] docs, push to failover, now [{3}] failover on [{1}], failure for [{4}]",
-				solr.name(), core, docs.size(), failover.size(), err.getMessage()));
+				solr.name(), core, docs.size(), size(), err.getMessage()));
+		return c;
 	}
 
 	@Override
-	public void fail(String core, SolrInputDocument doc, Exception err) {
+	public boolean fail(String core, SolrInputDocument doc, Exception err) {
 		try {
 			failover.enqueue(toBytes(new SolrMessage<SolrInputDocument>(core, doc)));
-			logger.warn(MessageFormat.format(
-					"SolrOutput [{0}] add failure on [{1}] with [{2}] docs, push to failover, now [{3}] failover on [{1}], failure for [{4}]",
-					solr.name(), core, 1, failover.size(), err.getMessage()));
 		} catch (IOException e) {
 			if (null != err) logger.error(MessageFormat.format("SolrOutput [{0}] failover full, [{1}] docs lost on [{2}]", solr.name(), 1,
 					core), err);
 			else logger.error(MessageFormat.format("SolrOutput [{0}] failover full, [{1}] docs lost on [{2}]", solr.name(), 1, core), e);
+			return false;
 		}
-
+		if (null != err) logger.warn(MessageFormat.format(
+				"SolrOutput [{0}] add failure on [{1}] with [{2}] docs, push to failover, now [{3}] failover on [{1}], failure for [{4}]",
+				solr.name(), core, 1, size(), err.getMessage()));
+		return true;
 	}
 
 	private byte[] toBytes(SolrMessage<SolrInputDocument> message) {
@@ -134,8 +145,11 @@ class SolrPersistFailover extends SolrFailover {
 
 	@Override
 	public void close() {
+		while (isAlive())
+			Concurrents.waitSleep(100);
 		try {
 			failover.gc();
+			if (size() > 0) logger.error(getName() + " failover remained [" + size() + "].");
 			failover.close();
 		} catch (IOException e) {
 			logger.error(MessageFormat.format("SolrOutput [{0}] failover close failure", solr.name()), e);

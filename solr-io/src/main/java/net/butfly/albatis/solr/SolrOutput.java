@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.solr.client.solrj.SolrClient;
@@ -70,6 +71,10 @@ public class SolrOutput extends MapOutput<String, SolrMessage<SolrInputDocument>
 	@Override
 	public boolean enqueue0(String core, SolrMessage<SolrInputDocument> doc) {
 		cores.add(core);
+		if (closed.get()) {
+			failover.fail(core, doc.getDoc(), null);
+			return false;
+		}
 		try {
 			tasks.put(() -> {
 				try {
@@ -90,8 +95,9 @@ public class SolrOutput extends MapOutput<String, SolrMessage<SolrInputDocument>
 		for (SolrMessage<SolrInputDocument> d : docs)
 			map.computeIfAbsent(d.getCore(), core -> new ArrayList<>()).add(d.getDoc());
 		cores.addAll(map.keySet());
-		for (Entry<String, List<SolrInputDocument>> e : map.entrySet())
-			try {
+		for (Entry<String, List<SolrInputDocument>> e : map.entrySet()) {
+			if (closed.get()) failover.fail(e.getKey(), e.getValue(), null);
+			else try {
 				tasks.put(() -> {
 					for (List<SolrInputDocument> pkg : Collections.chopped(e.getValue(), DEFAULT_PACKAGE_SIZE)) {
 						try {
@@ -109,6 +115,7 @@ public class SolrOutput extends MapOutput<String, SolrMessage<SolrInputDocument>
 			} catch (InterruptedException ee) {
 				failover.fail(e.getKey(), e.getValue(), null);
 			}
+		}
 		try {
 			return docs.size();
 		} finally {
@@ -120,13 +127,9 @@ public class SolrOutput extends MapOutput<String, SolrMessage<SolrInputDocument>
 	public void close() {
 		logger.debug("SolrOutput [" + name() + "] closing...");
 		closed.set(true);
-		while (failover.isAlive())
-			Concurrents.waitSleep(100);
-		for (SolrSender s : senders) {
-			s.interrupt();
-			while (s.isAlive())
-				Concurrents.waitSleep(100);
-		}
+		for (SolrSender s : senders)
+			s.close();
+		failover.close();
 		logger.debug("SolrOutput [" + name() + "] all processing thread closed normally");
 		try {
 			for (String core : cores)
@@ -136,7 +139,6 @@ public class SolrOutput extends MapOutput<String, SolrMessage<SolrInputDocument>
 		}
 		Solrs.close(solr);
 		logger.info("SolrOutput [" + name() + "] closed, failover [" + fails() + "].");
-		failover.close();
 	}
 
 	@Override
@@ -153,7 +155,7 @@ public class SolrOutput extends MapOutput<String, SolrMessage<SolrInputDocument>
 		return failover.size();
 	}
 
-	private class SolrSender extends Thread {
+	private class SolrSender extends Thread implements AutoCloseable {
 		private final int seq;
 
 		public SolrSender(int i) {
@@ -163,11 +165,17 @@ public class SolrOutput extends MapOutput<String, SolrMessage<SolrInputDocument>
 		}
 
 		@Override
+		public void close() {
+			while (isAlive())
+				Concurrents.waitSleep(100);
+		}
+
+		@Override
 		public void run() {
 			while (!closed.get()) {
 				Runnable r = null;
 				try {
-					r = tasks.take();
+					r = tasks.poll(100, TimeUnit.MILLISECONDS);
 				} catch (InterruptedException e) {
 					logger.warn(getName() + "interrupted.");
 				}
