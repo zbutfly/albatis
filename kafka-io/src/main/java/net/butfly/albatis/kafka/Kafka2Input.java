@@ -115,7 +115,7 @@ public class Kafka2Input extends KafkaInputBase<Kafka2Input.KafkaInputFetcher> {
 					}
 					sleep(1000); // kafka empty
 				} catch (Exception e) {
-//					logger.warn("KafkaInputFetcher [" + getName() + "] failure, pool [" + pool.size() + "]", e);
+					// logger.warn(MessageFormat.format("KafkaInputFetcher [{0}] failure, pool [{1}]", getName(), pool.size()), e);
 				}
 			logger.info("KafkaInputFetcher [" + getName() + "] finished, pool [" + pool.size() + "].");
 		}
@@ -123,7 +123,8 @@ public class Kafka2Input extends KafkaInputBase<Kafka2Input.KafkaInputFetcher> {
 		@Override
 		public void close() {
 			closed.set(true);
-			while (this.isAlive())
+			KafkaInputFetcher.this.interrupt();
+			while (KafkaInputFetcher.this.isAlive())
 				Concurrents.waitSleep(100);
 		}
 	}

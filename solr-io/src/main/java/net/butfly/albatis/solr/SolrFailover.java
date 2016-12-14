@@ -1,6 +1,5 @@
 package net.butfly.albatis.solr;
 
-import java.text.MessageFormat;
 import java.util.List;
 
 import org.apache.solr.common.SolrInputDocument;
@@ -22,20 +21,18 @@ abstract class SolrFailover extends Thread implements Statistical<SolrFailover, 
 
 	@Override
 	public void run() {
+		logger.info(getName() + " started.");
 		while (!solr.closed.get())
 			failover();
-		long remained = size();
-		if (remained > 0) logger.error(MessageFormat.format("SolrOutput [{0}] failover task finished, failover remained: [{1}].", solr
-				.name(), remained));
 	}
 
 	public abstract boolean isEmpty();
 
 	public abstract long size();
 
-	public abstract void fail(String key, List<SolrInputDocument> docs, Exception err);
+	public abstract int fail(String core, List<SolrInputDocument> docs, Exception err);
 
-	public abstract void fail(String core, SolrInputDocument doc, Exception err);
+	public abstract boolean fail(String core, SolrInputDocument doc, Exception err);
 
 	protected abstract void failover();
 

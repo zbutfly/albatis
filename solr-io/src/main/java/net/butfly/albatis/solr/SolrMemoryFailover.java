@@ -23,7 +23,10 @@ class SolrMemoryFailover extends SolrFailover {
 
 	@Override
 	public long size() {
-		return failover.size();
+		long c = 0;
+		for (String core : failover.keySet())
+			c += failover.get(core).size();
+		return c;
 	}
 
 	@Override
@@ -32,41 +35,44 @@ class SolrMemoryFailover extends SolrFailover {
 	}
 
 	@Override
-	public void fail(String core, List<SolrInputDocument> docs, Exception err) {
+	public int fail(String core, List<SolrInputDocument> docs, Exception err) {
 		LinkedBlockingQueue<SolrInputDocument> fails = failover.computeIfAbsent(core, k -> new LinkedBlockingQueue<>(MAX_FAILOVER));
 		try {
 			fails.addAll(docs);
 			if (null != err) logger.warn(MessageFormat.format(
 					"SolrOutput [{0}] add failure on [{1}] with [{2}] docs, push to failover, now [{3}] failover on [{1}], failure for [{4}]",
 					solr.name(), core, docs.size(), fails.size(), err.getMessage()));
+			return docs.size();
 		} catch (IllegalStateException ex) {
 			logger.error(MessageFormat.format("SolrOutput [{0}] failover full, [{1}] docs lost on [{2}]", solr.name(), docs.size(), core),
 					null == err ? ex : err);
+			return 0;
 		}
 	}
 
 	@Override
-	public void fail(String core, SolrInputDocument doc, Exception err) {
+	public boolean fail(String core, SolrInputDocument doc, Exception err) {
 		LinkedBlockingQueue<SolrInputDocument> fails = failover.computeIfAbsent(core, k -> new LinkedBlockingQueue<>(MAX_FAILOVER));
-		if (fails.offer(doc) && null != err) logger.warn(MessageFormat.format(
-				"SolrOutput [{0}] add failure on [{1}] with [{2}] docs, push to failover, now [{3}] failover on [{1}], failure for [{4}]",
-				solr.name(), core, 1, fails.size(), err.getMessage()));
-		else {
+		boolean r = fails.offer(doc);
+		if (r) {
+			if (null != err) logger.warn(MessageFormat.format(
+					"SolrOutput [{0}] add failure on [{1}] with [{2}] docs, push to failover, now [{3}] failover on [{1}], failure for [{4}]",
+					solr.name(), core, 1, fails.size(), err.getMessage()));
+		} else {
 			if (null != err) logger.error(MessageFormat.format("SolrOutput [{0}] failover full, [1] docs lost on [{1}]", solr.name(), core),
 					err);
 			else logger.error(MessageFormat.format("SolrOutput [{0}] failover full, [1] docs lost on [{1}]", solr.name(), core));
 		}
+		return r;
 	}
 
 	@Override
 	protected void failover() {
-		int remained = 0;
 		List<SolrInputDocument> retries = new ArrayList<>(SolrOutput.DEFAULT_PACKAGE_SIZE);
 		for (String core : failover.keySet()) {
 			LinkedBlockingQueue<SolrInputDocument> fails = failover.get(core);
 			fails.drainTo(retries, SolrOutput.DEFAULT_PACKAGE_SIZE);
 			stats(retries);
-			remained += fails.size();
 			if (!retries.isEmpty()) try {
 				solr.solr.add(core, retries);
 				retries.clear();
@@ -74,7 +80,6 @@ class SolrMemoryFailover extends SolrFailover {
 				fail(core, retries, err);
 			}
 		}
-		if (remained > 0) logger.debug(MessageFormat.format("SolrOutput [{0}] retried, failover remained: [{1}].", solr.name(), remained));
 	}
 
 }
