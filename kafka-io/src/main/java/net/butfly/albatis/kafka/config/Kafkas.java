@@ -24,17 +24,36 @@ public final class Kafkas extends Utils {
 		List<String> brokens = new ArrayList<>();
 		ZooKeeper zk = new ZooKeeper(zkconn, 500, e -> {});
 		try {
-			for (String brokenId : zk.getChildren(ZkUtils.BrokerIdsPath(), false)) {
-				byte[] d = zk.getData(ZkUtils.BrokerIdsPath() + "/" + brokenId, false, null);
+			List<String> ids;
+			try {
+				ids = zk.getChildren(ZkUtils.BrokerIdsPath(), false);
+			} catch (KeeperException e) {
+				throw new IOException(e);
+			} catch (InterruptedException e) {
+				throw new IOException("Kafka connecting [" + zkconn + "] [" + ZkUtils.BrokerIdsPath() + "] interrupted.", e);
+			}
+			for (String brokenId : ids) {
+				byte[] d;
+				try {
+					d = zk.getData(ZkUtils.BrokerIdsPath() + "/" + brokenId, false, null);
+				} catch (KeeperException e) {
+					logger.error("Kafka connecting [" + zkconn + "] [" + ZkUtils.BrokerIdsPath() + "/" + brokenId + "] failure and ignored",
+							e);
+					continue;
+				} catch (InterruptedException e) {
+					logger.warn("Kafka connecting [" + zkconn + "] [" + ZkUtils.BrokerIdsPath() + "/" + brokenId
+							+ "] interrupted and ignored.");
+					continue;
+				}
 				Map<String, Object> info = JsonSerder.JSON_MAPPER.der(new String(d));
 				brokens.add(info.get("host") + ":" + info.get("port"));
 			}
-		} catch (KeeperException e) {
-			throw new IOException(e);
-		} catch (InterruptedException e) {} finally {
+		} finally {
 			try {
 				zk.close();
-			} catch (InterruptedException e) {}
+			} catch (InterruptedException e) {
+				logger.warn("Kafka closing [" + zkconn + "]  interrupted and ignored.");
+			}
 		}
 		return brokens.toArray(new String[brokens.size()]);
 	}
@@ -50,10 +69,14 @@ public final class Kafkas extends Utils {
 			}
 		} catch (KeeperException e) {
 			throw new IOException(e);
-		} catch (InterruptedException e) {} finally {
+		} catch (InterruptedException e) {
+			throw new IOException("Kafka connecting [" + zkconn + "] [" + ZkUtils.BrokerIdsPath() + "] interrupted.", e);
+		} finally {
 			try {
 				zk.close();
-			} catch (InterruptedException e) {}
+			} catch (InterruptedException e) {
+				logger.warn("Kafka closing [" + zkconn + "]  interrupted and ignored.");
+			}
 		}
 		return topics;
 	}
@@ -78,7 +101,9 @@ public final class Kafkas extends Utils {
 		} finally {
 			try {
 				zk.close();
-			} catch (InterruptedException e) {}
+			} catch (InterruptedException e) {
+				logger.warn("Kafka closing [" + zkconn + "]  interrupted and ignored.");
+			}
 		}
 		return topics;
 	}

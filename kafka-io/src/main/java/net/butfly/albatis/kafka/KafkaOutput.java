@@ -59,9 +59,9 @@ public class KafkaOutput extends MapOutput<String, KafkaMessage> {
 		try {
 			Futures.successfulAsList(fs).get();
 		} catch (InterruptedException e) {
-			logger.error("KafkaOutput interrupted", e);
+			logger.error("KafkaOutput [" + name() + "] interrupted", e);
 		} catch (ExecutionException e) {
-			logger.error("KafkaOutput failure", e.getCause());
+			logger.error("KafkaOutput [" + name() + "] failure", e.getCause());
 		}
 		return c.get();
 	}

@@ -4,6 +4,8 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -26,7 +28,12 @@ class SolrPersistFailover extends SolrFailover {
 
 	public SolrPersistFailover(SolrOutput solr, String path, String solrUrl) throws IOException {
 		super(solr);
-		String qname = solrUrl.replace('/', '-');
+		String qname;
+		try {
+			qname = new URI(solrUrl).getAuthority().replaceAll("/", "-");
+		} catch (URISyntaxException e) {
+			qname = solrUrl.replaceAll("/", "-");
+		}
 		failover = new BigQueueImpl(IOs.mkdirs(path + "/" + solr.name()), qname);
 		logger.info(MessageFormat.format("SolrOutput [{0}] failover [persist mode] init: [{1}/{2}] with name [{3}], init size [{4}].", solr
 				.name(), path, solr.name(), qname, failover.size()));
@@ -54,10 +61,9 @@ class SolrPersistFailover extends SolrFailover {
 			l.add(sm.getDoc());
 			if (l.size() < SolrOutput.DEFAULT_PACKAGE_SIZE && !failover.isEmpty()) continue;
 			l = fails.remove(sm.getCore());
+			stats(l);
 			try {
 				solr.solr.add(sm.getCore(), l, SolrOutput.DEFAULT_AUTO_COMMIT_MS);
-				logger.debug(MessageFormat.format("SolrOutput [{0}] retried [{1}] successfully, failover remained: [{2}].", solr.name(), l
-						.size(), failover.size()));
 			} catch (SolrServerException | IOException e) {
 				fail(sm.getCore(), l, e);
 			}
