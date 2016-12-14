@@ -1,6 +1,7 @@
 package net.butfly.albatis.kafka;
 
 import java.io.IOException;
+import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,7 +28,8 @@ public class Kafka2Input extends KafkaInputBase<Kafka2Input.KafkaInputFetcher> {
 		} catch (IOException e) {
 			throw new RuntimeException("Offheap pool init failure", e);
 		}
-		logger.info("KafkaInput [" + name + "] local cache init: [" + poolPath + "] with name [" + conf.toString() + "].");
+		logger.info(MessageFormat.format("KafkaInput [{0}] local cache init: [{1}/{2}] with name [{3}], init size [{4}].", name, poolPath,
+				name, conf.toString(), pool.size()));
 		AtomicInteger i = new AtomicInteger(0);
 		for (String t : raws.keySet())
 			for (KafkaStream<byte[], byte[]> stream : raws.get(t))
@@ -60,6 +62,7 @@ public class Kafka2Input extends KafkaInputBase<Kafka2Input.KafkaInputFetcher> {
 		try {
 			return super.dequeue(batchSize, topic);
 		} finally {
+			System.gc();
 			try {
 				pool.gc();
 			} catch (IOException e) {
