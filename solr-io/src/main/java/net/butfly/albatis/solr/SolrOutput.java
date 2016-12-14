@@ -17,9 +17,6 @@ import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.common.SolrInputDocument;
 
-import com.google.common.util.concurrent.ListeningExecutorService;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
-
 import net.butfly.albacore.io.MapOutput;
 import net.butfly.albacore.io.queue.Q;
 import net.butfly.albacore.lambda.Converter;
@@ -39,7 +36,6 @@ public class SolrOutput extends MapOutput<String, SolrMessage<SolrInputDocument>
 
 	private final Set<String> cores;
 	private final LinkedBlockingQueue<Runnable> tasks;
-	private final ListeningExecutorService ex;
 	private final SolrFailover failover;
 	private final List<SolrSender> senders;
 
@@ -50,9 +46,6 @@ public class SolrOutput extends MapOutput<String, SolrMessage<SolrInputDocument>
 	public SolrOutput(String name, String baseUrl, String failoverPath) throws IOException {
 		super(name, m -> m.getCore());
 		logger.info("SolrOutput [" + name + "] from [" + baseUrl + "]");
-		ex = Concurrents.executor(DEFAULT_PARALLELISM, new ThreadFactoryBuilder().setNameFormat("SolrSender-" + name + "-%d").setPriority(
-				Thread.MAX_PRIORITY).setUncaughtExceptionHandler((t, e) -> logger.error("SolrOutput [" + name() + "] failure in async", e))
-				.build());
 		Tuple3<String, String, String[]> t;
 		try {
 			t = Solrs.parseSolrURL(baseUrl);
@@ -69,6 +62,7 @@ public class SolrOutput extends MapOutput<String, SolrMessage<SolrInputDocument>
 		for (int i = 0; i < DEFAULT_PARALLELISM; i++) {
 			SolrSender s = new SolrSender(i);
 			senders.add(s);
+			s.setUncaughtExceptionHandler((tt, e) -> logger.error("SolrOutputSender [" + name() + "] failure in async", e));
 			s.start();
 		}
 	}
@@ -85,7 +79,7 @@ public class SolrOutput extends MapOutput<String, SolrMessage<SolrInputDocument>
 				}
 			});
 		} catch (InterruptedException e) {
-			logger.error("SolrOutput [" + name() + "] task submit interrupted", e);
+			failover.fail(core, doc.getDoc(), null);
 		}
 		return true;
 	}
@@ -113,17 +107,25 @@ public class SolrOutput extends MapOutput<String, SolrMessage<SolrInputDocument>
 					}
 				});
 			} catch (InterruptedException ee) {
-				logger.error("SolrOutput [" + name() + "] task submit interrupted", ee);
+				failover.fail(e.getKey(), e.getValue(), null);
 			}
-		return docs.size();
+		try {
+			return docs.size();
+		} finally {
+			System.gc();
+		}
 	}
 
 	@Override
 	public void close() {
-		ex.shutdown();
-		Concurrents.waitShutdown(ex, logger);
 		logger.debug("SolrOutput [" + name() + "] closing...");
-		closed.set(false);
+		closed.set(true);
+		while (failover.isAlive())
+			Concurrents.waitSleep(100);
+		for (SolrSender s : senders)
+			while (s.isAlive())
+				Concurrents.waitSleep(100);
+		logger.debug("SolrOutput [" + name() + "] all processing thread closed normally");
 		try {
 			for (String core : cores)
 				solr.commit(core, false, false);
@@ -131,7 +133,8 @@ public class SolrOutput extends MapOutput<String, SolrMessage<SolrInputDocument>
 			logger.error("SolrOutput close failure", e);
 		}
 		Solrs.close(solr);
-		logger.info("SolrOutput [" + name() + "] closed.");
+		logger.info("SolrOutput [" + name() + "] closed, failover [" + fails() + "].");
+		failover.close();
 	}
 
 	@Override
@@ -172,7 +175,7 @@ public class SolrOutput extends MapOutput<String, SolrMessage<SolrInputDocument>
 					logger.error("SolrOutput [" + name() + "] failure", e);
 				}
 			}
-			logger.info("SolrOutput [" + name() + "] processing [" + seq + "] finishing");
+			logger.debug("SolrOutput [" + name() + "] processing [" + seq + "] finishing");
 			Runnable remained;
 			while ((remained = tasks.poll()) != null)
 				try {

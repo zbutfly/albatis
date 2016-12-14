@@ -5,9 +5,11 @@ import java.util.List;
 
 import org.apache.solr.common.SolrInputDocument;
 
+import net.butfly.albacore.io.stats.Statistical;
 import net.butfly.albacore.utils.logger.Logger;
 
-abstract class SolrFailover extends Thread {
+abstract class SolrFailover extends Thread implements Statistical<SolrFailover, SolrMessage<SolrInputDocument>>, AutoCloseable {
+	private static final long serialVersionUID = -7515454826294115208L;
 	protected static final Logger logger = Logger.getLogger(SolrFailover.class);
 	protected final SolrOutput solr;
 
@@ -23,7 +25,7 @@ abstract class SolrFailover extends Thread {
 		while (!solr.closed.get())
 			failover();
 		long remained = size();
-		if (remained > 0) logger.error(MessageFormat.format("SolrOutput [{0}] failover task finished, failover remained : [{1}].", solr
+		if (remained > 0) logger.error(MessageFormat.format("SolrOutput [{0}] failover task finished, failover remained: [{1}].", solr
 				.name(), remained));
 	}
 
@@ -37,4 +39,6 @@ abstract class SolrFailover extends Thread {
 
 	protected abstract void failover();
 
+	@Override
+	public void close() {}
 }
