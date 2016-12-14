@@ -65,6 +65,7 @@ class SolrMemoryFailover extends SolrFailover {
 		for (String core : failover.keySet()) {
 			LinkedBlockingQueue<SolrInputDocument> fails = failover.get(core);
 			fails.drainTo(retries, SolrOutput.DEFAULT_PACKAGE_SIZE);
+			stats(retries);
 			remained += fails.size();
 			if (!retries.isEmpty()) try {
 				solr.solr.add(core, retries);
@@ -75,4 +76,5 @@ class SolrMemoryFailover extends SolrFailover {
 		}
 		if (remained > 0) logger.debug(MessageFormat.format("SolrOutput [{0}] retried, failover remained: [{1}].", solr.name(), remained));
 	}
+
 }

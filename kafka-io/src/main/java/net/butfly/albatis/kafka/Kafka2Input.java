@@ -16,6 +16,7 @@ import kafka.consumer.KafkaStream;
 import net.butfly.albacore.exception.ConfigException;
 import net.butfly.albacore.lambda.Consumer;
 import net.butfly.albacore.utils.IOs;
+import net.butfly.albacore.utils.async.Concurrents;
 
 public class Kafka2Input extends KafkaInputBase<Kafka2Input.KafkaInputFetcher> {
 	private static final long serialVersionUID = 1813167082084278062L;
@@ -62,7 +63,7 @@ public class Kafka2Input extends KafkaInputBase<Kafka2Input.KafkaInputFetcher> {
 		try {
 			return super.dequeue(batchSize, topic);
 		} finally {
-			System.gc();
+			// System.gc();
 			try {
 				pool.gc();
 			} catch (IOException e) {
@@ -95,9 +96,9 @@ public class Kafka2Input extends KafkaInputBase<Kafka2Input.KafkaInputFetcher> {
 			this.stream = stream;
 			this.pool = pool;
 			this.poolSize = poolSize;
-			this.setName("Kafka2InputFetcher-" + i);
+			this.setName(inputName + "-Fetcher-" + i);
 			this.setUncaughtExceptionHandler((t, e) -> {
-				logger.error("KafkaInput [" + inputName + "] fetcher [" + t.getName() + "] error, pool size: [" + pool.size() + "].", e);
+				logger.error("KafkaInputFetcher [" + getName() + "] async error, pool [" + pool.size() + "]", e);
 			});
 		}
 
@@ -106,21 +107,24 @@ public class Kafka2Input extends KafkaInputBase<Kafka2Input.KafkaInputFetcher> {
 			ConsumerIterator<byte[], byte[]> it = stream.iterator();
 			while (!closed.get())
 				try {
-					while (it.hasNext()) {
+					while (!closed.get() && it.hasNext()) {
 						byte[] km = new KafkaMessage(it.next()).toBytes();
 						while (pool.size() > poolSize)
 							sleep(1000);
 						pool.enqueue(km);
 					}
+					sleep(1000); // kafka empty
 				} catch (Exception e) {
-					logger.trace("KafkaInputFetcher [" + getName() + "] failure, pool size: [" + pool.size() + "].", e);
+//					logger.warn("KafkaInputFetcher [" + getName() + "] failure, pool [" + pool.size() + "]", e);
 				}
+			logger.info("KafkaInputFetcher [" + getName() + "] finished, pool [" + pool.size() + "].");
 		}
 
 		@Override
 		public void close() {
 			closed.set(true);
-			interrupt();
+			while (this.isAlive())
+				Concurrents.waitSleep(100);
 		}
 	}
 }

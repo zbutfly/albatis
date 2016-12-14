@@ -112,7 +112,7 @@ public class SolrOutput extends MapOutput<String, SolrMessage<SolrInputDocument>
 		try {
 			return docs.size();
 		} finally {
-			System.gc();
+			// System.gc();
 		}
 	}
 
@@ -122,9 +122,11 @@ public class SolrOutput extends MapOutput<String, SolrMessage<SolrInputDocument>
 		closed.set(true);
 		while (failover.isAlive())
 			Concurrents.waitSleep(100);
-		for (SolrSender s : senders)
+		for (SolrSender s : senders) {
+			s.interrupt();
 			while (s.isAlive())
 				Concurrents.waitSleep(100);
+		}
 		logger.debug("SolrOutput [" + name() + "] all processing thread closed normally");
 		try {
 			for (String core : cores)
@@ -157,7 +159,7 @@ public class SolrOutput extends MapOutput<String, SolrMessage<SolrInputDocument>
 		public SolrSender(int i) {
 			super();
 			this.seq = i;
-			setName("SolrSender-" + SolrOutput.this.name() + "-" + i);
+			setName(SolrOutput.this.name() + "-Sender-" + i);
 		}
 
 		@Override
@@ -167,7 +169,7 @@ public class SolrOutput extends MapOutput<String, SolrMessage<SolrInputDocument>
 				try {
 					r = tasks.take();
 				} catch (InterruptedException e) {
-					logger.error("SolrOutput [" + name() + "] interrupted", e);
+					logger.warn(getName() + "interrupted.");
 				}
 				if (null != r) try {
 					r.run();
