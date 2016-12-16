@@ -15,7 +15,6 @@ import com.google.common.util.concurrent.ListenableFuture;
 
 import net.butfly.albacore.exception.ConfigException;
 import net.butfly.albacore.io.MapOutput;
-import net.butfly.albacore.io.queue.Q;
 import net.butfly.albacore.lambda.Converter;
 import net.butfly.albatis.kafka.config.KafkaOutputConfig;
 
@@ -29,7 +28,7 @@ public class KafkaOutput extends MapOutput<String, KafkaMessage> {
 	}
 
 	@Override
-	protected void closing() {
+	public void closing() {
 		super.closing();
 		connect.close();
 	}
@@ -69,11 +68,6 @@ public class KafkaOutput extends MapOutput<String, KafkaMessage> {
 
 	@Override
 	public Set<String> keys() {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	public Q<KafkaMessage, Void> q(String key) {
 		throw new UnsupportedOperationException();
 	}
 }

@@ -58,7 +58,7 @@ public class MongodbInput extends Input<DBObject> {
 	}
 
 	@Override
-	protected void closing() {
+	public void closing() {
 		super.closing();
 		logger.debug("MongoDBInput [" + name() + "] closing...");
 		cursor.close();

@@ -41,7 +41,7 @@ public class HbaseInput extends Input<HbaseResult> {
 	}
 
 	@Override
-	protected void closing() {
+	public void closing() {
 		try {
 			scaner.close();
 			table.close();

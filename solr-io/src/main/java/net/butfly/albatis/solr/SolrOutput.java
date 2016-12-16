@@ -17,7 +17,6 @@ import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.common.SolrInputDocument;
 
 import net.butfly.albacore.io.MapOutput;
-import net.butfly.albacore.io.queue.Q;
 import net.butfly.albacore.lambda.Converter;
 import net.butfly.albacore.lambda.ConverterPair;
 import net.butfly.albacore.utils.Collections;
@@ -74,7 +73,7 @@ public class SolrOutput extends MapOutput<String, SolrMessage<SolrInputDocument>
 	@Override
 	public boolean enqueue0(String core, SolrMessage<SolrInputDocument> doc) {
 		cores.add(core);
-		if (!isOpen()) {
+		if (!opened()) {
 			failover.fail(core, doc.getDoc(), null);
 			return false;
 		}
@@ -99,7 +98,7 @@ public class SolrOutput extends MapOutput<String, SolrMessage<SolrInputDocument>
 			map.computeIfAbsent(d.getCore(), core -> new ArrayList<>()).add(d.getDoc());
 		cores.addAll(map.keySet());
 		for (Entry<String, List<SolrInputDocument>> e : map.entrySet()) {
-			if (status.get() != Status.OPENED) failover.fail(e.getKey(), e.getValue(), null);
+			if (!opened()) failover.fail(e.getKey(), e.getValue(), null);
 			else try {
 				tasks.put(() -> {
 					for (List<SolrInputDocument> pkg : Collections.chopped(e.getValue(), DEFAULT_PACKAGE_SIZE)) {
@@ -127,7 +126,7 @@ public class SolrOutput extends MapOutput<String, SolrMessage<SolrInputDocument>
 	}
 
 	@Override
-	protected void closing() {
+	public void closing() {
 		super.closing();
 		for (SolrSender s : senders)
 			s.close();
@@ -145,11 +144,6 @@ public class SolrOutput extends MapOutput<String, SolrMessage<SolrInputDocument>
 	@Override
 	public Set<String> keys() {
 		return cores;
-	}
-
-	@Override
-	public Q<SolrMessage<SolrInputDocument>, Void> q(String key) {
-		throw new UnsupportedOperationException();
 	}
 
 	public long fails() {
