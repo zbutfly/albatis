@@ -17,8 +17,8 @@ public final class Elastics extends Utils {
 	protected static final Logger logger = Logger.getLogger(Elastics.class);
 
 	public static TransportClient connect(String clusterName, String... hostports) throws UnknownHostException {
-		TransportClient elastic = TransportClient.builder()
-				.settings(Settings.settingsBuilder().put("cluster.name", clusterName).build()).build();
+		TransportClient elastic = TransportClient.builder().settings(Settings.settingsBuilder().put("cluster.name", clusterName).build())
+				.build();
 		for (String h : hostports) {
 			String[] host = h.split(":");
 			int port = host.length > 1 ? 39300 : Integer.parseInt(host[1]);
@@ -33,15 +33,13 @@ public final class Elastics extends Utils {
 		StringBuilder buffer = new StringBuilder();
 		for (String str : nestedPrefix) {
 			String value = ("\"" + str + "\":{\"type\":\"nested\",\"properties\":{\"type\":{\"type\":\"long\"}}}");
-			if (++i < nestedPrefix.size())
-				value = value + ",";
+			if (++i < nestedPrefix.size()) value = value + ",";
 			buffer.append(value);
 		}
 		req.source("{\"dynamic\":\"true\",\"properties\":{" + buffer.toString() + "}}");
 		req.indices(new String[] { index });
 		req.type(type);
 		PutMappingResponse resp = connect.admin().indices().putMapping(req).actionGet();
-		if (!resp.isAcknowledged())
-			throw new RuntimeException("重新构建mapping失败 请检查构造参数：" + req.toString());
+		if (!resp.isAcknowledged()) throw new RuntimeException("重新构建mapping失败 请检查构造参数：" + req.toString());
 	}
 }
