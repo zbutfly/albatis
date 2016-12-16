@@ -11,8 +11,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrServerException;
@@ -21,8 +19,8 @@ import org.apache.solr.common.SolrInputDocument;
 import net.butfly.albacore.io.MapOutput;
 import net.butfly.albacore.io.queue.Q;
 import net.butfly.albacore.lambda.Converter;
+import net.butfly.albacore.lambda.ConverterPair;
 import net.butfly.albacore.utils.Collections;
-import net.butfly.albacore.utils.async.Concurrents;
 import net.butfly.albacore.utils.logger.Logger;
 import scala.Tuple3;
 
@@ -33,7 +31,7 @@ public class SolrOutput extends MapOutput<String, SolrMessage<SolrInputDocument>
 	static final int DEFAULT_PACKAGE_SIZE = 500;
 	private static final int DEFAULT_PARALLELISM = 5;
 	final SolrClient solr;
-	final AtomicBoolean closed;
+	// final AtomicBoolean closed;
 
 	private final Set<String> cores;
 	private final LinkedBlockingQueue<Runnable> tasks;
@@ -55,23 +53,28 @@ public class SolrOutput extends MapOutput<String, SolrMessage<SolrInputDocument>
 		}
 		cores = new HashSet<>(Arrays.asList(t._3()));
 		solr = Solrs.open(baseUrl);
-		closed = new AtomicBoolean(false);
 		tasks = new LinkedBlockingQueue<>(DEFAULT_PARALLELISM);
-		failover = failoverPath == null ? new SolrMemoryFailover(this) : new SolrPersistFailover(this, failoverPath, baseUrl);
-		failover.start();
+		ConverterPair<String, List<SolrInputDocument>, Exception> adding = (core, docs) -> {
+			try {
+				solr.add(core, docs, DEFAULT_AUTO_COMMIT_MS);
+				return null;
+			} catch (Exception e) {
+				return e;
+			}
+		};
+		failover = failoverPath == null ? new SolrFailoverMemory(name(), adding)
+				: new SolrFailoverPersist(name(), adding, failoverPath, baseUrl);
 		senders = new ArrayList<>();
 		for (int i = 0; i < DEFAULT_PARALLELISM; i++) {
-			SolrSender s = new SolrSender(i);
+			SolrSender s = new SolrSender(name, tasks, i);
 			senders.add(s);
-			s.setUncaughtExceptionHandler((tt, e) -> logger.error("SolrOutputSender [" + name() + "] failure in async", e));
-			s.start();
 		}
 	}
 
 	@Override
 	public boolean enqueue0(String core, SolrMessage<SolrInputDocument> doc) {
 		cores.add(core);
-		if (closed.get()) {
+		if (!isOpen()) {
 			failover.fail(core, doc.getDoc(), null);
 			return false;
 		}
@@ -96,7 +99,7 @@ public class SolrOutput extends MapOutput<String, SolrMessage<SolrInputDocument>
 			map.computeIfAbsent(d.getCore(), core -> new ArrayList<>()).add(d.getDoc());
 		cores.addAll(map.keySet());
 		for (Entry<String, List<SolrInputDocument>> e : map.entrySet()) {
-			if (closed.get()) failover.fail(e.getKey(), e.getValue(), null);
+			if (status.get() != Status.OPENED) failover.fail(e.getKey(), e.getValue(), null);
 			else try {
 				tasks.put(() -> {
 					for (List<SolrInputDocument> pkg : Collections.chopped(e.getValue(), DEFAULT_PACKAGE_SIZE)) {
@@ -124,9 +127,8 @@ public class SolrOutput extends MapOutput<String, SolrMessage<SolrInputDocument>
 	}
 
 	@Override
-	public void close() {
-		logger.debug("SolrOutput [" + name() + "] closing...");
-		closed.set(true);
+	protected void closing() {
+		super.closing();
 		for (SolrSender s : senders)
 			s.close();
 		failover.close();
@@ -138,7 +140,6 @@ public class SolrOutput extends MapOutput<String, SolrMessage<SolrInputDocument>
 			logger.error("SolrOutput close failure", e);
 		}
 		Solrs.close(solr);
-		logger.info("SolrOutput [" + name() + "] closed, failover [" + fails() + "].");
 	}
 
 	@Override
@@ -155,45 +156,4 @@ public class SolrOutput extends MapOutput<String, SolrMessage<SolrInputDocument>
 		return failover.size();
 	}
 
-	private class SolrSender extends Thread implements AutoCloseable {
-		private final int seq;
-
-		public SolrSender(int i) {
-			super();
-			this.seq = i;
-			setName(SolrOutput.this.name() + "-Sender-" + i);
-		}
-
-		@Override
-		public void close() {
-			while (isAlive())
-				Concurrents.waitSleep(100);
-		}
-
-		@Override
-		public void run() {
-			while (!closed.get()) {
-				Runnable r = null;
-				try {
-					r = tasks.poll(100, TimeUnit.MILLISECONDS);
-				} catch (InterruptedException e) {
-					logger.warn(getName() + "interrupted.");
-				}
-				if (null != r) try {
-					r.run();
-				} catch (Exception e) {
-					logger.error("SolrOutput [" + name() + "] failure", e);
-				}
-			}
-			logger.debug("SolrOutput [" + name() + "] processing [" + seq + "] finishing");
-			Runnable remained;
-			while ((remained = tasks.poll()) != null)
-				try {
-					remained.run();
-				} catch (Exception e) {
-					logger.error("SolrOutput [" + name() + "] failure", e);
-				}
-			logger.info("SolrOutput [" + name() + "] processing [" + seq + "] finished");
-		}
-	}
 }

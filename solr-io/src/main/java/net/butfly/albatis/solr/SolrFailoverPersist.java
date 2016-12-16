@@ -13,38 +13,39 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.io.output.ByteArrayOutputStream;
-import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.common.SolrInputDocument;
 
 import com.leansoft.bigqueue.BigQueueImpl;
 import com.leansoft.bigqueue.IBigQueue;
 
+import net.butfly.albacore.lambda.ConverterPair;
 import net.butfly.albacore.utils.IOs;
 import net.butfly.albacore.utils.async.Concurrents;
 
-class SolrPersistFailover extends SolrFailover {
+class SolrFailoverPersist extends SolrFailover {
 	private static final long serialVersionUID = -4766585003300311051L;
 	private IBigQueue failover;
 
-	public SolrPersistFailover(SolrOutput solr, String path, String solrUrl) throws IOException {
-		super(solr);
+	public SolrFailoverPersist(String solrName, ConverterPair<String, List<SolrInputDocument>, Exception> adding, String path,
+			String solrUrl) throws IOException {
+		super(solrName, adding);
 		String qname;
 		try {
 			qname = new URI(solrUrl).getAuthority().replaceAll("/", "-");
 		} catch (URISyntaxException e) {
 			qname = solrUrl.replaceAll("/", "-");
 		}
-		failover = new BigQueueImpl(IOs.mkdirs(path + "/" + solr.name()), qname);
-		logger.info(MessageFormat.format("SolrOutput [{0}] failover [persist mode] init: [{1}/{2}] with name [{3}], init size [{4}].", solr
-				.name(), path, solr.name(), qname, size()));
+		failover = new BigQueueImpl(IOs.mkdirs(path + "/" + solrName), qname);
+		logger.info(MessageFormat.format("Failover [persist mode] init: [{1}/{2}] with name [{3}], init size [{4}].", //
+				path, solrName, qname, size()));
 	}
 
 	@Override
 	protected void failover() {
-		while (failover.isEmpty() && !solr.closed.get())
+		while (failover.isEmpty() && opened())
 			Concurrents.waitSleep(1000);
 		Map<String, List<SolrInputDocument>> fails = new HashMap<>();
-		while (!failover.isEmpty() && !solr.closed.get()) {
+		while (!failover.isEmpty() && opened()) {
 			byte[] buf;
 			try {
 				buf = failover.dequeue();
@@ -54,7 +55,7 @@ class SolrPersistFailover extends SolrFailover {
 			if (null == buf) return;
 			SolrMessage<SolrInputDocument> sm = fromBytes(buf);
 			if (null == sm) {
-				logger.error(MessageFormat.format("SolrOutput [{0}] found invalid failover data, data lost.", solr.name()));
+				logger.error("invalid failover found and lost.");
 				continue;
 			}
 			List<SolrInputDocument> l = fails.computeIfAbsent(sm.getCore(), c -> new ArrayList<>(SolrOutput.DEFAULT_PACKAGE_SIZE));
@@ -62,19 +63,14 @@ class SolrPersistFailover extends SolrFailover {
 			if (l.size() < SolrOutput.DEFAULT_PACKAGE_SIZE && !failover.isEmpty()) continue;
 			l = fails.remove(sm.getCore());
 			stats(l);
-			try {
-				solr.solr.add(sm.getCore(), l, SolrOutput.DEFAULT_AUTO_COMMIT_MS);
-			} catch (SolrServerException | IOException e) {
-				fail(sm.getCore(), l, e);
-			}
+			Exception e = adding.apply(sm.getCore(), l);
+			if (null != e) fail(sm.getCore(), l, e);
+
 		}
 		for (String core : fails.keySet()) {
 			List<SolrInputDocument> l = fails.remove(core);
-			try {
-				solr.solr.add(core, l, SolrOutput.DEFAULT_AUTO_COMMIT_MS);
-			} catch (SolrServerException | IOException e) {
-				fail(core, l, e);
-			}
+			Exception e = adding.apply(core, l);
+			if (null != e) fail(core, l, e);
 		}
 	}
 
@@ -96,14 +92,13 @@ class SolrPersistFailover extends SolrFailover {
 				failover.enqueue(toBytes(new SolrMessage<SolrInputDocument>(core, doc)));
 				c++;
 			} catch (IOException e) {
-				if (null != err) logger.error(MessageFormat.format("SolrOutput [{0}] failover full, [{1}] docs lost on [{2}]", solr.name(),
-						docs.size(), core), err);
-				else logger.error(MessageFormat.format("SolrOutput [{0}] failover full, [{1}] docs lost on [{2}]", solr.name(), docs.size(),
-						core), e);
+				if (null != err) logger.error(MessageFormat.format("Failover failed, [{0}] docs lost on [{1}], original caused by [{2}]", //
+						docs.size(), core, err.getMessage()), e);
+				else logger.error(MessageFormat.format("Failover failed, [{0}] docs lost on [{1}]", docs.size(), core), e);
 			}
 		if (null != err) logger.warn(MessageFormat.format(
-				"SolrOutput [{0}] add failure on [{1}] with [{2}] docs, push to failover, now [{3}] failover on [{1}], failure for [{4}]",
-				solr.name(), core, docs.size(), size(), err.getMessage()));
+				"Failure added on [{0}] with [{1}] docs, now [{2}] failover on [{0}], caused by [{3}]", //
+				core, docs.size(), size(), err.getMessage()));
 		return c;
 	}
 
@@ -112,14 +107,14 @@ class SolrPersistFailover extends SolrFailover {
 		try {
 			failover.enqueue(toBytes(new SolrMessage<SolrInputDocument>(core, doc)));
 		} catch (IOException e) {
-			if (null != err) logger.error(MessageFormat.format("SolrOutput [{0}] failover full, [{1}] docs lost on [{2}]", solr.name(), 1,
-					core), err);
-			else logger.error(MessageFormat.format("SolrOutput [{0}] failover full, [{1}] docs lost on [{2}]", solr.name(), 1, core), e);
+			if (null != err) logger.error(MessageFormat.format("Failover failed, [{0}] docs lost on [{1}], original caused by [{2}]", //
+					1, core, err.getMessage()), e);
+			else logger.error(MessageFormat.format("Failover failed, [{0}] docs lost on [{1}]", 1, core), e);
 			return false;
 		}
 		if (null != err) logger.warn(MessageFormat.format(
-				"SolrOutput [{0}] add failure on [{1}] with [{2}] docs, push to failover, now [{3}] failover on [{1}], failure for [{4}]",
-				solr.name(), core, 1, size(), err.getMessage()));
+				"Failure added on [{0}] with [{1}] docs, now [{2}] failover on [{0}], caused by [{3}]", //
+				core, 1, size(), err.getMessage()));
 		return true;
 	}
 
@@ -144,15 +139,20 @@ class SolrPersistFailover extends SolrFailover {
 	}
 
 	@Override
-	public void close() {
-		while (isAlive())
-			Concurrents.waitSleep(100);
+	protected void closing() {
+		super.closing();
 		try {
 			failover.gc();
-			if (size() > 0) logger.error(getName() + " failover remained [" + size() + "].");
+		} catch (IOException e) {
+			logger.error("Failover cleanup failure", e);
+		}
+		long size = size();
+		try {
 			failover.close();
 		} catch (IOException e) {
-			logger.error(MessageFormat.format("SolrOutput [{0}] failover close failure", solr.name()), e);
+			logger.error("Failover close failure", e);
+		} finally {
+			if (size > 0) logger.error("Failover closed and remained [" + size + "].");
 		}
 	}
 }

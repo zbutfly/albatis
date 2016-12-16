@@ -5,7 +5,6 @@ import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.leansoft.bigqueue.BigQueueImpl;
@@ -14,15 +13,15 @@ import com.leansoft.bigqueue.IBigQueue;
 import kafka.consumer.ConsumerIterator;
 import kafka.consumer.KafkaStream;
 import net.butfly.albacore.exception.ConfigException;
+import net.butfly.albacore.io.OpenableThread;
 import net.butfly.albacore.lambda.Consumer;
 import net.butfly.albacore.utils.IOs;
-import net.butfly.albacore.utils.async.Concurrents;
 
-public class Kafka2Input extends KafkaInputBase<Kafka2Input.KafkaInputFetcher> {
+public class KafkaInput2 extends KafkaInputBase<KafkaInput2.Fetcher> {
 	private static final long serialVersionUID = 1813167082084278062L;
 	private IBigQueue pool;
 
-	public Kafka2Input(String name, final String config, final String poolPath, String... topic) throws ConfigException, IOException {
+	public KafkaInput2(String name, final String config, final String poolPath, String... topic) throws ConfigException, IOException {
 		super(name, config, topic);
 		try {
 			pool = new BigQueueImpl(IOs.mkdirs(poolPath + "/" + name), conf.toString());
@@ -35,8 +34,8 @@ public class Kafka2Input extends KafkaInputBase<Kafka2Input.KafkaInputFetcher> {
 		for (String t : raws.keySet())
 			for (KafkaStream<byte[], byte[]> stream : raws.get(t))
 				streams.compute(t, (k, v) -> {
-					Map<KafkaStream<byte[], byte[]>, KafkaInputFetcher> v1 = v == null ? new HashMap<>() : v;
-					KafkaInputFetcher f = new KafkaInputFetcher(name, stream, i.incrementAndGet(), pool, conf.getPoolSize());
+					Map<KafkaStream<byte[], byte[]>, Fetcher> v1 = v == null ? new HashMap<>() : v;
+					Fetcher f = new Fetcher(name, stream, i.incrementAndGet(), pool, conf.getPoolSize());
 					logger.info("KafkaInput [" + name + "] fetcher [" + i.get() + "] started.");
 					f.start();
 					v1.put(stream, f);
@@ -45,7 +44,7 @@ public class Kafka2Input extends KafkaInputBase<Kafka2Input.KafkaInputFetcher> {
 	}
 
 	@Override
-	protected KafkaMessage fetch(KafkaStream<byte[], byte[]> stream, KafkaInputFetcher fetcher, Consumer<KafkaMessage> result) {
+	protected KafkaMessage fetch(KafkaStream<byte[], byte[]> stream, Fetcher fetcher, Consumer<KafkaMessage> result) {
 		byte[] buf;
 		try {
 			buf = pool.dequeue();
@@ -73,8 +72,8 @@ public class Kafka2Input extends KafkaInputBase<Kafka2Input.KafkaInputFetcher> {
 	}
 
 	@Override
-	public void close() {
-		super.close();
+	protected void closing() {
+		super.closing();
 		try {
 			pool.close();
 		} catch (IOException e) {
@@ -86,17 +85,16 @@ public class Kafka2Input extends KafkaInputBase<Kafka2Input.KafkaInputFetcher> {
 		return pool.size();
 	}
 
-	static final class KafkaInputFetcher extends Thread implements AutoCloseable {
-		public AtomicBoolean closed = new AtomicBoolean(false);
+	static class Fetcher extends OpenableThread {
 		private final KafkaStream<byte[], byte[]> stream;
 		private final IBigQueue pool;
 		private final long poolSize;
 
-		public KafkaInputFetcher(String inputName, KafkaStream<byte[], byte[]> stream, int i, IBigQueue pool, long poolSize) {
+		public Fetcher(String inputName, KafkaStream<byte[], byte[]> stream, int i, IBigQueue pool, long poolSize) {
+			super(inputName + "-Fetcher-" + i);
 			this.stream = stream;
 			this.pool = pool;
 			this.poolSize = poolSize;
-			this.setName(inputName + "-Fetcher-" + i);
 			this.setUncaughtExceptionHandler((t, e) -> {
 				logger.error("KafkaInputFetcher [" + getName() + "] async error, pool [" + pool.size() + "]", e);
 			});
@@ -105,27 +103,20 @@ public class Kafka2Input extends KafkaInputBase<Kafka2Input.KafkaInputFetcher> {
 		@Override
 		public void run() {
 			ConsumerIterator<byte[], byte[]> it = stream.iterator();
-			while (!closed.get())
+			while (opened())
 				try {
-					while (!closed.get() && it.hasNext()) {
+					while (opened() && it.hasNext()) {
 						byte[] km = new KafkaMessage(it.next()).toBytes();
 						while (pool.size() > poolSize)
-							sleep(1000);
+							sleep(100);
 						pool.enqueue(km);
 					}
 					sleep(1000); // kafka empty
 				} catch (Exception e) {
-					// logger.warn(MessageFormat.format("KafkaInputFetcher [{0}] failure, pool [{1}]", getName(), pool.size()), e);
+					// logger.warn(MessageFormat.format("KafkaInputFetcher [{0}]
+					// failure, pool [{1}]", getName(), pool.size()), e);
 				}
 			logger.info("KafkaInputFetcher [" + getName() + "] finished, pool [" + pool.size() + "].");
-		}
-
-		@Override
-		public void close() {
-			closed.set(true);
-			KafkaInputFetcher.this.interrupt();
-			while (KafkaInputFetcher.this.isAlive())
-				Concurrents.waitSleep(100);
 		}
 	}
 }

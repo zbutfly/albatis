@@ -22,7 +22,7 @@ import net.butfly.albatis.kafka.config.Kafkas;
 
 abstract class KafkaInputBase<T> extends MapInput<String, KafkaMessage> {
 	private static final long serialVersionUID = -9180560064999614528L;
-	protected static final Logger logger = Logger.getLogger(Kafka2Input.class);
+	protected static final Logger logger = Logger.getLogger(KafkaInputBase.class);
 	protected final KafkaInputConfig conf;
 	protected final Map<String, Integer> topics;
 	protected final ConsumerConnector connect;
@@ -53,7 +53,7 @@ abstract class KafkaInputBase<T> extends MapInput<String, KafkaMessage> {
 	 * 
 	 * @throws ConfigException
 	 */
-	protected void initialize() throws ConfigException {}
+	protected void opening() {}
 
 	protected abstract KafkaMessage fetch(KafkaStream<byte[], byte[]> stream, T lock, Consumer<KafkaMessage> result);
 
@@ -92,8 +92,8 @@ abstract class KafkaInputBase<T> extends MapInput<String, KafkaMessage> {
 	}
 
 	@Override
-	public void close() {
-		logger.debug("KafkaInput [" + name() + "] closing...");
+	protected void closing() {
+		super.closing();
 		for (Map<KafkaStream<byte[], byte[]>, T> tm : streams.values())
 			for (T f : tm.values())
 				if (f instanceof AutoCloseable) try {
@@ -103,7 +103,6 @@ abstract class KafkaInputBase<T> extends MapInput<String, KafkaMessage> {
 				}
 		connect.commitOffsets(true);
 		connect.shutdown();
-		logger.info("KafkaInput [" + name() + "] closed.");
 	}
 
 	@Override
