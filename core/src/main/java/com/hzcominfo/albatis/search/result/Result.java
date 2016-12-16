@@ -13,7 +13,7 @@ import java.util.Map;
 
 import com.hzcominfo.albatis.search.exception.SearchAPIException;
 
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
+import net.butfly.albacore.exception.NotImplementedException;
 
 /**
  * 描述返回结果的数据表，参考JDBC的ResultSet设定，其中也包括了一部分对Nosql数据特定格式的处理<br>
@@ -25,21 +25,11 @@ import sun.reflect.generics.reflectiveObjects.NotImplementedException;
  * @since 0.0.1
  */
 public interface Result extends ResultSet {
-
-	/**
-	 * 获取
-	 *
-	 * @return
-	 * @throws SearchAPIException
-	 */
+	@SuppressWarnings("rawtypes")
 	default Map getRowItem() throws SearchAPIException {
 		throw new SearchAPIException(new NotImplementedException());
 	}
 
-	/**
-	 * @return
-	 * @throws SearchAPIException
-	 */
 	default ResultMetadata getResultMetadata() throws SearchAPIException {
 		throw new SearchAPIException(new NotImplementedException());
 	}

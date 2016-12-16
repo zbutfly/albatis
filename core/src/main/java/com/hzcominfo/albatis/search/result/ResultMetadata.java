@@ -5,7 +5,7 @@ import java.sql.SQLException;
 
 import com.hzcominfo.albatis.search.exception.SearchAPIException;
 
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
+import net.butfly.albacore.exception.NotImplementedException;
 
 /**
  * 结果集的描述类，一般用于直接数据返回的时候可以忽略
