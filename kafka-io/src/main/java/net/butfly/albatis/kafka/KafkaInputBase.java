@@ -48,13 +48,6 @@ abstract class KafkaInputBase<T> extends MapInput<String, KafkaMessage> {
 		streams = new HashMap<>();
 	}
 
-	/**
-	 * should invoked in impl constructor
-	 * 
-	 * @throws ConfigException
-	 */
-	protected void opening() {}
-
 	protected abstract KafkaMessage fetch(KafkaStream<byte[], byte[]> stream, T lock, Consumer<KafkaMessage> result);
 
 	public long poolStatus() {
@@ -87,12 +80,7 @@ abstract class KafkaInputBase<T> extends MapInput<String, KafkaMessage> {
 	}
 
 	@Override
-	public Q<Void, KafkaMessage> q(String key) {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	protected void closing() {
+	public void closing() {
 		super.closing();
 		for (Map<KafkaStream<byte[], byte[]>, T> tm : streams.values())
 			for (T f : tm.values())

@@ -28,8 +28,8 @@ public class KafkaInput2 extends KafkaInputBase<KafkaInput2.Fetcher> {
 		} catch (IOException e) {
 			throw new RuntimeException("Offheap pool init failure", e);
 		}
-		logger.info(MessageFormat.format("KafkaInput [{0}] local cache init: [{1}/{2}] with name [{3}], init size [{4}].", name, poolPath,
-				name, conf.toString(), pool.size()));
+		logger.info(MessageFormat.format("KafkaInput [{0}] local cache init: [{1}/{0}] with name [{2}], init size [{3}].", name, poolPath,
+				conf.toString(), pool.size()));
 		AtomicInteger i = new AtomicInteger(0);
 		for (String t : raws.keySet())
 			for (KafkaStream<byte[], byte[]> stream : raws.get(t))
@@ -72,7 +72,7 @@ public class KafkaInput2 extends KafkaInputBase<KafkaInput2.Fetcher> {
 	}
 
 	@Override
-	protected void closing() {
+	public void closing() {
 		super.closing();
 		try {
 			pool.close();
@@ -107,7 +107,7 @@ public class KafkaInput2 extends KafkaInputBase<KafkaInput2.Fetcher> {
 				try {
 					while (opened() && it.hasNext()) {
 						byte[] km = new KafkaMessage(it.next()).toBytes();
-						while (pool.size() > poolSize)
+						while (opened() && pool.size() > poolSize)
 							sleep(100);
 						pool.enqueue(km);
 					}

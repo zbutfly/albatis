@@ -24,7 +24,7 @@ public class MongodbOutput extends Output<DBObject> {
 	}
 
 	@Override
-	protected void closing() {
+	public void closing() {
 		super.closing();
 		mdb.close();
 	}

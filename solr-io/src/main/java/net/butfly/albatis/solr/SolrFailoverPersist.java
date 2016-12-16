@@ -36,16 +36,17 @@ class SolrFailoverPersist extends SolrFailover {
 			qname = solrUrl.replaceAll("/", "-");
 		}
 		failover = new BigQueueImpl(IOs.mkdirs(path + "/" + solrName), qname);
-		logger.info(MessageFormat.format("Failover [persist mode] init: [{1}/{2}] with name [{3}], init size [{4}].", //
+		start();
+		logger.info(MessageFormat.format("Failover [persist mode] init: [{0}/{1}] with name [{2}], init size [{3}].", //
 				path, solrName, qname, size()));
 	}
 
 	@Override
 	protected void failover() {
-		while (failover.isEmpty() && opened())
+		while (opened() && failover.isEmpty())
 			Concurrents.waitSleep(1000);
 		Map<String, List<SolrInputDocument>> fails = new HashMap<>();
-		while (!failover.isEmpty() && opened()) {
+		while (opened() && !failover.isEmpty()) {
 			byte[] buf;
 			try {
 				buf = failover.dequeue();
@@ -139,7 +140,7 @@ class SolrFailoverPersist extends SolrFailover {
 	}
 
 	@Override
-	protected void closing() {
+	public void closing() {
 		super.closing();
 		try {
 			failover.gc();
