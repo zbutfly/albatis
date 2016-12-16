@@ -23,7 +23,8 @@ public class ElasticInput extends Input<GetMappingsRequest> {
 	}
 
 	@Override
-	public void close() {
+	protected void closing() {
+		super.closing();
 		elastic.close();
 	}
 

@@ -29,7 +29,8 @@ public class KafkaOutput extends MapOutput<String, KafkaMessage> {
 	}
 
 	@Override
-	public void close() {
+	protected void closing() {
+		super.closing();
 		connect.close();
 	}
 

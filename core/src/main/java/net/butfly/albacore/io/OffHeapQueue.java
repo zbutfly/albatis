@@ -75,8 +75,8 @@ public class OffHeapQueue<I, O> extends QImpl<I, O> {
 	}
 
 	@Override
-	public final void close() {
-		super.close();
+	protected void closing() {
+		super.closing();
 		try {
 			queue.gc();
 		} catch (IOException e) {

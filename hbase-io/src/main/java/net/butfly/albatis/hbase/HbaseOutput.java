@@ -23,7 +23,8 @@ public final class HbaseOutput extends Output<HbaseResult> {
 	}
 
 	@Override
-	public void close() {
+	protected void closing() {
+		super.closing();
 		try {
 			connect.close();
 		} catch (IOException e) {

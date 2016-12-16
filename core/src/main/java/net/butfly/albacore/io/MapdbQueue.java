@@ -25,5 +25,7 @@ public class MapdbQueue<I, O> extends QImpl<I, O> {
 	}
 
 	@Override
-	public void close() {}
+	protected void closing() {
+		super.closing();
+	}
 }

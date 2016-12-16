@@ -10,15 +10,17 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 import org.apache.solr.common.SolrInputDocument;
 
-class SolrMemoryFailover extends SolrFailover {
+import net.butfly.albacore.lambda.ConverterPair;
+
+class SolrFailoverMemory extends SolrFailover {
 	private static final long serialVersionUID = -7766759011944551301L;
 	private static final int MAX_FAILOVER = 50000;
 	private Map<String, LinkedBlockingQueue<SolrInputDocument>> failover = new ConcurrentHashMap<>();
 
-	public SolrMemoryFailover(SolrOutput solr) throws IOException {
-		super(solr);
+	public SolrFailoverMemory(String solrName, ConverterPair<String, List<SolrInputDocument>, Exception> adding) throws IOException {
+		super(solrName, adding);
 		failover = new ConcurrentHashMap<>();
-		logger.info(MessageFormat.format("SolrOutput [{0}] failover [memory mode] init.", solr.name()));
+		logger.info(MessageFormat.format("SolrOutput [{0}] failover [memory mode] init.", solrName));
 	}
 
 	@Override
@@ -40,12 +42,13 @@ class SolrMemoryFailover extends SolrFailover {
 		try {
 			fails.addAll(docs);
 			if (null != err) logger.warn(MessageFormat.format(
-					"SolrOutput [{0}] add failure on [{1}] with [{2}] docs, push to failover, now [{3}] failover on [{1}], failure for [{4}]",
-					solr.name(), core, docs.size(), fails.size(), err.getMessage()));
+					"Failure added on [{0}] with [{1}] docs, now [{2}] failover on [{0}], caused by [{3}]", //
+					core, docs.size(), size(), err.getMessage()));
 			return docs.size();
-		} catch (IllegalStateException ex) {
-			logger.error(MessageFormat.format("SolrOutput [{0}] failover full, [{1}] docs lost on [{2}]", solr.name(), docs.size(), core),
-					null == err ? ex : err);
+		} catch (IllegalStateException ee) {
+			if (null != err) logger.error(MessageFormat.format("Failover failed, [{0}] docs lost on [{1}], original caused by [{2}]", //
+					docs.size(), core, err.getMessage()));
+			else logger.error(MessageFormat.format("Failover failed, [{0}] docs lost on [{1}]", docs.size(), core));
 			return 0;
 		}
 	}
@@ -56,12 +59,12 @@ class SolrMemoryFailover extends SolrFailover {
 		boolean r = fails.offer(doc);
 		if (r) {
 			if (null != err) logger.warn(MessageFormat.format(
-					"SolrOutput [{0}] add failure on [{1}] with [{2}] docs, push to failover, now [{3}] failover on [{1}], failure for [{4}]",
-					solr.name(), core, 1, fails.size(), err.getMessage()));
+					"Failure added on [{0}] with [{1}] docs, now [{2}] failover on [{0}], caused by [{3}]", //
+					core, 1, size(), err.getMessage()));
 		} else {
-			if (null != err) logger.error(MessageFormat.format("SolrOutput [{0}] failover full, [1] docs lost on [{1}]", solr.name(), core),
-					err);
-			else logger.error(MessageFormat.format("SolrOutput [{0}] failover full, [1] docs lost on [{1}]", solr.name(), core));
+			if (null != err) logger.error(MessageFormat.format("Failover failed, [{0}] docs lost on [{1}], original caused by [{2}]", //
+					1, core, err.getMessage()));
+			else logger.error(MessageFormat.format("Failover failed, [{0}] docs lost on [{1}]", 1, core));
 		}
 		return r;
 	}
@@ -73,11 +76,10 @@ class SolrMemoryFailover extends SolrFailover {
 			LinkedBlockingQueue<SolrInputDocument> fails = failover.get(core);
 			fails.drainTo(retries, SolrOutput.DEFAULT_PACKAGE_SIZE);
 			stats(retries);
-			if (!retries.isEmpty()) try {
-				solr.solr.add(core, retries);
+			if (!retries.isEmpty()) {
+				Exception e = adding.apply(core, retries);
+				if (null != e) fail(core, retries, e);
 				retries.clear();
-			} catch (Exception err) {
-				fail(core, retries, err);
 			}
 		}
 	}
