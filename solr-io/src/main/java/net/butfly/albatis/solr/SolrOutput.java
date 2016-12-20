@@ -61,8 +61,10 @@ public class SolrOutput extends MapOutput<String, SolrMessage<SolrInputDocument>
 				return e;
 			}
 		};
-		failover = failoverPath == null ? new SolrFailoverMemory(name(), adding)
-				: new SolrFailoverPersist(name(), adding, failoverPath, baseUrl);
+
+		if (failoverPath == null) failover = new SolrFailoverMemory(name(), adding);
+		else failover = new SolrFailoverPersist(name(), adding, failoverPath, baseUrl);
+
 		senders = new ArrayList<>();
 		for (int i = 0; i < DEFAULT_PARALLELISM; i++) {
 			SolrSender s = new SolrSender(name, tasks, i);
