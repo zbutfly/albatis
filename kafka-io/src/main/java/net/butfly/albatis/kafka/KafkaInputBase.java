@@ -12,7 +12,6 @@ import kafka.consumer.KafkaStream;
 import kafka.javaapi.consumer.ConsumerConnector;
 import net.butfly.albacore.exception.ConfigException;
 import net.butfly.albacore.io.MapInput;
-import net.butfly.albacore.io.queue.Q;
 import net.butfly.albacore.lambda.Consumer;
 import net.butfly.albacore.utils.Collections;
 import net.butfly.albacore.utils.async.Concurrents;
@@ -114,7 +113,7 @@ abstract class KafkaInputBase<T> extends MapInput<String, KafkaMessage> {
 						fetch(s.getKey(), s.getValue(), e -> batch.add(e));
 				if (batch.size() >= batchSize) return batch;
 				if (batch.size() == 0) Concurrents.waitSleep(EMPTY_WAIT_MS);
-			} while (batch.size() < batchSize && (prev != batch.size() || batch.size() == 0));
+			} while (opened() && batch.size() < batchSize && (prev != batch.size() || batch.size() == 0));
 			return batch;
 		} finally {
 			connect.commitOffsets(true);
