@@ -30,17 +30,18 @@ public class KafkaInput2 extends KafkaInputBase<KafkaInput2.Fetcher> {
 		}
 		logger.info(MessageFormat.format("KafkaInput [{0}] local cache init: [{1}/{0}] with name [{2}], init size [{3}].", name, poolPath,
 				conf.toString(), pool.size()));
-		AtomicInteger i = new AtomicInteger(0);
-		for (String t : raws.keySet())
+		for (String t : raws.keySet()) {
+			AtomicInteger i = new AtomicInteger(0);
 			for (KafkaStream<byte[], byte[]> stream : raws.get(t))
 				streams.compute(t, (k, v) -> {
 					Map<KafkaStream<byte[], byte[]>, Fetcher> v1 = v == null ? new HashMap<>() : v;
-					Fetcher f = new Fetcher(name, stream, i.incrementAndGet(), pool, conf.getPoolSize());
-					logger.info("KafkaInput [" + name + "] fetcher [" + i.get() + "] started.");
+					Fetcher f = new Fetcher(name + "-" + t, stream, i.incrementAndGet(), pool, conf.getPoolSize());
 					f.start();
+					logger.info("KafkaInput [" + name + "] fetcher [" + i.get() + "] started.");
 					v1.put(stream, f);
 					return v1;
 				});
+		}
 	}
 
 	@Override
@@ -113,10 +114,9 @@ public class KafkaInput2 extends KafkaInputBase<KafkaInput2.Fetcher> {
 					}
 					sleep(1000); // kafka empty
 				} catch (Exception e) {
-					// logger.warn(MessageFormat.format("KafkaInputFetcher [{0}]
-					// failure, pool [{1}]", getName(), pool.size()), e);
+					// logger.warn("Consumer fetching failure", e);
 				}
-			logger.info("KafkaInputFetcher [" + getName() + "] finished, pool [" + pool.size() + "].");
+			logger.info("Fetcher finished and exited, pool [" + pool.size() + "].");
 		}
 	}
 }
