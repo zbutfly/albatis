@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;
@@ -23,11 +23,11 @@ public class MongodbInput extends Input<DBObject> {
 	private static final Logger logger = Logger.getLogger(MongodbInput.class);
 	private final MongoDB mdb;
 	private DBCursor cursor;
-	private final ReentrantLock lock;
+	private final ReentrantReadWriteLock lock;
 
 	public MongodbInput(final String name, String uri, final String table, int inputBatchSize, final String... filter) throws IOException {
 		super(name);
-		lock = new ReentrantLock();
+		lock = new ReentrantReadWriteLock();
 		logger.info("MongoDBInput [" + name + "] from [" + uri + "], core [" + table + "]");
 		this.mdb = new MongoDB(uri);
 		long now;
@@ -68,13 +68,13 @@ public class MongodbInput extends Input<DBObject> {
 
 	@Override
 	public boolean empty() {
-		if (lock.tryLock()) try {
+		if (lock.writeLock().tryLock()) try {
 			return !cursor.hasNext();
 		} catch (MongoException ex) {
 			logger.warn("MongoDBInput [" + name() + "] check failure but processing will continue", ex);
 			return false;
 		} finally {
-			lock.unlock();
+			lock.writeLock().unlock();
 		}
 		else return false;
 	}
@@ -86,13 +86,13 @@ public class MongodbInput extends Input<DBObject> {
 
 	@Override
 	public DBObject dequeue0() {
-		if (lock.tryLock()) try {
+		if (lock.writeLock().tryLock()) try {
 			return cursor.hasNext() ? cursor.next() : null;
 		} catch (MongoException ex) {
 			logger.warn("MongoDBInput [" + name() + "] read failure but processing will continue", ex);
 			return null;
 		} finally {
-			lock.unlock();
+			lock.writeLock().unlock();
 		}
 		else return null;
 	}
@@ -103,8 +103,8 @@ public class MongodbInput extends Input<DBObject> {
 		List<DBObject> batch = new ArrayList<>();
 		do {
 			retry = false;
-			if (lock.tryLock()) try {
-				while (batch.size() < batchSize) {
+			if (lock.writeLock().tryLock()) try {
+				while (opened() && batch.size() < batchSize) {
 					if (!cursor.hasNext()) return batch;
 					batch.add(cursor.next());
 				}
@@ -112,9 +112,9 @@ public class MongodbInput extends Input<DBObject> {
 				logger.warn("MongoDBInput [" + name() + "] read failure but processing will continue", ex);
 				retry = true;
 			} finally {
-				lock.unlock();
+				lock.writeLock().unlock();
 			}
-		} while (retry && batch.size() == 0);
+		} while (opened() && retry && batch.size() == 0);
 		return batch;
 	}
 

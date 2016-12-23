@@ -100,9 +100,9 @@ public class SolrOutput extends MapOutput<String, SolrMessage<SolrInputDocument>
 			map.computeIfAbsent(d.getCore(), core -> new ArrayList<>()).add(d.getDoc());
 		cores.addAll(map.keySet());
 		for (Entry<String, List<SolrInputDocument>> e : map.entrySet()) {
-			if (!opened()) failover.fail(e.getKey(), e.getValue(), null);
-			else try {
-				tasks.put(() -> {
+			boolean inserted = false;
+			if (opened()) do {
+				Runnable run = () -> {
 					for (List<SolrInputDocument> pkg : Collections.chopped(e.getValue(), DEFAULT_PACKAGE_SIZE)) {
 						try {
 							solr.add(e.getKey(), pkg);
@@ -115,16 +115,12 @@ public class SolrOutput extends MapOutput<String, SolrMessage<SolrInputDocument>
 					} catch (Exception err) {
 						logger.warn("SolrOutput [" + name() + "] commit failure on core [" + e.getKey() + "]", err);
 					}
-				});
-			} catch (InterruptedException ee) {
-				failover.fail(e.getKey(), e.getValue(), null);
-			}
+				};
+				inserted = tasks.offer(run);
+			} while (opened() && !inserted);
+			if (!inserted) failover.fail(e.getKey(), e.getValue(), null);
 		}
-		try {
-			return docs.size();
-		} finally {
-			// System.gc();
-		}
+		return docs.size();
 	}
 
 	@Override
