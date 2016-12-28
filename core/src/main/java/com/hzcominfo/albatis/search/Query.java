@@ -9,6 +9,8 @@
 
 package com.hzcominfo.albatis.search;
 
+import java.util.List;
+
 /**
  * 规定查询接口 query中迭代有逻辑关系
  *
@@ -17,21 +19,33 @@ package com.hzcominfo.albatis.search;
  * @see
  */
 public interface Query extends Describe {
-	public Query select(SearchItem... searchItems);
+    public Query select(SearchItem... searchItems);
 
-	public Query from(DataFrom... table);
+    public Query from(DataFrom... table);
 
-	public Query db(String... db);
+    public Query db(String... db);
 
-	public Query where(Criteria criteria);
+    public Query where(Criteria criteria);
 
-	public Query limit(Long limit);
+    public Query limit(Long limit);
 
-	public Query skip(Long skip);
+    public Query skip(Long skip);
 
-	// public query orderBy(OrderBy... orderBy);
+    // public query orderBy(OrderBy... orderBy);
 
-	public Query orderBy(String field, OrderBy.Order order);
+    public Query orderBy(String field, OrderBy.Order order);
 
-	public Query groupBy(String... field);
+    public Query groupBy(String... field);
+
+    public List<SearchItem> getSearch();
+
+    public List<DataFrom> getDataFrom();
+
+    public List<String> getdb();
+
+    public Criteria getCriteria();
+
+    public Long getLimit();
+
+    public Long getSkip();
 }
