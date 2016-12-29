@@ -18,6 +18,7 @@
 		<module>mongodb-io</module>
 		<module>mongodb</module>
 		<module>hbase-io</module>
+		<module>solr</module>
 		<module>solr-io</module>
 		<module>es</module>
 		<module>es-io</module>
