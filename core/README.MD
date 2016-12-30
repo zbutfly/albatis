@@ -1,4 +1,6 @@
+## Query
 
+## Result
 
 ## Filter设计文档
 
@@ -21,7 +23,7 @@
 对于Filter的开发者，也即具体业务的实现者，则主要完成对Filter接口的实现，基于接口编码参数和返回规约
 进行实际的业务开发。
 
-对于整个Driver的调用方，如具体服务的使用者，只需要进行XML文件的配置和引入正确的jar包。
+对于整个Driver的调用方，如具体服务的开发者，只需要进行XML文件的配置和引入正确的jar包。
 既可以在开发中使用，整体来说，除了应有的异常返回和日志记录以外，整个过滤对于业务流程是透明的。
 
 ### 类型职责
@@ -31,11 +33,13 @@ FilterChain：Filter的管理对象，以及系统内直接调用对象。
 通过配置文件配置，在调用时通过Java反射机制生成并返回。
 其中管理了Filter的调用顺序，Filter参数检验(在生成FilterChain时，检验注入的Filter能否满足Chain的完备性)
 
+FilterLoader：FilterChain的工具类，同时也是使用工厂方法获取filterChain的入口
 ### 配置样例
 #### 样例
 ```xml
 <beans>
-    <filterChain name="queryFilterChain" class="com.hzcominfo.albatis.search.filter.FilterLoader">
+    <filterChain name="queryFilterChain" class="com.hzcominfo.albatis.search.filter.FilterLoader"
+                invoke="com.hzcominfo.albatis.search.filter.Sample">
         <filter clazz="com.hzcominfo.albatis.search.filter.LogFilter"
                 order="3">
             <param key="paramA" value="valueA"/>
@@ -51,7 +55,7 @@ FilterChain：Filter的管理对象，以及系统内直接调用对象。
     </filterChain>
 </beans>
 ```
-#### 样例解释
+#### 配置解释
 以上的配置层级必须直接在一个xml文件中。
 
 * filterChain部分：name用于按需构造，定义多个filterChain，可以在XML文件中指出，
@@ -66,3 +70,8 @@ FilterChain：Filter的管理对象，以及系统内直接调用对象。
     - order  (not null) Filter顺序 如果排序值冲突，则相应filterChain无法构建。
     - param  (nullable) 用于驱动层构造FilterChain时指定对象内属性的值。只能使用Java内的基本数据类型(以包封装类)
 
+### 处理逻辑
+在通过工厂方法获取FilterChain的时候，工厂方法(invoke)支持两种参数
+- 传入name值，此时使用传入的name并查找配置表，按照给定的配置生成FilterChain或者抛出异常
+- 不传入参数，此时搜索配置文件中第一个invoke项存在并且invoke值为当前调用类的filterChain
+构造并返回，或者抛出异常
