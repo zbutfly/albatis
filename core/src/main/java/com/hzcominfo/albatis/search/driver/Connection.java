@@ -8,16 +8,16 @@
  */
 package com.hzcominfo.albatis.search.driver;
 
-import java.io.IOException;
-import java.net.URI;
-import java.sql.SQLException;
-import java.util.Properties;
-
 import com.hzcominfo.albatis.search.Action;
 import com.hzcominfo.albatis.search.Describe;
 import com.hzcominfo.albatis.search.Query;
 import com.hzcominfo.albatis.search.exception.SearchAPIException;
 import com.hzcominfo.albatis.search.result.Result;
+
+import java.io.IOException;
+import java.net.URI;
+import java.sql.SQLException;
+import java.util.Properties;
 
 /**
  * Created by ljx on 2016/11/24.
@@ -27,15 +27,15 @@ import com.hzcominfo.albatis.search.result.Result;
  */
 public interface Connection extends AutoCloseable, java.sql.Connection {
 
-	Query getQuery();
+    Query getQuery();
 
-	void close() throws SQLException;
+    void close() throws SQLException;
 
-	void obtainDrive(DriverType type) throws SearchAPIException;
+    void obtainDrive(DriverType type) throws SearchAPIException;
 
-	void setUri(URI uri);
+    void setUri(URI uri);
 
-	void setProperties(Properties properties);
+    void setProperties(Properties properties);
 
-	Result execute(Action action, Describe describe) throws SearchAPIException, IOException;
+    Result execute(Action action, Describe describe) throws SearchAPIException, IOException;
 }
