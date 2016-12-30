@@ -18,111 +18,111 @@ import java.io.Serializable;
  * @date 2016-11-24
  */
 public interface SearchItem extends Serializable {
-	public static final class Column implements SearchItem {
-		private static final long serialVersionUID = -5637227906358121541L;
-		public String column; // all field use"*"
-		public String alias;
+    public static final class Column implements SearchItem {
+        private static final long serialVersionUID = -5637227906358121541L;
+        public String column; // all field use"*"
+        public String alias;
 
-		public Column(String column) {
-			super();
-			this.column = column;
-		}
+        public Column(String column) {
+            super();
+            this.column = column;
+        }
 
-		public SearchItem as(String alias) {
-			this.alias = alias;
-			return this;
-		}
-	}
+        public SearchItem as(String alias) {
+            this.alias = alias;
+            return this;
+        }
+    }
 
-	public static abstract class Function implements SearchItem {
-		private static final long serialVersionUID = 7687835101998726424L;
-	}
+    public static abstract class Function implements SearchItem {
+        private static final long serialVersionUID = 7687835101998726424L;
+    }
 
-	public static abstract class ByFunctionColumn extends Function {
-		private static final long serialVersionUID = 7362988191068875155L;
-		public String column;
-		public String alias;
+    public static abstract class ByFunctionColumn extends Function {
+        private static final long serialVersionUID = 7362988191068875155L;
+        public String column;
+        public String alias;
 
-		public ByFunctionColumn(String column) {
-			this.column = column;
-		}
+        public ByFunctionColumn(String column) {
+            this.column = column;
+        }
 
-		public SearchItem as(String alias) {
-			this.alias = alias;
-			return this;
-		}
-	}
+        public SearchItem as(String alias) {
+            this.alias = alias;
+            return this;
+        }
+    }
 
-	public static abstract class ByFunctionColumns extends Function {
-		private static final long serialVersionUID = -9146428976219684894L;
-		private String fristColumn;
-		private String secondColumn;
-		private String alias;
+    public static abstract class ByFunctionColumns extends Function {
+        private static final long serialVersionUID = -9146428976219684894L;
+        private String fristColumn;
+        private String secondColumn;
+        private String alias;
 
-		public ByFunctionColumns(String fristColumn, String secondColumn) {
-			this.fristColumn = fristColumn;
-			this.secondColumn = secondColumn;
-		}
+        public ByFunctionColumns(String fristColumn, String secondColumn) {
+            this.fristColumn = fristColumn;
+            this.secondColumn = secondColumn;
+        }
 
-		public void as(String alias) {
-			this.alias = alias;
-		}
-	}
+        public void as(String alias) {
+            this.alias = alias;
+        }
+    }
 
-	public static final class Sum extends ByFunctionColumn {
-		private static final long serialVersionUID = 4354379839273029859L;
+    public static final class Sum extends ByFunctionColumn {
+        private static final long serialVersionUID = 4354379839273029859L;
 
-		public Sum(String column) {
-			super(column);
-		}
-	}
+        public Sum(String column) {
+            super(column);
+        }
+    }
 
-	public static final class Agv extends ByFunctionColumn {
-		private static final long serialVersionUID = -2986042896070612288L;
+    public static final class Agv extends ByFunctionColumn {
+        private static final long serialVersionUID = -2986042896070612288L;
 
-		public Agv(String column) {
-			super(column);
-		}
-	}
+        public Agv(String column) {
+            super(column);
+        }
+    }
 
-	public static final class Count extends ByFunctionColumn {
-		private static final long serialVersionUID = 1583509643101663910L;
+    public static final class Count extends ByFunctionColumn {
+        private static final long serialVersionUID = 1583509643101663910L;
 
-		public Count(String column) {
-			super(column);
-		}
-	}
+        public Count(String column) {
+            super(column);
+        }
+    }
 
-	public static final class Max extends ByFunctionColumn {
-		private static final long serialVersionUID = -3639325065872389877L;
+    public static final class Max extends ByFunctionColumn {
+        private static final long serialVersionUID = -3639325065872389877L;
 
-		public Max(String column) {
-			super(column);
-		}
-	}
+        public Max(String column) {
+            super(column);
+        }
+    }
 
-	public static final class Min extends ByFunctionColumn {
-		private static final long serialVersionUID = -695357822984994532L;
+    public static final class Min extends ByFunctionColumn {
+        private static final long serialVersionUID = -695357822984994532L;
 
-		public Min(String column) {
-			super(column);
-		}
-	}
+        public Min(String column) {
+            super(column);
+        }
+    }
 
-	public static final class Add extends ByFunctionColumns {
-		private static final long serialVersionUID = 2333194798260341262L;
+    public static final class Add extends ByFunctionColumns {
+        private static final long serialVersionUID = 2333194798260341262L;
 
-		public Add(String fristColumn, String secondColumn) {
-			super(fristColumn, secondColumn);
-		}
-	}
+        public Add(String fristColumn, String secondColumn) {
+            super(fristColumn, secondColumn);
+        }
+    }
 
-	public static final class Sub extends ByFunctionColumns {
-		private static final long serialVersionUID = 4965593835763468543L;
+    public static final class Sub extends ByFunctionColumns {
+        private static final long serialVersionUID = 4965593835763468543L;
 
-		public Sub(String fristColumn, String secondColumn) {
-			super(fristColumn, secondColumn);
-		}
-	}
+        public Sub(String fristColumn, String secondColumn) {
+            super(fristColumn, secondColumn);
+        }
+    }
 
 }

@@ -19,16 +19,15 @@ package com.hzcominfo.albatis.search;
  */
 @Deprecated
 public interface SourceSQL extends Describe {
-	/**
-	 * @param sourceSQL
-	 *            源码
-	 * @pdOid 5a7031e3-844c-48e8-871e-abf0b3585226
-	 */
-	void add(String sourceSQL);
+    /**
+     * @param sourceSQL 源码
+     * @pdOid 5a7031e3-844c-48e8-871e-abf0b3585226
+     */
+    void add(String sourceSQL);
 
-	/**
-	 * @pdOid 2194aef2-9c28-4f70-a4be-5434fd3b1799
-	 */
-	String getSourceSQL();
+    /**
+     * @pdOid 2194aef2-9c28-4f70-a4be-5434fd3b1799
+     */
+    String getSourceSQL();
 
 }
