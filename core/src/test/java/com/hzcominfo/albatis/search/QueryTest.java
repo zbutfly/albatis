@@ -1,5 +1,8 @@
 package com.hzcominfo.albatis.search;
 
+import com.hzcominfo.albatis.search.exception.SearchAPIException;
+import com.hzcominfo.albatis.search.filter.FilterLoader;
+
 /**
  * Created by ljx on 2016/11/23.
  */
@@ -28,4 +31,9 @@ public class QueryTest {
 	// }
 	//
 	// }
+
+
+    public static void test() throws SearchAPIException {
+        FilterLoader.invoke(null);
+    }
 }
