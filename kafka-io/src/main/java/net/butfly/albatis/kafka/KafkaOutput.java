@@ -70,4 +70,8 @@ public class KafkaOutput extends MapOutput<String, KafkaMessage> {
 	public Set<String> keys() {
 		throw new UnsupportedOperationException();
 	}
+
+	public long fails() {
+		return 0;
+	}
 }

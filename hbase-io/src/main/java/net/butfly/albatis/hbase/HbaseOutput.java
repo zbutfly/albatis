@@ -62,4 +62,8 @@ public final class HbaseOutput extends Output<HbaseResult> {
 			return 0;
 		}
 	}
+
+	public long fails() {
+		return 0;
+	}
 }
