@@ -34,6 +34,6 @@ public class QueryTest {
 
 
     public static void test() throws SearchAPIException {
-        FilterLoader.invoke(null);
+        FilterLoader.invokeOf(null);
     }
 }
