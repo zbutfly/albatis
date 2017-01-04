@@ -24,7 +24,38 @@ public abstract class FilterLoader {
      * @param path
      * @return
      */
-    protected static List<FilterChainConfig> XMLParser(final String path) {
+
+    static {//载入类的时候必然会进入本方法
+        //包含锁的两步验证
+        if(configList==null || configList.size()==0){
+            synchronized (FilterLoader.class){
+                if(configList==null || configList.size()==0){
+                    try {
+                        String path;
+                        if (System.getProperty("search.filter.config") != null) {
+                            path = System.getProperty("search.filter.config");
+                            if (!path.contains(".xml")) {
+                               throw new SearchAPIException("");
+                            }
+                        }else{
+                            path  = "search-filter-config.xml";
+                        }
+                        //文件的存在性由Parser来判断
+                        configList = XMLParser(path);
+                    } catch (SearchAPIException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
+    }
+
+
+
+    protected static List<FilterChainConfig> XMLParser(final String path) throws SearchAPIException{
+        if(path==null || path.isEmpty()){
+            throw new SearchAPIException("NULL PATH");
+        }
         SAXBuilder builder = new SAXBuilder();
         Document document;
         Map<String, FilterChainConfig> map;
@@ -97,29 +128,15 @@ public abstract class FilterLoader {
 
     /**
      * 主要的调用方法 通过传入的FilterChain接口实现类，确定配置的Filter接口
-     *
-     * @param name 配置文件路径
-     * @param <Q>
-     * @param <R>
-     * @return
-     * @throws SearchAPIException
+     * @param clazz 待注入的类名
+     * @param name 注册名
+     * @param <Q> Q
+     * @param <R> R
+     * @return filterChain
+     * @throws SearchAPIException 异常
      */
-    public static <Q, R> FilterChain<Q, R> invoke(String name) throws SearchAPIException {
-        String path;
-        if (System.getProperty("search.filter.config") != null) {
-            path = System.getProperty("search.filter.config");
-            if (!path.contains(".xml")) {
-                path = "";
-            }
-        }else{
-            path  = "";
-        }
+    public static <Q, R> FilterChain<Q, R> invokeOf(Class clazz, String name) throws SearchAPIException {
 
-        if(configList==null){
-            synchronized (FilterLoader.class){
-                configList = XMLParser(path);
-            }
-        }
         String invokeClazz = getInvokedClazz(); //获取载入点的名称，仅在name=null的时候有必要
 
         System.out.println(invokeClazz);
@@ -128,18 +145,15 @@ public abstract class FilterLoader {
     }
 
     /**
-     * 使用默认路径调用 首先检查JVM配置，如果有search.filter.config，则按照配置路径调用
-     * <p>如果未配置，则调用内部XML，文件名:search-filter-config.xml
+     * 通过调用的类名获取应该注入的filterChain 如果存在多个，匹配第一个
+     * @param clazz 类型名
+     * @param <Q> Q
+     * @param <R> R
+     * @return filterChain
+     * @throws SearchAPIException 异常
      */
-    public static <Q, R> FilterChain<Q, R> invoke() throws SearchAPIException {
-        if (System.getProperty("search.filter.config") != null) {
-            String path = System.getProperty("search.filter.config");
-            if (!path.contains(".xml")) {
-
-            }
-            return invoke(path);
-        }
-        return invoke("/searchFilterConfig-internal.xml");
+    public static <Q, R> FilterChain<Q, R> invokeOf(Class clazz) throws SearchAPIException {
+        return invokeOf(clazz,null);
     }
 
 
@@ -156,13 +170,6 @@ public abstract class FilterLoader {
         int order;
         Map<String, String> params;
     }
-
-    public static void main(String[] args) {
-        // XMLParser("/internal-filter.xml");
-        // XMLParser("/internal-filter2.xml");
-
-    }
-
     /**
      * 获取执行invoke方法的类名，
      * 考虑到调用invoker的类可能会被大量其他的类逐步调用，所以从最底部逐渐判断，直到第一个不为本类的名称为止
@@ -180,7 +187,7 @@ public abstract class FilterLoader {
     }
 
 
-    private FilterChainConfig findByName(String name,List<FilterChainConfig> source){
+    private FilterChainConfig findByName(String name, List<FilterChainConfig> source){
         for(FilterChainConfig config: source){
             if(config.name!=null && config.name.equals(name)){
                 return config;
@@ -196,5 +203,11 @@ public abstract class FilterLoader {
             }
         }
         return null;
+    }
+
+    public static void main(String[] args) {
+        // XMLParser("/internal-filter.xml");
+        // XMLParser("/internal-filter2.xml");
+
     }
 }
