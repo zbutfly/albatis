@@ -29,6 +29,7 @@ public interface Connection extends AutoCloseable, java.sql.Connection {
 
 	Query getQuery();
 
+	@Override
 	void close() throws SQLException;
 
 	void obtainDrive(DriverType type) throws SearchAPIException;
