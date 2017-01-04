@@ -9,7 +9,10 @@ import org.jdom2.input.SAXBuilder;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * 通过解析XML文件获取Filter配置的工具类
@@ -18,6 +21,7 @@ import java.util.*;
  */
 public abstract class FilterLoader {
     public static List<FilterChainConfig> configList;
+
     /**
      * 通过指定的路径获取配置文件并构造生成
      *
@@ -27,18 +31,18 @@ public abstract class FilterLoader {
 
     static {//载入类的时候必然会进入本方法
         //包含锁的两步验证
-        if(configList==null || configList.size()==0){
-            synchronized (FilterLoader.class){
-                if(configList==null || configList.size()==0){
+        if (configList == null || configList.size() == 0) {
+            synchronized (FilterLoader.class) {
+                if (configList == null || configList.size() == 0) {
                     try {
                         String path;
                         if (System.getProperty("search.filter.config") != null) {
                             path = System.getProperty("search.filter.config");
                             if (!path.contains(".xml")) {
-                               throw new SearchAPIException("");
+                                throw new SearchAPIException("");
                             }
-                        }else{
-                            path  = "search-filter-config.xml";
+                        } else {
+                            path = "search-filter-config.xml";
                         }
                         //文件的存在性由Parser来判断
                         configList = XMLParser(path);
@@ -51,9 +55,8 @@ public abstract class FilterLoader {
     }
 
 
-
-    protected static List<FilterChainConfig> XMLParser(final String path) throws SearchAPIException{
-        if(path==null || path.isEmpty()){
+    protected static List<FilterChainConfig> XMLParser(final String path) throws SearchAPIException {
+        if (path == null || path.isEmpty()) {
             throw new SearchAPIException("NULL PATH");
         }
         SAXBuilder builder = new SAXBuilder();
@@ -128,10 +131,11 @@ public abstract class FilterLoader {
 
     /**
      * 主要的调用方法 通过传入的FilterChain接口实现类，确定配置的Filter接口
+     *
      * @param clazz 待注入的类名
-     * @param name 注册名
-     * @param <Q> Q
-     * @param <R> R
+     * @param name  注册名
+     * @param <Q>   Q
+     * @param <R>   R
      * @return filterChain
      * @throws SearchAPIException 异常
      */
@@ -146,14 +150,15 @@ public abstract class FilterLoader {
 
     /**
      * 通过调用的类名获取应该注入的filterChain 如果存在多个，匹配第一个
+     *
      * @param clazz 类型名
-     * @param <Q> Q
-     * @param <R> R
+     * @param <Q>   Q
+     * @param <R>   R
      * @return filterChain
      * @throws SearchAPIException 异常
      */
     public static <Q, R> FilterChain<Q, R> invokeOf(Class clazz) throws SearchAPIException {
-        return invokeOf(clazz,null);
+        return invokeOf(clazz, null);
     }
 
 
@@ -170,6 +175,7 @@ public abstract class FilterLoader {
         int order;
         Map<String, String> params;
     }
+
     /**
      * 获取执行invoke方法的类名，
      * 考虑到调用invoker的类可能会被大量其他的类逐步调用，所以从最底部逐渐判断，直到第一个不为本类的名称为止
@@ -187,18 +193,18 @@ public abstract class FilterLoader {
     }
 
 
-    private FilterChainConfig findByName(String name, List<FilterChainConfig> source){
-        for(FilterChainConfig config: source){
-            if(config.name!=null && config.name.equals(name)){
+    private FilterChainConfig findByName(String name, List<FilterChainConfig> source) {
+        for (FilterChainConfig config : source) {
+            if (config.name != null && config.name.equals(name)) {
                 return config;
             }
         }
         return null;
     }
 
-    private FilterChainConfig findByInvoke(String invoke,List<FilterChainConfig> source){
-        for(FilterChainConfig config: source){
-            if(config.invoke!=null && config.invoke.equals(invoke)){
+    private FilterChainConfig findByInvoke(String invoke, List<FilterChainConfig> source) {
+        for (FilterChainConfig config : source) {
+            if (config.invoke != null && config.invoke.equals(invoke)) {
                 return config;
             }
         }
