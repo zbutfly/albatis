@@ -25,11 +25,11 @@ public class HbaseResult implements Serializable {
 
 	// private final Map<String, Cell> cells = new HashMap<>();
 
-	public HbaseResult(String table, byte[] row) {
+	public HbaseResult(String table, byte[] row, Cell... cells) {
 		super();
 		this.table = table;
 		this.row = row;
-		this.result = null;
+		this.result = Result.create(cells);
 	}
 
 	public HbaseResult(String table, Result result) {
@@ -52,6 +52,10 @@ public class HbaseResult implements Serializable {
 
 	public byte[] getRow() {
 		return row;
+	}
+
+	public Result getResult() {
+		return result;
 	}
 
 	public Put put() throws IOException {
