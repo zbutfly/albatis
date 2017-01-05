@@ -17,8 +17,15 @@ public interface DataFrom {
     public static final class Table implements DataFrom {
         public String tableName;
 
+        public String DBName;
+
         public Table(String name) {
             this.tableName = name;
+        }
+
+        public Table setDBName(String DBName) {
+            this.DBName = DBName;
+            return this;
         }
     }
 
