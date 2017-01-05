@@ -38,7 +38,7 @@ FilterLoader：FilterChain的工具类，同时也是使用工厂方法获取fil
 #### 样例
 ```xml
 <beans>
-    <filterChain name="queryFilterChain" class="com.hzcominfo.albatis.search.filter.FilterLoader"
+    <filterChain name="queryFilterChain1" class="com.hzcominfo.albatis.search.filter.FilterLoader"
                 invoke="com.hzcominfo.albatis.search.filter.Sample">
         <filter clazz="com.hzcominfo.albatis.search.filter.LogFilter"
                 order="3">
@@ -47,7 +47,7 @@ FilterLoader：FilterChain的工具类，同时也是使用工厂方法获取fil
         <param key="paramA" value="valueA"/>
     </filterChain>
 
-    <filterChain name="queryFilterChain" class="com.hzcominfo.albatis.search.filter.FilterLoader">
+    <filterChain name="queryFilterChain2" class="com.hzcominfo.albatis.search.filter.FilterLoader">
         <filter clazz="com.hzcominfo.albatis.search.filter.ResultFilter">
             <param key="paramA" value="valueA"/>
         </filter>

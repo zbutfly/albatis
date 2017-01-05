@@ -1,5 +1,6 @@
 package com.hzcominfo.albatis.search.filter;
 
+import com.hzcominfo.albatis.search.Query;
 import com.hzcominfo.albatis.search.exception.SearchAPIException;
 import org.jdom2.Attribute;
 import org.jdom2.Document;
@@ -140,7 +141,6 @@ public abstract class FilterLoader {
      * @throws SearchAPIException 异常
      */
     public static <Q, R> FilterChain<Q, R> invokeOf(Class clazz, String name) throws SearchAPIException {
-
         String invokeClazz = getInvokedClazz(); //获取载入点的名称，仅在name=null的时候有必要
 
         System.out.println(invokeClazz);
@@ -214,6 +214,17 @@ public abstract class FilterLoader {
     public static void main(String[] args) {
         // XMLParser("/internal-filter.xml");
         // XMLParser("/internal-filter2.xml");
+
+
+        try {
+           FilterChain<Query,Query> aa =  FilterLoader.invokeOf(FilterLoader.class,"1");
+            FilterChain<Query,Query> aa2 =  FilterLoader.invokeOf(FilterLoader.class,"2");
+           Query a=null;
+           aa.doFilter(a,a);
+
+        } catch (SearchAPIException e) {
+            e.printStackTrace();
+        }
 
     }
 }
