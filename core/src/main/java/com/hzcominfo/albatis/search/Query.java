@@ -23,7 +23,7 @@ public interface Query extends Describe {
 
     public Query from(DataFrom... table);
 
-    public Query db(String... db);
+ //   public Query db(String... db);
 
     public Query where(Criteria criteria);
 

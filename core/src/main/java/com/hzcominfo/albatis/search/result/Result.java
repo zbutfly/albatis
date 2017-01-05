@@ -8,12 +8,11 @@
  */
 package com.hzcominfo.albatis.search.result;
 
+import com.hzcominfo.albatis.search.exception.SearchAPIException;
+import net.butfly.albacore.exception.NotImplementedException;
+
 import java.sql.ResultSet;
 import java.util.Map;
-
-import com.hzcominfo.albatis.search.exception.SearchAPIException;
-
-import net.butfly.albacore.exception.NotImplementedException;
 
 /**
  * 描述返回结果的数据表，参考JDBC的ResultSet设定，其中也包括了一部分对Nosql数据特定格式的处理<br>
@@ -25,16 +24,16 @@ import net.butfly.albacore.exception.NotImplementedException;
  * @since 0.0.1
  */
 public interface Result extends ResultSet {
-	@SuppressWarnings("rawtypes")
-	default Map getRowItem() throws SearchAPIException {
-		throw new SearchAPIException(new NotImplementedException());
-	}
+    @SuppressWarnings("rawtypes")
+    default Map getRowItem() throws SearchAPIException {
+        throw new SearchAPIException(new NotImplementedException());
+    }
 
-	default ResultMetadata getResultMetadata() throws SearchAPIException {
-		throw new SearchAPIException(new NotImplementedException());
-	}
+    default ResultMetadata getResultMetadata() throws SearchAPIException {
+        throw new SearchAPIException(new NotImplementedException());
+    }
 
-	default void setResultMetadata(ResultMetadata resultMetadata) throws SearchAPIException {
-		throw new SearchAPIException(new NotImplementedException());
-	}
+    default void setResultMetadata(ResultMetadata resultMetadata) throws SearchAPIException {
+        throw new SearchAPIException(new NotImplementedException());
+    }
 }
