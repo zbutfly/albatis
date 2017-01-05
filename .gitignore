@@ -10,3 +10,5 @@ logs
 *.rar
 *.7z
 *.class
+.idea
+.settings
