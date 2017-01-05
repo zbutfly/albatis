@@ -12,3 +12,4 @@ logs
 *.class
 .idea
 .settings
+*.iml
