@@ -1,6 +1,7 @@
 package net.butfly.albatis.hbase;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -12,7 +13,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.Put;
@@ -91,6 +91,7 @@ public final class HbaseOutput extends Output<HbaseResult> {
 	@Override
 	public void closing() {
 		super.closing();
+		failover.close();
 		for (Table t : tables.values())
 			try {
 				t.close();
@@ -113,7 +114,7 @@ public final class HbaseOutput extends Output<HbaseResult> {
 	public long enqueue(List<HbaseResult> results) {
 		Map<String, List<Result>> map = new HashMap<>();
 		for (HbaseResult r : results)
-			map.computeIfAbsent(r.getTable(), core -> new ArrayList<>()).add(r.getResult());
+			if (null != r) map.computeIfAbsent(r.getTable(), core -> new ArrayList<>()).add(r.getResult());
 		AtomicInteger count = new AtomicInteger(0);
 		failover.doWithFailover(map, (t, rs) -> {
 			List<Put> puts = new ArrayList<>();

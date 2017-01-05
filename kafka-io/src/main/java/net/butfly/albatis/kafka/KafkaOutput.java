@@ -57,7 +57,8 @@ public class KafkaOutput extends MapOutput<String, KafkaMessage> {
 			})));
 		}
 		try {
-			Futures.successfulAsList(fs).get();
+			List<RecordMetadata> results = Futures.successfulAsList(fs).get();
+			logger.trace("KafkaOutput [" + name() + "] sent: " + results.size());
 		} catch (InterruptedException e) {
 			logger.error("KafkaOutput [" + name() + "] interrupted", e);
 		} catch (ExecutionException e) {
