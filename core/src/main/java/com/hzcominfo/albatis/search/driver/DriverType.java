@@ -16,34 +16,34 @@ package com.hzcominfo.albatis.search.driver;
  * @see
  */
 public enum DriverType {
-	ESDB("elasticsearch", "com.hzcominfo.albatis.search.es.core.drive.ElasticDriver", "com.hzcominfo.es.description", "Es"), SOLR("solr",
-			"com.hzcominfo.albatis.search.common.solr.core.drive.solr", "com.hzcominfo.es.description", "Es");
+    ESDB("elasticsearch", "com.hzcominfo.albatis.search.es.core.drive.ElasticDriver", "com.hzcominfo.es.description", "Es"), SOLR("solr",
+            "com.hzcominfo.albatis.search.common.solr.core.drive.solr", "com.hzcominfo.es.description", "Es");
 
-	private String name;
-	private String drive;
-	private String descriptionPackage;
-	private String prefix;
+    private String name;
+    private String drive;
+    private String descriptionPackage;
+    private String prefix;
 
-	DriverType(String name, String drive, String descriptionPackage, String prefix) {
-		this.name = name;
-		this.drive = drive;
-		this.descriptionPackage = descriptionPackage;
-		this.prefix = prefix;
-	}
+    DriverType(String name, String drive, String descriptionPackage, String prefix) {
+        this.name = name;
+        this.drive = drive;
+        this.descriptionPackage = descriptionPackage;
+        this.prefix = prefix;
+    }
 
-	public String getName() {
-		return name;
-	}
+    public String getName() {
+        return name;
+    }
 
-	public String getDrive() {
-		return drive;
-	}
+    public String getDrive() {
+        return drive;
+    }
 
-	public String getDescriptionPackage() {
-		return descriptionPackage;
-	}
+    public String getDescriptionPackage() {
+        return descriptionPackage;
+    }
 
-	public String getPrefix() {
-		return prefix;
-	}
+    public String getPrefix() {
+        return prefix;
+    }
 }
