@@ -18,7 +18,7 @@ public class Criteria extends Bean<Criteria> {
 	public Criteria() {
 		this.params = new HashMap<String, Object>();
 		this.orderFields = new ArrayList<OrderField>();
-	};
+	}
 
 	public Criteria setParameters(Map<String, ?> params) {
 		this.params.putAll(params);

@@ -1,6 +1,10 @@
 package net.butfly.albatis.solr;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -8,41 +12,40 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
-import java.util.concurrent.LinkedBlockingQueue;
 
+import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.common.SolrInputDocument;
 
-import net.butfly.albacore.io.MapOutput;
-import net.butfly.albacore.lambda.Converter;
+import net.butfly.albacore.io.Output;
+import net.butfly.albacore.io.faliover.Failover;
+import net.butfly.albacore.io.faliover.HeapFailover;
+import net.butfly.albacore.io.faliover.OffHeapFailover;
 import net.butfly.albacore.lambda.ConverterPair;
-import net.butfly.albacore.utils.Collections;
 import net.butfly.albacore.utils.logger.Logger;
+import scala.Tuple2;
 import scala.Tuple3;
 
-public class SolrOutput extends MapOutput<String, SolrMessage<SolrInputDocument>> {
+public class SolrOutput extends Output<SolrMessage<SolrInputDocument>> {
 	private static final long serialVersionUID = -2897525987426418020L;
 	private static final Logger logger = Logger.getLogger(SolrOutput.class);
 	static final int DEFAULT_AUTO_COMMIT_MS = 30000;
 	static final int DEFAULT_PACKAGE_SIZE = 500;
 	private static final int DEFAULT_PARALLELISM = 5;
 	final SolrClient solr;
-	// final AtomicBoolean closed;
 
 	private final Set<String> cores;
-	private final LinkedBlockingQueue<Runnable> tasks;
-	private final SolrFailover failover;
-	private final List<SolrSender> senders;
+	private final Failover<String, SolrInputDocument> failover;
+	private final String defaultCore;
 
 	public SolrOutput(String name, String baseUrl) throws IOException {
 		this(name, baseUrl, null);
 	}
 
 	public SolrOutput(String name, String baseUrl, String failoverPath) throws IOException {
-		super(name, m -> m.getCore());
+		super(name);
 		logger.info("SolrOutput [" + name + "] from [" + baseUrl + "]");
 		Tuple3<String, String, String[]> t;
 		try {
@@ -50,9 +53,9 @@ public class SolrOutput extends MapOutput<String, SolrMessage<SolrInputDocument>
 		} catch (SolrServerException | URISyntaxException e) {
 			throw new IOException(e);
 		}
+		defaultCore = t._2();
 		cores = new HashSet<>(Arrays.asList(t._3()));
 		solr = Solrs.open(baseUrl);
-		tasks = new LinkedBlockingQueue<>(DEFAULT_PARALLELISM);
 		ConverterPair<String, List<SolrInputDocument>, Exception> adding = (core, docs) -> {
 			try {
 				solr.add(core, docs, DEFAULT_AUTO_COMMIT_MS);
@@ -62,72 +65,69 @@ public class SolrOutput extends MapOutput<String, SolrMessage<SolrInputDocument>
 			}
 		};
 
-		if (failoverPath == null) failover = new SolrFailoverMemory(name(), adding);
-		else failover = new SolrFailoverPersist(name(), adding, failoverPath, baseUrl);
+		if (failoverPath == null) failover = new HeapFailover<>(name(), adding, DEFAULT_PACKAGE_SIZE, DEFAULT_PARALLELISM);
+		else failover = new OffHeapFailover<String, SolrInputDocument>(name(), adding, failoverPath, calcName(baseUrl),
+				DEFAULT_PACKAGE_SIZE, DEFAULT_PARALLELISM) {
+			private static final long serialVersionUID = 7620077959670870367L;
 
-		senders = new ArrayList<>();
-		for (int i = 0; i < DEFAULT_PARALLELISM; i++) {
-			SolrSender s = new SolrSender(name, tasks, i);
-			senders.add(s);
-		}
-	}
-
-	@Override
-	public boolean enqueue0(String core, SolrMessage<SolrInputDocument> doc) {
-		cores.add(core);
-		if (!opened()) {
-			failover.fail(core, doc.getDoc(), null);
-			return false;
-		}
-		try {
-			tasks.put(() -> {
-				try {
-					solr.add(core, doc.getDoc(), DEFAULT_AUTO_COMMIT_MS);
-				} catch (Exception err) {
-					failover.fail(core, doc.getDoc(), err);
+			@Override
+			protected byte[] toBytes(String core, SolrInputDocument doc) {
+				if (null == core || null == doc) return null;
+				try (ByteArrayOutputStream baos = new ByteArrayOutputStream(); ObjectOutputStream oos = new ObjectOutputStream(baos);) {
+					oos.writeObject(new SolrMessage<SolrInputDocument>(core, doc));
+					return baos.toByteArray();
+				} catch (IOException e) {
+					return null;
 				}
-			});
-		} catch (InterruptedException e) {
-			failover.fail(core, doc.getDoc(), null);
-		}
-		return true;
+			}
+
+			@Override
+			@SuppressWarnings("unchecked")
+			protected Tuple2<String, SolrInputDocument> fromBytes(byte[] bytes) {
+				if (null == bytes) return null;
+				try {
+					SolrMessage<SolrInputDocument> sm = (SolrMessage<SolrInputDocument>) new ObjectInputStream(new ByteArrayInputStream(
+							bytes)).readObject();
+					return new Tuple2<>(sm.getCore(), sm.getDoc());
+				} catch (ClassNotFoundException | IOException e) {
+					return null;
+				}
+			}
+		};
 	}
 
 	@Override
-	public long enqueue(Converter<SolrMessage<SolrInputDocument>, String> keying, List<SolrMessage<SolrInputDocument>> docs) {
+	public boolean enqueue0(SolrMessage<SolrInputDocument> doc) {
+		return enqueue(Arrays.asList(doc)) == 1;
+	}
+
+	@Override
+	public long enqueue(List<SolrMessage<SolrInputDocument>> docs) {
+		List<SolrMessage<SolrInputDocument>> it = null;
+		this.enqueue(it);
 		Map<String, List<SolrInputDocument>> map = new HashMap<>();
 		for (SolrMessage<SolrInputDocument> d : docs)
-			map.computeIfAbsent(d.getCore(), core -> new ArrayList<>()).add(d.getDoc());
+			map.computeIfAbsent(d.getCore() == null ? defaultCore : d.getCore(), core -> new ArrayList<>()).add(d.getDoc());
 		cores.addAll(map.keySet());
-		for (Entry<String, List<SolrInputDocument>> e : map.entrySet()) {
-			boolean inserted = false;
-			if (opened()) do {
-				Runnable run = () -> {
-					for (List<SolrInputDocument> pkg : Collections.chopped(e.getValue(), DEFAULT_PACKAGE_SIZE)) {
-						try {
-							solr.add(e.getKey(), pkg);
-						} catch (Exception err) {
-							failover.fail(e.getKey(), pkg, err);
-						}
-					}
-					try {
-						solr.commit(e.getKey(), false, false, true);
-					} catch (Exception err) {
-						logger.warn("SolrOutput [" + name() + "] commit failure on core [" + e.getKey() + "]", err);
-					}
-				};
-				inserted = tasks.offer(run);
-			} while (opened() && !inserted);
-			if (!inserted) failover.fail(e.getKey(), e.getValue(), null);
-		}
+		failover.doWithFailover(map, (k, vs) -> {
+			try {
+				solr.add(k, vs);
+			} catch (SolrServerException | IOException e) {
+				throw new RuntimeException(e);
+			}
+		}, k -> {
+			try {
+				solr.commit(k, false, false, true);
+			} catch (SolrServerException | IOException e) {
+				throw new RuntimeException(e);
+			}
+		});
 		return docs.size();
 	}
 
 	@Override
 	public void closing() {
 		super.closing();
-		for (SolrSender s : senders)
-			s.close();
 		failover.close();
 		logger.debug("SolrOutput [" + name() + "] all processing thread closed normally");
 		try {
@@ -139,13 +139,15 @@ public class SolrOutput extends MapOutput<String, SolrMessage<SolrInputDocument>
 		Solrs.close(solr);
 	}
 
-	@Override
-	public Set<String> keys() {
-		return cores;
-	}
-
 	public long fails() {
 		return failover.size();
 	}
 
+	private static String calcName(String solrUrl) {
+		try {
+			return new URI(solrUrl).getAuthority().replaceAll("/", "-");
+		} catch (URISyntaxException e) {
+			return solrUrl.replaceAll("/", "-");
+		}
+	}
 }

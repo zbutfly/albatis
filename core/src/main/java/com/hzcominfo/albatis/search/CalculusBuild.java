@@ -72,6 +72,10 @@ public class CalculusBuild {
         return new DataFrom.Table(tableName);
     }
 
+    public static DataFrom table(String tableName, String dbName) {
+        return new DataFrom.Table(tableName).setDBName(dbName);
+    }
+
     public static SearchItem column(String columnName) {
         return new SearchItem.Column(columnName);
     }
