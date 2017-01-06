@@ -70,7 +70,7 @@ public abstract class FilterLoader {
             InputStream inputStream = FilterLoader.class.getResourceAsStream(path);
 
             if(inputStream==null){
-                String p = FilterLoader.class.getResource("").getPath();
+                String p = ClassLoader.getSystemClassLoader().getResource("").getPath();
                 File file = new File(p+path);
                 if(file.exists()){
                     inputStream = new FileInputStream(file);
