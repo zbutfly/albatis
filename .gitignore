@@ -11,4 +11,5 @@ logs
 *.7z
 *.class
 *.iml
-/idea
+.idea
+.settings
