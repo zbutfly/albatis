@@ -176,12 +176,12 @@ public abstract class FilterLoader {
         }
         try {
             Class invoke = Class.forName(ret.clazz);
-            FilterChain filterChain = (FilterChain)invoke.getConstructor().newInstance(new Object());
+            FilterChain filterChain = (FilterChain)invoke.getConstructor().newInstance();
             for(FilterConfig config : ret.filterConfigs){
                 try {
                     if(config.clazz!=null){
                         Class f = Class.forName(config.clazz);
-                        Filter filter = (Filter) f.getConstructor(new Class[]{}).newInstance(new Object());
+                        Filter filter = (Filter) f.getConstructor(new Class[]{}).newInstance();
                         filterChain.add(filter);
                     }
                 }catch (Exception e){
