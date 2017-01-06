@@ -27,7 +27,8 @@ public abstract class BasicFilterChain<Q, R> implements FilterChain<Q, R> {
         filter.doFilter(query, response, nextChain);
     }
 
-    public BasicFilterChain<Q, R> add(Filter<Q, R> filter) {
+    @Override
+    public FilterChain<Q, R> add(Filter<Q,R> filter) {
         filterList.add(filter);
         return this;
     }
