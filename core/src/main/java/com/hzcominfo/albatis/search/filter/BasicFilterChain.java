@@ -8,7 +8,7 @@ import java.util.List;
 /**
  *
  */
-public abstract class BasicFilterChain<Q, R> implements FilterChain<Q, R> {
+public class BasicFilterChain<Q, R> implements FilterChain<Q, R> {
 
     private List<Filter<Q, R>> filterList = new ArrayList<>(4);
     private FilterChain<Q, R> nextChain;
