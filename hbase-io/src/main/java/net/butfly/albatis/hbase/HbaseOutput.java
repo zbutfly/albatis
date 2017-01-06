@@ -38,8 +38,8 @@ public final class HbaseOutput extends Output<HbaseResult> {
 	private final Map<String, Table> tables;
 	private final Failover<String, Result> failover;
 
-	public HbaseOutput(String failoverPath) throws IOException {
-		super("hbase-output-queue");
+	public HbaseOutput(String name, String failoverPath) throws IOException {
+		super(name);
 		this.connect = Hbases.connect();
 		tables = new ConcurrentHashMap<>();
 		ConverterPair<String, List<Result>, Exception> adding = (table, results) -> {
