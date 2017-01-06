@@ -64,9 +64,7 @@ public abstract class FilterLoader {
         }
         SAXBuilder builder = new SAXBuilder();
         Document document;
-        Map<String, FilterChainConfig> map;
         List<FilterChainConfig> result = null;
-
 
         try {
             InputStream inputStream = FilterLoader.class.getResourceAsStream(path);
