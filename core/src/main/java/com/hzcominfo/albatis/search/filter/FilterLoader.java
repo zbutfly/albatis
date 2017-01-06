@@ -69,16 +69,18 @@ public abstract class FilterLoader {
         try {
             InputStream inputStream = FilterLoader.class.getResourceAsStream(path);
 
-            if(inputStream==null){
+            if (inputStream == null) {
                 String p = FilterLoader.class.getResource("").getPath();
-                File file = new File(p+path);
-                if(file.exists()){
+                File file = new File(p + path);
+                if (file.exists()) {
                     inputStream = new FileInputStream(file);
                 }
             }
 
 
-
+            if (inputStream == null) {
+                throw new SearchAPIException("can't load config file");
+            }
             document = builder.build(inputStream);
             Element root = document.getRootElement();
             List<Element> chain = root.getChildren("filterChain");
@@ -131,7 +133,7 @@ public abstract class FilterLoader {
                     }
                     chainConfig.filterConfigs.add(config);
                 }
-                if(chainConfig.filterConfigs.size()>0){
+                if (chainConfig.filterConfigs.size() > 0) {
                     result.add(chainConfig);
                 }
             }
@@ -168,31 +170,30 @@ public abstract class FilterLoader {
                 }
             }
         }
-        if(ret == null){
+        if (ret == null) {
             return null;
         }
-        if(ret.filterConfigs.size()==0){
+        if (ret.filterConfigs.size() == 0) {
             return null;   //在构建的时候就要检查，这里仅用做验证
         }
         try {
             Class invoke = Class.forName(ret.clazz);
-            FilterChain filterChain = (FilterChain)invoke.getConstructor().newInstance(new Object());
-            for(FilterConfig config : ret.filterConfigs){
+            FilterChain filterChain = (FilterChain) invoke.getConstructor().newInstance(new Object());
+            for (FilterConfig config : ret.filterConfigs) {
                 try {
-                    if(config.clazz!=null){
+                    if (config.clazz != null) {
                         Class f = Class.forName(config.clazz);
                         Filter filter = (Filter) f.getConstructor(new Class[]{}).newInstance(new Object());
                         filterChain.add(filter);
                     }
-                }catch (Exception e){
-                    continue;
+                } catch (Exception e) {
+                    throw new SearchAPIException(e);
                 }
             }
             return filterChain;
         } catch (Exception e) {
-            e.printStackTrace();
+            throw new SearchAPIException(e);
         }
-        return null;
     }
 
     /**
@@ -210,6 +211,7 @@ public abstract class FilterLoader {
 
     /**
      * 无参数调用 通过Java自身解析
+     *
      * @param <Q> Q
      * @param <R> R
      * @return filterChain
@@ -217,7 +219,7 @@ public abstract class FilterLoader {
      */
     public static <Q, R> FilterChain<Q, R> invokeOf() throws SearchAPIException {
         String className = getInvokedClazz();
-        if(className!=null){
+        if (className != null) {
             try {
                 Class clazz = Class.forName(className);
                 return invokeOf(clazz, null);
