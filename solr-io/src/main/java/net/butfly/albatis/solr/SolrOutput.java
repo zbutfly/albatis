@@ -103,8 +103,6 @@ public class SolrOutput extends Output<SolrMessage<SolrInputDocument>> {
 
 	@Override
 	public long enqueue(List<SolrMessage<SolrInputDocument>> docs) {
-		List<SolrMessage<SolrInputDocument>> it = null;
-		this.enqueue(it);
 		Map<String, List<SolrInputDocument>> map = new HashMap<>();
 		for (SolrMessage<SolrInputDocument> d : docs)
 			map.computeIfAbsent(d.getCore() == null ? defaultCore : d.getCore(), core -> new ArrayList<>()).add(d.getDoc());
