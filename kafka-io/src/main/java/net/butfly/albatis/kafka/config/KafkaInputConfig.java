@@ -87,7 +87,7 @@ public class KafkaInputConfig extends KafkaConfigBase {
 		v = props.getProperty("albatis.kafka.zookeeper.session.timeout.ms", "30000");
 		zookeeperSessionTimeoutMs = Long.parseLong(v);
 
-		v = props.getProperty("albatis.kafka.partition.parallelism", "3");
+		v = props.getProperty("albatis.kafka.partition.parallelism", "0");
 		partitionParallelism = Integer.parseInt(v.trim());
 	}
 

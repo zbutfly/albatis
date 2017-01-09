@@ -2,7 +2,6 @@ package net.butfly.albatis.kafka;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -14,16 +13,15 @@ import com.google.common.util.concurrent.JdkFutureAdapters;
 import com.google.common.util.concurrent.ListenableFuture;
 
 import net.butfly.albacore.exception.ConfigException;
-import net.butfly.albacore.io.MapOutput;
-import net.butfly.albacore.lambda.Converter;
+import net.butfly.albacore.io.Output;
 import net.butfly.albatis.kafka.config.KafkaOutputConfig;
 
-public class KafkaOutput extends MapOutput<String, KafkaMessage> {
+public class KafkaOutput extends Output<KafkaMessage> {
 	private static final long serialVersionUID = -8630366328993414430L;
 	private final KafkaProducer<byte[], byte[]> connect;
 
 	public KafkaOutput(final String name, final KafkaOutputConfig config) throws ConfigException {
-		super(name, km -> km.getTopic());
+		super(name);
 		connect = new KafkaProducer<byte[], byte[]>(config.props());
 	}
 
@@ -34,9 +32,9 @@ public class KafkaOutput extends MapOutput<String, KafkaMessage> {
 	}
 
 	@Override
-	public boolean enqueue0(String topic, KafkaMessage m) {
+	public boolean enqueue0(KafkaMessage m) {
 		if (null == m) return false;
-		m.setTopic(topic);
+		m.setTopic(m.getTopic());
 		connect.send(m.toProducer(), (meta, ex) -> {
 			if (null != ex) logger.error("Kafka send failure on topic [" + m.getTopic() + "] with key: [" + new String(m.getKey()) + "]",
 					ex);
@@ -45,11 +43,10 @@ public class KafkaOutput extends MapOutput<String, KafkaMessage> {
 	}
 
 	@Override
-	public long enqueue(Converter<KafkaMessage, String> topicing, List<KafkaMessage> messages) {
+	public long enqueue(List<KafkaMessage> messages) {
 		List<ListenableFuture<RecordMetadata>> fs = new ArrayList<>();
 		AtomicLong c = new AtomicLong(0);
 		for (KafkaMessage m : messages) {
-			m.setTopic(topicing.apply(m));
 			fs.add(JdkFutureAdapters.listenInPoolThread(connect.send(m.toProducer(), (meta, ex) -> {
 				if (null != ex) logger.error("Kafka send failure on topic [" + m.getTopic() + "] with key: [" + new String(m.getKey())
 						+ "]", ex);
@@ -57,18 +54,14 @@ public class KafkaOutput extends MapOutput<String, KafkaMessage> {
 			})));
 		}
 		try {
-			Futures.successfulAsList(fs).get();
+			List<RecordMetadata> results = Futures.successfulAsList(fs).get();
+			logger.trace("KafkaOutput [" + name() + "] sent: " + results.size());
 		} catch (InterruptedException e) {
 			logger.error("KafkaOutput [" + name() + "] interrupted", e);
 		} catch (ExecutionException e) {
 			logger.error("KafkaOutput [" + name() + "] failure", e.getCause());
 		}
 		return c.get();
-	}
-
-	@Override
-	public Set<String> keys() {
-		throw new UnsupportedOperationException();
 	}
 
 	public long fails() {
