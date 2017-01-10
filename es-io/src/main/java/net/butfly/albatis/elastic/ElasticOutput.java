@@ -50,6 +50,10 @@ public class ElasticOutput extends Output<ElasticMessage> {
 	@Override
 	public void closing() {
 		super.closing();
-		conn.close();
+		try {
+			conn.close();
+		} catch (IOException e) {
+			logger.error("Close failure", e);
+		}
 	}
 }
