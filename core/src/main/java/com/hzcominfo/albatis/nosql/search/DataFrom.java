@@ -6,7 +6,7 @@
  * 修改时间：2016-11-24
  * 操作：创建
  */
-package com.hzcominfo.albatis.search;
+package com.hzcominfo.albatis.nosql.search;
 
 /**
  * @author ljx

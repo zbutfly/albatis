@@ -1,4 +1,4 @@
-package com.hzcominfo.albatis.search;
+package com.hzcominfo.albatis.nosql.search;
 
 import java.util.Collection;
 

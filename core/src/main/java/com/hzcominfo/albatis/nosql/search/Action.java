@@ -7,7 +7,7 @@
  * 操作：创建
  */
 
-package com.hzcominfo.albatis.search;
+package com.hzcominfo.albatis.nosql.search;
 
 /**
  * 对应要操作的行为

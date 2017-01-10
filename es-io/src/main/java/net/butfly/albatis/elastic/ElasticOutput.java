@@ -12,9 +12,9 @@ import net.butfly.albacore.utils.Systems;
 
 public class ElasticOutput extends Output<ElasticMessage> {
 	private static final long serialVersionUID = 1227554461265245482L;
-	private final ElasticConnect conn;
+	private final ElasticConnection conn;
 
-	public ElasticOutput(String name, ElasticConnect conn) throws IOException {
+	public ElasticOutput(String name, ElasticConnection conn) throws IOException {
 		super(name);
 		this.conn = conn;
 	}

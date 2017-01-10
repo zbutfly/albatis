@@ -1,4 +1,4 @@
-package com.hzcominfo.albatis.search.exception;
+package com.hzcominfo.albatis.nosql.search.exception;
 
 import java.sql.SQLException;
 

@@ -1,9 +1,9 @@
-package com.hzcominfo.albatis.search.filter;
-
-import com.hzcominfo.albatis.search.exception.SearchAPIException;
+package com.hzcominfo.albatis.nosql.search.filter;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import com.hzcominfo.albatis.nosql.search.exception.SearchAPIException;
 
 /**
  *

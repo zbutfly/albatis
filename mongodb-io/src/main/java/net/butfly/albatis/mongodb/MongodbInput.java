@@ -16,12 +16,11 @@ import com.mongodb.MongoException;
 import net.butfly.albacore.io.Input;
 import net.butfly.albacore.serder.JsonSerder;
 import net.butfly.albacore.utils.logger.Logger;
-import net.butfly.albatis.mongodb.Mongos.MongoDB;
 
 public class MongodbInput extends Input<DBObject> {
 	private static final long serialVersionUID = -142784733788535129L;
 	private static final Logger logger = Logger.getLogger(MongodbInput.class);
-	private final MongoDB mdb;
+	private final MongodbConnection conn;
 	private DBCursor cursor;
 	private final ReentrantReadWriteLock lock;
 
@@ -29,17 +28,17 @@ public class MongodbInput extends Input<DBObject> {
 		super(name);
 		lock = new ReentrantReadWriteLock();
 		logger.info("MongoDBInput [" + name + "] from [" + uri + "], core [" + table + "]");
-		this.mdb = new MongoDB(uri);
+		this.conn = new MongodbConnection(uri);
 		long now;
 		logger.debug("MongoDBInput [" + name + "] find begin...");
 		if (null == filter || filter.length == 0) {
 			now = System.nanoTime();
-			cursor = mdb.connect().getCollection(table).find();
+			cursor = conn.db().getCollection(table).find();
 		} else if (filter.length == 1) {
 			Map<String, Object> m = JsonSerder.JSON_MAPPER.der(filter[0]);
 
 			now = System.nanoTime();
-			cursor = mdb.connect().getCollection(table).find(new BasicDBObject(m));
+			cursor = conn.db().getCollection(table).find(new BasicDBObject(m));
 		} else {
 			BasicDBList filters = new BasicDBList();
 			for (int i = 0; i < filter.length; i++) {
@@ -50,7 +49,7 @@ public class MongodbInput extends Input<DBObject> {
 			and.put("$and", filters);
 
 			now = System.nanoTime();
-			cursor = mdb.connect().getCollection(table).find(and);
+			cursor = conn.db().getCollection(table).find(and);
 		}
 		logger.info(() -> "MongoDBInput [" + name + "] find end in [" + (System.nanoTime() - now) / 1000 + " ms].");
 		logger.trace(() -> "MongoDBInput [" + name + "] find [" + cursor.size() + " records].");
@@ -62,7 +61,11 @@ public class MongodbInput extends Input<DBObject> {
 		super.closing();
 		logger.debug("MongoDBInput [" + name() + "] closing...");
 		cursor.close();
-		mdb.close();
+		try {
+			conn.close();
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
 		logger.info("MongoDBInput [" + name() + "] closed.");
 	}
 

@@ -1,12 +1,13 @@
-package com.hzcominfo.albatis.search.filter;
+package com.hzcominfo.albatis.nosql.search.filter;
 
-import com.hzcominfo.albatis.search.Query;
-import com.hzcominfo.albatis.search.exception.SearchAPIException;
 import org.jdom2.Attribute;
 import org.jdom2.Document;
 import org.jdom2.Element;
 import org.jdom2.JDOMException;
 import org.jdom2.input.SAXBuilder;
+
+import com.hzcominfo.albatis.nosql.search.Query;
+import com.hzcominfo.albatis.nosql.search.exception.SearchAPIException;
 
 import java.io.IOException;
 import java.io.InputStream;

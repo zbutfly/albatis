@@ -1,4 +1,4 @@
-package com.hzcominfo.albatis.search.exception;
+package com.hzcominfo.albatis.nosql.search.exception;
 
 /**
  * Created by ljx on 2016/11/23.

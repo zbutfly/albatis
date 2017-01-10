@@ -1,4 +1,4 @@
-package com.hzcominfo.albatis.search;
+package com.hzcominfo.albatis.nosql.search;
 
 /**
  * Created by Aaron on 2016/12/6.

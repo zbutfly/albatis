@@ -6,7 +6,7 @@
  * 修改时间：2016-11-15
  * 操作：创建
  */
-package com.hzcominfo.albatis.search.driver;
+package com.hzcominfo.albatis.nosql.search.driver;
 
 /**
  * 枚举数据库的类型,记录枚举数据库名称和驱动调用的类名支持的驱动类型
@@ -16,8 +16,8 @@ package com.hzcominfo.albatis.search.driver;
  * @see
  */
 public enum DriverType {
-    ESDB("elasticsearch", "com.hzcominfo.albatis.search.es.core.drive.ElasticDriver", "com.hzcominfo.es.description", "Es"), SOLR("solr",
-            "com.hzcominfo.albatis.search.common.solr.core.drive.solr", "com.hzcominfo.es.description", "Es");
+    ESDB("elasticsearch", "com.hzcominfo.albatis.nosql.search.es.core.drive.ElasticDriver", "com.hzcominfo.es.description", "Es"), SOLR("solr",
+            "com.hzcominfo.albatis.nosql.search.common.solr.core.drive.solr", "com.hzcominfo.es.description", "Es");
 
     private String name;
     private String drive;

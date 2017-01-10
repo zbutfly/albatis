@@ -7,7 +7,7 @@
  * 操作：创建
  */
 
-package com.hzcominfo.albatis.search;
+package com.hzcominfo.albatis.nosql.search;
 
 /**
  * 直接注入源语句

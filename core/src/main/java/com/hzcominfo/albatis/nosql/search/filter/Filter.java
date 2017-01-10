@@ -1,6 +1,6 @@
-package com.hzcominfo.albatis.search.filter;
+package com.hzcominfo.albatis.nosql.search.filter;
 
-import com.hzcominfo.albatis.search.exception.SearchAPIException;
+import com.hzcominfo.albatis.nosql.search.exception.SearchAPIException;
 
 /**
  * Created by lic
