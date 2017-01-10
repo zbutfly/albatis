@@ -31,7 +31,7 @@ abstract class KafkaInputBase<T> extends MapInput<String, KafkaMessage> {
 	public KafkaInputBase(String name, final String config, String... topic) throws ConfigException, IOException {
 		super(name);
 		conf = new KafkaInputConfig(config);
-		logger.info("KafkaInput [" + name() + "] connecting with config [" + conf.toString() + "].");
+		logger.info("KafkaInput0 [" + name() + "] connecting with config [" + conf.toString() + "].");
 		topics = new HashMap<>();
 		int kp = conf.getPartitionParallelism();
 		for (Entry<String, Integer> info : Kafkas.getTopicInfo(conf.getZookeeperConnect(), topic).entrySet()) {
@@ -40,10 +40,10 @@ abstract class KafkaInputBase<T> extends MapInput<String, KafkaMessage> {
 			else topics.put(info.getKey(), (int) Math.ceil(info.getValue() * 1.0 / kp));
 		}
 
-		logger.debug("KafkaInput [" + name() + "] parallelism of topics: " + topics.toString() + ".");
+		logger.debug("KafkaInput0 [" + name() + "] parallelism of topics: " + topics.toString() + ".");
 		connect = kafka.consumer.Consumer.createJavaConsumerConnector(conf.getConfig());
 		raws = connect.createMessageStreams(topics);
-		logger.debug("KafkaInput [" + name() + "] connected.");
+		logger.debug("KafkaInput0 [" + name() + "] connected.");
 		streams = new HashMap<>();
 	}
 
@@ -86,7 +86,7 @@ abstract class KafkaInputBase<T> extends MapInput<String, KafkaMessage> {
 				if (f instanceof AutoCloseable) try {
 					((AutoCloseable) f).close();
 				} catch (Exception e) {
-					logger.error("KafkaInput [" + name() + "] internal fetcher close failure", e);
+					logger.error("KafkaInput0 [" + name() + "] internal fetcher close failure", e);
 				}
 		connect.commitOffsets(true);
 		connect.shutdown();

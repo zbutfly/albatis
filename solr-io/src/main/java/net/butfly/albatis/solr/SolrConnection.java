@@ -101,7 +101,7 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 			CoreAdminResponse resp = req.process(getClient());
 			cores = new String[resp.getCoreStatus().size()];
 			for (int i = 0; i < resp.getCoreStatus().size(); i++)
-				cores[i] = resp.getCoreStatus().getName(i);
+				getCores()[i] = resp.getCoreStatus().getName(i);
 			baseUri = url;
 			defaultCore = null;
 		} catch (SolrServerException e) { // XXX IOException?
@@ -117,7 +117,7 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 			defaultCore = segs.remove(segs.size() - 1);
 			baseUri = url.replaceAll("/?" + defaultCore + "/?$", "");
 			try (SolrConnection conn = new SolrConnection(baseUri, parserClass)) {
-				cores = conn.cores;
+				cores = conn.getCores();
 			}
 		}
 	}
@@ -179,5 +179,9 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 	public void close() throws IOException {
 		super.close();
 		getClient().close();
+	}
+
+	public String[] getCores() {
+		return cores;
 	}
 }
