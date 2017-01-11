@@ -9,7 +9,6 @@ import java.util.Properties;
 
 import com.mongodb.DB;
 import com.mongodb.Mongo;
-import com.mongodb.MongoURI;
 import com.mongodb.ServerAddress;
 
 import net.butfly.albacore.utils.Configs;
@@ -18,51 +17,33 @@ import net.butfly.albacore.utils.Utils;
 import net.butfly.albacore.utils.async.Concurrents;
 import net.butfly.albacore.utils.logger.Logger;
 
-@SuppressWarnings("deprecation")
+@Deprecated
 public final class Mongos extends Utils {
 	private static final Logger logger = Logger.getLogger(Mongos.class);
 
-	public static final class MongoDB implements Closeable {
-		private final Mongo mongo;
-		private final String dbname, username;
-		private final char[] password;
-
-		public MongoDB(String uri) throws UnknownHostException {
-			MongoURI u = new MongoURI(uri);
-			mongo = new Mongo(u);
-			dbname = u.getDatabase();
-			username = u.getUsername();
-			password = u.getPassword();
+	public static final class MongoDB extends MongodbConnection {
+		public MongoDB(String uri) throws IOException {
+			super(uri);
 		}
 
-		public MongoDB(String host, int port, String dbname, String username, String password) throws UnknownHostException {
-			mongo = new Mongo(host, port);
-			this.dbname = dbname;
-			this.username = username;
-			this.password = password.toCharArray();
+		public MongoDB(String host, int port, String dbname, String username, String password) throws IOException {
+			super("mongodb://" + username + ":" + password + "@" + host + ":" + port + "/" + dbname);
 		}
 
 		public DB connect() {
-			DB db = mongo.getDB(dbname);
-			if (!db.authenticate(username, password)) throw new RuntimeException("Mongodb not authenticated: " + mongo.toString() + "/"
-					+ dbname);
-			return db;
+			return super.db();
 		}
 
 		public DB connect(String dbname) {
-			DB db = mongo.getDB(dbname);
-			if (!db.authenticate(username, password)) throw new RuntimeException("Mongodb not authenticated: " + mongo.toString() + "/"
-					+ dbname);
-			return db;
+			return super.db(dbname);
 		}
 
 		@Override
-		public void close() {
-			mongo.close();
+		public void close() throws Exception {
+			super.close();
 		}
 	}
 
-	// TODO: @Deprecated
 	public static final class MConnection implements Closeable {
 		private DB db;
 
@@ -81,7 +62,6 @@ public final class Mongos extends Utils {
 		}
 	}
 
-	// TODO:@Deprecated
 	public static MConnection connect(String configFile) {
 		Properties conf;
 		try {

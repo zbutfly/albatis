@@ -9,13 +9,10 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.commons.io.output.ByteArrayOutputStream;
-import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.common.SolrInputDocument;
 
@@ -26,7 +23,6 @@ import net.butfly.albacore.io.faliover.OffHeapFailover;
 import net.butfly.albacore.lambda.ConverterPair;
 import net.butfly.albacore.utils.logger.Logger;
 import scala.Tuple2;
-import scala.Tuple3;
 
 public class SolrOutput extends Output<SolrMessage<SolrInputDocument>> {
 	private static final long serialVersionUID = -2897525987426418020L;
@@ -34,11 +30,9 @@ public class SolrOutput extends Output<SolrMessage<SolrInputDocument>> {
 	static final int DEFAULT_AUTO_COMMIT_MS = 30000;
 	static final int DEFAULT_PACKAGE_SIZE = 500;
 	private static final int DEFAULT_PARALLELISM = 5;
-	final SolrClient solr;
+	final SolrConnection solr;
 
-	private final Set<String> cores;
 	private final Failover<String, SolrInputDocument> failover;
-	private final String defaultCore;
 
 	public SolrOutput(String name, String baseUrl) throws IOException {
 		this(name, baseUrl, null);
@@ -47,18 +41,10 @@ public class SolrOutput extends Output<SolrMessage<SolrInputDocument>> {
 	public SolrOutput(String name, String baseUrl, String failoverPath) throws IOException {
 		super(name);
 		logger.info("SolrOutput [" + name + "] from [" + baseUrl + "]");
-		Tuple3<String, String, String[]> t;
-		try {
-			t = Solrs.parseSolrURL(baseUrl);
-		} catch (SolrServerException | URISyntaxException e) {
-			throw new IOException(e);
-		}
-		defaultCore = t._2();
-		cores = new HashSet<>(Arrays.asList(t._3()));
-		solr = Solrs.open(baseUrl);
+		solr = new SolrConnection(baseUrl);
 		ConverterPair<String, List<SolrInputDocument>, Exception> adding = (core, docs) -> {
 			try {
-				solr.add(core, docs, DEFAULT_AUTO_COMMIT_MS);
+				solr.getClient().add(core, docs, DEFAULT_AUTO_COMMIT_MS);
 				return null;
 			} catch (Exception e) {
 				return e;
@@ -105,17 +91,16 @@ public class SolrOutput extends Output<SolrMessage<SolrInputDocument>> {
 	public long enqueue(List<SolrMessage<SolrInputDocument>> docs) {
 		Map<String, List<SolrInputDocument>> map = new HashMap<>();
 		for (SolrMessage<SolrInputDocument> d : docs)
-			map.computeIfAbsent(d.getCore() == null ? defaultCore : d.getCore(), core -> new ArrayList<>()).add(d.getDoc());
-		cores.addAll(map.keySet());
+			map.computeIfAbsent(d.getCore() == null ? solr.getDefaultCore() : d.getCore(), core -> new ArrayList<>()).add(d.getDoc());
 		failover.doWithFailover(map, (k, vs) -> {
 			try {
-				solr.add(k, vs);
+				solr.getClient().add(k, vs);
 			} catch (SolrServerException | IOException e) {
 				throw new RuntimeException(e);
 			}
 		}, k -> {
 			try {
-				solr.commit(k, false, false, true);
+				solr.getClient().commit(k, false, false, true);
 			} catch (SolrServerException | IOException e) {
 				throw new RuntimeException(e);
 			}
@@ -129,12 +114,16 @@ public class SolrOutput extends Output<SolrMessage<SolrInputDocument>> {
 		failover.close();
 		logger.debug("SolrOutput [" + name() + "] all processing thread closed normally");
 		try {
-			for (String core : cores)
-				solr.commit(core, false, false);
+			for (String core : solr.getCores())
+				solr.getClient().commit(core, false, false);
 		} catch (IOException | SolrServerException e) {
 			logger.error("SolrOutput close failure", e);
 		}
-		Solrs.close(solr);
+		try {
+			solr.close();
+		} catch (Exception e) {
+			logger.error("Close failure", e);
+		}
 	}
 
 	public long fails() {

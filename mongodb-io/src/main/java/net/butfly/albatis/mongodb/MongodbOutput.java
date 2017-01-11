@@ -7,26 +7,28 @@ import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 
 import net.butfly.albacore.io.Output;
-import net.butfly.albacore.utils.Systems;
-import net.butfly.albatis.mongodb.Mongos.MConnection;
 
 public class MongodbOutput extends Output<DBObject> {
 	private static final long serialVersionUID = 2141020043117686747L;
 	private final boolean upsert;
-	private final MConnection mdb;
+	private final MongodbConnection mdb;
 	private final DBCollection collection;
 
-	public MongodbOutput(String name, String configFile, String table, boolean upsert) throws IOException {
+	public MongodbOutput(String name, String uri, String collection, boolean upsert) throws IOException {
 		super(name);
 		this.upsert = upsert;
-		this.mdb = Mongos.connect(configFile);
-		this.collection = mdb.connection().getCollection(Systems.suffixDebug(table, logger));
+		this.mdb = new MongodbConnection(uri);
+		this.collection = mdb.db().getCollection(collection);
 	}
 
 	@Override
 	public void closing() {
 		super.closing();
-		mdb.close();
+		try {
+			mdb.close();
+		} catch (Exception e) {
+			logger.error("Close failure", e);
+		}
 	}
 
 	@Override

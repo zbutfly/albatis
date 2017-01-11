@@ -25,17 +25,18 @@ import java.util.Properties;
  * @author ljx
  * @date 2016-11-24
  */
-public interface Connection extends AutoCloseable, java.sql.Connection {
+public interface Connection extends java.sql.Connection, com.hzcominfo.albatis.nosql.Connection {
 
-    Query getQuery();
+	Query getQuery();
 
-    void close() throws SQLException;
+	@Override
+	void close() throws SQLException;
 
-    void obtainDrive(DriverType type) throws SearchAPIException;
+	void obtainDrive(DriverType type) throws SearchAPIException;
 
-    void setUri(URI uri);
+	void setUri(URI uri);
 
-    void setProperties(Properties properties);
+	void setProperties(Properties properties);
 
-    Result execute(Action action, Describe describe) throws SearchAPIException, IOException;
+	Result execute(Action action, Describe describe) throws SearchAPIException, IOException;
 }

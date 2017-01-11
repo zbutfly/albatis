@@ -1,20 +1,19 @@
 package net.butfly.albatis.elastic;
 
-import java.io.IOException;
-import java.util.List;
-
+import net.butfly.albacore.io.Output;
+import net.butfly.albacore.utils.Systems;
 import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.update.UpdateRequest;
 
-import net.butfly.albacore.io.Output;
-import net.butfly.albacore.utils.Systems;
+import java.io.IOException;
+import java.util.List;
 
 public class ElasticOutput extends Output<ElasticMessage> {
 	private static final long serialVersionUID = 1227554461265245482L;
-	private final ElasticConnect conn;
+	private final ElasticConnection conn;
 
-	public ElasticOutput(String name, ElasticConnect conn) throws IOException {
+	public ElasticOutput(String name, ElasticConnection conn) throws IOException {
 		super(name);
 		this.conn = conn;
 	}
@@ -50,6 +49,10 @@ public class ElasticOutput extends Output<ElasticMessage> {
 	@Override
 	public void closing() {
 		super.closing();
-		conn.close();
+		try {
+			conn.close();
+		} catch (Exception e) {
+			logger.error("Close failure", e);
+		}
 	}
 }

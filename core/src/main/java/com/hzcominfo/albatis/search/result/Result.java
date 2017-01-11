@@ -9,7 +9,6 @@
 package com.hzcominfo.albatis.search.result;
 
 import com.hzcominfo.albatis.search.exception.SearchAPIException;
-import net.butfly.albacore.exception.NotImplementedException;
 
 import java.sql.ResultSet;
 import java.util.Map;
@@ -26,14 +25,14 @@ import java.util.Map;
 public interface Result extends ResultSet {
     @SuppressWarnings("rawtypes")
     default Map getRowItem() throws SearchAPIException {
-        throw new SearchAPIException(new NotImplementedException());
+    	throw new UnsupportedOperationException();
     }
 
     default ResultMetadata getResultMetadata() throws SearchAPIException {
-        throw new SearchAPIException(new NotImplementedException());
+    	throw new UnsupportedOperationException();
     }
 
     default void setResultMetadata(ResultMetadata resultMetadata) throws SearchAPIException {
-        throw new SearchAPIException(new NotImplementedException());
+    	throw new UnsupportedOperationException();
     }
 }
