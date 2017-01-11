@@ -16,8 +16,8 @@ package com.hzcominfo.albatis.search.driver;
  * @see
  */
 public enum DriverType {
-    ESDB("elasticsearch", "com.hzcominfo.albatis.nosql.search.es.core.drive.ElasticDriver", "com.hzcominfo.es.description", "Es"), SOLR("solr",
-            "com.hzcominfo.albatis.nosql.search.common.solr.core.drive.solr", "com.hzcominfo.es.description", "Es");
+    ESDB("elasticsearch", "com.hzcominfo.albatis.search.es.core.drive.ElasticDriver", "com.hzcominfo.es.description", "Es"), SOLR("solr",
+            "com.hzcominfo.albatis.search.common.solr.core.drive.solr", "com.hzcominfo.es.description", "Es");
 
     private String name;
     private String drive;

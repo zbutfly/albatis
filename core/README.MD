@@ -38,17 +38,17 @@ FilterLoader：FilterChain的工具类，同时也是使用工厂方法获取fil
 #### 样例
 ```xml
 <beans>
-    <filterChain name="queryFilterChain1" class="com.hzcominfo.albatis.nosql.search.filter.FilterLoader"
-                invoke="com.hzcominfo.albatis.nosql.search.filter.Sample">
-        <filter clazz="com.hzcominfo.albatis.nosql.search.filter.LogFilter"
+    <filterChain name="queryFilterChain1" class="com.hzcominfo.albatis.search.filter.FilterLoader"
+                invoke="com.hzcominfo.albatis.search.filter.Sample">
+        <filter clazz="com.hzcominfo.albatis.search.filter.LogFilter"
                 order="3">
             <param key="paramA" value="valueA"/>
         </filter>
         <param key="paramA" value="valueA"/>
     </filterChain>
 
-    <filterChain name="queryFilterChain2" class="com.hzcominfo.albatis.nosql.search.filter.FilterLoader">
-        <filter clazz="com.hzcominfo.albatis.nosql.search.filter.ResultFilter">
+    <filterChain name="queryFilterChain2" class="com.hzcominfo.albatis.search.filter.FilterLoader">
+        <filter clazz="com.hzcominfo.albatis.search.filter.ResultFilter">
             <param key="paramA" value="valueA"/>
         </filter>
         
