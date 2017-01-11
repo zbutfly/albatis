@@ -46,7 +46,7 @@ public final class HbaseOutput extends Output<HbaseResult> {
 			try {
 				table(table).put(Collections.transform(results, r -> new Put(r.getRow())));
 				return null;
-			} catch (Exception e) {
+			} catch (IOException e) {
 				return e;
 			}
 		};
