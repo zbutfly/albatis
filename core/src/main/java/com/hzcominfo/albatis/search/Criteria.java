@@ -6,13 +6,13 @@
  * 修改时间：2016-11-24
  * 操作：创建
  */
-package com.hzcominfo.albatis.nosql.search;
+package com.hzcominfo.albatis.search;
 
 import java.io.Serializable;
 import java.util.*;
 import java.util.regex.Pattern;
 
-import com.hzcominfo.albatis.nosql.search.exception.SearchAPIError;
+import com.hzcominfo.albatis.search.exception.SearchAPIError;
 
 /**
  * @author ljx

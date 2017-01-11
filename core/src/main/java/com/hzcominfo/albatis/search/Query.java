@@ -7,7 +7,7 @@
  * 操作：创建
  */
 
-package com.hzcominfo.albatis.nosql.search;
+package com.hzcominfo.albatis.search;
 
 import java.util.List;
 

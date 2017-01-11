@@ -6,14 +6,14 @@
  * 修改时间：2016-11-14
  * 操作：创建
  */
-package com.hzcominfo.albatis.nosql.search.result;
+package com.hzcominfo.albatis.search.result;
 
 import net.butfly.albacore.exception.NotImplementedException;
 
 import java.sql.ResultSet;
 import java.util.Map;
 
-import com.hzcominfo.albatis.nosql.search.exception.SearchAPIException;
+import com.hzcominfo.albatis.search.exception.SearchAPIException;
 
 /**
  * 描述返回结果的数据表，参考JDBC的ResultSet设定，其中也包括了一部分对Nosql数据特定格式的处理<br>

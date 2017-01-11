@@ -6,7 +6,7 @@
  * 修改时间：2016-11-15
  * 操作：创建
  */
-package com.hzcominfo.albatis.nosql.search.driver;
+package com.hzcominfo.albatis.search.driver;
 
 /**
  * 枚举数据库的类型,记录枚举数据库名称和驱动调用的类名支持的驱动类型

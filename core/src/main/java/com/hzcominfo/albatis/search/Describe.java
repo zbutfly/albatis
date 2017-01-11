@@ -1,9 +1,9 @@
-package com.hzcominfo.albatis.nosql.search;
+package com.hzcominfo.albatis.search;
 
 import java.io.IOException;
 
-import com.hzcominfo.albatis.nosql.search.exception.SearchAPIException;
-import com.hzcominfo.albatis.nosql.search.result.Result;
+import com.hzcominfo.albatis.search.exception.SearchAPIException;
+import com.hzcominfo.albatis.search.result.Result;
 
 /**
  * Created by ljx on 2016/11/25.
