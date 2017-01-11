@@ -10,7 +10,6 @@ package com.hzcominfo.albatis.search.driver;
 
 import java.io.IOException;
 import java.net.URI;
-import java.sql.SQLException;
 import java.util.Properties;
 
 import com.hzcominfo.albatis.search.Action;
@@ -26,11 +25,7 @@ import com.hzcominfo.albatis.search.result.Result;
  * @date 2016-11-24
  */
 public interface Connection extends java.sql.Connection, com.hzcominfo.albatis.nosql.Connection {
-
 	Query getQuery();
-
-	@Override
-	void close() throws SQLException;
 
 	void obtainDrive(DriverType type) throws SearchAPIException;
 

@@ -24,7 +24,7 @@ public class MongoIOTest {
 
 		final AtomicDouble total = new AtomicDouble(0);
 		final long begin = new Date().getTime();// 10.118.159.44
-		try (MongodbInput in = new MongodbInput("TestMongoInput", "mongodb://hzga:hzga5678@127.0.0.1:30012/hzga", "gazhk_KDSJ_2015",
+		try (MongoInput in = new MongoInput("TestMongoInput", "mongodb://hzga:hzga5678@127.0.0.1:30012/hzga", "gazhk_KDSJ_2015",
 				10000);) {
 			for (int i = 0; i < parallelism; i++) {
 				final int ii = i;

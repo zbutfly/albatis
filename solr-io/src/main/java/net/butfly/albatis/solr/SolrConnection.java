@@ -178,7 +178,7 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 	}
 
 	@Override
-	public void close() throws Exception {
+	public void close() throws IOException {
 		super.close();
 		getClient().close();
 	}

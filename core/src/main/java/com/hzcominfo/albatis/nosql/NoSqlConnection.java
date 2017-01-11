@@ -50,7 +50,7 @@ public abstract class NoSqlConnection<C> implements Connection {
 	protected abstract C createClient(URI url) throws IOException;
 
 	@Override
-	public void close() throws Exception {}
+	public void close() throws IOException {}
 
 	public final C getClient() {
 		return client;

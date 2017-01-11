@@ -10,11 +10,11 @@ import com.mongodb.DB;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 
-public class MongodbConnection extends NoSqlConnection<MongoClient> {
+public class MongoConnection extends NoSqlConnection<MongoClient> {
 	private final Map<String, DB> dbs;
 	private String defaultDB;
 
-	public MongodbConnection(String connection) throws IOException {
+	public MongoConnection(String connection) throws IOException {
 		super(connection, "mongodb");
 		dbs = new ConcurrentHashMap<>();
 	}
@@ -36,7 +36,7 @@ public class MongodbConnection extends NoSqlConnection<MongoClient> {
 	}
 
 	@Override
-	public void close() throws Exception {
+	public void close() throws IOException {
 		super.close();
 		getClient().close();
 	}

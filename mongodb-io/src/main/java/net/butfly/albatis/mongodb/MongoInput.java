@@ -17,18 +17,18 @@ import net.butfly.albacore.io.Input;
 import net.butfly.albacore.serder.JsonSerder;
 import net.butfly.albacore.utils.logger.Logger;
 
-public class MongodbInput extends Input<DBObject> {
+public class MongoInput extends Input<DBObject> {
 	private static final long serialVersionUID = -142784733788535129L;
-	private static final Logger logger = Logger.getLogger(MongodbInput.class);
-	private final MongodbConnection conn;
+	private static final Logger logger = Logger.getLogger(MongoInput.class);
+	private final MongoConnection conn;
 	private DBCursor cursor;
 	private final ReentrantReadWriteLock lock;
 
-	public MongodbInput(final String name, String uri, final String table, int inputBatchSize, final String... filter) throws IOException {
+	public MongoInput(final String name, String uri, final String table, int inputBatchSize, final String... filter) throws IOException {
 		super(name);
 		lock = new ReentrantReadWriteLock();
 		logger.info("MongoDBInput [" + name + "] from [" + uri + "], core [" + table + "]");
-		this.conn = new MongodbConnection(uri);
+		this.conn = new MongoConnection(uri);
 		long now;
 		logger.debug("MongoDBInput [" + name + "] find begin...");
 		if (null == filter || filter.length == 0) {

@@ -8,16 +8,16 @@ import com.mongodb.DBObject;
 
 import net.butfly.albacore.io.Output;
 
-public class MongodbOutput extends Output<DBObject> {
+public class MongoOutput extends Output<DBObject> {
 	private static final long serialVersionUID = 2141020043117686747L;
 	private final boolean upsert;
-	private final MongodbConnection mdb;
+	private final MongoConnection mdb;
 	private final DBCollection collection;
 
-	public MongodbOutput(String name, String uri, String collection, boolean upsert) throws IOException {
+	public MongoOutput(String name, String uri, String collection, boolean upsert) throws IOException {
 		super(name);
 		this.upsert = upsert;
-		this.mdb = new MongodbConnection(uri);
+		this.mdb = new MongoConnection(uri);
 		this.collection = mdb.db().getCollection(collection);
 	}
 
