@@ -13,5 +13,5 @@ public interface FilterChain<Q, R> extends Cloneable {
 
     default FilterChain<Q,R> clone(){
         return null;
-    }
+    }//默认不输出clone
 }
