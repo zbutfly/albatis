@@ -118,6 +118,8 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 			baseUri = url.replaceAll("/?" + defaultCore + "/?$", "");
 			try (SolrConnection conn = new SolrConnection(baseUri, parserClass)) {
 				cores = conn.getCores();
+			} catch (Exception e1) {
+				throw new IOException(e1);
 			}
 		}
 	}
@@ -176,7 +178,7 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 	}
 
 	@Override
-	public void close() throws IOException {
+	public void close() throws Exception {
 		super.close();
 		getClient().close();
 	}

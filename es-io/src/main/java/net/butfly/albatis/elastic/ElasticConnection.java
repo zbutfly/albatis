@@ -13,11 +13,12 @@ import com.hzcominfo.albatis.nosql.NoSqlConnection;
 
 import net.butfly.albacore.utils.logger.Logger;
 
-public final class ElasticConnection extends NoSqlConnection<TransportClient> {
+public class ElasticConnection extends NoSqlConnection<TransportClient> {
 	private static final Logger logger = Logger.getLogger(ElasticConnection.class);
 	private String defaultIndex;
 	private String defaultType;
 
+	// es://clustername@host1:port1,host2:port2.../index/type
 	public ElasticConnection(String connection) throws IOException {
 		super(connection, "es");
 		String index = uri.getPath().split("/")[0];
@@ -38,7 +39,9 @@ public final class ElasticConnection extends NoSqlConnection<TransportClient> {
 		Settings settings = Settings.settingsBuilder().put("cluster.name", url.getAuthority())//
 				.build();
 		TransportClient c = TransportClient.builder().settings(settings).build();
-		for (String h : url.getHost().split(",")) {
+		String[] a = url.getAuthority().split("@");
+		String clusterName = a[0];
+		for (String h : a[1].split(",")) {
 			String[] host = h.split(":");
 			int port = host.length > 1 ? 39300 : Integer.parseInt(host[1]);
 			c.addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName(host[0]), port));
@@ -55,7 +58,7 @@ public final class ElasticConnection extends NoSqlConnection<TransportClient> {
 	}
 
 	@Override
-	public void close() throws IOException {
+	public void close() throws Exception {
 		super.close();
 		getClient().close();
 	}

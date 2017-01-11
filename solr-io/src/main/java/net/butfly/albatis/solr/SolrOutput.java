@@ -121,7 +121,7 @@ public class SolrOutput extends Output<SolrMessage<SolrInputDocument>> {
 		}
 		try {
 			solr.close();
-		} catch (IOException e) {
+		} catch (Exception e) {
 			logger.error("Close failure", e);
 		}
 	}

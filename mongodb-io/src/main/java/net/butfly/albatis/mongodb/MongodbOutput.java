@@ -26,7 +26,7 @@ public class MongodbOutput extends Output<DBObject> {
 		super.closing();
 		try {
 			mdb.close();
-		} catch (IOException e) {
+		} catch (Exception e) {
 			logger.error("Close failure", e);
 		}
 	}

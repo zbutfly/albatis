@@ -39,7 +39,7 @@ public final class Mongos extends Utils {
 		}
 
 		@Override
-		public void close() throws IOException {
+		public void close() throws Exception {
 			super.close();
 		}
 	}

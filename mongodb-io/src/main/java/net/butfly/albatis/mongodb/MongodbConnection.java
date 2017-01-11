@@ -36,7 +36,7 @@ public class MongodbConnection extends NoSqlConnection<MongoClient> {
 	}
 
 	@Override
-	public void close() throws IOException {
+	public void close() throws Exception {
 		super.close();
 		getClient().close();
 	}

@@ -26,7 +26,7 @@ public class ElasticInput extends Input<GetMappingsRequest> {
 		super.closing();
 		try {
 			elastic.close();
-		} catch (IOException e) {
+		} catch (Exception e) {
 			logger.error("Close failure", e);
 		}
 	}

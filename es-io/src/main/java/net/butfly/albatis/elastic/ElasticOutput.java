@@ -52,7 +52,7 @@ public class ElasticOutput extends Output<ElasticMessage> {
 		super.closing();
 		try {
 			conn.close();
-		} catch (IOException e) {
+		} catch (Exception e) {
 			logger.error("Close failure", e);
 		}
 	}

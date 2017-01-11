@@ -63,7 +63,7 @@ public class MongodbInput extends Input<DBObject> {
 		cursor.close();
 		try {
 			conn.close();
-		} catch (IOException e) {
+		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
 		logger.info("MongoDBInput [" + name() + "] closed.");
