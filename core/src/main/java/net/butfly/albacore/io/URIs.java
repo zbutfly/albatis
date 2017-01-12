@@ -14,6 +14,8 @@ public class URIs {
 		FILE, CLASSPATH, HTTP, HTTPS, JDBC, ZOOKEEPER, MONGODB
 	}
 
+	
+
 	public static <T> T parse(String uriString, ConverterPair<Schema, URI, T> constr) {
 		URI uri = parse(uriString);
 		return constr.apply(schema(uri), uri);
