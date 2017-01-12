@@ -4,17 +4,18 @@ import java.io.IOException;
 import java.net.ProtocolException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.HashMap;
+import java.util.Arrays;
 import java.util.Map;
+import java.util.Properties;
 
 import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableMap;
+import com.hzcominfo.albatis.search.exception.SearchAPIError;
 
 public abstract class NoSqlConnection<C> implements Connection {
 	protected final String[] supportedSchemas;
 	private final C client;
 	protected final URI uri;
-	protected final Map<String, String> parameters;
+	protected final Properties parameters;
 
 	protected NoSqlConnection(String connection, String... supportedSchema) throws IOException {
 		super();
@@ -28,11 +29,21 @@ public abstract class NoSqlConnection<C> implements Connection {
 		if (null == schema) throw new ProtocolException(uri.getScheme() + " is not supported, "//
 				+ "supported list: [" + Joiner.on(',').join(supportedSchemas) + "]");
 		client = createClient(uri);
-		parameters = new HashMap<>();
-		for (String param : uri.getQuery().split("&")) {
-			String[] p = param.split("=", 2);
-			parameters.put(p[0], p.length > 1 ? p[1] : Boolean.TRUE.toString());
+
+		parameters = new Properties();
+		String propertiseString = uri.getQuery();
+		if (propertiseString != null && !propertiseString.isEmpty()) {
+			String[] propertisies = propertiseString.split("&");
+			Arrays.asList(propertisies).stream().forEach(value -> {
+				String[] keyValue = value.split("=");
+				if (keyValue.length != 2) throw new SearchAPIError("parameter error " + Arrays.toString(keyValue));
+				parameters.put(keyValue[0], keyValue[1]);
+			});
 		}
+	}
+
+	public final Properties getParameters() {
+		return parameters;
 	}
 
 	@Override
@@ -56,11 +67,19 @@ public abstract class NoSqlConnection<C> implements Connection {
 		return client;
 	}
 
-	public final Map<String, String> getParameter() {
-		return ImmutableMap.<String, String> copyOf(parameters);
+	public final String getParameter(String name) {
+		return parameters.getProperty(name);
 	}
 
-	public final String getParameter(String name) {
-		return parameters.get(name);
+	public final String getParameter(String name, String defults) {
+		return parameters.getProperty(name, defults);
+	}
+
+	public final void setParameter(String name, String value) {
+		parameters.setProperty(name, value);
+	}
+
+	public final void setParameters(Map<String, String> parameters) {
+		this.parameters.putAll(parameters);
 	}
 }

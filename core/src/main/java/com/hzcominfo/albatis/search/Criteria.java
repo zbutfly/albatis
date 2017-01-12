@@ -8,11 +8,11 @@
  */
 package com.hzcominfo.albatis.search;
 
+import com.hzcominfo.albatis.search.exception.SearchAPIError;
+
 import java.io.Serializable;
 import java.util.*;
 import java.util.regex.Pattern;
-
-import com.hzcominfo.albatis.search.exception.SearchAPIError;
 
 /**
  * @author ljx

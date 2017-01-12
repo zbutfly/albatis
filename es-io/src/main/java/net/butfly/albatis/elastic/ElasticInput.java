@@ -1,12 +1,11 @@
 package net.butfly.albatis.elastic;
 
-import java.io.IOException;
-import java.util.List;
-
-import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsRequest;
-
 import net.butfly.albacore.io.Input;
 import net.butfly.albacore.utils.logger.Logger;
+import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsRequest;
+
+import java.io.IOException;
+import java.util.List;
 
 public class ElasticInput extends Input<GetMappingsRequest> {
 	private static final long serialVersionUID = -5666669099160512388L;

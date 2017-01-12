@@ -1,15 +1,15 @@
 package net.butfly.albatis.kafka;
 
+import kafka.consumer.KafkaStream;
+import kafka.message.MessageAndMetadata;
+import net.butfly.albacore.exception.ConfigException;
+import net.butfly.albacore.lambda.Consumer;
+
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
-
-import kafka.consumer.KafkaStream;
-import kafka.message.MessageAndMetadata;
-import net.butfly.albacore.exception.ConfigException;
-import net.butfly.albacore.lambda.Consumer;
 
 @Deprecated
 public class KafkaInput0 extends KafkaInputBase<ReentrantLock> {

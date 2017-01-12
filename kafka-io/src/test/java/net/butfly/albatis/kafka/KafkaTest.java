@@ -1,17 +1,13 @@
 package net.butfly.albatis.kafka;
 
+import net.butfly.albacore.exception.ConfigException;
+
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import net.butfly.albacore.exception.ConfigException;
+import java.util.*;
 
 public class KafkaTest {
 	public static void main(String[] args) throws ConfigException, IOException {

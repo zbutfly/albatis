@@ -8,10 +8,10 @@
  */
 package com.hzcominfo.albatis.search.result;
 
+import com.hzcominfo.albatis.search.exception.SearchAPIException;
+
 import java.sql.ResultSet;
 import java.util.Map;
-
-import com.hzcominfo.albatis.search.exception.SearchAPIException;
 
 /**
  * 描述返回结果的数据表，参考JDBC的ResultSet设定，其中也包括了一部分对Nosql数据特定格式的处理<br>

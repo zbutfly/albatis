@@ -1,14 +1,15 @@
 package com.hzcominfo.albatis.search.filter;
 
+import com.hzcominfo.albatis.search.Query;
+import com.hzcominfo.albatis.search.exception.SearchAPIException;
 import org.jdom2.Attribute;
 import org.jdom2.Document;
 import org.jdom2.Element;
 import org.jdom2.JDOMException;
 import org.jdom2.input.SAXBuilder;
 
-import com.hzcominfo.albatis.search.Query;
-import com.hzcominfo.albatis.search.exception.SearchAPIException;
-
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -63,11 +64,21 @@ public abstract class FilterLoader {
         }
         SAXBuilder builder = new SAXBuilder();
         Document document;
-        Map<String, FilterChainConfig> map;
         List<FilterChainConfig> result = null;
 
         try {
             InputStream inputStream = FilterLoader.class.getResourceAsStream(path);
+
+            if(inputStream==null){
+                String p = ClassLoader.getSystemClassLoader().getResource("").getPath();
+                File file = new File(p+path);
+                if(file.exists()){
+                    inputStream = new FileInputStream(file);
+                }
+            }
+
+
+
             document = builder.build(inputStream);
             Element root = document.getRootElement();
             List<Element> chain = root.getChildren("filterChain");
@@ -75,7 +86,6 @@ public abstract class FilterLoader {
                 return null;
             }
             //进入处理逻辑
-            map = new HashMap<>(chain.size() * 2);
             result = new ArrayList<>(chain.size());
             for (Element element : chain) {
                 FilterChainConfig chainConfig = new FilterChainConfig();
@@ -98,7 +108,7 @@ public abstract class FilterLoader {
                     chainConfig.name = name.getValue();
                 }
                 List<Element> filters = element.getChildren("filter");
-                chainConfig.configs = new ArrayList<>(filters.size());
+                chainConfig.filterConfigs = new ArrayList<>(filters.size());
                 for (Element el : filters) {
                     FilterConfig config = new FilterConfig();
                     if (el.getChildren("param") != null
@@ -119,10 +129,11 @@ public abstract class FilterLoader {
                     if (order != null) {
                         config.order = order.getIntValue();
                     }
-                    chainConfig.configs.add(config);
+                    chainConfig.filterConfigs.add(config);
                 }
-                map.put(chainConfig.name, chainConfig);
-                result.add(chainConfig);
+                if(chainConfig.filterConfigs.size()>0){
+                    result.add(chainConfig);
+                }
             }
         } catch (JDOMException | IOException e) {
             e.printStackTrace();
@@ -141,11 +152,46 @@ public abstract class FilterLoader {
      * @return filterChain
      * @throws SearchAPIException 异常
      */
+    @SuppressWarnings("unchecked")
     public static <Q, R> FilterChain<Q, R> invokeOf(Class clazz, String name) throws SearchAPIException {
-        String invokeClazz = getInvokedClazz(); //获取载入点的名称，仅在name=null的时候有必要
-
-        System.out.println(invokeClazz);
-
+        FilterChainConfig ret = null;
+        for (FilterChainConfig config : configList) {
+            if (config.name != null && config.name.equals(name)) {
+                ret = config;
+            }
+        }
+        if (ret == null) {
+            for (FilterChainConfig config : configList) {
+                if (config.invoke != null
+                        && config.invoke.equals(clazz.getCanonicalName())) {
+                    ret = config;
+                }
+            }
+        }
+        if(ret == null){
+            return null;
+        }
+        if(ret.filterConfigs.size()==0){
+            return null;   //在构建的时候就要检查，这里仅用做验证
+        }
+        try {
+            Class invoke = Class.forName(ret.clazz);
+            FilterChain filterChain = (FilterChain)invoke.getConstructor().newInstance();
+            for(FilterConfig config : ret.filterConfigs){
+                try {
+                    if(config.clazz!=null){
+                        Class f = Class.forName(config.clazz);
+                        Filter filter = (Filter) f.getConstructor(new Class[]{}).newInstance();
+                        filterChain.add(filter);
+                    }
+                }catch (Exception e){
+                    continue;
+                }
+            }
+            return filterChain;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         return null;
     }
 
@@ -162,13 +208,32 @@ public abstract class FilterLoader {
         return invokeOf(clazz, null);
     }
 
+    /**
+     * 无参数调用 通过Java自身解析
+     * @param <Q> Q
+     * @param <R> R
+     * @return filterChain
+     * @throws SearchAPIException 异常
+     */
+    public static <Q, R> FilterChain<Q, R> invokeOf() throws SearchAPIException {
+        String className = getInvokedClazz();
+        if(className!=null){
+            try {
+                Class clazz = Class.forName(className);
+                return invokeOf(clazz, null);
+            } catch (ClassNotFoundException e) {
+                e.printStackTrace();
+            }
+        }
+        return null;
+    }
 
     private static class FilterChainConfig {
         String name;
         String clazz;
         String invoke;
         Map<String, String> params;
-        List<FilterConfig> configs;
+        List<FilterConfig> filterConfigs;
     }
 
     private static class FilterConfig {
@@ -218,10 +283,10 @@ public abstract class FilterLoader {
 
 
         try {
-           FilterChain<Query,Query> aa =  FilterLoader.invokeOf(FilterLoader.class,"1");
-            FilterChain<Query,Query> aa2 =  FilterLoader.invokeOf(FilterLoader.class,"2");
-           Query a=null;
-           aa.doFilter(a,a);
+            FilterChain<Query, Query> aa = FilterLoader.invokeOf(FilterLoader.class, "1");
+            FilterChain<Query, Query> aa2 = FilterLoader.invokeOf(FilterLoader.class, "2");
+            Query a = null;
+            aa.doFilter(a, a);
 
         } catch (SearchAPIException e) {
             e.printStackTrace();
