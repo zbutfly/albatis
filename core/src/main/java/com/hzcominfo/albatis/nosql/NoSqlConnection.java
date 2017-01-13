@@ -2,8 +2,6 @@ package com.hzcominfo.albatis.nosql;
 
 import java.io.IOException;
 import java.net.ProtocolException;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Properties;
@@ -11,25 +9,21 @@ import java.util.Properties;
 import com.google.common.base.Joiner;
 import com.hzcominfo.albatis.search.exception.SearchAPIError;
 
+import net.butfly.albacore.io.URISpec;
+
 public abstract class NoSqlConnection<C> implements Connection {
 	protected final String[] supportedSchemas;
 	private final C client;
-	protected final URI uri;
+	protected final URISpec uri;
 	protected final Properties parameters;
 
 	protected NoSqlConnection(String connection, String... supportedSchema) throws IOException {
 		super();
 		supportedSchemas = null != supportedSchema ? supportedSchema : new String[0];
-		try {
-			uri = new URI(connection);
-		} catch (URISyntaxException e) {
-			throw new IOException(e);
-		}
+		uri = new URISpec(connection);
 		String schema = supportedSchema(uri.getScheme());
 		if (null == schema) throw new ProtocolException(uri.getScheme() + " is not supported, "//
 				+ "supported list: [" + Joiner.on(',').join(supportedSchemas) + "]");
-		client = createClient(uri);
-
 		parameters = new Properties();
 		String propertiseString = uri.getQuery();
 		if (propertiseString != null && !propertiseString.isEmpty()) {
@@ -40,6 +34,7 @@ public abstract class NoSqlConnection<C> implements Connection {
 				parameters.put(keyValue[0], keyValue[1]);
 			});
 		}
+		client = createClient(uri);
 	}
 
 	public final Properties getParameters() {
@@ -58,12 +53,12 @@ public abstract class NoSqlConnection<C> implements Connection {
 		return null;
 	}
 
-	protected abstract C createClient(URI url) throws IOException;
+	protected abstract C createClient(URISpec uri) throws IOException;
 
 	@Override
 	public void close() throws IOException {}
 
-	public final C getClient() {
+	public final C client() {
 		return client;
 	}
 

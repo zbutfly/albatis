@@ -44,7 +44,7 @@ public class SolrOutput extends Output<SolrMessage<SolrInputDocument>> {
 		solr = new SolrConnection(baseUrl);
 		ConverterPair<String, List<SolrInputDocument>, Exception> adding = (core, docs) -> {
 			try {
-				solr.getClient().add(core, docs, DEFAULT_AUTO_COMMIT_MS);
+				solr.client().add(core, docs, DEFAULT_AUTO_COMMIT_MS);
 				return null;
 			} catch (Exception e) {
 				return e;
@@ -94,13 +94,13 @@ public class SolrOutput extends Output<SolrMessage<SolrInputDocument>> {
 			map.computeIfAbsent(d.getCore() == null ? solr.getDefaultCore() : d.getCore(), core -> new ArrayList<>()).add(d.getDoc());
 		failover.doWithFailover(map, (k, vs) -> {
 			try {
-				solr.getClient().add(k, vs);
+				solr.client().add(k, vs);
 			} catch (SolrServerException | IOException e) {
 				throw new RuntimeException(e);
 			}
 		}, k -> {
 			try {
-				solr.getClient().commit(k, false, false, true);
+				solr.client().commit(k, false, false, true);
 			} catch (SolrServerException | IOException e) {
 				throw new RuntimeException(e);
 			}
@@ -115,7 +115,7 @@ public class SolrOutput extends Output<SolrMessage<SolrInputDocument>> {
 		logger.debug("SolrOutput [" + name() + "] all processing thread closed normally");
 		try {
 			for (String core : solr.getCores())
-				solr.getClient().commit(core, false, false);
+				solr.client().commit(core, false, false);
 		} catch (IOException | SolrServerException e) {
 			logger.error("SolrOutput close failure", e);
 		}

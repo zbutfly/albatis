@@ -2,7 +2,6 @@ package net.butfly.albatis.elastic;
 
 import java.io.IOException;
 import java.net.InetAddress;
-import java.net.URI;
 import java.net.UnknownHostException;
 
 import org.elasticsearch.client.transport.TransportClient;
@@ -11,6 +10,7 @@ import org.elasticsearch.common.transport.InetSocketTransportAddress;
 
 import com.hzcominfo.albatis.nosql.NoSqlConnection;
 
+import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.logger.Logger;
 
 public class ElasticConnection extends NoSqlConnection<TransportClient> {
@@ -27,8 +27,8 @@ public class ElasticConnection extends NoSqlConnection<TransportClient> {
 	}
 
 	@Override
-	protected TransportClient createClient(URI url) throws UnknownHostException {
-		elasticURI = new ElasticURI(uri);
+	protected TransportClient createClient(URISpec url) throws UnknownHostException {
+		elasticURI = new ElasticURI(uri.toURI());
 		Settings settings = elasticURI.getSettings(getParameters());
 		TransportClient c = TransportClient.builder().settings(settings).build();
 		String hosts = elasticURI.getHost();
@@ -51,6 +51,6 @@ public class ElasticConnection extends NoSqlConnection<TransportClient> {
 	@Override
 	public void close() throws IOException {
 		super.close();
-		getClient().close();
+		client().close();
 	}
 }
