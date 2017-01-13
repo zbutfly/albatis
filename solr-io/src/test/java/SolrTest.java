@@ -1,7 +1,6 @@
 import java.io.IOException;
 import java.net.URISyntaxException;
 
-import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.response.QueryResponse;
@@ -9,8 +8,7 @@ import org.apache.solr.client.solrj.response.QueryResponse;
 import com.google.common.base.Joiner;
 
 import net.butfly.albacore.utils.logger.Logger;
-import net.butfly.albatis.solr.Solrs;
-import scala.Tuple3;
+import net.butfly.albatis.solr.SolrConnection;
 
 public class SolrTest {
 	private static final Logger logger = Logger.getLogger(SolrTest.class);
@@ -23,15 +21,14 @@ public class SolrTest {
 	}
 
 	private static void test(String solrURL, String... core) throws URISyntaxException {
-		try (SolrClient solr = Solrs.open(solrURL);) {
-			QueryResponse resp = core.length == 0 ? solr.query(new SolrQuery("*:*")) : solr.query(core[0], new SolrQuery("*:*"));
+		try (SolrConnection solr = new SolrConnection(solrURL);) {
+			QueryResponse resp = core.length == 0 ? solr.getClient().query(new SolrQuery("*:*"))
+					: solr.getClient().query(core[0], new SolrQuery("*:*"));
 			assert (resp.getResults().size() > 0);
-
-			Tuple3<String, String, String[]> t = Solrs.parseSolrURL(solrURL);
 			System.err.println("Original URL: \t" + solrURL);
-			System.err.println("Base URL: \t" + t._1());
-			System.err.println("Default Core: \t" + t._2());
-			System.err.println("Cores: " + Joiner.on(',').join(t._3()));
+			System.err.println("Base URL: \t" + solr.getBase());
+			System.err.println("Default Core: \t" + solr.getDefaultCore());
+			System.err.println("Cores: " + Joiner.on(',').join(solr.getCores()));
 		} catch (SolrServerException | IOException e) {
 			logger.error("", e);
 		}

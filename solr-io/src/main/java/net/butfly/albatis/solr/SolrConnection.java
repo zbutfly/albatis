@@ -186,4 +186,8 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 	public String[] getCores() {
 		return cores;
 	}
+
+	public String getBase() {
+		return baseUri;
+	}
 }
