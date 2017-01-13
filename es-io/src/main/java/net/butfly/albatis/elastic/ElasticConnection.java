@@ -3,7 +3,6 @@ package net.butfly.albatis.elastic;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 
 import org.elasticsearch.client.transport.TransportClient;
@@ -22,7 +21,7 @@ public class ElasticConnection extends NoSqlConnection<TransportClient> {
 		super(connection, "elasticsearch");
 	}
 
-	public ElasticConnection(String url, String... indexAndType) throws IOException, URISyntaxException {
+	public ElasticConnection(String url, String... indexAndType) throws IOException {
 		this(url);
 		if (indexAndType.length > 2) logger.warn("only index and type parsed, other is ignore");
 	}
