@@ -58,7 +58,7 @@ public abstract class NoSqlConnection<C> implements Connection {
 	@Override
 	public void close() throws IOException {}
 
-	public final C getClient() {
+	public final C client() {
 		return client;
 	}
 
