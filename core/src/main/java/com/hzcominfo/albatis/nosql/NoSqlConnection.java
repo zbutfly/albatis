@@ -77,4 +77,8 @@ public abstract class NoSqlConnection<C> implements Connection {
 	public final void setParameters(Map<String, String> parameters) {
 		this.parameters.putAll(parameters);
 	}
+
+	public URISpec getURI() {
+		return uri;
+	}
 }

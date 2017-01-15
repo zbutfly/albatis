@@ -4,8 +4,6 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -52,8 +50,8 @@ public class SolrOutput extends Output<SolrMessage<SolrInputDocument>> {
 		};
 
 		if (failoverPath == null) failover = new HeapFailover<>(name(), adding, DEFAULT_PACKAGE_SIZE, DEFAULT_PARALLELISM);
-		else failover = new OffHeapFailover<String, SolrInputDocument>(name(), adding, failoverPath, calcName(baseUrl),
-				DEFAULT_PACKAGE_SIZE, DEFAULT_PARALLELISM) {
+		else failover = new OffHeapFailover<String, SolrInputDocument>(name(), adding, failoverPath, solr.getURI().getHost().replaceAll(
+				"[:,]", "_"), DEFAULT_PACKAGE_SIZE, DEFAULT_PARALLELISM) {
 			private static final long serialVersionUID = 7620077959670870367L;
 
 			@Override
@@ -128,13 +126,5 @@ public class SolrOutput extends Output<SolrMessage<SolrInputDocument>> {
 
 	public long fails() {
 		return failover.size();
-	}
-
-	private static String calcName(String solrUrl) {
-		try {
-			return new URI(solrUrl).getAuthority().replaceAll("/", "-");
-		} catch (URISyntaxException e) {
-			return solrUrl.replaceAll("/", "-");
-		}
 	}
 }

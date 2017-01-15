@@ -34,12 +34,12 @@ public class MongoConnection extends NoSqlConnection<MongoClient> {
 	}
 
 	public DB db(String dbname) {
-		return dbs.computeIfAbsent(dbname, n -> getClient().getDB(n));
+		return dbs.computeIfAbsent(dbname, n -> client().getDB(n));
 	}
 
 	@Override
 	public void close() throws IOException {
 		super.close();
-		getClient().close();
+		client().close();
 	}
 }
