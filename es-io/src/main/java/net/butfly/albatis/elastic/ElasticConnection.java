@@ -2,8 +2,6 @@ package net.butfly.albatis.elastic;
 
 import java.io.IOException;
 import java.net.InetAddress;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 
 import org.elasticsearch.client.transport.TransportClient;
@@ -12,6 +10,8 @@ import org.elasticsearch.common.transport.InetSocketTransportAddress;
 
 import com.hzcominfo.albatis.nosql.NoSqlConnection;
 
+import net.butfly.albacore.io.URISpec;
+import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.logger.Logger;
 
 public class ElasticConnection extends NoSqlConnection<TransportClient> {
@@ -19,26 +19,27 @@ public class ElasticConnection extends NoSqlConnection<TransportClient> {
 	protected ElasticURI elasticURI;
 
 	public ElasticConnection(String connection) throws IOException {
-		super(connection, "elasticsearch");
+		super(new URISpec(connection), uri -> {
+			Settings.Builder settings = Settings.settingsBuilder();
+			settings.put(uri.getParameters());
+			settings.put("client.transport.ignore_cluster_name", true);
+			TransportClient c = TransportClient.builder().settings(settings).build();
+			for (Pair<String, Integer> h : uri.getHosts()) {
+				int port = h.value2() == null ? 39300 : h.value2();
+				try {
+					c.addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName(h.value1()), port));
+				} catch (UnknownHostException e) {
+					throw new RuntimeException(e);
+				}
+			}
+			return c;
+		}, "elasticsearch");
+		elasticURI = new ElasticURI(uri.toURI());
 	}
 
-	public ElasticConnection(String url, String... indexAndType) throws IOException, URISyntaxException {
+	public ElasticConnection(String url, String... indexAndType) throws IOException {
 		this(url);
 		if (indexAndType.length > 2) logger.warn("only index and type parsed, other is ignore");
-	}
-
-	@Override
-	protected TransportClient createClient(URI url) throws UnknownHostException {
-		elasticURI = new ElasticURI(uri);
-		Settings settings = elasticURI.getSettings(getParameters());
-		TransportClient c = TransportClient.builder().settings(settings).build();
-		String hosts = elasticURI.getHost();
-		for (String h : hosts.split(",")) {
-			String[] host = h.split(":");
-			int port = host.length > 1 ? Integer.parseInt(host[1]) : 39300;
-			c.addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName(host[0]), port));
-		}
-		return c;
 	}
 
 	public String getDefaultIndex() {

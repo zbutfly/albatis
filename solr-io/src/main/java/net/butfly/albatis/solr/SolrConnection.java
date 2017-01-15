@@ -28,11 +28,12 @@ import org.apache.solr.client.solrj.impl.HttpSolrClient.Builder;
 import org.apache.solr.client.solrj.impl.XMLResponseParser;
 import org.apache.solr.client.solrj.request.CoreAdminRequest;
 import org.apache.solr.client.solrj.response.CoreAdminResponse;
-import org.apache.solr.common.params.ModifiableSolrParams;
 import org.apache.solr.common.params.CoreAdminParams.CoreAdminAction;
+import org.apache.solr.common.params.ModifiableSolrParams;
 
 import com.hzcominfo.albatis.nosql.NoSqlConnection;
 
+import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.Reflections;
 import net.butfly.albacore.utils.logger.Logger;
 
@@ -51,20 +52,15 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 	}
 
 	public <P extends ResponseParser> SolrConnection(String connection, Class<P> parserClass) throws IOException {
-		super(connection, "solr", "zookeeper", "http");
+		super(new URISpec(connection), uri -> create(uri, parserClass), "solr", "zookeeper", "http");
 		this.parserClass = parserClass;
 		parse();
 
 	}
 
-	public String getDefaultCore() {
-		return defaultCore;
-	}
-
-	@Override
-	protected SolrClient createClient(URI uri) throws IOException {
+	private static SolrClient create(URISpec uri, Class<? extends ResponseParser> parserClass) {
 		ResponseParser p = PARSER_POOL.computeIfAbsent(parserClass, clz -> Reflections.construct(clz));
-		switch (supportedSchema(uri.getScheme())) {
+		switch (uri.getScheme()) {
 		case "http":
 			logger.debug("Solr client create: " + uri);
 			Builder hb = new HttpSolrClient.Builder(uri.toString()).allowCompression(true).withHttpClient(HTTP_CLIENT)//
@@ -72,9 +68,9 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 			return hb.build();
 		case "solr":
 		case "zookeeper":
-			logger.debug("Solr client create by zookeeper: " + uri.getAuthority());
+			logger.debug("Solr client create by zookeeper: " + uri);
 			CloudSolrClient.Builder cb = new CloudSolrClient.Builder();
-			CloudSolrClient c = cb.withZkHost(Arrays.asList(uri.getAuthority().split(","))).withHttpClient(HTTP_CLIENT).build();
+			CloudSolrClient c = cb.withZkHost(Arrays.asList(uri.getHost().split(","))).withHttpClient(HTTP_CLIENT).build();
 			c.setZkClientTimeout(Integer.parseInt(System.getProperty("albatis.io.zkclient.timeout", "30000")));
 			c.setZkConnectTimeout(Integer.parseInt(System.getProperty("albatis.io.zkconnect.timeout", "30000")));
 			c.setParallelUpdates(true);
@@ -83,6 +79,10 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 		default:
 			throw new RuntimeException("Solr open failure, invalid uri: " + uri);
 		}
+	}
+
+	public String getDefaultCore() {
+		return defaultCore;
 	}
 
 	/**

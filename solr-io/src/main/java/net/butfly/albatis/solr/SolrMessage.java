@@ -4,6 +4,8 @@ import java.io.Serializable;
 
 import org.apache.solr.common.SolrDocumentBase;
 
+import net.butfly.albacore.utils.Systems;
+
 public class SolrMessage<D extends SolrDocumentBase<?, D>> implements Serializable {
 	private static final long serialVersionUID = -3391502515682546301L;
 	private String core;
@@ -21,5 +23,9 @@ public class SolrMessage<D extends SolrDocumentBase<?, D>> implements Serializab
 
 	public D getDoc() {
 		return doc;
+	}
+
+	public long size() {
+		return Systems.sizeOf(doc);
 	}
 }
