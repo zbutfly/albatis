@@ -53,6 +53,6 @@ public class ElasticConnection extends NoSqlConnection<TransportClient> {
 	@Override
 	public void close() throws IOException {
 		super.close();
-		getClient().close();
+		client().close();
 	}
 }

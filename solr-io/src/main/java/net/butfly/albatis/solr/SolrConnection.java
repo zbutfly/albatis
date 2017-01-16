@@ -98,7 +98,7 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 		CoreAdminRequest req = new CoreAdminRequest();
 		req.setAction(CoreAdminAction.STATUS);
 		try {
-			CoreAdminResponse resp = req.process(getClient());
+			CoreAdminResponse resp = req.process(client());
 			cores = new String[resp.getCoreStatus().size()];
 			for (int i = 0; i < resp.getCoreStatus().size(); i++)
 				getCores()[i] = resp.getCoreStatus().getName(i);
@@ -180,10 +180,14 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 	@Override
 	public void close() throws IOException {
 		super.close();
-		getClient().close();
+		client().close();
 	}
 
 	public String[] getCores() {
 		return cores;
+	}
+
+	public String getBase() {
+		return baseUri;
 	}
 }
