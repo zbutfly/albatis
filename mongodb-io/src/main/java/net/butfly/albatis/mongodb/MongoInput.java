@@ -59,14 +59,12 @@ public class MongoInput extends Input<DBObject> {
 	@Override
 	public void closing() {
 		super.closing();
-		logger.debug("[" + name() + "] closing...");
 		cursor.close();
 		try {
 			conn.close();
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
-		logger.info("[" + name() + "] closed.");
 	}
 
 	@Override

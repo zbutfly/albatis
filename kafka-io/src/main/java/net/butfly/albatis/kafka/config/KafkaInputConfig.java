@@ -66,9 +66,8 @@ public class KafkaInputConfig extends KafkaConfigBase {
 	public KafkaInputConfig(URISpec uri) {
 		super(uri);
 		groupId = uri.getUsername();
+		if (groupId == null || "".equals(groupId)) groupId = Systems.suffixDebug(Systems.getMainClass().getSimpleName(), logger);
 		Properties props = uri.getParameters();
-		if (groupId == null || "".equals(groupId)) groupId = Systems.getMainClass().getSimpleName();
-		groupId = Systems.suffixDebug(groupId, logger);
 
 		zookeeperSyncTimeMs = Long.parseLong(props.getProperty("zksynctime", "15000").trim());
 		autoCommitIntervalMs = Long.parseLong(props.getProperty("autocommit", "-1").trim());
