@@ -5,6 +5,7 @@ import java.util.Properties;
 
 import kafka.producer.ProducerConfig;
 import net.butfly.albacore.exception.ConfigException;
+import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.Configs;
 
 public class KafkaOutputConfig extends KafkaConfigBase {
@@ -13,10 +14,26 @@ public class KafkaOutputConfig extends KafkaConfigBase {
 	private int requestRequiredAcks;
 	private String compressionCodec;
 
+	/**
+	 * @deprecated use {@link URISpec} to construct kafka configuration.
+	 */
+	@Deprecated
 	public KafkaOutputConfig(String classpathResourceName) throws IOException {
 		this(Configs.read(classpathResourceName));
 	}
 
+	public KafkaOutputConfig(URISpec uri) {
+		super(uri);
+		Properties props = uri.getParameters();
+		requestRequiredAcks = Integer.parseInt(props.getProperty("acks", "-1"));
+		compressionCodec = props.getProperty("compression", "snappy");
+		retries = Integer.parseInt(props.getProperty("retries", "0"));
+	}
+
+	/**
+	 * @deprecated use {@link URISpec} to construct kafka configuration.
+	 */
+	@Deprecated
 	public KafkaOutputConfig(Properties props) {
 		super(props);
 

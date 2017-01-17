@@ -1,19 +1,24 @@
 package net.butfly.albatis.kafka;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+
 import kafka.consumer.KafkaStream;
 import kafka.javaapi.consumer.ConsumerConnector;
 import net.butfly.albacore.exception.ConfigException;
 import net.butfly.albacore.io.MapInput;
+import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.lambda.Consumer;
 import net.butfly.albacore.utils.Collections;
 import net.butfly.albacore.utils.async.Concurrents;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.kafka.config.KafkaInputConfig;
 import net.butfly.albatis.kafka.config.Kafkas;
-
-import java.io.IOException;
-import java.util.*;
-import java.util.Map.Entry;
 
 abstract class KafkaInputBase<T> extends MapInput<String, KafkaMessage> {
 	private static final long serialVersionUID = -9180560064999614528L;
@@ -24,9 +29,9 @@ abstract class KafkaInputBase<T> extends MapInput<String, KafkaMessage> {
 	protected final Map<String, List<KafkaStream<byte[], byte[]>>> raws;
 	protected final Map<String, Map<KafkaStream<byte[], byte[]>, T>> streams;
 
-	public KafkaInputBase(String name, final String config, String... topic) throws ConfigException, IOException {
+	public KafkaInputBase(String name, final String kafkaURI, String... topic) throws ConfigException, IOException {
 		super(name);
-		conf = new KafkaInputConfig(config);
+		conf = new KafkaInputConfig(new URISpec(kafkaURI));
 		logger.info("KafkaInput0 [" + name() + "] connecting with config [" + conf.toString() + "].");
 		topics = new HashMap<>();
 		int kp = conf.getPartitionParallelism();
