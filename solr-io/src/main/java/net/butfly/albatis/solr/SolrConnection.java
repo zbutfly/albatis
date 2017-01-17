@@ -1,11 +1,8 @@
 package net.butfly.albatis.solr;
 
 import java.io.IOException;
-import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -105,16 +102,8 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 			baseUri = url;
 			defaultCore = null;
 		} catch (SolrServerException e) { // XXX IOException?
-			String path;
-			try {
-				path = new URI(url).getPath();
-			} catch (URISyntaxException e1) {
-				throw new IOException("Solr uri invalid: " + url);
-			}
-			if (null == path) throw new IOException("Solr uri invalid: " + uri);
-			List<String> segs = new ArrayList<>(Arrays.asList(path.split("/+")));
-			if (segs.isEmpty()) throw new IOException("Solr uri invalid: " + uri);
-			defaultCore = segs.remove(segs.size() - 1);
+			if (uri.getPathSegs().length == 0) throw new IOException("Solr uri invalid: " + uri);
+			defaultCore = uri.getPathSegs()[0];
 			baseUri = url.replaceAll("/?" + defaultCore + "/?$", "");
 			try (SolrConnection conn = new SolrConnection(baseUri, parserClass)) {
 				cores = conn.getCores();
