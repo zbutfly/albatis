@@ -49,7 +49,7 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 	}
 
 	public <P extends ResponseParser> SolrConnection(String connection, Class<P> parserClass) throws IOException {
-		super(new URISpec(connection), uri -> create(uri, parserClass), "solr", "zookeeper", "http");
+		super(new URISpec(connection), uri -> create(uri, parserClass), "solr", "zookeeper", "zk", "http");
 		this.parserClass = parserClass;
 		parse();
 
@@ -65,6 +65,7 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 			return hb.build();
 		case "solr":
 		case "zookeeper":
+		case "zk":
 			logger.debug("Solr client create by zookeeper: " + uri);
 			CloudSolrClient.Builder cb = new CloudSolrClient.Builder();
 			CloudSolrClient c = cb.withZkHost(Arrays.asList(uri.getHost().split(","))).withHttpClient(HTTP_CLIENT).build();

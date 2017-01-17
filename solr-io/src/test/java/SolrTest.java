@@ -16,8 +16,8 @@ public class SolrTest {
 	public static void main(String[] args) throws IOException, URISyntaxException {
 		// test("http://10.118.159.106:10301/solr", "personData");
 		// test("http://10.118.159.106:10301/solr/personData");
-		test("zookeeper://hzga136:9481,hzga137:9481,hzga138:9481", "GAZHK_HZKK_201611");
-		// test("zookeeper://hzga136:9481,hzga137:9481,hzga138:9481/GAZHK_HZKK_201611");
+		test("zk://hzga136:9481,hzga137:9481,hzga138:9481", "GAZHK_HZKK_201611");
+		// test("zk://hzga136:9481,hzga137:9481,hzga138:9481/GAZHK_HZKK_201611");
 	}
 
 	private static void test(String solrURL, String... core) throws URISyntaxException {

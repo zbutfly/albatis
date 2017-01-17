@@ -65,10 +65,10 @@ public abstract class KafkaConfigBase implements Serializable {
 		case "zk":
 		case "zookeeper":
 		case "kafka":
-			zookeeperConnect = uri.getHost();
+			zookeeperConnect = uri.getHost() + uri.getPath();
 			try {
 				bootstrapServers = Joiner.on(",").join(Kafkas.getBorkers(zookeeperConnect));
-				logger.info("Zookeeper detect broken list automatically: [" + bootstrapServers + "])");
+				logger.debug("Zookeeper detect broken list automatically: [" + bootstrapServers + "])");
 			} catch (IOException e) {
 				bootstrapServers = null;
 				logger.warn("Zookeeper detect broken list failure", e);
