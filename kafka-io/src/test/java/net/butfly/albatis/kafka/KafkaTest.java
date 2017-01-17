@@ -22,7 +22,7 @@ public class KafkaTest {
 		double total = 0;
 		long begin = new Date().getTime();
 		long now = begin;
-		try (KafkaInput in = new KafkaInput("KafkaInput0", "kafka.properties", "./cache", topics);) {
+		try (KafkaInput in = new KafkaInput("KafkaIn", "kafka.properties", "./cache", topics);) {
 			do {
 				List<KafkaMessage> l = in.dequeue(batchSize);
 				long size = 0;

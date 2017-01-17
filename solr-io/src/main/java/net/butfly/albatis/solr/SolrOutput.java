@@ -38,7 +38,7 @@ public class SolrOutput extends Output<SolrMessage<SolrInputDocument>> {
 
 	public SolrOutput(String name, String baseUrl, String failoverPath) throws IOException {
 		super(name);
-		logger.info("SolrOutput [" + name + "] from [" + baseUrl + "]");
+		logger.info("[" + name + "] from [" + baseUrl + "]");
 		solr = new SolrConnection(baseUrl);
 		ConverterPair<String, List<SolrInputDocument>, Exception> adding = (core, docs) -> {
 			try {
@@ -110,12 +110,12 @@ public class SolrOutput extends Output<SolrMessage<SolrInputDocument>> {
 	public void closing() {
 		super.closing();
 		failover.close();
-		logger.debug("SolrOutput [" + name() + "] all processing thread closed normally");
+		logger.debug("[" + name() + "] all processing thread closed normally");
 		try {
 			for (String core : solr.getCores())
 				solr.client().commit(core, false, false);
 		} catch (IOException | SolrServerException e) {
-			logger.error("SolrOutput close failure", e);
+			logger.error("Close failure", e);
 		}
 		try {
 			solr.close();

@@ -31,7 +31,7 @@ public class KafkaInput0 extends KafkaInputBase<ReentrantLock> {
 		try {
 			if (!lock.tryLock(10, TimeUnit.MILLISECONDS)) return null;
 		} catch (InterruptedException e) {
-			logger.warn("KafkaInput0 [" + name() + "] fetching interrupted.");
+			logger.warn("[" + name() + "] fetching interrupted.");
 			return null;
 		}
 		MessageAndMetadata<byte[], byte[]> e = null;

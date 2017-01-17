@@ -20,14 +20,14 @@ public class KafkaInput extends KafkaInputBase<KafkaInput.Fetcher> {
 	private static final long serialVersionUID = 1813167082084278062L;
 	private IBigQueue pool;
 
-	public KafkaInput(String name, final String config, final String poolPath, String... topic) throws ConfigException, IOException {
-		super(name, config, topic);
+	public KafkaInput(String name, final String kafkaURI, final String poolPath, String... topic) throws ConfigException, IOException {
+		super(name, kafkaURI, topic);
 		try {
 			pool = new BigQueueImpl(IOs.mkdirs(poolPath + "/" + name), conf.toString());
 		} catch (IOException e) {
 			throw new RuntimeException("Offheap pool init failure", e);
 		}
-		logger.info(MessageFormat.format("KafkaInput0 [{0}] local cache init: [{1}/{0}] with name [{2}], init size [{3}].", name, poolPath,
+		logger.info(MessageFormat.format("[{0}] local pool init: [{1}/{0}] with name [{2}], init size [{3}].", name, poolPath,
 				conf.toString(), pool.size()));
 		for (String t : raws.keySet()) {
 			AtomicInteger i = new AtomicInteger(0);
@@ -36,7 +36,7 @@ public class KafkaInput extends KafkaInputBase<KafkaInput.Fetcher> {
 					Map<KafkaStream<byte[], byte[]>, Fetcher> v1 = v == null ? new HashMap<>() : v;
 					Fetcher f = new Fetcher(name + "-" + t, stream, i.incrementAndGet(), pool, conf.getPoolSize());
 					f.start();
-					logger.info("KafkaInput0 [" + name + "] fetcher [" + i.get() + "] started.");
+					logger.info("[" + name + "] fetcher [" + i.get() + "] started.");
 					v1.put(stream, f);
 					return v1;
 				});
@@ -66,7 +66,7 @@ public class KafkaInput extends KafkaInputBase<KafkaInput.Fetcher> {
 			try {
 				pool.gc();
 			} catch (IOException e) {
-				logger.warn("KafkaInput0 [" + name() + "] local cache gc failure", e);
+				logger.warn("[" + name() + "] local pool gc failure", e);
 			}
 		}
 	}
@@ -77,7 +77,7 @@ public class KafkaInput extends KafkaInputBase<KafkaInput.Fetcher> {
 		try {
 			pool.close();
 		} catch (IOException e) {
-			logger.error("KafkaInput0 [" + name() + "] local cache close failure", e);
+			logger.error("[" + name() + "] local pool close failure", e);
 		}
 	}
 
@@ -91,12 +91,12 @@ public class KafkaInput extends KafkaInputBase<KafkaInput.Fetcher> {
 		private final long poolSize;
 
 		public Fetcher(String inputName, KafkaStream<byte[], byte[]> stream, int i, IBigQueue pool, long poolSize) {
-			super(inputName + "-Fetcher-" + i);
+			super(inputName + "Fetcher-" + i);
 			this.stream = stream;
 			this.pool = pool;
 			this.poolSize = poolSize;
 			this.setUncaughtExceptionHandler((t, e) -> {
-				logger.error("KafkaInputFetcher [" + getName() + "] async error, pool [" + pool.size() + "]", e);
+				logger.error("[" + getName() + "] async error, pool [" + pool.size() + "]", e);
 			});
 		}
 

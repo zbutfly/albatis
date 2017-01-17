@@ -47,7 +47,7 @@ public class MongoIOTest {
 						);
 						now = new Date().getTime();
 					}
-				}, "TestMongoInput-Consumer-" + i).start();
+				}, "TestMongoInputConsumer-" + i).start();
 			}
 			Concurrents.forever(() -> {
 				try {
