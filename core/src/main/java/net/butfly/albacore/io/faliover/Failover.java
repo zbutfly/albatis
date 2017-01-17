@@ -31,7 +31,7 @@ public abstract class Failover<K, V> extends OpenableThread implements Statistic
 		senders = new ArrayList<>();
 		for (int i = 0; i < parallelism; i++)
 			senders.add(new Sender(parentName, tasks, i));
-		trace(parentName + "-Failover", packageSize, m -> 0L, () -> "failover: " + size());
+		trace(packageSize, () -> "failover: " + size());
 	}
 
 	@Override
@@ -75,7 +75,7 @@ public abstract class Failover<K, V> extends OpenableThread implements Statistic
 		private LinkedBlockingQueue<Runnable> tasks;
 
 		public Sender(String parentName, LinkedBlockingQueue<Runnable> tasks, int i) {
-			super(parentName + "Sender-" + (i + 1));
+			super(parentName + "Sender#" + (i + 1));
 			this.tasks = tasks;
 			start();
 		}

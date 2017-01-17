@@ -34,7 +34,7 @@ public class KafkaInput extends KafkaInputBase<KafkaInput.Fetcher> {
 			for (KafkaStream<byte[], byte[]> stream : raws.get(t))
 				streams.compute(t, (k, v) -> {
 					Map<KafkaStream<byte[], byte[]>, Fetcher> v1 = v == null ? new HashMap<>() : v;
-					Fetcher f = new Fetcher(name + "-" + t, stream, i.incrementAndGet(), pool, conf.getPoolSize());
+					Fetcher f = new Fetcher(name + "Fetcher#" + t, stream, i.incrementAndGet(), pool, conf.getPoolSize());
 					f.start();
 					logger.info("[" + name + "] fetcher [" + i.get() + "] started.");
 					v1.put(stream, f);
@@ -91,7 +91,7 @@ public class KafkaInput extends KafkaInputBase<KafkaInput.Fetcher> {
 		private final long poolSize;
 
 		public Fetcher(String inputName, KafkaStream<byte[], byte[]> stream, int i, IBigQueue pool, long poolSize) {
-			super(inputName + "Fetcher-" + i);
+			super(inputName + "#" + i);
 			this.stream = stream;
 			this.pool = pool;
 			this.poolSize = poolSize;
