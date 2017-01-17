@@ -6,7 +6,7 @@
         <artifactId>albatis</artifactId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
-    <artifactId>albatis-sparksql</artifactId>
+    <artifactId>sparksql</artifactId>
     <dependencies>
         <dependency>
             <groupId>org.scala-lang</groupId>
