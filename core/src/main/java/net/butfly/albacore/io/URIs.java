@@ -2,8 +2,6 @@ package net.butfly.albacore.io;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.Properties;
 
 import net.butfly.albacore.lambda.ConverterPair;
@@ -14,18 +12,13 @@ public class URIs {
 		FILE, CLASSPATH, HTTP, HTTPS, JDBC, ZOOKEEPER, MONGODB
 	}
 
-	public static <T> T parse(String uriString, ConverterPair<Schema, URI, T> constr) {
-		URI uri = parse(uriString);
+	public static <T> T parse(String uriString, ConverterPair<Schema, URISpec, T> constr) {
+		URISpec uri = parse(uriString);
 		return constr.apply(schema(uri), uri);
 	}
 
-	public static URI parse(String uriString, Schema... accept) {
-		URI uri;
-		try {
-			uri = new URI(uriString);
-		} catch (URISyntaxException e) {
-			throw new IllegalArgumentException(e);
-		}
+	public static URISpec parse(String uriString, Schema... accept) {
+		URISpec uri = new URISpec(uriString);
 		if (accept == null || accept.length == 0) return uri;
 		Schema schema = uri.getScheme() == null ? Schema.FILE : Schema.valueOf(uri.getScheme().toUpperCase());
 		for (Schema s : accept)
@@ -33,11 +26,11 @@ public class URIs {
 		throw new IllegalArgumentException("Not acceptable schema: " + schema);
 	}
 
-	public static Schema schema(URI uri) {
+	public static Schema schema(URISpec uri) {
 		return uri.getScheme() == null ? Schema.FILE : Schema.valueOf(uri.getScheme().toUpperCase());
 	}
 
-	public static Properties params(URI uri) {
+	public static Properties params(URISpec uri) {
 		Properties p = new Properties();
 		for (String param : uri.getQuery().split("&")) {
 			String[] kv = param.split("=", 2);
@@ -46,7 +39,7 @@ public class URIs {
 		return p;
 	}
 
-	public static InputStream open(URI uri) throws IOException {
+	public static InputStream open(URISpec uri) throws IOException {
 		switch (schema(uri)) {
 		case FILE:
 			return IOs.loadJavaFile(uri.getPath());
@@ -54,7 +47,7 @@ public class URIs {
 			return Thread.currentThread().getContextClassLoader().getResourceAsStream(uri.getPath());
 		case HTTP:
 		case HTTPS:
-			return uri.toURL().openStream();
+			return uri.toURI().toURL().openStream();
 		default:
 			return null;
 		}

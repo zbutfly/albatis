@@ -9,11 +9,13 @@ import org.apache.kafka.common.serialization.ByteArraySerializer;
 
 import com.google.common.base.Joiner;
 
+import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.logger.Logger;
 
 public abstract class KafkaConfigBase implements Serializable {
 	private static final long serialVersionUID = -4020530608706621876L;
+	private static final String PROP_PREFIX = "albatis.kafka.";
 	static final Logger logger = Logger.getLogger(KafkaConfigBase.class);
 	protected final String zookeeperConnect;
 	protected String bootstrapServers;
@@ -28,14 +30,17 @@ public abstract class KafkaConfigBase implements Serializable {
 		return poolSize;
 	}
 
+	/**
+	 * @deprecated use {@link URISpec} to construct kafka configuration.
+	 */
+	@Deprecated
 	public KafkaConfigBase(Properties props) {
 		super();
-		zookeeperConnect = props.getProperty("albatis.kafka.zookeeper");
-		bootstrapServers = props.getProperty("albatis.kafka.bootstrap.servers");
+		zookeeperConnect = props.getProperty(PROP_PREFIX + "zookeeper");
+		bootstrapServers = props.getProperty(PROP_PREFIX + "bootstrap.servers");
 		if (zookeeperConnect != null) {
-			if (bootstrapServers != null) logger.warn(
-					"Zookeeper detect broken list automatically, configured [albatis.kafka.bootstrap.servers] is not used (current value: ["
-							+ bootstrapServers + "])");
+			if (bootstrapServers != null) logger.warn("Zookeeper detect broken list automatically, configured [" + PROP_PREFIX
+					+ "bootstrap.servers] is not used (current value: [" + bootstrapServers + "])");
 			try {
 				bootstrapServers = Joiner.on(",").join(Kafkas.getBorkers(zookeeperConnect));
 				logger.info("Zookeeper detect broken list automatically: [" + bootstrapServers + "])");
@@ -43,15 +48,51 @@ public abstract class KafkaConfigBase implements Serializable {
 				bootstrapServers = null;
 				logger.warn("Zookeeper detect broken list failure", e);
 			}
-		} else if (bootstrapServers == null) throw new ConfigException(
-				"Neither [albatis.kafka.zookeeper] nor [albatis.kafka.bootstrap.servers] found");
-		zookeeperConnectionTimeoutMs = Long.valueOf(props.getProperty("albatis.kafka.zookeeper.connection.timeout.ms", "20000"));
-		transferBufferBytes = Long.valueOf(props.getProperty("albatis.kafka.transfer.buffer.bytes", "5242880"));
-		keySerializerClass = props.getProperty("albatis.kafka.key.serializer.class", ByteArraySerializer.class.getName());
-		valueSerializerClass = props.getProperty("albatis.kafka.value.serializer.class", ByteArraySerializer.class.getName());
-		poolSize = Long.parseLong(props.getProperty("albatis.kafka.internal.pool.size", "3000000"));
+		} else if (bootstrapServers == null) throw new ConfigException("Neither [" + PROP_PREFIX + "zookeeper] nor [" + PROP_PREFIX
+				+ "bootstrap.servers] found");
+		zookeeperConnectionTimeoutMs = Long.valueOf(props.getProperty(PROP_PREFIX + "zookeeper.connection.timeout.ms", "20000"));
+		transferBufferBytes = Long.valueOf(props.getProperty(PROP_PREFIX + "transfer.buffer.bytes", "5242880"));
+		keySerializerClass = props.getProperty(PROP_PREFIX + "key.serializer.class", ByteArraySerializer.class.getName());
+		valueSerializerClass = props.getProperty(PROP_PREFIX + "value.serializer.class", ByteArraySerializer.class.getName());
+		poolSize = Long.parseLong(props.getProperty(PROP_PREFIX + "internal.pool.size", "3000000"));
 	}
 
+	public KafkaConfigBase(URISpec uri) {
+		super();
+		String sch = uri.getScheme();
+		if (sch.startsWith("kafka:")) sch = sch.substring(6);
+		switch (sch) {
+		case "zk":
+		case "zookeeper":
+		case "kafka":
+			zookeeperConnect = uri.getHost() + uri.getPath();
+			try {
+				bootstrapServers = Joiner.on(",").join(Kafkas.getBorkers(zookeeperConnect));
+				logger.debug("Zookeeper detect broken list automatically: [" + bootstrapServers + "])");
+			} catch (IOException e) {
+				bootstrapServers = null;
+				logger.warn("Zookeeper detect broken list failure", e);
+			}
+			break;
+		case "bootstrap":
+			bootstrapServers = uri.getHost();
+			zookeeperConnect = null;
+			break;
+		default:
+			throw new ConfigException("Neither [zk] nor [bootstrap.servers] found");
+		}
+		Properties props = uri.getParameters();
+		zookeeperConnectionTimeoutMs = Long.valueOf(props.getProperty("zkconntimeout", "20000"));
+		transferBufferBytes = Long.valueOf(props.getProperty("buffer", "5242880"));
+		keySerializerClass = props.getProperty("kserial", ByteArraySerializer.class.getName());
+		valueSerializerClass = props.getProperty("vserial", ByteArraySerializer.class.getName());
+		poolSize = Long.parseLong(props.getProperty("pool", "3000000"));
+	}
+
+	/**
+	 * @deprecated use {@link URISpec} to construct kafka configuration.
+	 */
+	@Deprecated
 	public KafkaConfigBase(String classpathResourceName) throws IOException {
 		this(Configs.read(classpathResourceName));
 	}

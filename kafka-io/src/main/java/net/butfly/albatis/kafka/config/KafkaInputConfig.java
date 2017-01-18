@@ -5,6 +5,7 @@ import java.util.Properties;
 
 import kafka.consumer.ConsumerConfig;
 import net.butfly.albacore.exception.ConfigException;
+import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.io.URIs;
 import net.butfly.albacore.io.URIs.Schema;
 import net.butfly.albacore.utils.Configs;
@@ -54,10 +55,39 @@ public class KafkaInputConfig extends KafkaConfigBase {
 	// not for kafka, for albatis
 	private int partitionParallelism;
 
+	/**
+	 * @deprecated use {@link URISpec} to construct kafka configuration.
+	 */
+	@Deprecated
 	public KafkaInputConfig(String uri) throws IOException {
 		this(Configs.read(URIs.open(uri, Schema.FILE, Schema.CLASSPATH, Schema.ZOOKEEPER)));
 	}
 
+	public KafkaInputConfig(URISpec uri) {
+		super(uri);
+		groupId = uri.getUsername();
+		if (groupId == null || "".equals(groupId)) groupId = Systems.suffixDebug(Systems.getMainClass().getSimpleName(), logger);
+		Properties props = uri.getParameters();
+
+		zookeeperSyncTimeMs = Long.parseLong(props.getProperty("zksynctime", "15000").trim());
+		autoCommitIntervalMs = Long.parseLong(props.getProperty("autocommit", "-1").trim());
+		autoCommitEnable = autoCommitIntervalMs > 0;
+		autoOffsetReset = props.getProperty("autoreset", "smallest");
+		sessionTimeoutMs = Long.parseLong(props.getProperty("sessiontimeout", "30000").trim());
+		fetchWaitTimeoutMs = Long.parseLong(props.getProperty("fetchtimeout", "500").trim());
+		partitionAssignmentStrategy = props.getProperty("strategy", "range");
+		fetchMessageMaxBytes = Long.parseLong(props.getProperty("fetchmax", "10485760").trim());
+		rebalanceBackoffMs = Long.parseLong(props.getProperty("rebalancetime", "10000"));
+		rebalanceRetries = Integer.parseInt(props.getProperty("rebalanceretries", "2"));
+		zookeeperSessionTimeoutMs = Long.parseLong(props.getProperty("zksessiontimeout", "30000"));
+
+		partitionParallelism = Integer.parseInt(props.getProperty("parallelism", "0").trim());
+	}
+
+	/**
+	 * @deprecated use {@link URISpec} to construct kafka configuration.
+	 */
+	@Deprecated
 	public KafkaInputConfig(Properties props) {
 		super(props);
 		groupId = null;
@@ -65,30 +95,19 @@ public class KafkaInputConfig extends KafkaConfigBase {
 		if (groupId == null || "".equals(groupId)) groupId = Systems.getMainClass().getSimpleName();
 		groupId = Systems.suffixDebug(groupId, logger);
 
-		String v;
-		v = props.getProperty("albatis.kafka.zookeeper.sync.time.ms", "15000");
-		zookeeperSyncTimeMs = Long.parseLong(v.trim());
-		v = props.getProperty("albatis.kafka.auto.commit.enable", "false");
-		autoCommitEnable = Boolean.parseBoolean(v.trim());
-		v = props.getProperty("albatis.kafka.auto.commit.interval.ms", "60000");
-		autoCommitIntervalMs = Long.parseLong(v.trim());
+		zookeeperSyncTimeMs = Long.parseLong(props.getProperty("albatis.kafka.zookeeper.sync.time.ms", "15000").trim());
+		autoCommitEnable = Boolean.parseBoolean(props.getProperty("albatis.kafka.auto.commit.enable", "false").trim());
+		autoCommitIntervalMs = Long.parseLong(props.getProperty("albatis.kafka.auto.commit.interval.ms", "60000").trim());
 		autoOffsetReset = props.getProperty("albatis.kafka.auto.offset.reset", "smallest");
-		v = props.getProperty("albatis.kafka.session.timeout.ms", "30000");
-		sessionTimeoutMs = Long.parseLong(v.trim());
-		v = props.getProperty("albatis.kafka.fetch.wait.timeout.ms", "500");
-		fetchWaitTimeoutMs = Long.parseLong(v.trim());
+		sessionTimeoutMs = Long.parseLong(props.getProperty("albatis.kafka.session.timeout.ms", "30000").trim());
+		fetchWaitTimeoutMs = Long.parseLong(props.getProperty("albatis.kafka.fetch.wait.timeout.ms", "500").trim());
 		partitionAssignmentStrategy = props.getProperty("albatis.kafka.partition.assignment.strategy", "range");
-		v = props.getProperty("albatis.kafka.fetch.message.max.bytes", "10485760");
-		fetchMessageMaxBytes = Long.parseLong(v.trim());
-		v = props.getProperty("albatis.kafka.rebalance.backoff.ms", "10000");
-		rebalanceBackoffMs = Long.parseLong(v);
-		v = props.getProperty("albatis.kafka.rebalance.retries", "2");
-		rebalanceRetries = Integer.parseInt(v);
-		v = props.getProperty("albatis.kafka.zookeeper.session.timeout.ms", "30000");
-		zookeeperSessionTimeoutMs = Long.parseLong(v);
+		fetchMessageMaxBytes = Long.parseLong(props.getProperty("albatis.kafka.fetch.message.max.bytes", "10485760").trim());
+		rebalanceBackoffMs = Long.parseLong(props.getProperty("albatis.kafka.rebalance.backoff.ms", "10000"));
+		rebalanceRetries = Integer.parseInt(props.getProperty("albatis.kafka.rebalance.retries", "2"));
+		zookeeperSessionTimeoutMs = Long.parseLong(props.getProperty("albatis.kafka.zookeeper.session.timeout.ms", "30000"));
 
-		v = props.getProperty("albatis.kafka.partition.parallelism", "0");
-		partitionParallelism = Integer.parseInt(v.trim());
+		partitionParallelism = Integer.parseInt(props.getProperty("albatis.kafka.partition.parallelism", "0").trim());
 	}
 
 	public int getPartitionParallelism() {

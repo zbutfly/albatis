@@ -1,7 +1,7 @@
 package net.butfly.albatis.mongodb;
 
 import java.io.IOException;
-import java.net.URI;
+import java.net.UnknownHostException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -10,21 +10,23 @@ import com.mongodb.DB;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 
+import net.butfly.albacore.io.URISpec;
+
 public class MongoConnection extends NoSqlConnection<MongoClient> {
 	private final Map<String, DB> dbs;
 	private String defaultDB;
 
 	public MongoConnection(String connection) throws IOException {
-		super(connection, "mongodb");
+		super(new URISpec(connection), uri -> {
+			MongoClientURI u = new MongoClientURI(uri.toString());
+			try {
+				return new MongoClient(u);
+			} catch (UnknownHostException e) {
+				throw new RuntimeException(e);
+			}
+		}, "mongodb");
+		defaultDB = uri.getPathSegs()[0];
 		dbs = new ConcurrentHashMap<>();
-	}
-
-	@Override
-	protected MongoClient createClient(URI url) throws IOException {
-		MongoClientURI u = new MongoClientURI(uri.toASCIIString());
-		defaultDB = u.getDatabase();
-		MongoClient mongo = new MongoClient(u);
-		return mongo;
 	}
 
 	public DB db() {
@@ -32,12 +34,12 @@ public class MongoConnection extends NoSqlConnection<MongoClient> {
 	}
 
 	public DB db(String dbname) {
-		return dbs.computeIfAbsent(dbname, n -> getClient().getDB(n));
+		return dbs.computeIfAbsent(dbname, n -> client().getDB(n));
 	}
 
 	@Override
 	public void close() throws IOException {
 		super.close();
-		getClient().close();
+		client().close();
 	}
 }

@@ -44,7 +44,7 @@ public final class Solrs extends Utils {
 	@SuppressWarnings("resource")
 	public static SolrClient open(String solrURL, Class<? extends ResponseParser> parserClass) {
 		try {
-			return new SolrConnection(solrURL, parserClass).getClient();
+			return new SolrConnection(solrURL, parserClass).client();
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}

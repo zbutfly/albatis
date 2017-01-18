@@ -14,15 +14,16 @@ import com.google.common.util.concurrent.ListenableFuture;
 
 import net.butfly.albacore.exception.ConfigException;
 import net.butfly.albacore.io.Output;
+import net.butfly.albacore.io.URISpec;
 import net.butfly.albatis.kafka.config.KafkaOutputConfig;
 
 public class KafkaOutput extends Output<KafkaMessage> {
 	private static final long serialVersionUID = -8630366328993414430L;
 	private final KafkaProducer<byte[], byte[]> connect;
 
-	public KafkaOutput(final String name, final KafkaOutputConfig config) throws ConfigException {
+	public KafkaOutput(final String name, final String kafkaURI) throws ConfigException {
 		super(name);
-		connect = new KafkaProducer<byte[], byte[]>(config.props());
+		connect = new KafkaProducer<byte[], byte[]>(new KafkaOutputConfig(new URISpec(kafkaURI)).props());
 	}
 
 	@Override
@@ -55,11 +56,11 @@ public class KafkaOutput extends Output<KafkaMessage> {
 		}
 		try {
 			List<RecordMetadata> results = Futures.successfulAsList(fs).get();
-			logger.trace("KafkaOutput [" + name() + "] sent: " + results.size());
+			logger.trace("[" + name() + "] sent: " + results.size());
 		} catch (InterruptedException e) {
-			logger.error("KafkaOutput [" + name() + "] interrupted", e);
+			logger.error("[" + name() + "] interrupted", e);
 		} catch (ExecutionException e) {
-			logger.error("KafkaOutput [" + name() + "] failure", e.getCause());
+			logger.error("[" + name() + "] failure", e.getCause());
 		}
 		return c.get();
 	}

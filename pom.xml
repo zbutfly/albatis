@@ -17,11 +17,11 @@
 		<module>jdbc</module>
 		<module>mongodb-io</module>
 		<module>mongodb</module>
-		<module>hbase-io</module>
-		<module>solr</module>
 		<module>solr-io</module>
-		<module>es</module>
+		<!--<module>solr</module>-->
 		<module>es-io</module>
+		<module>es</module>
+		<module>hbase-io</module>
 		<module>kafka-io</module>
 		<!--<module>neo4j</module>-->
 		<module>demo</module>

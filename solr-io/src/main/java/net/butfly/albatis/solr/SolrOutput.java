@@ -4,8 +4,6 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -40,11 +38,11 @@ public class SolrOutput extends Output<SolrMessage<SolrInputDocument>> {
 
 	public SolrOutput(String name, String baseUrl, String failoverPath) throws IOException {
 		super(name);
-		logger.info("SolrOutput [" + name + "] from [" + baseUrl + "]");
+		logger.info("[" + name + "] from [" + baseUrl + "]");
 		solr = new SolrConnection(baseUrl);
 		ConverterPair<String, List<SolrInputDocument>, Exception> adding = (core, docs) -> {
 			try {
-				solr.getClient().add(core, docs, DEFAULT_AUTO_COMMIT_MS);
+				solr.client().add(core, docs, DEFAULT_AUTO_COMMIT_MS);
 				return null;
 			} catch (Exception e) {
 				return e;
@@ -52,8 +50,8 @@ public class SolrOutput extends Output<SolrMessage<SolrInputDocument>> {
 		};
 
 		if (failoverPath == null) failover = new HeapFailover<>(name(), adding, DEFAULT_PACKAGE_SIZE, DEFAULT_PARALLELISM);
-		else failover = new OffHeapFailover<String, SolrInputDocument>(name(), adding, failoverPath, calcName(baseUrl),
-				DEFAULT_PACKAGE_SIZE, DEFAULT_PARALLELISM) {
+		else failover = new OffHeapFailover<String, SolrInputDocument>(name(), adding, failoverPath, solr.getURI().getHost().replaceAll(
+				"[:,]", "_"), DEFAULT_PACKAGE_SIZE, DEFAULT_PARALLELISM) {
 			private static final long serialVersionUID = 7620077959670870367L;
 
 			@Override
@@ -94,13 +92,13 @@ public class SolrOutput extends Output<SolrMessage<SolrInputDocument>> {
 			map.computeIfAbsent(d.getCore() == null ? solr.getDefaultCore() : d.getCore(), core -> new ArrayList<>()).add(d.getDoc());
 		failover.doWithFailover(map, (k, vs) -> {
 			try {
-				solr.getClient().add(k, vs);
+				solr.client().add(k, vs);
 			} catch (SolrServerException | IOException e) {
 				throw new RuntimeException(e);
 			}
 		}, k -> {
 			try {
-				solr.getClient().commit(k, false, false, true);
+				solr.client().commit(k, false, false, true);
 			} catch (SolrServerException | IOException e) {
 				throw new RuntimeException(e);
 			}
@@ -112,12 +110,12 @@ public class SolrOutput extends Output<SolrMessage<SolrInputDocument>> {
 	public void closing() {
 		super.closing();
 		failover.close();
-		logger.debug("SolrOutput [" + name() + "] all processing thread closed normally");
+		logger.debug("[" + name() + "] all processing thread closed normally");
 		try {
 			for (String core : solr.getCores())
-				solr.getClient().commit(core, false, false);
+				solr.client().commit(core, false, false);
 		} catch (IOException | SolrServerException e) {
-			logger.error("SolrOutput close failure", e);
+			logger.error("Close failure", e);
 		}
 		try {
 			solr.close();
@@ -128,13 +126,5 @@ public class SolrOutput extends Output<SolrMessage<SolrInputDocument>> {
 
 	public long fails() {
 		return failover.size();
-	}
-
-	private static String calcName(String solrUrl) {
-		try {
-			return new URI(solrUrl).getAuthority().replaceAll("/", "-");
-		} catch (URISyntaxException e) {
-			return solrUrl.replaceAll("/", "-");
-		}
 	}
 }

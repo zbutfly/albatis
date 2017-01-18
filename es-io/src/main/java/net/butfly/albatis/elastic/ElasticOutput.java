@@ -21,7 +21,7 @@ public class ElasticOutput extends Output<ElasticMessage> {
 	@Override
 	public boolean enqueue0(ElasticMessage s) {
 		if (s == null) return false;
-		conn.getClient().update(build(s)).actionGet();
+		conn.client().update(build(s)).actionGet();
 		return true;
 	}
 
@@ -31,7 +31,7 @@ public class ElasticOutput extends Output<ElasticMessage> {
 		for (ElasticMessage d : docs)
 			if (null != d) req.add(build(d));
 		long s = 0;
-		for (BulkItemResponse r : conn.getClient().bulk(req).actionGet())
+		for (BulkItemResponse r : conn.client().bulk(req).actionGet())
 			if (!r.isFailed()) s++;
 		return s;
 	}

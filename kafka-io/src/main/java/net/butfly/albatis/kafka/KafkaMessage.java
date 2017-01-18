@@ -11,13 +11,10 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import com.google.common.base.Charsets;
 
 import kafka.message.MessageAndMetadata;
-import net.butfly.albacore.lambda.Converter;
 import net.butfly.albacore.utils.IOs;
 
 public class KafkaMessage implements Serializable {
 	private static final long serialVersionUID = -8599938670114294267L;
-	public static final Converter<Object, Long> SIZING = p -> (long) ((KafkaMessage) p).getBody().length + ((KafkaMessage) p)
-			.getKey().length;
 
 	private String topic;
 	private byte[] key;
@@ -77,5 +74,9 @@ public class KafkaMessage implements Serializable {
 	@Override
 	public String toString() {
 		return topic + ":" + new String(key, Charsets.UTF_8) + "[" + body.length + "]";
+	}
+
+	public long size() {
+		return body.length + key.length;
 	}
 }

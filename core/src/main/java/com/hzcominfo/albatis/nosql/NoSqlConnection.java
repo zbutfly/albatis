@@ -2,38 +2,35 @@ package com.hzcominfo.albatis.nosql;
 
 import java.io.IOException;
 import java.net.ProtocolException;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Properties;
+import java.util.function.Function;
 
 import com.google.common.base.Joiner;
 import com.hzcominfo.albatis.search.exception.SearchAPIError;
 
+import net.butfly.albacore.io.URISpec;
+
 public abstract class NoSqlConnection<C> implements Connection {
 	protected final String[] supportedSchemas;
 	private final C client;
-	protected final URI uri;
+	protected final URISpec uri;
 	protected final Properties parameters;
 
-	protected NoSqlConnection(String connection, String... supportedSchema) throws IOException {
+	protected NoSqlConnection(URISpec uri, Function<URISpec, C> client, String... supportedSchema) throws IOException {
 		super();
 		supportedSchemas = null != supportedSchema ? supportedSchema : new String[0];
-		try {
-			uri = new URI(connection);
-		} catch (URISyntaxException e) {
-			throw new IOException(e);
-		}
+		this.uri = uri;
 		String schema = supportedSchema(uri.getScheme());
 		if (null == schema) throw new ProtocolException(uri.getScheme() + " is not supported, "//
 				+ "supported list: [" + Joiner.on(',').join(supportedSchemas) + "]");
-		client = createClient(uri);
+		this.client = client.apply(uri);
 
 		parameters = new Properties();
-		String propertiseString = uri.getQuery();
-		if (propertiseString != null && !propertiseString.isEmpty()) {
-			String[] propertisies = propertiseString.split("&");
+		String qstr = uri.getQuery();
+		if (qstr != null && !qstr.isEmpty()) {
+			String[] propertisies = qstr.split("&");
 			Arrays.asList(propertisies).stream().forEach(value -> {
 				String[] keyValue = value.split("=");
 				if (keyValue.length != 2) throw new SearchAPIError("parameter error " + Arrays.toString(keyValue));
@@ -58,12 +55,10 @@ public abstract class NoSqlConnection<C> implements Connection {
 		return null;
 	}
 
-	protected abstract C createClient(URI url) throws IOException;
-
 	@Override
 	public void close() throws IOException {}
 
-	public final C getClient() {
+	public final C client() {
 		return client;
 	}
 
@@ -81,5 +76,9 @@ public abstract class NoSqlConnection<C> implements Connection {
 
 	public final void setParameters(Map<String, String> parameters) {
 		this.parameters.putAll(parameters);
+	}
+
+	public URISpec getURI() {
+		return uri;
 	}
 }

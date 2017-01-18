@@ -1,11 +1,8 @@
 package net.butfly.albatis.solr;
 
 import java.io.IOException;
-import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -28,11 +25,12 @@ import org.apache.solr.client.solrj.impl.HttpSolrClient.Builder;
 import org.apache.solr.client.solrj.impl.XMLResponseParser;
 import org.apache.solr.client.solrj.request.CoreAdminRequest;
 import org.apache.solr.client.solrj.response.CoreAdminResponse;
-import org.apache.solr.common.params.ModifiableSolrParams;
 import org.apache.solr.common.params.CoreAdminParams.CoreAdminAction;
+import org.apache.solr.common.params.ModifiableSolrParams;
 
 import com.hzcominfo.albatis.nosql.NoSqlConnection;
 
+import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.Reflections;
 import net.butfly.albacore.utils.logger.Logger;
 
@@ -51,20 +49,15 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 	}
 
 	public <P extends ResponseParser> SolrConnection(String connection, Class<P> parserClass) throws IOException {
-		super(connection, "solr", "zookeeper", "http");
+		super(new URISpec(connection), uri -> create(uri, parserClass), "solr", "zookeeper", "zk", "http");
 		this.parserClass = parserClass;
 		parse();
 
 	}
 
-	public String getDefaultCore() {
-		return defaultCore;
-	}
-
-	@Override
-	protected SolrClient createClient(URI uri) throws IOException {
+	private static SolrClient create(URISpec uri, Class<? extends ResponseParser> parserClass) {
 		ResponseParser p = PARSER_POOL.computeIfAbsent(parserClass, clz -> Reflections.construct(clz));
-		switch (supportedSchema(uri.getScheme())) {
+		switch (uri.getScheme()) {
 		case "http":
 			logger.debug("Solr client create: " + uri);
 			Builder hb = new HttpSolrClient.Builder(uri.toString()).allowCompression(true).withHttpClient(HTTP_CLIENT)//
@@ -72,9 +65,10 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 			return hb.build();
 		case "solr":
 		case "zookeeper":
-			logger.debug("Solr client create by zookeeper: " + uri.getAuthority());
+		case "zk":
+			logger.debug("Solr client create by zookeeper: " + uri);
 			CloudSolrClient.Builder cb = new CloudSolrClient.Builder();
-			CloudSolrClient c = cb.withZkHost(Arrays.asList(uri.getAuthority().split(","))).withHttpClient(HTTP_CLIENT).build();
+			CloudSolrClient c = cb.withZkHost(Arrays.asList(uri.getHost().split(","))).withHttpClient(HTTP_CLIENT).build();
 			c.setZkClientTimeout(Integer.parseInt(System.getProperty("albatis.io.zkclient.timeout", "30000")));
 			c.setZkConnectTimeout(Integer.parseInt(System.getProperty("albatis.io.zkconnect.timeout", "30000")));
 			c.setParallelUpdates(true);
@@ -83,6 +77,10 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 		default:
 			throw new RuntimeException("Solr open failure, invalid uri: " + uri);
 		}
+	}
+
+	public String getDefaultCore() {
+		return defaultCore;
 	}
 
 	/**
@@ -98,23 +96,15 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 		CoreAdminRequest req = new CoreAdminRequest();
 		req.setAction(CoreAdminAction.STATUS);
 		try {
-			CoreAdminResponse resp = req.process(getClient());
+			CoreAdminResponse resp = req.process(client());
 			cores = new String[resp.getCoreStatus().size()];
 			for (int i = 0; i < resp.getCoreStatus().size(); i++)
 				getCores()[i] = resp.getCoreStatus().getName(i);
 			baseUri = url;
 			defaultCore = null;
 		} catch (SolrServerException e) { // XXX IOException?
-			String path;
-			try {
-				path = new URI(url).getPath();
-			} catch (URISyntaxException e1) {
-				throw new IOException("Solr uri invalid: " + url);
-			}
-			if (null == path) throw new IOException("Solr uri invalid: " + uri);
-			List<String> segs = new ArrayList<>(Arrays.asList(path.split("/+")));
-			if (segs.isEmpty()) throw new IOException("Solr uri invalid: " + uri);
-			defaultCore = segs.remove(segs.size() - 1);
+			if (uri.getPathSegs().length == 0) throw new IOException("Solr uri invalid: " + uri);
+			defaultCore = uri.getPathSegs()[0];
 			baseUri = url.replaceAll("/?" + defaultCore + "/?$", "");
 			try (SolrConnection conn = new SolrConnection(baseUri, parserClass)) {
 				cores = conn.getCores();
@@ -180,10 +170,14 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 	@Override
 	public void close() throws IOException {
 		super.close();
-		getClient().close();
+		client().close();
 	}
 
 	public String[] getCores() {
 		return cores;
+	}
+
+	public String getBase() {
+		return baseUri;
 	}
 }

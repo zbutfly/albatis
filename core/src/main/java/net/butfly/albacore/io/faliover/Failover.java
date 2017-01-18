@@ -24,14 +24,14 @@ public abstract class Failover<K, V> extends OpenableThread implements Statistic
 	private final List<Sender> senders;
 
 	protected Failover(String parentName, ConverterPair<K, List<V>, Exception> adding, int packageSize, int parallelism) {
-		super(parentName + "-Failover");
+		super(parentName + "Failover");
 		this.adding = adding;
 		this.packageSize = packageSize;
 		tasks = new LinkedBlockingQueue<>(parallelism);
 		senders = new ArrayList<>();
 		for (int i = 0; i < parallelism; i++)
 			senders.add(new Sender(parentName, tasks, i));
-		trace(parentName + "-Failover", packageSize, m -> 0L, () -> "failover: " + size());
+		trace(packageSize, () -> "failover: " + size());
 	}
 
 	@Override
@@ -63,7 +63,7 @@ public abstract class Failover<K, V> extends OpenableThread implements Statistic
 					if (commiting != null) try {
 						commiting.accept(e.getKey());
 					} catch (Exception err) {
-						logger.warn("SolrOutput [" + name() + "] commit failure on core [" + e.getKey() + "]", err);
+						logger.warn("[" + name() + "] commit failure on core [" + e.getKey() + "]", err);
 					}
 				});
 			} while (opened() && !inserted);
@@ -75,7 +75,7 @@ public abstract class Failover<K, V> extends OpenableThread implements Statistic
 		private LinkedBlockingQueue<Runnable> tasks;
 
 		public Sender(String parentName, LinkedBlockingQueue<Runnable> tasks, int i) {
-			super(parentName + "-Sender-" + (i + 1));
+			super(parentName + "Sender#" + (i + 1));
 			this.tasks = tasks;
 			start();
 		}
