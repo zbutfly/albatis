@@ -10,7 +10,6 @@ import java.util.function.Consumer;
 
 import net.butfly.albacore.io.OpenableThread;
 import net.butfly.albacore.io.stats.Statistical;
-import net.butfly.albacore.lambda.ConsumerPair;
 import net.butfly.albacore.lambda.ConverterPair;
 import net.butfly.albacore.utils.Collections;
 import net.butfly.albacore.utils.logger.Logger;
@@ -18,14 +17,17 @@ import net.butfly.albacore.utils.logger.Logger;
 public abstract class Failover<K, V> extends OpenableThread implements Statistical<Failover<K, V>> {
 	private static final long serialVersionUID = -7515454826294115208L;
 	protected static final Logger logger = Logger.getLogger(Failover.class);
-	protected final ConverterPair<K, List<V>, Exception> adding;
+	protected final ConverterPair<K, List<V>, Exception> writing;
 	protected final int packageSize;
 	private final LinkedBlockingQueue<Runnable> tasks;
 	private final List<Sender> senders;
+	private Consumer<K> committing;
 
-	protected Failover(String parentName, ConverterPair<K, List<V>, Exception> adding, int packageSize, int parallelism) {
+	protected Failover(String parentName, ConverterPair<K, List<V>, Exception> writing, Consumer<K> committing, int packageSize,
+			int parallelism) {
 		super(parentName + "Failover");
-		this.adding = adding;
+		this.writing = writing;
+		this.committing = committing;
 		this.packageSize = packageSize;
 		tasks = new LinkedBlockingQueue<>(parallelism);
 		senders = new ArrayList<>();
@@ -37,7 +39,7 @@ public abstract class Failover<K, V> extends OpenableThread implements Statistic
 	@Override
 	public void run() {
 		while (opened())
-			failover();
+			retry();
 	}
 
 	public abstract boolean isEmpty();
@@ -46,22 +48,19 @@ public abstract class Failover<K, V> extends OpenableThread implements Statistic
 
 	protected abstract int fail(K core, List<V> docs, Exception err);
 
-	protected abstract void failover();
+	protected abstract void retry();
 
-	public <W> void doWithFailover(Map<K, List<V>> map, ConsumerPair<K, List<V>> doing, Consumer<K> commiting) {
+	public final <W> void dotry(Map<K, List<V>> map) {
 		for (Entry<K, List<V>> e : map.entrySet()) {
 			boolean inserted = false;
 			if (opened()) do {
 				inserted = tasks.offer(() -> {
 					for (List<V> pkg : Collections.chopped(e.getValue(), packageSize)) {
-						try {
-							doing.accept(e.getKey(), pkg);
-						} catch (Exception err) {
-							fail(e.getKey(), pkg, err);
-						}
+						Exception err = writing.apply(e.getKey(), pkg);
+						if (null != err) fail(e.getKey(), pkg, err);
 					}
-					if (commiting != null) try {
-						commiting.accept(e.getKey());
+					if (committing != null) try {
+						committing.accept(e.getKey());
 					} catch (Exception err) {
 						logger.warn("[" + name() + "] commit failure on core [" + e.getKey() + "]", err);
 					}

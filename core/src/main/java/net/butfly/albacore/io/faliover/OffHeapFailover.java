@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import com.leansoft.bigqueue.BigQueueImpl;
 import com.leansoft.bigqueue.IBigQueue;
@@ -19,9 +20,9 @@ public abstract class OffHeapFailover<K, V> extends Failover<K, V> {
 	private static final long serialVersionUID = -4766585003300311051L;
 	private IBigQueue failover;
 
-	public OffHeapFailover(String parentName, ConverterPair<K, List<V>, Exception> adding, String path, String poolName, int packageSize,
-			int parallelism) throws IOException {
-		super(parentName, adding, packageSize, parallelism);
+	public OffHeapFailover(String parentName, ConverterPair<K, List<V>, Exception> writing, Consumer<K> committing, String path,
+			String poolName, int packageSize, int parallelism) throws IOException {
+		super(parentName, writing, committing, packageSize, parallelism);
 		if (poolName == null) poolName = "POOL";
 		failover = new BigQueueImpl(IOs.mkdirs(path + "/" + parentName), poolName);
 		start();
@@ -34,7 +35,7 @@ public abstract class OffHeapFailover<K, V> extends Failover<K, V> {
 	protected abstract Tuple2<K, V> fromBytes(byte[] bytes);
 
 	@Override
-	protected void failover() {
+	protected void retry() {
 		while (opened() && failover.isEmpty())
 			Concurrents.waitSleep(1000);
 		Map<K, List<V>> fails = new HashMap<>();
@@ -56,13 +57,13 @@ public abstract class OffHeapFailover<K, V> extends Failover<K, V> {
 			if (l.size() < packageSize && !failover.isEmpty()) continue;
 			l = fails.remove(sm._1);
 			stats(l);
-			Exception e = adding.apply(sm._1, l);
+			Exception e = writing.apply(sm._1, l);
 			if (null != e) fail(sm._1, l, e);
 
 		}
 		for (K core : fails.keySet()) {
 			List<V> l = fails.remove(core);
-			Exception e = adding.apply(core, l);
+			Exception e = writing.apply(core, l);
 			if (null != e) fail(core, l, e);
 		}
 	}

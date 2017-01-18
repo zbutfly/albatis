@@ -9,6 +9,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.solr.client.solrj.SolrServerException;
@@ -25,12 +26,15 @@ import scala.Tuple2;
 public class SolrOutput extends Output<SolrMessage<SolrInputDocument>> {
 	private static final long serialVersionUID = -2897525987426418020L;
 	private static final Logger logger = Logger.getLogger(SolrOutput.class);
+	private static final int DEFAULT_PARALLELISM = 5;
 	static final int DEFAULT_AUTO_COMMIT_MS = 30000;
 	static final int DEFAULT_PACKAGE_SIZE = 500;
-	private static final int DEFAULT_PARALLELISM = 5;
-	final SolrConnection solr;
+
+	private final ConverterPair<String, List<SolrInputDocument>, Exception> writing;
+	private final SolrConnection solr;
 
 	private final Failover<String, SolrInputDocument> failover;
+	private Consumer<String> committing;
 
 	public SolrOutput(String name, String baseUrl) throws IOException {
 		this(name, baseUrl, null);
@@ -40,7 +44,7 @@ public class SolrOutput extends Output<SolrMessage<SolrInputDocument>> {
 		super(name);
 		logger.info("[" + name + "] from [" + baseUrl + "]");
 		solr = new SolrConnection(baseUrl);
-		ConverterPair<String, List<SolrInputDocument>, Exception> adding = (core, docs) -> {
+		writing = (core, docs) -> {
 			try {
 				solr.client().add(core, docs, DEFAULT_AUTO_COMMIT_MS);
 				return null;
@@ -48,10 +52,17 @@ public class SolrOutput extends Output<SolrMessage<SolrInputDocument>> {
 				return e;
 			}
 		};
+		committing = k -> {
+			try {
+				solr.client().commit(k, false, false, true);
+			} catch (SolrServerException | IOException e) {
+				throw new RuntimeException(e);
+			}
+		};
 
-		if (failoverPath == null) failover = new HeapFailover<>(name(), adding, DEFAULT_PACKAGE_SIZE, DEFAULT_PARALLELISM);
-		else failover = new OffHeapFailover<String, SolrInputDocument>(name(), adding, failoverPath, solr.getURI().getHost().replaceAll(
-				"[:,]", "_"), DEFAULT_PACKAGE_SIZE, DEFAULT_PARALLELISM) {
+		if (failoverPath == null) failover = new HeapFailover<>(name(), writing, committing, DEFAULT_PACKAGE_SIZE, DEFAULT_PARALLELISM);
+		else failover = new OffHeapFailover<String, SolrInputDocument>(name(), writing, committing, failoverPath, solr.getURI().getHost()
+				.replaceAll("[:,]", "_"), DEFAULT_PACKAGE_SIZE, DEFAULT_PARALLELISM) {
 			private static final long serialVersionUID = 7620077959670870367L;
 
 			@Override
@@ -90,19 +101,7 @@ public class SolrOutput extends Output<SolrMessage<SolrInputDocument>> {
 		Map<String, List<SolrInputDocument>> map = new HashMap<>();
 		for (SolrMessage<SolrInputDocument> d : docs)
 			map.computeIfAbsent(d.getCore() == null ? solr.getDefaultCore() : d.getCore(), core -> new ArrayList<>()).add(d.getDoc());
-		failover.doWithFailover(map, (k, vs) -> {
-			try {
-				solr.client().add(k, vs);
-			} catch (SolrServerException | IOException e) {
-				throw new RuntimeException(e);
-			}
-		}, k -> {
-			try {
-				solr.client().commit(k, false, false, true);
-			} catch (SolrServerException | IOException e) {
-				throw new RuntimeException(e);
-			}
-		});
+		failover.dotry(map);
 		return docs.size();
 	}
 
