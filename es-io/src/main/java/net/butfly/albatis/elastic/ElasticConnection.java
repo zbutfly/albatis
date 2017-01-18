@@ -1,18 +1,16 @@
 package net.butfly.albatis.elastic;
 
-import java.io.IOException;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-
+import com.hzcominfo.albatis.nosql.NoSqlConnection;
+import net.butfly.albacore.io.URISpec;
+import net.butfly.albacore.utils.Pair;
+import net.butfly.albacore.utils.logger.Logger;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 
-import com.hzcominfo.albatis.nosql.NoSqlConnection;
-
-import net.butfly.albacore.io.URISpec;
-import net.butfly.albacore.utils.Pair;
-import net.butfly.albacore.utils.logger.Logger;
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 
 public class ElasticConnection extends NoSqlConnection<TransportClient> {
     private static final Logger logger = Logger.getLogger(ElasticConnection.class);
@@ -42,14 +40,14 @@ public class ElasticConnection extends NoSqlConnection<TransportClient> {
 
     public String getDefaultIndex() {
         String[] paths = uri.getPathSegs();
-        if (paths.length > 1)
+        if (paths.length > 0)
             return paths[0];
         else return null;
     }
 
     public String getDefaultType() {
         String[] paths = uri.getPathSegs();
-        if (paths.length > 2)
+        if (paths.length > 1)
             return paths[1];
         else return null;
     }

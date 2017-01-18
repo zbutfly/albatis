@@ -2,10 +2,8 @@ package net.butfly.albatis.elastic;
 
 import net.butfly.albacore.io.Input;
 import net.butfly.albacore.utils.logger.Logger;
-import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsRequest;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.action.search.SearchType;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.query.QueryBuilders;
 
@@ -19,12 +17,16 @@ public class ElasticInput extends Input<SearchResponse> {
     //view time def 10 minute
     private int scrolltime = 10;
     //scrollnumber
-    private int scrollnumber;
+    private int scrollnumber = 100;
     private SearchResponse searchResponse = null;
+    private String index;
+    private String type;
 
     public ElasticInput(String connection) throws IOException {
         super("elastic-input-queue");
         elastic = new ElasticConnection(connection);
+        index = elastic.getDefaultIndex();
+        type = elastic.getDefaultType();
     }
 
     @Override
@@ -35,6 +37,38 @@ public class ElasticInput extends Input<SearchResponse> {
         } catch (IOException e) {
             logger.error("Close failure", e);
         }
+    }
+
+    public int getScrolltime() {
+        return scrolltime;
+    }
+
+    public void setScrolltime(int scrolltime) {
+        this.scrolltime = scrolltime;
+    }
+
+    public int getScrollnumber() {
+        return scrollnumber;
+    }
+
+    public void setScrollnumber(int scrollnumber) {
+        this.scrollnumber = scrollnumber;
+    }
+
+    public String getIndex() {
+        return index;
+    }
+
+    public void setIndex(String index) {
+        this.index = index;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
     }
 
     @Override
@@ -63,16 +97,20 @@ public class ElasticInput extends Input<SearchResponse> {
 
     @SuppressWarnings("deprecation")
     public void scanType() {
-        SearchRequestBuilder searchRequest = elastic.client().prepareSearch("scattered_data").setSize(scrollnumber)
-                .setSearchType(SearchType.SCAN).setScroll(TimeValue.timeValueMinutes(scrolltime))
+        if (index == null)
+            throw new RuntimeException("index is null");
+        SearchRequestBuilder searchRequest = elastic.client()
+                .prepareSearch(index);
+        searchRequest.setSize(scrollnumber)
+              //  .setSearchType(SearchType.SCAN)
+                .setScroll(TimeValue.timeValueMinutes(scrolltime))
                 .setQuery(QueryBuilders.matchAllQuery());
         logger.trace(searchRequest.toString());
         searchResponse = searchRequest.execute().actionGet();
     }
 
     private SearchResponse scanType2(SearchResponse searchResponse) {
-        SearchResponse searchResponse2 = elastic.client().prepareSearchScroll(searchResponse.getScrollId())
+        return elastic.client().prepareSearchScroll(searchResponse.getScrollId())
                 .setScroll(TimeValue.timeValueMinutes(scrolltime)).execute().actionGet();
-        return searchResponse2;
     }
 }
