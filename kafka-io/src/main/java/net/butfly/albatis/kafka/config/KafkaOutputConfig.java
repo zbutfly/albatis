@@ -49,7 +49,7 @@ public class KafkaOutputConfig extends KafkaConfigBase {
 	@Override
 	public Properties props() {
 		Properties props = super.props();
-		props.setProperty("metadata.fetch.timeout.ms", Long.toString(zookeeperConnectionTimeoutMs));
+		props.setProperty("max.block.ms", Long.toString(zookeeperConnectionTimeoutMs));
 		props.setProperty("acks", Integer.toString(requestRequiredAcks));
 		props.setProperty("compression.type", compressionCodec);
 		props.setProperty("retries", Integer.toString(retries));
