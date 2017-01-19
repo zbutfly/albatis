@@ -8,16 +8,16 @@ import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.query.QueryBuilders;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 
-public class ElasticInput extends Input<SearchResponse> {
+public class ElasticInput extends Input<org.elasticsearch.search.SearchHit> {
     private static final long serialVersionUID = -5666669099160512388L;
     protected static final Logger logger = Logger.getLogger(ElasticInput.class);
     private final ElasticConnection elastic;
     //view time def 10 minute
     private int scrolltime = 10;
     //scrollnumber
-    private int scrollnumber = 100;
     private SearchResponse searchResponse = null;
     private String index;
     private String type;
@@ -47,13 +47,6 @@ public class ElasticInput extends Input<SearchResponse> {
         this.scrolltime = scrolltime;
     }
 
-    public int getScrollnumber() {
-        return scrollnumber;
-    }
-
-    public void setScrollnumber(int scrollnumber) {
-        this.scrollnumber = scrollnumber;
-    }
 
     public String getIndex() {
         return index;
@@ -82,27 +75,29 @@ public class ElasticInput extends Input<SearchResponse> {
     }
 
     @Override
-    public SearchResponse dequeue0() {
+    @Deprecated
+    public org.elasticsearch.search.SearchHit dequeue0() {
         if (searchResponse == null)
-            scanType();
+            scanType(1);
         else scanType2(searchResponse);
-        return searchResponse;
+        return searchResponse.getHits().getHits()[0];
     }
 
     @Override
-    public List<SearchResponse> dequeue(long batchSize) {
-        return super.dequeue(batchSize);
+    public List<org.elasticsearch.search.SearchHit> dequeue(long batchSize) {
+        if (searchResponse == null)
+            scanType(1);
+        else scanType2(searchResponse);
+        return Arrays.asList(searchResponse.getHits().getHits());
 
     }
 
-    @SuppressWarnings("deprecation")
-    public void scanType() {
+    private void scanType(int batchSize) {
         if (index == null)
             throw new RuntimeException("index is null");
         SearchRequestBuilder searchRequest = elastic.client()
                 .prepareSearch(index);
-        searchRequest.setSize(scrollnumber)
-              //  .setSearchType(SearchType.SCAN)
+        searchRequest.setSize(batchSize)
                 .setScroll(TimeValue.timeValueMinutes(scrolltime))
                 .setQuery(QueryBuilders.matchAllQuery());
         logger.trace(searchRequest.toString());

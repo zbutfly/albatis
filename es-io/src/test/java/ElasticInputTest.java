@@ -1,5 +1,4 @@
 import net.butfly.albatis.elastic.ElasticInput;
-import org.elasticsearch.action.search.SearchResponse;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -12,9 +11,10 @@ public class ElasticInputTest {
     public void ioInputTest() throws IOException {
         String uri = "elasticsearch://@10.118.159.45:39300/scattered_data";
         ElasticInput elasticInput = new ElasticInput(uri);
-        SearchResponse a = elasticInput.dequeue0();
+        Object a = elasticInput.dequeue0();
         System.out.print(a);
         a = elasticInput.dequeue0();
+
         System.out.print(a);
     }
 }
