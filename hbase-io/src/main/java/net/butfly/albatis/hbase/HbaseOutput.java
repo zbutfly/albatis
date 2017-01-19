@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.Put;
@@ -32,7 +33,7 @@ public final class HbaseOutput extends Output<HbaseResult> {
 	private static final long serialVersionUID = 2141020043117686747L;
 	private static final Logger logger = Logger.getLogger(HbaseOutput.class);
 	private static final int DEFAULT_PARALLELISM = 5;
-	private static final int DEFAULT_PACKAGE_SIZE = 500;
+	private static final int DEFAULT_PACKAGE_SIZE = 100;
 	private final Connection connect;
 
 	private final Map<String, Table> tables;
@@ -45,7 +46,17 @@ public final class HbaseOutput extends Output<HbaseResult> {
 		tables = new ConcurrentHashMap<>();
 		writing = (table, results) -> {
 			try {
-				table(table).put(Collections.transform(results, r -> new Put(r.getRow())));
+				List<Put> puts = Collections.transform(results, r -> {
+					Put p = new Put(r.getRow());
+					for (Cell c : r.listCells())
+						try {
+							p.add(c);
+						} catch (Exception e) {
+							logger.error("Failure add into put", e);
+						}
+					return p;
+				});
+				table(table).put(puts);
 				return null;
 			} catch (IOException e) {
 				return e;

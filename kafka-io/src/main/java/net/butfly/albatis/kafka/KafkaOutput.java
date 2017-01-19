@@ -1,10 +1,12 @@
 package net.butfly.albatis.kafka;
 
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.kafka.clients.producer.KafkaProducer;
 
+import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.JdkFutureAdapters;
 
 import net.butfly.albacore.exception.ConfigException;
@@ -42,20 +44,20 @@ public class KafkaOutput extends Output<KafkaMessage> {
 	@Override
 	public long enqueue(List<KafkaMessage> messages) {
 		AtomicLong c = new AtomicLong(0);
-		Collections.transform(messages, m -> JdkFutureAdapters.listenInPoolThread(connect.send(m.toProducer(), (meta, ex) -> {
-			if (null != ex) logger.error("Kafka send failure on topic [" + m.getTopic() + "] with key: [" + new String(m.getKey()) + "]",
-					ex);
-			else c.incrementAndGet();// TODO: Failover
-		})));
-		// try {
-		// List<RecordMetadata> results = Futures.successfulAsList(fs).get();
-		// logger.trace("[" + name() + "] sent: " + results.size());
-		// } catch (InterruptedException e) {
-		// logger.error("[" + name() + "] interrupted", e);
-		// } catch (ExecutionException e) {
-		// logger.error("[" + name() + "] failure", e.getCause());
-		// }
-		return messages.size();
+		try {
+			Futures.allAsList(Collections.transform(messages, msg -> JdkFutureAdapters.listenInPoolThread(connect.send(msg.toProducer(), (
+					meta, ex) -> {
+				if (null != ex) logger.error("Kafka send failure on topic [" + msg.getTopic() + "] with key: [" + new String(msg.getKey())
+						+ "]", ex);
+				else c.incrementAndGet();// TODO: Failover
+			})))).get();
+			logger.trace("[" + name() + "] sent: " + messages.size());
+		} catch (InterruptedException e) {
+			logger.error("[" + name() + "] interrupted", e);
+		} catch (ExecutionException e) {
+			logger.error("[" + name() + "] failure", e.getCause());
+		}
+		return c.get();
 	}
 
 	public long fails() {
