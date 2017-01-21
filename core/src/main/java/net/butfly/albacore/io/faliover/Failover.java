@@ -37,7 +37,7 @@ public abstract class Failover<K, V> extends OpenableThread implements Statistic
 	}
 
 	@Override
-	public void run() {
+	protected void exec() {
 		while (opened())
 			retry();
 	}
@@ -80,7 +80,7 @@ public abstract class Failover<K, V> extends OpenableThread implements Statistic
 		}
 
 		@Override
-		public void run() {
+		public void exec() {
 			while (opened()) {
 				Runnable r = null;
 				try {

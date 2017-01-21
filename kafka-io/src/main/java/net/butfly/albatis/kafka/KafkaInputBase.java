@@ -15,6 +15,7 @@ import net.butfly.albacore.io.MapInput;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.lambda.Consumer;
 import net.butfly.albacore.utils.Collections;
+import net.butfly.albacore.utils.Systems;
 import net.butfly.albacore.utils.async.Concurrents;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.kafka.config.KafkaInputConfig;
@@ -91,6 +92,7 @@ abstract class KafkaInputBase<T> extends MapInput<String, KafkaMessage> {
 				}
 		connect.commitOffsets(true);
 		connect.shutdown();
+		Systems.disableGC();
 	}
 
 	@Override

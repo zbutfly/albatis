@@ -74,7 +74,7 @@ public class HbaseInput extends Input<HbaseResult> {
 			try {
 				r = scaner.next();
 			} catch (IOException e) {
-				logger.error("HBase read failure", e);
+				logger().error("HBase read failure", e);
 				continue;
 			}
 			l.add(new HbaseResult(tableName, r));

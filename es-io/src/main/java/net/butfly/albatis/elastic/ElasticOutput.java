@@ -40,7 +40,7 @@ public class ElasticOutput extends Output<ElasticMessage> {
 		UpdateRequest req = new UpdateRequest();
 		req.docAsUpsert(d.isUpsert());
 		req.index(d.getIndex());
-		req.type(Systems.suffixDebug(d.getType(), logger));
+		req.type(Systems.suffixDebug(d.getType(), logger()));
 		req.id(d.getId());
 		req.doc(d.getValues());
 		return req;
@@ -52,7 +52,7 @@ public class ElasticOutput extends Output<ElasticMessage> {
 		try {
 			conn.close();
 		} catch (IOException e) {
-			logger.error("Close failure", e);
+			logger().error("Close failure", e);
 		}
 	}
 }

@@ -35,7 +35,7 @@ public class KafkaOutput extends Output<KafkaMessage> {
 		if (null == m) return false;
 		m.setTopic(m.getTopic());
 		connect.send(m.toProducer(), (meta, ex) -> {
-			if (null != ex) logger.error("Kafka send failure on topic [" + m.getTopic() + "] with key: [" + new String(m.getKey()) + "]",
+			if (null != ex) logger().error("Kafka send failure on topic [" + m.getTopic() + "] with key: [" + new String(m.getKey()) + "]",
 					ex);
 		});
 		return true;
@@ -47,15 +47,15 @@ public class KafkaOutput extends Output<KafkaMessage> {
 		try {
 			Futures.allAsList(Collections.transform(messages, msg -> JdkFutureAdapters.listenInPoolThread(connect.send(msg.toProducer(), (
 					meta, ex) -> {
-				if (null != ex) logger.error("Kafka send failure on topic [" + msg.getTopic() + "] with key: [" + new String(msg.getKey())
+				if (null != ex) logger().error("Kafka send failure on topic [" + msg.getTopic() + "] with key: [" + new String(msg.getKey())
 						+ "]", ex);
 				else c.incrementAndGet();// TODO: Failover
 			})))).get();
-			logger.trace("[" + name() + "] sent: " + messages.size());
+			logger().trace("[" + name() + "] sent: " + messages.size());
 		} catch (InterruptedException e) {
-			logger.error("[" + name() + "] interrupted", e);
+			logger().error("[" + name() + "] interrupted", e);
 		} catch (ExecutionException e) {
-			logger.error("[" + name() + "] failure", e.getCause());
+			logger().error("[" + name() + "] failure", e.getCause());
 		}
 		return c.get();
 	}
