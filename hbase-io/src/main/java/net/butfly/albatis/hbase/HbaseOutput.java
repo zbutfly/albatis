@@ -47,16 +47,22 @@ public final class HbaseOutput extends Output<HbaseResult> {
 		writing = (table, results) -> {
 			try {
 				List<Put> puts = Collections.transform(results, r -> {
-					Put p = new Put(r.getRow());
+					Put p;
+					try {
+						p = new Put(r.getRow());
+					} catch (Exception ex) {
+						logger.warn("Hbase converting failure, ignored and continued.", ex);
+						return null;
+					}
 					for (Cell c : r.listCells())
 						try {
 							p.add(c);
 						} catch (Exception e) {
-							logger.error("Failure add into put", e);
+							logger.warn("Hbase cell converting failure, ignored and continued.", e);
 						}
 					return p;
 				});
-				table(table).put(puts);
+				table(table).put(Collections.cleanNull(puts));
 				return null;
 			} catch (IOException e) {
 				return e;
