@@ -2,12 +2,14 @@ package net.butfly.albatis.hbase;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.Table;
@@ -23,6 +25,8 @@ public class HbaseInput extends Input<HbaseResult> {
 	protected final String tableName;
 	protected final Table table;
 	protected final ResultScanner scaner;
+	private final ReentrantReadWriteLock scanerLock;
+	private final AtomicBoolean ended;
 
 	public HbaseInput(String name, final String table, final Filter... filter) throws IOException {
 		super(name);
@@ -38,6 +42,8 @@ public class HbaseInput extends Input<HbaseResult> {
 				this.scaner = this.table.getScanner(new Scan().setFilter(all));
 			}
 		} else this.scaner = this.table.getScanner(new Scan());
+		scanerLock = new ReentrantReadWriteLock();
+		ended = new AtomicBoolean(false);
 	}
 
 	@Override
@@ -62,24 +68,23 @@ public class HbaseInput extends Input<HbaseResult> {
 	}
 
 	@Override
+	public boolean empty() {
+		return ended.get();
+	}
+
+	@Override
 	public List<HbaseResult> dequeue(long batchSize) {
-		List<HbaseResult> l = new ArrayList<>();
-		Result[] results;
-		try {
-			results = scaner.next((int) batchSize);
-		} catch (IOException e) {
-			return new ArrayList<>();
-		}
-		for (int i = 0; i < results.length; i++) {
-			Result r;
+		List<HbaseResult> l;
+		if (ended.get() || scanerLock.writeLock().tryLock()) {
 			try {
-				r = scaner.next();
+				l = Collections.transform(Arrays.asList(scaner.next((int) batchSize)), r -> new HbaseResult(tableName, r));
+				ended.set(l.isEmpty());
 			} catch (IOException e) {
-				logger().error("HBase read failure", e);
-				continue;
+				l = new ArrayList<>();
+			} finally {
+				scanerLock.writeLock().unlock();
 			}
-			l.add(new HbaseResult(tableName, r));
-		}
+		} else l = new ArrayList<>();
 		return l;
 	}
 
