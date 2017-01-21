@@ -24,8 +24,8 @@ public class HbaseInput extends Input<HbaseResult> {
 	protected final Table table;
 	protected final ResultScanner scaner;
 
-	public HbaseInput(final String table, final Filter... filter) throws IOException {
-		super("hbase-input-queue");
+	public HbaseInput(String name, final String table, final Filter... filter) throws IOException {
+		super(name);
 		this.tableName = table;
 		this.connect = Hbases.connect();
 		this.table = connect.getTable(TableName.valueOf(table));
