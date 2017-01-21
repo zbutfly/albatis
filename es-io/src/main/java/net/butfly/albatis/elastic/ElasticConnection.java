@@ -1,20 +1,20 @@
 package net.butfly.albatis.elastic;
 
-import com.hzcominfo.albatis.nosql.NoSqlConnection;
-import net.butfly.albacore.io.URISpec;
-import net.butfly.albacore.utils.Pair;
-import net.butfly.albacore.utils.logger.Logger;
-import org.elasticsearch.client.transport.TransportClient;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.InetSocketTransportAddress;
-
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
-public class ElasticConnection extends NoSqlConnection<TransportClient> {
-	private static final Logger logger = Logger.getLogger(ElasticConnection.class);
+import org.elasticsearch.client.transport.TransportClient;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.transport.InetSocketTransportAddress;
 
+import com.hzcominfo.albatis.nosql.NoSqlConnection;
+
+import net.butfly.albacore.io.URISpec;
+import net.butfly.albacore.utils.Pair;
+import net.butfly.albacore.utils.logger.Loggable;
+
+public class ElasticConnection extends NoSqlConnection<TransportClient> implements Loggable {
 	public ElasticConnection(String connection) throws IOException {
 		super(new URISpec(connection), uri -> {
 			Settings.Builder settings = Settings.settingsBuilder();
@@ -33,11 +33,6 @@ public class ElasticConnection extends NoSqlConnection<TransportClient> {
 		}, "es", "elasticsearch");
 	}
 
-	public ElasticConnection(String url, String... indexAndType) throws IOException {
-		this(url);
-		if (indexAndType.length > 2) logger.warn("only index and type parsed, other is ignore");
-	}
-
 	public String getDefaultIndex() {
 		String[] paths = uri.getPathSegs();
 		if (paths.length > 0) return paths[0];
@@ -51,8 +46,12 @@ public class ElasticConnection extends NoSqlConnection<TransportClient> {
 	}
 
 	@Override
-	public void close() throws IOException {
-		super.close();
+	public void close() {
+		try {
+			super.close();
+		} catch (IOException e) {
+			logger().error("Close failure", e);
+		}
 		client().close();
 	}
 }

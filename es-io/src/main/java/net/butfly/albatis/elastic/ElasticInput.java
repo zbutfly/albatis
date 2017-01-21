@@ -32,11 +32,7 @@ public class ElasticInput extends Input<SearchResponse> {
 	@Override
 	public void close() {
 		super.close();
-		try {
-			elastic.close();
-		} catch (IOException e) {
-			logger.error("Close failure", e);
-		}
+		elastic.close();
 	}
 
 	public int getScrolltime() {

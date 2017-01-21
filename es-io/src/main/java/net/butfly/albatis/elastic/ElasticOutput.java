@@ -1,14 +1,16 @@
 package net.butfly.albatis.elastic;
 
-import net.butfly.albacore.io.Output;
-import net.butfly.albacore.utils.Systems;
+import java.io.IOException;
+import java.util.List;
+
 import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.update.UpdateRequest;
 
-import java.io.IOException;
-import java.util.List;
+import net.butfly.albacore.io.Output;
+import net.butfly.albacore.utils.Collections;
 
+@Deprecated
 public class ElasticOutput extends Output<ElasticMessage> {
 	private static final long serialVersionUID = 1227554461265245482L;
 	private final ElasticConnection conn;
@@ -21,38 +23,22 @@ public class ElasticOutput extends Output<ElasticMessage> {
 	@Override
 	public boolean enqueue0(ElasticMessage s) {
 		if (s == null) return false;
-		conn.client().update(build(s)).actionGet();
+		conn.client().update(s.update()).actionGet();
 		return true;
 	}
 
 	@Override
 	public long enqueue(List<ElasticMessage> docs) {
-		BulkRequest req = new BulkRequest();
-		for (ElasticMessage d : docs)
-			if (null != d) req.add(build(d));
 		long s = 0;
-		for (BulkItemResponse r : conn.client().bulk(req).actionGet())
+		for (BulkItemResponse r : conn.client().bulk(new BulkRequest().add(Collections.transform(docs, d -> d.update()).toArray(
+				new UpdateRequest[0]))).actionGet())
 			if (!r.isFailed()) s++;
 		return s;
-	}
-
-	private UpdateRequest build(ElasticMessage d) {
-		UpdateRequest req = new UpdateRequest();
-		req.docAsUpsert(d.isUpsert());
-		req.index(d.getIndex());
-		req.type(Systems.suffixDebug(d.getType(), logger()));
-		req.id(d.getId());
-		req.doc(d.getValues());
-		return req;
 	}
 
 	@Override
 	public void close() {
 		super.close();
-		try {
-			conn.close();
-		} catch (IOException e) {
-			logger().error("Close failure", e);
-		}
+		conn.close();
 	}
 }
