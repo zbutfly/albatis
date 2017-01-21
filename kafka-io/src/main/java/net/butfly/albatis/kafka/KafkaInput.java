@@ -74,8 +74,8 @@ public class KafkaInput extends KafkaInputBase<KafkaInput.Fetcher> {
 	}
 
 	@Override
-	public void closing() {
-		super.closing();
+	public void close() {
+		super.close();
 		try {
 			pool.close();
 		} catch (IOException e) {

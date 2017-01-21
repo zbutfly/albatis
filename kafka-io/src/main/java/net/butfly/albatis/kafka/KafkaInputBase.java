@@ -81,8 +81,8 @@ abstract class KafkaInputBase<T> extends MapInput<String, KafkaMessage> {
 	}
 
 	@Override
-	public void closing() {
-		super.closing();
+	public void close() {
+		super.close();
 		for (Map<KafkaStream<byte[], byte[]>, T> tm : streams.values())
 			for (T f : tm.values())
 				if (f instanceof AutoCloseable) try {

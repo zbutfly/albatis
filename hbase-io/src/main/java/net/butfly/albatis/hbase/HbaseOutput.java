@@ -103,9 +103,13 @@ public final class HbaseOutput extends Output<HbaseResult> {
 	}
 
 	@Override
-	public void closing() {
-		super.closing();
+	public void close() {
+		super.close();
+		closeHbase();
 		failover.close();
+	}
+
+	private void closeHbase() {
 		for (Table t : tables.values())
 			try {
 				t.close();

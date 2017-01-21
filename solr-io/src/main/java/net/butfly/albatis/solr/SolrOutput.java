@@ -106,10 +106,13 @@ public class SolrOutput extends Output<SolrMessage<SolrInputDocument>> {
 	}
 
 	@Override
-	public void closing() {
-		super.closing();
+	public void close() {
+		super.close();
 		failover.close();
-		logger.debug("[" + name() + "] all processing thread closed normally");
+		closeSolr();
+	}
+
+	private void closeSolr() {
 		try {
 			for (String core : solr.getCores())
 				solr.client().commit(core, false, false);

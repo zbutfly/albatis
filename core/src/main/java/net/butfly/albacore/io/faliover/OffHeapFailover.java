@@ -97,8 +97,12 @@ public abstract class OffHeapFailover<K, V> extends Failover<K, V> {
 	}
 
 	@Override
-	public void closing() {
-		super.closing();
+	public void close() {
+		super.close();
+		closePool();
+	}
+
+	private void closePool() {
 		try {
 			failover.gc();
 		} catch (IOException e) {

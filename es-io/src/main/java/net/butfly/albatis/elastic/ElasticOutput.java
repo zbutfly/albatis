@@ -47,8 +47,8 @@ public class ElasticOutput extends Output<ElasticMessage> {
 	}
 
 	@Override
-	public void closing() {
-		super.closing();
+	public void close() {
+		super.close();
 		try {
 			conn.close();
 		} catch (IOException e) {
