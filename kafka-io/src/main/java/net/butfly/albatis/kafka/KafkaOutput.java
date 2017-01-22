@@ -26,8 +26,7 @@ public class KafkaOutput extends Output<KafkaMessage> {
 
 	@Override
 	public void close() {
-		super.close();
-		connect.close();
+		super.close(connect::close);
 	}
 
 	@Override

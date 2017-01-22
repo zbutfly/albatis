@@ -76,8 +76,7 @@ public class OffHeapQueue<I, O> extends QImpl<I, O> {
 
 	@Override
 	public void close() {
-		super.close();
-		closeLocal();
+		super.close(this::closeLocal);
 	}
 
 	private void closeLocal() {

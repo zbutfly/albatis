@@ -31,8 +31,7 @@ public class ElasticInput extends Input<SearchResponse> {
 
 	@Override
 	public void close() {
-		super.close();
-		elastic.close();
+		super.close(elastic::close);
 	}
 
 	public int getScrolltime() {

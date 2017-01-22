@@ -75,7 +75,15 @@ public class KafkaInput extends KafkaInputBase<KafkaInput.Fetcher> {
 
 	@Override
 	public void close() {
-		super.close();
+		super.close(this::closePool);
+	}
+
+	private void closePool() {
+		try {
+			pool.gc();
+		} catch (IOException e) {
+			logger.error("[" + name() + "] local pool gc failure", e);
+		}
 		try {
 			pool.close();
 		} catch (IOException e) {

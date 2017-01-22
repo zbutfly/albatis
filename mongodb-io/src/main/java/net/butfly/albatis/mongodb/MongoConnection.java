@@ -11,8 +11,10 @@ import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 
 import net.butfly.albacore.io.URISpec;
+import net.butfly.albacore.utils.logger.Logger;
 
 public class MongoConnection extends NoSqlConnection<MongoClient> {
+	private static final Logger logger = Logger.getLogger(MongoConnection.class);
 	private final Map<String, DB> dbs;
 	private String defaultDB;
 
@@ -38,8 +40,12 @@ public class MongoConnection extends NoSqlConnection<MongoClient> {
 	}
 
 	@Override
-	public void close() throws IOException {
-		super.close();
+	public void close() {
+		try {
+			super.close();
+		} catch (IOException e) {
+			logger.error("Close failure", e);
+		}
 		client().close();
 	}
 }

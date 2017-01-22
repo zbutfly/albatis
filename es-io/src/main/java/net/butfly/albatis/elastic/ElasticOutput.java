@@ -38,7 +38,6 @@ public class ElasticOutput extends Output<ElasticMessage> {
 
 	@Override
 	public void close() {
-		super.close();
-		conn.close();
+		super.close(conn::close);
 	}
 }

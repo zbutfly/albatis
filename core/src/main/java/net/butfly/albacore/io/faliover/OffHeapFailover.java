@@ -98,8 +98,7 @@ public abstract class OffHeapFailover<K, V> extends Failover<K, V> {
 
 	@Override
 	public void close() {
-		super.close();
-		closePool();
+		super.close(this::closePool);
 	}
 
 	private void closePool() {

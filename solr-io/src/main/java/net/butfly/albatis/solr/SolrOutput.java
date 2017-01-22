@@ -26,8 +26,7 @@ public class SolrOutput extends FailoverOutput<SolrMessage<SolrInputDocument>, S
 
 	@Override
 	public void close() {
-		super.close();
-		closeSolr();
+		super.close(this::closeSolr);
 	}
 
 	private void closeSolr() {

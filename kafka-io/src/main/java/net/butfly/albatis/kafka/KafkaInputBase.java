@@ -82,7 +82,11 @@ abstract class KafkaInputBase<T> extends MapInput<String, KafkaMessage> {
 
 	@Override
 	public void close() {
-		super.close();
+		super.close(this::closeKafka);
+		Systems.disableGC();
+	}
+
+	private void closeKafka() {
 		for (Map<KafkaStream<byte[], byte[]>, T> tm : streams.values())
 			for (T f : tm.values())
 				if (f instanceof AutoCloseable) try {
@@ -92,7 +96,6 @@ abstract class KafkaInputBase<T> extends MapInput<String, KafkaMessage> {
 				}
 		connect.commitOffsets(true);
 		connect.shutdown();
-		Systems.disableGC();
 	}
 
 	@Override

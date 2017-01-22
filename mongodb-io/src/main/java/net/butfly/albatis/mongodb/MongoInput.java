@@ -56,14 +56,12 @@ public class MongoInput extends Input<DBObject> {
 
 	@Override
 	public void close() {
-		super.close(() -> {
-			cursor.close();
-			try {
-				conn.close();
-			} catch (IOException e) {
-				logger().error("Close failure", e);
-			}
-		});
+		super.close(this::closeMongo);
+	}
+
+	private void closeMongo() {
+		cursor.close();
+		conn.close();
 	}
 
 	@Override

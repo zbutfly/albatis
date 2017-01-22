@@ -39,8 +39,7 @@ public final class HbaseOutput extends FailoverOutput<HbaseResult, Result> {
 
 	@Override
 	public void close() {
-		super.close();
-		closeHbase();
+		super.close(this::closeHbase);
 	}
 
 	private void closeHbase() {

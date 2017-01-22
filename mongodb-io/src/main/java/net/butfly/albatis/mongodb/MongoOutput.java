@@ -11,25 +11,19 @@ import net.butfly.albacore.io.Output;
 public class MongoOutput extends Output<DBObject> {
 	private static final long serialVersionUID = 2141020043117686747L;
 	private final boolean upsert;
-	private final MongoConnection mdb;
+	private final MongoConnection conn;
 	private final DBCollection collection;
 
 	public MongoOutput(String name, String uri, String collection, boolean upsert) throws IOException {
 		super(name);
 		this.upsert = upsert;
-		this.mdb = new MongoConnection(uri);
-		this.collection = mdb.db().getCollection(collection);
+		this.conn = new MongoConnection(uri);
+		this.collection = conn.db().getCollection(collection);
 	}
 
 	@Override
 	public void close() {
-		super.close(() -> {
-			try {
-				mdb.close();
-			} catch (IOException e) {
-				logger().error("Close failure", e);
-			}
-		});
+		super.close(conn::close);
 	}
 
 	@Override
