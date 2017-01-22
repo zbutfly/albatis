@@ -1,13 +1,12 @@
 package net.butfly.albatis.solr;
 
-import java.io.IOException;
-import java.util.List;
-
+import net.butfly.albacore.io.faliover.FailoverOutput;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.common.SolrInputDocument;
-
-import net.butfly.albacore.io.faliover.FailoverOutput;
 import scala.Tuple2;
+
+import java.io.IOException;
+import java.util.List;
 
 public class SolrOutput extends FailoverOutput<SolrMessage<SolrInputDocument>, SolrInputDocument> {
 	private static final long serialVersionUID = -2897525987426418020L;

@@ -1,18 +1,10 @@
 package net.butfly.albacore.io.faliover;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import net.butfly.albacore.io.Output;
 import scala.Tuple2;
+
+import java.io.*;
+import java.util.*;
 
 public abstract class FailoverOutput<I, FV> extends Output<I> {
 	private static final long serialVersionUID = 6327633226368591655L;

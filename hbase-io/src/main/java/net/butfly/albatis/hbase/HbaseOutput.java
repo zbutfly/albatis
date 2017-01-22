@@ -1,20 +1,19 @@
 package net.butfly.albatis.hbase;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
+import net.butfly.albacore.io.faliover.FailoverOutput;
+import net.butfly.albacore.utils.Collections;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Table;
-
-import net.butfly.albacore.io.faliover.FailoverOutput;
-import net.butfly.albacore.utils.Collections;
 import scala.Tuple2;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public final class HbaseOutput extends FailoverOutput<HbaseResult, Result> {
 	private static final long serialVersionUID = 2141020043117686747L;
