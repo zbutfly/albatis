@@ -105,8 +105,8 @@ public abstract class Failover<K, V> extends OpenableThread implements Statistic
 
 	@Override
 	public void close() {
-		super.close();
 		for (Sender s : senders)
 			s.close();
+		super.close();
 	}
 }

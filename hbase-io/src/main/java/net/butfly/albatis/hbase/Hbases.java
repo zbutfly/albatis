@@ -18,7 +18,6 @@ import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import net.butfly.albacore.lambda.Converter;
-import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.Utils;
 import net.butfly.albacore.utils.logger.Logger;
 
@@ -26,19 +25,24 @@ public final class Hbases extends Utils {
 	protected static final Logger logger = Logger.getLogger(Hbases.class);
 
 	public static Connection connect() throws IOException {
+		return connect(null);
+	}
+
+	public static Connection connect(Properties conf) throws IOException {
 		Configuration hconf = HBaseConfiguration.create();
-		Properties conf = Configs.read("hbase.properties");
-		Set<String> keys = conf.stringPropertyNames();
-		for (Field f : HConstants.class.getFields()) {
-			int mod = f.getModifiers();
-			if (Modifier.isFinal(mod) && Modifier.isStatic(mod) && f.getType().equals(String.class)) {
-				String confName;
-				try {
-					confName = (String) f.get(null);
-				} catch (IllegalArgumentException | IllegalAccessException e) {
-					continue;
+		if (null != conf && !conf.isEmpty()) {
+			Set<String> keys = conf.stringPropertyNames();
+			for (Field f : HConstants.class.getFields()) {
+				int mod = f.getModifiers();
+				if (Modifier.isFinal(mod) && Modifier.isStatic(mod) && f.getType().equals(String.class)) {
+					String confName;
+					try {
+						confName = (String) f.get(null);
+					} catch (IllegalArgumentException | IllegalAccessException e) {
+						continue;
+					}
+					if (keys.contains(confName)) hconf.set(confName, conf.getProperty(confName));
 				}
-				if (keys.contains(confName)) hconf.set(confName, conf.getProperty(confName));
 			}
 		}
 		return ConnectionFactory.createConnection(hconf);
