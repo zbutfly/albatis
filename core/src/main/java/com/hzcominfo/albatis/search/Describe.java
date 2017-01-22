@@ -12,5 +12,5 @@ import java.io.IOException;
  * @date 2016/11/25 对操作的描述
  */
 public interface Describe {
-    Result execute() throws SearchAPIException, IOException;
+	Result execute() throws SearchAPIException, IOException;
 }

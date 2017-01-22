@@ -14,27 +14,27 @@ package com.hzcominfo.albatis.search;
  * @see
  */
 public interface DataFrom {
-    public static final class Table implements DataFrom {
-        public String tableName;
+	public static final class Table implements DataFrom {
+		public String tableName;
 
-        public String DBName;
+		public String DBName;
 
-        public Table(String name) {
-            this.tableName = name;
-        }
+		public Table(String name) {
+			this.tableName = name;
+		}
 
-        public Table setDBName(String DBName) {
-            this.DBName = DBName;
-            return this;
-        }
-    }
+		public Table setDBName(String DBName) {
+			this.DBName = DBName;
+			return this;
+		}
+	}
 
-    public static final class DB implements DataFrom {
-        public String dbName;
+	public static final class DB implements DataFrom {
+		public String dbName;
 
-        public DB(String dbName) {
-            this.dbName = dbName;
-        }
-    }
+		public DB(String dbName) {
+			this.dbName = dbName;
+		}
+	}
 
 }

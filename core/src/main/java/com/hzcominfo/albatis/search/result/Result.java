@@ -23,16 +23,16 @@ import java.util.Map;
  * @since 0.0.1
  */
 public interface Result extends ResultSet {
-    @SuppressWarnings("rawtypes")
-    default Map getRowItem() throws SearchAPIException {
-    	throw new UnsupportedOperationException();
-    }
+	@SuppressWarnings("rawtypes")
+	default Map getRowItem() throws SearchAPIException {
+		throw new UnsupportedOperationException();
+	}
 
-    default ResultMetadata getResultMetadata() throws SearchAPIException {
-    	throw new UnsupportedOperationException();
-    }
+	default ResultMetadata getResultMetadata() throws SearchAPIException {
+		throw new UnsupportedOperationException();
+	}
 
-    default void setResultMetadata(ResultMetadata resultMetadata) throws SearchAPIException {
-    	throw new UnsupportedOperationException();
-    }
+	default void setResultMetadata(ResultMetadata resultMetadata) throws SearchAPIException {
+		throw new UnsupportedOperationException();
+	}
 }

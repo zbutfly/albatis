@@ -8,11 +8,11 @@ import com.hzcominfo.albatis.search.filter.FilterLoader;
  */
 public class InvokeTest {
 
-    public static void main(String[] args) {
-        try {
-            QueryTest.test();
-        } catch (SearchAPIException e) {
-            e.printStackTrace();
-        }
-    }
+	public static void main(String[] args) {
+		try {
+			QueryTest.test();
+		} catch (SearchAPIException e) {
+			e.printStackTrace();
+		}
+	}
 }

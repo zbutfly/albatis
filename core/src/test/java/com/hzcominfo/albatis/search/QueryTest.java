@@ -33,7 +33,7 @@ public class QueryTest {
 	// }
 
 
-    public static void test() throws SearchAPIException {
-        FilterLoader.invokeOf(null);
-    }
+	public static void test() throws SearchAPIException {
+		FilterLoader.invokeOf(null);
+	}
 }

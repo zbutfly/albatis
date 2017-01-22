@@ -7,5 +7,4 @@ import java.util.Map;
  */
 public class MapFilterChain<K extends Map, V extends Map> extends BasicFilterChain<K, V> {
 
-
 }

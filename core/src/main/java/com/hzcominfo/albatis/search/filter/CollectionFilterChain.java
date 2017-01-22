@@ -4,6 +4,4 @@ import java.util.Collection;
 
 /**
  */
-public class CollectionFilterChain<K extends Collection,V extends Collection>
-        extends BasicFilterChain<K,V> {
-}
+public class CollectionFilterChain<K extends Collection, V extends Collection> extends BasicFilterChain<K, V> {}

@@ -7,11 +7,11 @@ import com.hzcominfo.albatis.search.exception.SearchAPIException;
  */
 public interface FilterChain<Q, R> extends Cloneable {
 
-    void doFilter(Q query, R response) throws SearchAPIException;
+	void doFilter(Q query, R response) throws SearchAPIException;
 
-    FilterChain<Q, R> add(Filter<Q,R> filter);
+	FilterChain<Q, R> add(Filter<Q, R> filter);
 
-    default FilterChain<Q,R> clone(){
-        return null;
-    }//默认不输出clone
+	default FilterChain<Q, R> clone() {
+		return null;
+	}// 默认不输出clone
 }
