@@ -3,9 +3,9 @@ package net.butfly.albatis.mongodb;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import com.google.common.base.Joiner;
 import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;
 import com.mongodb.Bytes;
@@ -14,7 +14,6 @@ import com.mongodb.DBObject;
 import com.mongodb.MongoException;
 
 import net.butfly.albacore.io.Input;
-import net.butfly.albacore.serder.JsonSerder;
 import net.butfly.albacore.utils.logger.Logger;
 
 public class MongoInput extends Input<DBObject> {
@@ -24,7 +23,7 @@ public class MongoInput extends Input<DBObject> {
 	private DBCursor cursor;
 	private final ReentrantReadWriteLock lock;
 
-	public MongoInput(final String name, String uri, final String table, int inputBatchSize, final String... filter) throws IOException {
+	public MongoInput(final String name, String uri, final String table, int inputBatchSize, final DBObject... filter) throws IOException {
 		super(name);
 		lock = new ReentrantReadWriteLock();
 		logger.info("[" + name + "] from [" + uri + "], core [" + table + "]");
@@ -34,31 +33,30 @@ public class MongoInput extends Input<DBObject> {
 		if (null == filter || filter.length == 0) {
 			now = System.nanoTime();
 			cursor = conn.db().getCollection(table).find();
-		} else if (filter.length == 1) {
-			Map<String, Object> m = JsonSerder.JSON_MAPPER.der(filter[0]);
-
-			now = System.nanoTime();
-			cursor = conn.db().getCollection(table).find(new BasicDBObject(m));
 		} else {
-			BasicDBList filters = new BasicDBList();
-			for (int i = 0; i < filter.length; i++) {
-				Map<String, Object> m = JsonSerder.JSON_MAPPER.der(filter[i]);
-				filters.add(new BasicDBObject(m));
+			logger.info("[" + name + "] filters: \n\t" + Joiner.on("\n\t").join(filter));
+			if (filter.length == 1) {
+				now = System.nanoTime();
+				cursor = conn.db().getCollection(table).find(filter[0]);
+			} else {
+				BasicDBList filters = new BasicDBList();
+				for (DBObject f : filter)
+					filters.add(f);
+				DBObject and = new BasicDBObject();
+				and.put("$and", filters);
+				now = System.nanoTime();
+				cursor = conn.db().getCollection(table).find(and);
 			}
-			DBObject and = new BasicDBObject();
-			and.put("$and", filters);
-
-			now = System.nanoTime();
-			cursor = conn.db().getCollection(table).find(and);
 		}
-		logger.info(() -> "[" + name + "] find end in [" + (System.nanoTime() - now) / 1000 + " ms].");
+		int count = cursor.count();
+		logger.debug(() -> "[" + name + "] find [" + count + " records], end in [" + (System.nanoTime() - now) / 1000 + " ms].");
 		logger.trace(() -> "[" + name + "] find [" + cursor.size() + " records].");
 		cursor = cursor.batchSize(inputBatchSize).addOption(Bytes.QUERYOPTION_NOTIMEOUT);
 	}
 
 	@Override
-	public void closing() {
-		super.closing();
+	public void close() {
+		super.close();
 		cursor.close();
 		try {
 			conn.close();

@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.function.Consumer;
 
 import net.butfly.albacore.lambda.ConverterPair;
 
@@ -15,9 +16,9 @@ public class HeapFailover<K, V> extends Failover<K, V> {
 	private static final int MAX_FAILOVER = 50000;
 	private Map<K, LinkedBlockingQueue<V>> failover = new ConcurrentHashMap<>();
 
-	public HeapFailover(String parentName, ConverterPair<K, List<V>, Exception> adding, int packageSize, int parallelism)
-			throws IOException {
-		super(parentName, adding, packageSize, parallelism);
+	public HeapFailover(String parentName, ConverterPair<K, List<V>, Exception> writing, Consumer<K> committing, int packageSize,
+			int parallelism) throws IOException {
+		super(parentName, writing, committing, packageSize, parallelism);
 		failover = new ConcurrentHashMap<>();
 		logger.info(MessageFormat.format("SolrOutput [{0}] failover [memory mode] init.", parentName));
 	}
@@ -53,14 +54,14 @@ public class HeapFailover<K, V> extends Failover<K, V> {
 	}
 
 	@Override
-	protected void failover() {
+	protected void retry() {
 		List<V> retries = new ArrayList<>(packageSize);
 		for (K core : failover.keySet()) {
 			LinkedBlockingQueue<V> fails = failover.get(core);
 			fails.drainTo(retries, packageSize);
 			stats(retries);
 			if (!retries.isEmpty()) {
-				Exception e = adding.apply(core, retries);
+				Exception e = writing.apply(core, retries);
 				if (null != e) fail(core, retries, e);
 				retries.clear();
 			}
