@@ -1,5 +1,7 @@
 package net.butfly.albacore.io.faliover;
 
+import net.butfly.albacore.lambda.ConverterPair;
+
 import java.io.IOException;
 import java.text.MessageFormat;
 import java.util.ArrayList;
@@ -8,8 +10,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Consumer;
-
-import net.butfly.albacore.lambda.ConverterPair;
 
 public class HeapFailover<K, V> extends Failover<K, V> {
 	private static final long serialVersionUID = -7766759011944551301L;

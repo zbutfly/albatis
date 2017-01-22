@@ -1,13 +1,5 @@
 package net.butfly.albatis.kafka;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-
 import kafka.consumer.KafkaStream;
 import kafka.javaapi.consumer.ConsumerConnector;
 import net.butfly.albacore.exception.ConfigException;
@@ -20,6 +12,10 @@ import net.butfly.albacore.utils.async.Concurrents;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.kafka.config.KafkaInputConfig;
 import net.butfly.albatis.kafka.config.Kafkas;
+
+import java.io.IOException;
+import java.util.*;
+import java.util.Map.Entry;
 
 abstract class KafkaInputBase<T> extends MapInput<String, KafkaMessage> {
 	private static final long serialVersionUID = -9180560064999614528L;

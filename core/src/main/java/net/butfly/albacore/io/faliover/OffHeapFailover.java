@@ -1,5 +1,12 @@
 package net.butfly.albacore.io.faliover;
 
+import com.leansoft.bigqueue.BigQueueImpl;
+import com.leansoft.bigqueue.IBigQueue;
+import net.butfly.albacore.lambda.ConverterPair;
+import net.butfly.albacore.utils.IOs;
+import net.butfly.albacore.utils.async.Concurrents;
+import scala.Tuple2;
+
 import java.io.IOException;
 import java.text.MessageFormat;
 import java.util.ArrayList;
@@ -7,14 +14,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
-
-import com.leansoft.bigqueue.BigQueueImpl;
-import com.leansoft.bigqueue.IBigQueue;
-
-import net.butfly.albacore.lambda.ConverterPair;
-import net.butfly.albacore.utils.IOs;
-import net.butfly.albacore.utils.async.Concurrents;
-import scala.Tuple2;
 
 public abstract class OffHeapFailover<K, V> extends Failover<K, V> {
 	private static final long serialVersionUID = -4766585003300311051L;

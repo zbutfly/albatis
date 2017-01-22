@@ -1,5 +1,11 @@
 package net.butfly.albacore.io.faliover;
 
+import net.butfly.albacore.io.OpenableThread;
+import net.butfly.albacore.io.stats.Statistical;
+import net.butfly.albacore.lambda.ConverterPair;
+import net.butfly.albacore.utils.Collections;
+import net.butfly.albacore.utils.logger.Logger;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -7,12 +13,6 @@ import java.util.Map.Entry;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-
-import net.butfly.albacore.io.OpenableThread;
-import net.butfly.albacore.io.stats.Statistical;
-import net.butfly.albacore.lambda.ConverterPair;
-import net.butfly.albacore.utils.Collections;
-import net.butfly.albacore.utils.logger.Logger;
 
 public abstract class Failover<K, V> extends OpenableThread implements Statistical<Failover<K, V>> {
 	private static final long serialVersionUID = -7515454826294115208L;

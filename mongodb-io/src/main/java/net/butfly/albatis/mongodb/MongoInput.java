@@ -1,20 +1,14 @@
 package net.butfly.albatis.mongodb;
 
+import com.google.common.base.Joiner;
+import com.mongodb.*;
+import net.butfly.albacore.io.Input;
+import net.butfly.albacore.utils.logger.Logger;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-
-import com.google.common.base.Joiner;
-import com.mongodb.BasicDBList;
-import com.mongodb.BasicDBObject;
-import com.mongodb.Bytes;
-import com.mongodb.DBCursor;
-import com.mongodb.DBObject;
-import com.mongodb.MongoException;
-
-import net.butfly.albacore.io.Input;
-import net.butfly.albacore.utils.logger.Logger;
 
 public class MongoInput extends Input<DBObject> {
 	private static final long serialVersionUID = -142784733788535129L;
