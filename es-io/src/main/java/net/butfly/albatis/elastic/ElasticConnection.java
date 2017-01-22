@@ -1,7 +1,6 @@
 package net.butfly.albatis.elastic;
 
 import com.hzcominfo.albatis.nosql.NoSqlConnection;
-import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.logger.Logger;
 import org.elasticsearch.client.transport.TransportClient;
@@ -16,7 +15,7 @@ public class ElasticConnection extends NoSqlConnection<TransportClient> {
     private static final Logger logger = Logger.getLogger(ElasticConnection.class);
 
     public ElasticConnection(String connection) throws IOException {
-        super(new URISpec(connection), uri -> {
+        super(new ElasticURI(connection), uri -> {
             Settings.Builder settings = Settings.settingsBuilder();
             settings.put(uri.getParameters());
             settings.put("client.transport.ignore_cluster_name", true);
