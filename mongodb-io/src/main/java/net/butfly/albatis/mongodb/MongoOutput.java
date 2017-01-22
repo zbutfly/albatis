@@ -23,12 +23,13 @@ public class MongoOutput extends Output<DBObject> {
 
 	@Override
 	public void close() {
-		super.close();
-		try {
-			mdb.close();
-		} catch (IOException e) {
-			logger().error("Close failure", e);
-		}
+		super.close(() -> {
+			try {
+				mdb.close();
+			} catch (IOException e) {
+				logger().error("Close failure", e);
+			}
+		});
 	}
 
 	@Override

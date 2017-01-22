@@ -77,14 +77,15 @@ public class HbaseInput extends Input<HbaseResult> {
 
 	@Override
 	public void close() {
-		super.close();
-		try {
-			scaner.close();
-			table.close();
-			connect.close();
-		} catch (IOException e) {
-			throw new RuntimeException("HBase close failure", e);
-		}
+		super.close(() -> {
+			try {
+				scaner.close();
+				table.close();
+				connect.close();
+			} catch (IOException e) {
+				logger().error("Close failure", e);
+			}
+		});
 	}
 
 	@Override
