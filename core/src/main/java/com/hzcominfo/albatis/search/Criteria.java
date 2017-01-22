@@ -78,7 +78,6 @@ public interface Criteria extends Serializable {
 
     public class LessOrEqual<V> extends ByFieldValue<V> {
         private static final long serialVersionUID = -4045493244001924022L;
-        public V value;
 
         public LessOrEqual(String field, V value) {
             super(field, value);
@@ -87,7 +86,6 @@ public interface Criteria extends Serializable {
 
     public class GreaterOrEqual<V> extends ByFieldValue<V> {
         private static final long serialVersionUID = 8679129438234499986L;
-        public V value;
 
         public GreaterOrEqual(String field, V value) {
             super(field, value);
