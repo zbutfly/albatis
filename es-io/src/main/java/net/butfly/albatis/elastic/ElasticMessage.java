@@ -1,9 +1,9 @@
 package net.butfly.albatis.elastic;
 
+import org.elasticsearch.action.update.UpdateRequest;
+
 import java.io.Serializable;
 import java.util.Map;
-
-import org.elasticsearch.action.update.UpdateRequest;
 
 public class ElasticMessage implements Serializable {
 	private static final long serialVersionUID = -125189207796104302L;

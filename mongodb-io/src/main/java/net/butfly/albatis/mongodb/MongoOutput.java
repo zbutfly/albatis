@@ -1,12 +1,11 @@
 package net.butfly.albatis.mongodb;
 
-import java.io.IOException;
-import java.util.List;
-
 import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
-
 import net.butfly.albacore.io.Output;
+
+import java.io.IOException;
+import java.util.List;
 
 public class MongoOutput extends Output<DBObject> {
 	private static final long serialVersionUID = 2141020043117686747L;
