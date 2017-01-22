@@ -8,6 +8,7 @@ import net.butfly.albacore.exception.ConfigException;
 import net.butfly.albacore.io.OpenableThread;
 import net.butfly.albacore.lambda.Consumer;
 import net.butfly.albacore.utils.IOs;
+import net.butfly.albacore.utils.Systems;
 
 import java.io.IOException;
 import java.text.MessageFormat;
@@ -22,13 +23,14 @@ public class KafkaInput extends KafkaInputBase<KafkaInput.Fetcher> {
 
 	public KafkaInput(String name, final String kafkaURI, final String poolPath, String... topic) throws ConfigException, IOException {
 		super(name, kafkaURI, topic);
+		Systems.enableGC();
 		try {
 			pool = new BigQueueImpl(IOs.mkdirs(poolPath + "/" + name), conf.toString());
 		} catch (IOException e) {
 			throw new RuntimeException("Offheap pool init failure", e);
 		}
-		logger.info(MessageFormat.format("[{0}] local pool init: [{1}/{0}] with name [{2}], init size [{3}].", name, poolPath,
-				conf.toString(), pool.size()));
+		logger.info(MessageFormat.format("[{0}] local pool init: [{1}/{0}] with name [{2}], init size [{3}].", name, poolPath, conf
+				.toString(), pool.size()));
 		for (String t : raws.keySet()) {
 			AtomicInteger i = new AtomicInteger(0);
 			for (KafkaStream<byte[], byte[]> stream : raws.get(t))
@@ -72,8 +74,8 @@ public class KafkaInput extends KafkaInputBase<KafkaInput.Fetcher> {
 	}
 
 	@Override
-	public void closing() {
-		super.closing();
+	public void close() {
+		super.close();
 		try {
 			pool.close();
 		} catch (IOException e) {
@@ -101,7 +103,7 @@ public class KafkaInput extends KafkaInputBase<KafkaInput.Fetcher> {
 		}
 
 		@Override
-		public void run() {
+		protected void exec() {
 			ConsumerIterator<byte[], byte[]> it = stream.iterator();
 			while (opened())
 				try {

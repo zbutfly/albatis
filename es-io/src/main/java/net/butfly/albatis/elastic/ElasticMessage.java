@@ -3,6 +3,8 @@ package net.butfly.albatis.elastic;
 import java.io.Serializable;
 import java.util.Map;
 
+import org.elasticsearch.action.update.UpdateRequest;
+
 public class ElasticMessage implements Serializable {
 	private static final long serialVersionUID = -125189207796104302L;
 	private final Map<String, Object> values;
@@ -43,5 +45,9 @@ public class ElasticMessage implements Serializable {
 
 	public String getType() {
 		return type;
+	}
+
+	public UpdateRequest update() {
+		return new UpdateRequest().docAsUpsert(upsert).index(index).type(type).id(id).doc(values);
 	}
 }

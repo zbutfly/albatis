@@ -57,6 +57,26 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		<dependency>
+			<groupId>org.apache.hadoop</groupId>
+			<artifactId>hadoop-hdfs</artifactId>
+			<version>2.7.2</version>
+			<scope>runtime</scope>
+			<exclusions>
+				<exclusion>
+					<artifactId>guava</artifactId>
+					<groupId>com.google.guava</groupId>
+				</exclusion>
+				<exclusion>
+					<artifactId>commons-io</artifactId>
+					<groupId>commons-io</groupId>
+				</exclusion>
+				<exclusion>
+					<groupId>commons-logging</groupId>
+					<artifactId>commons-logging</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
 	</dependencies>
 	<dependencyManagement>
 		<dependencies>

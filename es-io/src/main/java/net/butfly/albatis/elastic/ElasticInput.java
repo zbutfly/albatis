@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
+<<<<<<< HEAD
 public class ElasticInput extends Input<org.elasticsearch.search.SearchHit> {
     private static final long serialVersionUID = -5666669099160512388L;
     protected static final Logger logger = Logger.getLogger(ElasticInput.class);
@@ -108,4 +109,100 @@ public class ElasticInput extends Input<org.elasticsearch.search.SearchHit> {
         return elastic.client().prepareSearchScroll(searchResponse.getScrollId())
                 .setScroll(TimeValue.timeValueMinutes(scrolltime)).execute().actionGet();
     }
+=======
+public class ElasticInput extends Input<SearchResponse> {
+	private static final long serialVersionUID = -5666669099160512388L;
+	protected static final Logger logger = Logger.getLogger(ElasticInput.class);
+	private final ElasticConnection elastic;
+	// view time def 10 minute
+	private int scrolltime = 10;
+	// scrollnumber
+	private int scrollnumber = 100;
+	private SearchResponse searchResponse = null;
+	private String index;
+	private String type;
+
+	public ElasticInput(String connection) throws IOException {
+		super("elastic-input-queue");
+		elastic = new ElasticConnection(connection);
+		index = elastic.getDefaultIndex();
+		type = elastic.getDefaultType();
+	}
+
+	@Override
+	public void close() {
+		super.close();
+		elastic.close();
+	}
+
+	public int getScrolltime() {
+		return scrolltime;
+	}
+
+	public void setScrolltime(int scrolltime) {
+		this.scrolltime = scrolltime;
+	}
+
+	public int getScrollnumber() {
+		return scrollnumber;
+	}
+
+	public void setScrollnumber(int scrollnumber) {
+		this.scrollnumber = scrollnumber;
+	}
+
+	public String getIndex() {
+		return index;
+	}
+
+	public void setIndex(String index) {
+		this.index = index;
+	}
+
+	public String getType() {
+		return type;
+	}
+
+	public void setType(String type) {
+		this.type = type;
+	}
+
+	@Override
+	public long size() {
+		return 0;
+	}
+
+	@Override
+	public boolean empty() {
+		return true;
+	}
+
+	@Override
+	public SearchResponse dequeue0() {
+		if (searchResponse == null) scanType();
+		else scanType2(searchResponse);
+		return searchResponse;
+	}
+
+	@Override
+	public List<SearchResponse> dequeue(long batchSize) {
+		return super.dequeue(batchSize);
+
+	}
+
+	public void scanType() {
+		if (index == null) throw new RuntimeException("index is null");
+		SearchRequestBuilder searchRequest = elastic.client().prepareSearch(index);
+		searchRequest.setSize(scrollnumber)
+				// .setSearchType(SearchType.SCAN)
+				.setScroll(TimeValue.timeValueMinutes(scrolltime)).setQuery(QueryBuilders.matchAllQuery());
+		logger.trace(searchRequest.toString());
+		searchResponse = searchRequest.execute().actionGet();
+	}
+
+	private SearchResponse scanType2(SearchResponse searchResponse) {
+		return elastic.client().prepareSearchScroll(searchResponse.getScrollId()).setScroll(TimeValue.timeValueMinutes(scrolltime))
+				.execute().actionGet();
+	}
+>>>>>>> origin/master
 }
