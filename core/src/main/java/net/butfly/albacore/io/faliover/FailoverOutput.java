@@ -38,12 +38,12 @@ public abstract class FailoverOutput<I, FV> extends Output<I> {
 			private static final long serialVersionUID = -6942345655578531843L;
 
 			@Override
-			protected byte[] toBytes(String key, FV value) {
+			protected byte[] toBytes(String key, FV value) throws IOException {
 				return FailoverOutput.this.toBytes(key, value);
 			}
 
 			@Override
-			protected Tuple2<String, FV> fromBytes(byte[] bytes) {
+			protected Tuple2<String, FV> fromBytes(byte[] bytes) throws IOException {
 				return FailoverOutput.this.fromBytes(bytes);
 			}
 		};
@@ -53,18 +53,19 @@ public abstract class FailoverOutput<I, FV> extends Output<I> {
 
 	protected void commit(String key) throws Exception {}
 
-	protected final byte[] toBytes(String key, FV value) {
+	protected byte[] toBytes(String key, FV value) throws IOException {
 		if (null == key || null == value) return null;
 		try (ByteArrayOutputStream baos = new ByteArrayOutputStream(); ObjectOutputStream oos = new ObjectOutputStream(baos);) {
 			oos.writeObject(unparse(key, value));
 			return baos.toByteArray();
 		} catch (IOException e) {
+			logger().error("Serializing failure", e);
 			return null;
 		}
 	}
 
 	@SuppressWarnings("unchecked")
-	protected final Tuple2<String, FV> fromBytes(byte[] bytes) {
+	protected Tuple2<String, FV> fromBytes(byte[] bytes) throws IOException {
 		if (null == bytes) return null;
 		try {
 			return parse((I) new ObjectInputStream(new ByteArrayInputStream(bytes)).readObject());

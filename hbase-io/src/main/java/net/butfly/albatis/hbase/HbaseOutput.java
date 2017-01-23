@@ -1,5 +1,7 @@
 package net.butfly.albatis.hbase;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -32,7 +34,7 @@ public final class HbaseOutput extends FailoverOutput<HbaseResult, Result> {
 			try {
 				return connect.getTable(TableName.valueOf(t));
 			} catch (IOException e) {
-				return null;
+				throw new RuntimeException(e);
 			}
 		});
 	}
@@ -73,6 +75,22 @@ public final class HbaseOutput extends FailoverOutput<HbaseResult, Result> {
 				}
 			return p;
 		}));
+	}
+
+	@Override
+	protected byte[] toBytes(String key, Result value) throws IOException {
+		try (ByteArrayOutputStream baos = new ByteArrayOutputStream();) {
+			Hbases.writeBuffer(baos, key.getBytes());
+			Hbases.writeBuffer(baos, Hbases.resultToBytes(value));
+			return baos.toByteArray();
+		}
+	}
+
+	@Override
+	protected Tuple2<String, Result> fromBytes(byte[] bytes) throws IOException {
+		try (ByteArrayInputStream bais = new ByteArrayInputStream(bytes);) {
+			return new Tuple2<>(new String(Hbases.readBuffer(bais)), Hbases.resultFromBytes(Hbases.readBuffer(bais)));
+		}
 	}
 
 	@Override

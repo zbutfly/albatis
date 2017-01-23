@@ -29,9 +29,9 @@ public abstract class OffHeapFailover<K, V> extends Failover<K, V> {
 				path, parentName, poolName, size()));
 	}
 
-	protected abstract byte[] toBytes(K key, V value);
+	protected abstract byte[] toBytes(K key, V value) throws IOException;
 
-	protected abstract Tuple2<K, V> fromBytes(byte[] bytes);
+	protected abstract Tuple2<K, V> fromBytes(byte[] bytes) throws IOException;
 
 	@Override
 	protected void exec() {
@@ -48,8 +48,10 @@ public abstract class OffHeapFailover<K, V> extends Failover<K, V> {
 					continue;
 				}
 				if (null == buf) return;
-				Tuple2<K, V> sm = fromBytes(buf);
-				if (null == sm) {
+				Tuple2<K, V> sm;
+				try {
+					sm = fromBytes(buf);
+				} catch (IOException e) {
 					logger.error("invalid failover found and lost.");
 					continue;
 				}
