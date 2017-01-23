@@ -22,10 +22,12 @@ public abstract class Failover<K, V> extends OpenableThread implements Statistic
 	private final LinkedBlockingQueue<Runnable> tasks;
 	private final List<Sender> senders;
 	private Consumer<K> committing;
+	protected final ThreadGroup threadGroup;
 
 	protected Failover(String parentName, ConverterPair<K, List<V>, Exception> writing, Consumer<K> committing, int packageSize,
 			int parallelism) {
 		super(parentName + "Failover");
+		threadGroup = new ThreadGroup(name());
 		this.writing = writing;
 		this.committing = committing;
 		this.packageSize = packageSize;
@@ -74,7 +76,7 @@ public abstract class Failover<K, V> extends OpenableThread implements Statistic
 		private LinkedBlockingQueue<Runnable> tasks;
 
 		public Sender(String parentName, LinkedBlockingQueue<Runnable> tasks, int i) {
-			super(parentName + "Sender#" + (i + 1));
+			super(threadGroup, parentName + "Sender#" + (i + 1));
 			this.tasks = tasks;
 			start();
 		}
