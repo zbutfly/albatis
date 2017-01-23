@@ -37,11 +37,7 @@ public final class HbaseOutput extends FailoverOutput<HbaseResult, Result> {
 	}
 
 	@Override
-	public void close() {
-		super.close(this::closeHbase);
-	}
-
-	private void closeHbase() {
+	protected void closeInternal() {
 		for (Table t : tables.values())
 			try {
 				t.close();
@@ -75,7 +71,7 @@ public final class HbaseOutput extends FailoverOutput<HbaseResult, Result> {
 				return p;
 			}));
 			return null;
-		} catch (IOException e) {
+		} catch (Exception e) {
 			return e;
 		}
 	}

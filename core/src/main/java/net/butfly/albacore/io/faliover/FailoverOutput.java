@@ -6,6 +6,17 @@ import scala.Tuple2;
 import java.io.*;
 import java.util.*;
 
+/**
+ * Output with buffer and failover supporting.<br>
+ * Parent class handle buffer, invoking really write/marshall op by callback
+ * provided by children classes.<br>
+ * Children classes define and implemented connection to datasource.
+ * 
+ * @author zx
+ *
+ * @param <I>
+ * @param <FV>
+ */
 public abstract class FailoverOutput<I, FV> extends Output<I> {
 	private static final long serialVersionUID = 6327633226368591655L;
 	private final Failover<String, FV> failover;
@@ -76,10 +87,13 @@ public abstract class FailoverOutput<I, FV> extends Output<I> {
 	}
 
 	@Override
-	public void close() {
+	public final void close() {
 		super.close();
 		failover.close();
+		closeInternal();
 	}
+
+	protected abstract void closeInternal();
 
 	public final long fails() {
 		return failover.size();

@@ -25,8 +25,8 @@ public class EsOutput extends FailoverOutput<ElasticMessage, ElasticMessage> {
 	}
 
 	@Override
-	public void close() {
-		super.close(conn::close);
+	protected void closeInternal() {
+		conn.close();
 	}
 
 	@Override

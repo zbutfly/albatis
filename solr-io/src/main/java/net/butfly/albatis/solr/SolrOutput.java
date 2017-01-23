@@ -24,11 +24,7 @@ public class SolrOutput extends FailoverOutput<SolrMessage<SolrInputDocument>, S
 	}
 
 	@Override
-	public void close() {
-		super.close(this::closeSolr);
-	}
-
-	private void closeSolr() {
+	protected void closeInternal() {
 		try {
 			for (String core : solr.getCores())
 				solr.client().commit(core, false, false);
