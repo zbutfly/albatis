@@ -39,14 +39,17 @@ public final class HbaseOutput extends FailoverOutput<HbaseResult, Result> {
 
 	@Override
 	protected void closeInternal() {
-		for (Table t : tables.values())
+		for (String k : tables.keySet())
 			try {
-				t.close();
+				Table t = tables.remove(k);
+				if (null != t) t.close();
 			} catch (IOException e) {
-				logger().error("Hbase table [" + t.getName().toString() + "] close failure", e);
+				logger().error("Hbase table [" + k + "] close failure", e);
 			}
 		try {
-			connect.close();
+			synchronized (connect) {
+				if (!connect.isClosed()) connect.close();
+			}
 		} catch (IOException e) {
 			logger().error("Hbase close failure", e);
 		}
