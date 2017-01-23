@@ -43,11 +43,11 @@ public abstract class Failover<K, V> extends OpenableThread implements Statistic
 
 	protected abstract int fail(K core, List<V> docs, Exception err);
 
-	protected final void doWrite(K key, List<V> values) {
+	protected final void doWrite(K key, List<V> values, boolean stating) {
 		if (values.isEmpty()) return;
 		try {
 			writing.call(new Tuple2<>(key, values));
-			stats(values);
+			if (stating) stats(values);
 		} catch (Exception ex) {
 			fail(key, values, ex);
 		}
@@ -59,7 +59,7 @@ public abstract class Failover<K, V> extends OpenableThread implements Statistic
 			if (opened()) do {
 				inserted = tasks.offer(() -> {
 					for (List<V> pkg : Collections.chopped(e.getValue(), packageSize))
-						doWrite(e.getKey(), pkg);
+						doWrite(e.getKey(), pkg, false);
 					if (committing != null) try {
 						committing.call(e.getKey());
 					} catch (Exception err) {

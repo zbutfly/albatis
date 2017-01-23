@@ -55,10 +55,10 @@ public abstract class OffHeapFailover<K, V> extends Failover<K, V> {
 				}
 				List<V> l = fails.computeIfAbsent(sm._1, c -> new ArrayList<>(packageSize));
 				l.add(sm._2);
-				if (l.size() >= packageSize) doWrite(sm._1, fails.remove(sm._1));
+				if (l.size() >= packageSize) doWrite(sm._1, fails.remove(sm._1), true);
 			}
 			for (K core : fails.keySet())
-				doWrite(core, fails.remove(core));
+				doWrite(core, fails.remove(core), true);
 		}
 	}
 

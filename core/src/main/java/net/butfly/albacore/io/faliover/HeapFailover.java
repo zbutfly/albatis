@@ -61,7 +61,7 @@ public class HeapFailover<K, V> extends Failover<K, V> {
 				LinkedBlockingQueue<V> fails = failover.get(core);
 				fails.drainTo(retries, packageSize);
 				if (!retries.isEmpty()) {
-					doWrite(core, retries);
+					doWrite(core, retries, true);
 					retries.clear();
 				}
 			}
