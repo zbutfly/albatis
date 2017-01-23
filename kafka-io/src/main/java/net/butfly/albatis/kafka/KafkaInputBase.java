@@ -1,9 +1,17 @@
 package net.butfly.albatis.kafka;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+
 import kafka.consumer.KafkaStream;
 import kafka.javaapi.consumer.ConsumerConnector;
 import net.butfly.albacore.exception.ConfigException;
-import net.butfly.albacore.io.MapInput;
+import net.butfly.albacore.io.InputImpl;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.lambda.Consumer;
 import net.butfly.albacore.utils.Collections;
@@ -13,12 +21,7 @@ import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.kafka.config.KafkaInputConfig;
 import net.butfly.albatis.kafka.config.Kafkas;
 
-import java.io.IOException;
-import java.util.*;
-import java.util.Map.Entry;
-
-abstract class KafkaInputBase<T> extends MapInput<String, KafkaMessage> {
-	private static final long serialVersionUID = -9180560064999614528L;
+abstract class KafkaInputBase<T> extends InputImpl<KafkaMessage> {
 	protected static final Logger logger = Logger.getLogger(KafkaInputBase.class);
 	protected final KafkaInputConfig conf;
 	protected final Map<String, Integer> topics;
@@ -47,31 +50,47 @@ abstract class KafkaInputBase<T> extends MapInput<String, KafkaMessage> {
 
 	protected abstract KafkaMessage fetch(KafkaStream<byte[], byte[]> stream, T lock, Consumer<KafkaMessage> result);
 
-	public long poolStatus() {
-		return -1;
-	}
-
 	@Override
 	public List<KafkaMessage> dequeue(long batchSize) {
 		return dequeue(batchSize, keys().toArray(new String[0]));
 	}
 
 	@Override
-	public boolean empty(String key) {
-		return false;
+	public KafkaMessage dequeue0() {
+		String topic = Collections.disorderize(keys()).get(0);
+		for (Entry<KafkaStream<byte[], byte[]>, T> s : Collections.disorderize(streams.get(topic).entrySet())) {
+			KafkaMessage e = fetch(s.getKey(), s.getValue(), v -> connect.commitOffsets(false));
+			if (null != e) return e;
+		}
+		return null;
 	}
 
-	@Override
-	public long size() {
-		return Long.MAX_VALUE;
+	public KafkaMessage dequeue0(String topic) {
+		for (Entry<KafkaStream<byte[], byte[]>, T> s : Collections.disorderize(streams.get(topic).entrySet())) {
+			KafkaMessage e = fetch(s.getKey(), s.getValue(), v -> connect.commitOffsets(false));
+			if (null != e) return e;
+		}
+		return null;
 	}
 
-	@Override
-	public long size(String key) {
-		return Long.MAX_VALUE;
+	public List<KafkaMessage> dequeue(long batchSize, String... topic) {
+		List<KafkaMessage> batch = new ArrayList<>();
+		long prev;
+		try {
+			do {
+				prev = batch.size();
+				for (String t : topic)
+					for (Entry<KafkaStream<byte[], byte[]>, T> s : Collections.disorderize(streams.get(t).entrySet()))
+						fetch(s.getKey(), s.getValue(), e -> batch.add(e));
+				if (batch.size() >= batchSize) return batch;
+				if (batch.size() == 0) Concurrents.waitSleep();
+			} while (opened() && batch.size() < batchSize && (prev != batch.size() || batch.size() == 0));
+			return batch;
+		} finally {
+			connect.commitOffsets(true);
+		}
 	}
 
-	@Override
 	public Set<String> keys() {
 		return streams.keySet();
 	}
@@ -92,33 +111,5 @@ abstract class KafkaInputBase<T> extends MapInput<String, KafkaMessage> {
 				}
 		connect.commitOffsets(true);
 		connect.shutdown();
-	}
-
-	@Override
-	public KafkaMessage dequeue0(String topic) {
-		for (Entry<KafkaStream<byte[], byte[]>, T> s : Collections.disorderize(streams.get(topic).entrySet())) {
-			KafkaMessage e = fetch(s.getKey(), s.getValue(), v -> connect.commitOffsets(false));
-			if (null != e) return e;
-		}
-		return null;
-	}
-
-	@Override
-	public List<KafkaMessage> dequeue(long batchSize, String... topic) {
-		List<KafkaMessage> batch = new ArrayList<>();
-		long prev;
-		try {
-			do {
-				prev = batch.size();
-				for (String t : topic)
-					for (Entry<KafkaStream<byte[], byte[]>, T> s : Collections.disorderize(streams.get(t).entrySet()))
-						fetch(s.getKey(), s.getValue(), e -> batch.add(e));
-				if (batch.size() >= batchSize) return batch;
-				if (batch.size() == 0) Concurrents.waitSleep(EMPTY_WAIT_MS);
-			} while (opened() && batch.size() < batchSize && (prev != batch.size() || batch.size() == 0));
-			return batch;
-		} finally {
-			connect.commitOffsets(true);
-		}
 	}
 }

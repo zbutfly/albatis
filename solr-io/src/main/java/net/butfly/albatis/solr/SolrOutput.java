@@ -10,7 +10,6 @@ import net.butfly.albacore.io.faliover.FailoverOutput;
 import scala.Tuple2;
 
 public class SolrOutput extends FailoverOutput<SolrMessage<SolrInputDocument>, SolrInputDocument> {
-	private static final long serialVersionUID = -2897525987426418020L;
 	static final int DEFAULT_AUTO_COMMIT_MS = 30000;
 	private final SolrConnection solr;
 

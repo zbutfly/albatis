@@ -19,7 +19,6 @@ import net.butfly.albacore.utils.Collections;
 import scala.Tuple2;
 
 public final class HbaseOutput extends FailoverOutput<HbaseResult, Result> {
-	private static final long serialVersionUID = 2141020043117686747L;
 	private final Connection connect;
 	private final Map<String, Table> tables;
 

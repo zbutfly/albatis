@@ -1,17 +1,17 @@
 package net.butfly.albatis.elastic;
 
-import net.butfly.albacore.io.Input;
-import net.butfly.albacore.utils.logger.Logger;
+import java.io.IOException;
+import java.util.List;
+
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.query.QueryBuilders;
 
-import java.io.IOException;
-import java.util.List;
+import net.butfly.albacore.io.InputImpl;
+import net.butfly.albacore.utils.logger.Logger;
 
-public class ElasticInput extends Input<SearchResponse> {
-	private static final long serialVersionUID = -5666669099160512388L;
+public class ElasticInput extends InputImpl<SearchResponse> {
 	protected static final Logger logger = Logger.getLogger(ElasticInput.class);
 	private final ElasticConnection elastic;
 	// view time def 10 minute
@@ -23,7 +23,6 @@ public class ElasticInput extends Input<SearchResponse> {
 	private String type;
 
 	public ElasticInput(String connection) throws IOException {
-		super("elastic-input-queue");
 		elastic = new ElasticConnection(connection);
 		index = elastic.getDefaultIndex();
 		type = elastic.getDefaultType();
@@ -86,7 +85,6 @@ public class ElasticInput extends Input<SearchResponse> {
 	@Override
 	public List<SearchResponse> dequeue(long batchSize) {
 		return super.dequeue(batchSize);
-
 	}
 
 	public void scanType() {

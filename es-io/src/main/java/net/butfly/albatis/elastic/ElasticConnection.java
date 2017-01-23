@@ -1,15 +1,17 @@
 package net.butfly.albatis.elastic;
 
-import com.hzcominfo.albatis.nosql.NoSqlConnection;
-import net.butfly.albacore.utils.Pair;
-import net.butfly.albacore.utils.logger.Logger;
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 
-import java.io.IOException;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
+import com.hzcominfo.albatis.nosql.NoSqlConnection;
+
+import net.butfly.albacore.utils.Pair;
+import net.butfly.albacore.utils.logger.Logger;
 
 public class ElasticConnection extends NoSqlConnection<TransportClient> {
 	private static final Logger logger = Logger.getLogger(ElasticConnection.class);
@@ -29,7 +31,7 @@ public class ElasticConnection extends NoSqlConnection<TransportClient> {
 				}
 			}
 			return c;
-		}, "elasticsearch");
+		}, "es", "elasticsearch");
 	}
 
 	public ElasticConnection(String url, String... indexAndType) throws IOException {

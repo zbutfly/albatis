@@ -1,10 +1,11 @@
 package com.hzcominfo.albatis.search.result;
 
-import com.hzcominfo.albatis.search.exception.SearchAPIException;
-import net.butfly.albacore.exception.NotImplementedException;
-
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+
+import com.hzcominfo.albatis.search.exception.SearchAPIException;
+
+import net.butfly.albacore.exception.NotImplementedException;
 
 /**
  * 结果集的描述类，一般用于直接数据返回的时候可以忽略

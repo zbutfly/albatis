@@ -1,9 +1,5 @@
 package net.butfly.albatis.mongodb;
 
-import com.google.common.util.concurrent.AtomicDouble;
-import com.mongodb.DBObject;
-import net.butfly.albacore.lambda.Runnable;
-
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.DecimalFormat;
@@ -11,6 +7,11 @@ import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+
+import com.google.common.util.concurrent.AtomicDouble;
+import com.mongodb.DBObject;
+
+import net.butfly.albacore.lambda.Runnable;
 
 public class MongoIOTest {
 	public static void main(String[] args) throws IOException {

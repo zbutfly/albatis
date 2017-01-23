@@ -1,12 +1,12 @@
 package net.butfly.albatis.kafka.config;
 
+import java.io.IOException;
+import java.util.Properties;
+
 import kafka.producer.ProducerConfig;
 import net.butfly.albacore.exception.ConfigException;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.Configs;
-
-import java.io.IOException;
-import java.util.Properties;
 
 public class KafkaOutputConfig extends KafkaConfigBase {
 	private static final long serialVersionUID = -3028341800709486625L;

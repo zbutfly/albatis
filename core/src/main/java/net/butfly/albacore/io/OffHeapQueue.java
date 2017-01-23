@@ -1,16 +1,17 @@
 package net.butfly.albacore.io;
 
+import java.io.IOException;
+import java.util.List;
+
 import com.leansoft.bigqueue.BigQueueImpl;
 import com.leansoft.bigqueue.IBigQueue;
+
 import net.butfly.albacore.io.queue.QImpl;
 import net.butfly.albacore.lambda.Converter;
 import net.butfly.albacore.utils.async.Concurrents;
 import net.butfly.albacore.utils.logger.Logger;
 
-import java.io.IOException;
-
 public class OffHeapQueue<I, O> extends QImpl<I, O> {
-	private static final long serialVersionUID = -1L;
 	protected static final Logger logger = Logger.getLogger(OffHeapQueue.class);
 
 	protected final String dataFolder;
@@ -62,13 +63,12 @@ public class OffHeapQueue<I, O> extends QImpl<I, O> {
 		}
 	}
 
-	@SafeVarargs
 	@Override
-	public final long enqueue(I... message) {
+	public final long enqueue(List<I> messages) {
 		while (full())
-			if (!Concurrents.waitSleep(FULL_WAIT_MS)) logger.warn("Wait for full interrupted");
+			if (!Concurrents.waitSleep()) logger.warn("Wait for full interrupted");
 		long c = 0;
-		for (I m : message)
+		for (I m : messages)
 			if (enqueue0(m)) c++;
 		return c;
 	}

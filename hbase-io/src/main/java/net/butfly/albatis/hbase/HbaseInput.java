@@ -19,12 +19,11 @@ import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterList;
 
-import net.butfly.albacore.io.Input;
+import net.butfly.albacore.io.InputImpl;
 import net.butfly.albacore.lambda.Supplier;
 import net.butfly.albacore.utils.Collections;
 
-public class HbaseInput extends Input<HbaseResult> {
-	private static final long serialVersionUID = 8805176327882596072L;
+public class HbaseInput extends InputImpl<HbaseResult> {
 	protected final Connection connect;
 	protected final String tableName;
 	protected final Table table;

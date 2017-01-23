@@ -1,13 +1,5 @@
 package com.hzcominfo.albatis.search.filter;
 
-import com.hzcominfo.albatis.search.Query;
-import com.hzcominfo.albatis.search.exception.SearchAPIException;
-import org.jdom2.Attribute;
-import org.jdom2.Document;
-import org.jdom2.Element;
-import org.jdom2.JDOMException;
-import org.jdom2.input.SAXBuilder;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -16,6 +8,15 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.jdom2.Attribute;
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.JDOMException;
+import org.jdom2.input.SAXBuilder;
+
+import com.hzcominfo.albatis.search.Query;
+import com.hzcominfo.albatis.search.exception.SearchAPIException;
 
 /**
  * 通过解析XML文件获取Filter配置的工具类

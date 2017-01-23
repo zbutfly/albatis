@@ -12,7 +12,6 @@ import net.butfly.albacore.utils.Collections;
 import scala.Tuple2;
 
 public class EsOutput extends FailoverOutput<ElasticMessage, ElasticMessage> {
-	private static final long serialVersionUID = 1496163556789600293L;
 	private final ElasticConnection conn;
 
 	public EsOutput(String name, String esUri, String failoverPath) throws IOException {

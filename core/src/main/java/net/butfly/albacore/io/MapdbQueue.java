@@ -3,8 +3,6 @@ package net.butfly.albacore.io;
 import net.butfly.albacore.io.queue.QImpl;
 
 public class MapdbQueue<I, O> extends QImpl<I, O> {
-	private static final long serialVersionUID = 7491057807684102428L;
-
 	protected MapdbQueue(String name, long capacity) {
 		super(name, capacity);
 	}

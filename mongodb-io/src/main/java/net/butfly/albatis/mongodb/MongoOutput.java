@@ -1,21 +1,21 @@
 package net.butfly.albatis.mongodb;
 
-import com.mongodb.DBCollection;
-import com.mongodb.DBObject;
-import net.butfly.albacore.io.Output;
-import net.butfly.albacore.utils.Collections;
-
 import java.io.IOException;
 import java.util.List;
 
-public class MongoOutput extends Output<DBObject> {
-	private static final long serialVersionUID = 2141020043117686747L;
+import com.mongodb.DBCollection;
+import com.mongodb.DBObject;
+
+import net.butfly.albacore.io.OutputImpl;
+import net.butfly.albacore.utils.Collections;
+
+public class MongoOutput extends OutputImpl<DBObject> {
 	private final boolean upsert;
 	private final MongoConnection conn;
 	private final DBCollection collection;
 
 	public MongoOutput(String name, String uri, String collection, boolean upsert) throws IOException {
-		super(name);
+super(name);
 		this.upsert = upsert;
 		this.conn = new MongoConnection(uri);
 		this.collection = conn.db().getCollection(collection);

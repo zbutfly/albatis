@@ -1,7 +1,8 @@
-import net.butfly.albatis.elastic.ElasticInput;
+import java.io.IOException;
+
 import org.junit.Test;
 
-import java.io.IOException;
+import net.butfly.albatis.elastic.ElasticInput;
 
 /**
  * Created by hzcominfo67 on 2017/1/18.

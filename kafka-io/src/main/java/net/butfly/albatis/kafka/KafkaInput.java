@@ -1,7 +1,15 @@
 package net.butfly.albatis.kafka;
 
+import java.io.IOException;
+import java.text.MessageFormat;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import com.leansoft.bigqueue.BigQueueImpl;
 import com.leansoft.bigqueue.IBigQueue;
+
 import kafka.consumer.ConsumerIterator;
 import kafka.consumer.KafkaStream;
 import net.butfly.albacore.exception.ConfigException;
@@ -10,15 +18,7 @@ import net.butfly.albacore.lambda.Consumer;
 import net.butfly.albacore.utils.IOs;
 import net.butfly.albacore.utils.Systems;
 
-import java.io.IOException;
-import java.text.MessageFormat;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
-
 public class KafkaInput extends KafkaInputBase<KafkaInput.Fetcher> {
-	private static final long serialVersionUID = 1813167082084278062L;
 	private IBigQueue pool;
 
 	public KafkaInput(String name, final String kafkaURI, final String poolPath, String... topic) throws ConfigException, IOException {

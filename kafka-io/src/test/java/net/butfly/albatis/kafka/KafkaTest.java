@@ -1,13 +1,17 @@
 package net.butfly.albatis.kafka;
 
-import net.butfly.albacore.exception.ConfigException;
-
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import net.butfly.albacore.exception.ConfigException;
 
 public class KafkaTest {
 	public static void main(String[] args) throws ConfigException, IOException {
@@ -36,7 +40,7 @@ public class KafkaTest {
 						+ "size: <" + nf.format(size / 1024.0 / 1024) + " MByte>, "//
 						+ "total: <" + nf.format(total / 1024) + " Gbytes>, "//
 						+ "avg: <" + nf.format(total / ((curr - begin) / 1000.0)) + " MBytes/sec>, " //
-						+ "pool: <" + in.poolStatus() + ">."//
+						// + "pool: <" + in.poolStatus() + ">."//
 						+ "\n\tcount detail: <" + counts + ">, " //
 				);
 				now = new Date().getTime();

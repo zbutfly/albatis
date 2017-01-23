@@ -11,7 +11,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import net.butfly.albacore.io.Output;
+import net.butfly.albacore.io.OutputImpl;
 import scala.Tuple2;
 
 /**
@@ -25,12 +25,11 @@ import scala.Tuple2;
  * @param <I>
  * @param <FV>
  */
-public abstract class FailoverOutput<I, FV> extends Output<I> {
-	private static final long serialVersionUID = 6327633226368591655L;
+public abstract class FailoverOutput<I, FV> extends OutputImpl<I> {
 	private final Failover<String, FV> failover;
 
 	public FailoverOutput(String name, String failoverPath, int packageSize, int parallenism) throws IOException {
-		super(name);
+super(name);
 		if (failoverPath == null) failover = new HeapFailover<String, FV>(name(), kvs -> write(kvs._1, kvs._2), this::commit, packageSize,
 				parallenism);
 		else failover = new OffHeapFailover<String, FV>(name(), kvs -> write(kvs._1, kvs._2), this::commit, failoverPath, null, packageSize,

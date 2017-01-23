@@ -7,16 +7,14 @@ import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.update.UpdateRequest;
 
-import net.butfly.albacore.io.Output;
+import net.butfly.albacore.io.OutputImpl;
 import net.butfly.albacore.utils.Collections;
 
 @Deprecated
-public class ElasticOutput extends Output<ElasticMessage> {
-	private static final long serialVersionUID = 1227554461265245482L;
+public class ElasticOutput extends OutputImpl<ElasticMessage> {
 	private final ElasticConnection conn;
 
-	public ElasticOutput(String name, ElasticConnection conn) throws IOException {
-		super(name);
+	public ElasticOutput(ElasticConnection conn) throws IOException {
 		this.conn = conn;
 	}
 

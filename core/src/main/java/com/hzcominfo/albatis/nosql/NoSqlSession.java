@@ -1,14 +1,14 @@
 package com.hzcominfo.albatis.nosql;
 
+import java.sql.Connection;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.ibatis.executor.BatchResult;
 import org.apache.ibatis.session.Configuration;
 import org.apache.ibatis.session.ResultHandler;
 import org.apache.ibatis.session.RowBounds;
 import org.apache.ibatis.session.SqlSession;
-
-import java.sql.Connection;
-import java.util.List;
-import java.util.Map;
 
 public interface NoSqlSession extends SqlSession {
 	@Override

@@ -1,5 +1,6 @@
-import net.butfly.albatis.elastic.ElasticURI;
 import org.junit.Test;
+
+import net.butfly.albatis.elastic.ElasticURI;
 
 /**
  * Created by hzcominfo67 on 2017/1/19.

@@ -1,7 +1,6 @@
 package com.hzcominfo.albatis.search;
 
 import com.hzcominfo.albatis.search.exception.SearchAPIException;
-import com.hzcominfo.albatis.search.filter.FilterLoader;
 
 /**
  * Created by lic on 2016/12/29.
