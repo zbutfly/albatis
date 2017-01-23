@@ -1,7 +1,5 @@
 package net.butfly.albacore.io.faliover;
 
-import net.butfly.albacore.lambda.ConverterPair;
-
 import java.io.IOException;
 import java.text.MessageFormat;
 import java.util.ArrayList;
@@ -9,15 +7,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.function.Consumer;
+
+import net.butfly.albacore.lambda.Callback;
+import scala.Tuple2;
 
 public class HeapFailover<K, V> extends Failover<K, V> {
 	private static final long serialVersionUID = -7766759011944551301L;
 	private static final int MAX_FAILOVER = 50000;
 	private Map<K, LinkedBlockingQueue<V>> failover = new ConcurrentHashMap<>();
 
-	public HeapFailover(String parentName, ConverterPair<K, List<V>, Exception> writing, Consumer<K> committing, int packageSize,
-			int parallelism) throws IOException {
+	public HeapFailover(String parentName, Callback<Tuple2<K, List<V>>> writing, Callback<K> committing, int packageSize, int parallelism)
+			throws IOException {
 		super(parentName, writing, committing, packageSize, parallelism);
 		failover = new ConcurrentHashMap<>();
 		logger.info(MessageFormat.format("SolrOutput [{0}] failover [memory mode] init.", parentName));
@@ -54,16 +54,16 @@ public class HeapFailover<K, V> extends Failover<K, V> {
 	}
 
 	@Override
-	protected void retry() {
-		List<V> retries = new ArrayList<>(packageSize);
-		for (K core : failover.keySet()) {
-			LinkedBlockingQueue<V> fails = failover.get(core);
-			fails.drainTo(retries, packageSize);
-			stats(retries);
-			if (!retries.isEmpty()) {
-				Exception e = writing.apply(core, retries);
-				if (null != e) fail(core, retries, e);
-				retries.clear();
+	protected void exec() {
+		while (opened()) {
+			List<V> retries = new ArrayList<>(packageSize);
+			for (K core : failover.keySet()) {
+				LinkedBlockingQueue<V> fails = failover.get(core);
+				fails.drainTo(retries, packageSize);
+				if (!retries.isEmpty()) {
+					doWrite(core, retries);
+					retries.clear();
+				}
 			}
 		}
 	}

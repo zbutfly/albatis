@@ -1,26 +1,26 @@
 package net.butfly.albacore.io.faliover;
 
-import com.leansoft.bigqueue.BigQueueImpl;
-import com.leansoft.bigqueue.IBigQueue;
-import net.butfly.albacore.lambda.ConverterPair;
-import net.butfly.albacore.utils.IOs;
-import net.butfly.albacore.utils.async.Concurrents;
-import scala.Tuple2;
-
 import java.io.IOException;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
+
+import com.leansoft.bigqueue.BigQueueImpl;
+import com.leansoft.bigqueue.IBigQueue;
+
+import net.butfly.albacore.lambda.Callback;
+import net.butfly.albacore.utils.IOs;
+import net.butfly.albacore.utils.async.Concurrents;
+import scala.Tuple2;
 
 public abstract class OffHeapFailover<K, V> extends Failover<K, V> {
 	private static final long serialVersionUID = -4766585003300311051L;
 	private IBigQueue failover;
 
-	public OffHeapFailover(String parentName, ConverterPair<K, List<V>, Exception> writing, Consumer<K> committing, String path,
-			String poolName, int packageSize, int parallelism) throws IOException {
+	public OffHeapFailover(String parentName, Callback<Tuple2<K, List<V>>> writing, Callback<K> committing, String path, String poolName,
+			int packageSize, int parallelism) throws IOException {
 		super(parentName, writing, committing, packageSize, parallelism);
 		if (poolName == null) poolName = "POOL";
 		failover = new BigQueueImpl(IOs.mkdirs(path + "/" + parentName), poolName);
@@ -34,36 +34,31 @@ public abstract class OffHeapFailover<K, V> extends Failover<K, V> {
 	protected abstract Tuple2<K, V> fromBytes(byte[] bytes);
 
 	@Override
-	protected void retry() {
-		while (opened() && failover.isEmpty())
-			Concurrents.waitSleep(1000);
-		Map<K, List<V>> fails = new HashMap<>();
-		while (opened() && !failover.isEmpty()) {
-			byte[] buf;
-			try {
-				buf = failover.dequeue();
-			} catch (IOException e) {
-				continue;
+	protected void exec() {
+		while (opened()) {
+			while (opened() && failover.isEmpty())
+				Concurrents.waitSleep(1000);
+			Map<K, List<V>> fails = new HashMap<>();
+			while (opened() && !failover.isEmpty()) {
+				byte[] buf;
+				try {
+					buf = failover.dequeue();
+				} catch (IOException e) {
+					logger.error("invalid failover found and lost.");
+					continue;
+				}
+				if (null == buf) return;
+				Tuple2<K, V> sm = fromBytes(buf);
+				if (null == sm) {
+					logger.error("invalid failover found and lost.");
+					continue;
+				}
+				List<V> l = fails.computeIfAbsent(sm._1, c -> new ArrayList<>(packageSize));
+				l.add(sm._2);
+				if (l.size() >= packageSize) doWrite(sm._1, fails.remove(sm._1));
 			}
-			if (null == buf) return;
-			Tuple2<K, V> sm = fromBytes(buf);
-			if (null == sm) {
-				logger.error("invalid failover found and lost.");
-				continue;
-			}
-			List<V> l = fails.computeIfAbsent(sm._1, c -> new ArrayList<>(packageSize));
-			l.add(sm._2);
-			if (l.size() < packageSize && !failover.isEmpty()) continue;
-			l = fails.remove(sm._1);
-			stats(l);
-			Exception e = writing.apply(sm._1, l);
-			if (null != e) fail(sm._1, l, e);
-
-		}
-		for (K core : fails.keySet()) {
-			List<V> l = fails.remove(core);
-			Exception e = writing.apply(core, l);
-			if (null != e) fail(core, l, e);
+			for (K core : fails.keySet())
+				doWrite(core, fails.remove(core));
 		}
 	}
 

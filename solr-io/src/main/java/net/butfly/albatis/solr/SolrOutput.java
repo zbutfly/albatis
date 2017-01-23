@@ -1,12 +1,13 @@
 package net.butfly.albatis.solr;
 
-import net.butfly.albacore.io.faliover.FailoverOutput;
-import org.apache.solr.client.solrj.SolrServerException;
-import org.apache.solr.common.SolrInputDocument;
-import scala.Tuple2;
-
 import java.io.IOException;
 import java.util.List;
+
+import org.apache.solr.client.solrj.SolrServerException;
+import org.apache.solr.common.SolrInputDocument;
+
+import net.butfly.albacore.io.faliover.FailoverOutput;
+import scala.Tuple2;
 
 public class SolrOutput extends FailoverOutput<SolrMessage<SolrInputDocument>, SolrInputDocument> {
 	private static final long serialVersionUID = -2897525987426418020L;
@@ -39,22 +40,13 @@ public class SolrOutput extends FailoverOutput<SolrMessage<SolrInputDocument>, S
 	}
 
 	@Override
-	protected Exception write(String key, List<SolrInputDocument> values) {
-		try {
-			solr.client().add(key, values, DEFAULT_AUTO_COMMIT_MS);
-			return null;
-		} catch (Exception e) {
-			return e;
-		}
+	protected void write(String key, List<SolrInputDocument> values) throws Exception {
+		solr.client().add(key, values, DEFAULT_AUTO_COMMIT_MS);
 	}
 
 	@Override
-	protected void commit(String key) {
-		try {
-			solr.client().commit(key, false, false, true);
-		} catch (SolrServerException | IOException e) {
-			throw new RuntimeException(e);
-		}
+	protected void commit(String key) throws Exception {
+		solr.client().commit(key, false, false, true);
 	}
 
 	@Override

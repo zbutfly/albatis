@@ -1,31 +1,30 @@
 package net.butfly.albacore.io.faliover;
 
-import net.butfly.albacore.io.OpenableThread;
-import net.butfly.albacore.io.stats.Statistical;
-import net.butfly.albacore.lambda.ConverterPair;
-import net.butfly.albacore.utils.Collections;
-import net.butfly.albacore.utils.logger.Logger;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
+
+import net.butfly.albacore.io.OpenableThread;
+import net.butfly.albacore.io.stats.Statistical;
+import net.butfly.albacore.lambda.Callback;
+import net.butfly.albacore.utils.Collections;
+import net.butfly.albacore.utils.logger.Logger;
+import scala.Tuple2;
 
 public abstract class Failover<K, V> extends OpenableThread implements Statistical<Failover<K, V>> {
 	private static final long serialVersionUID = -7515454826294115208L;
 	protected static final Logger logger = Logger.getLogger(Failover.class);
-	protected final ConverterPair<K, List<V>, Exception> writing;
+	protected final Callback<Tuple2<K, List<V>>> writing;
 	protected final int packageSize;
 	private final LinkedBlockingQueue<Runnable> tasks;
 	private final List<Sender> senders;
-	private Consumer<K> committing;
+	private Callback<K> committing;
 	protected final ThreadGroup threadGroup;
 
-	protected Failover(String parentName, ConverterPair<K, List<V>, Exception> writing, Consumer<K> committing, int packageSize,
-			int parallelism) {
+	protected Failover(String parentName, Callback<Tuple2<K, List<V>>> writing, Callback<K> committing, int packageSize, int parallelism) {
 		super(parentName + "Failover");
 		threadGroup = new ThreadGroup(name());
 		this.writing = writing;
@@ -38,31 +37,31 @@ public abstract class Failover<K, V> extends OpenableThread implements Statistic
 		trace(packageSize, () -> "failover: " + size());
 	}
 
-	@Override
-	protected void exec() {
-		while (opened())
-			retry();
-	}
-
 	public abstract boolean isEmpty();
 
 	public abstract long size();
 
 	protected abstract int fail(K core, List<V> docs, Exception err);
 
-	protected abstract void retry();
+	protected final void doWrite(K key, List<V> values) {
+		if (values.isEmpty()) return;
+		try {
+			writing.call(new Tuple2<>(key, values));
+			stats(values);
+		} catch (Exception ex) {
+			fail(key, values, ex);
+		}
+	}
 
 	final <W> void dotry(Map<K, List<V>> map) {
 		for (Entry<K, List<V>> e : map.entrySet()) {
 			boolean inserted = false;
 			if (opened()) do {
 				inserted = tasks.offer(() -> {
-					for (List<V> pkg : Collections.chopped(e.getValue(), packageSize)) {
-						Exception err = writing.apply(e.getKey(), pkg);
-						if (null != err) fail(e.getKey(), pkg, err);
-					}
+					for (List<V> pkg : Collections.chopped(e.getValue(), packageSize))
+						doWrite(e.getKey(), pkg);
 					if (committing != null) try {
-						committing.accept(e.getKey());
+						committing.call(e.getKey());
 					} catch (Exception err) {
 						logger.warn("[" + name() + "] commit failure on core [" + e.getKey() + "]", err);
 					}

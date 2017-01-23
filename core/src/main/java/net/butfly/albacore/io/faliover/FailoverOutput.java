@@ -1,10 +1,18 @@
 package net.butfly.albacore.io.faliover;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import net.butfly.albacore.io.Output;
 import scala.Tuple2;
-
-import java.io.*;
-import java.util.*;
 
 /**
  * Output with buffer and failover supporting.<br>
@@ -23,9 +31,9 @@ public abstract class FailoverOutput<I, FV> extends Output<I> {
 
 	public FailoverOutput(String name, String failoverPath, int packageSize, int parallenism) throws IOException {
 		super(name);
-		if (failoverPath == null) failover = new HeapFailover<String, FV>(name(), (k, vs) -> write(k, vs), k -> commit(k), packageSize,
+		if (failoverPath == null) failover = new HeapFailover<String, FV>(name(), kvs -> write(kvs._1, kvs._2), this::commit, packageSize,
 				parallenism);
-		else failover = new OffHeapFailover<String, FV>(name(), (k, vs) -> write(k, vs), k -> commit(k), failoverPath, null, packageSize,
+		else failover = new OffHeapFailover<String, FV>(name(), kvs -> write(kvs._1, kvs._2), this::commit, failoverPath, null, packageSize,
 				parallenism) {
 			private static final long serialVersionUID = -6942345655578531843L;
 
@@ -41,9 +49,9 @@ public abstract class FailoverOutput<I, FV> extends Output<I> {
 		};
 	}
 
-	protected abstract Exception write(String key, List<FV> values);
+	protected abstract void write(String key, List<FV> values) throws Exception;
 
-	protected void commit(String key) {}
+	protected void commit(String key) throws Exception {}
 
 	protected final byte[] toBytes(String key, FV value) {
 		if (null == key || null == value) return null;

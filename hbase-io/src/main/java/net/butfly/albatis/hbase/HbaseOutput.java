@@ -1,19 +1,20 @@
 package net.butfly.albatis.hbase;
 
-import net.butfly.albacore.io.faliover.FailoverOutput;
-import net.butfly.albacore.utils.Collections;
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Table;
-import scala.Tuple2;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import net.butfly.albacore.io.faliover.FailoverOutput;
+import net.butfly.albacore.utils.Collections;
+import scala.Tuple2;
 
 public final class HbaseOutput extends FailoverOutput<HbaseResult, Result> {
 	private static final long serialVersionUID = 2141020043117686747L;
@@ -52,28 +53,23 @@ public final class HbaseOutput extends FailoverOutput<HbaseResult, Result> {
 	}
 
 	@Override
-	protected Exception write(String key, List<Result> values) {
-		try {
-			table(key).put(Collections.transN(values, r -> {
-				Put p;
+	protected void write(String key, List<Result> values) throws Exception {
+		table(key).put(Collections.transN(values, r -> {
+			Put p;
+			try {
+				p = new Put(r.getRow());
+			} catch (Exception ex) {
+				logger().warn("Hbase converting failure, ignored and continued.", ex);
+				return null;
+			}
+			for (Cell c : r.listCells())
 				try {
-					p = new Put(r.getRow());
-				} catch (Exception ex) {
-					logger().warn("Hbase converting failure, ignored and continued.", ex);
-					return null;
+					p.add(c);
+				} catch (Exception e) {
+					logger().warn("Hbase cell converting failure, ignored and continued.", e);
 				}
-				for (Cell c : r.listCells())
-					try {
-						p.add(c);
-					} catch (Exception e) {
-						logger().warn("Hbase cell converting failure, ignored and continued.", e);
-					}
-				return p;
-			}));
-			return null;
-		} catch (Exception e) {
-			return e;
-		}
+			return p;
+		}));
 	}
 
 	@Override
