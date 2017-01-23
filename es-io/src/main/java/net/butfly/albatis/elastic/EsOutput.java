@@ -33,7 +33,7 @@ public class EsOutput extends FailoverOutput<ElasticMessage, ElasticMessage> {
 	protected Exception write(String key, List<ElasticMessage> values) {
 		// TODO: List<ElasticMessage> fails = new ArrayList<>();
 		for (BulkItemResponse r : conn.client().bulk(//
-				new BulkRequest().add(Collections.transform(Collections.cleanNull(values), d -> d.update()).toArray(new UpdateRequest[0]))//
+				new BulkRequest().add(Collections.transN(values, d -> d.update()).toArray(new UpdateRequest[0]))//
 		).actionGet())
 			if (r.isFailed()) return new RuntimeException("ES bulk update failure: " + r.getFailureMessage());
 		return null;

@@ -66,10 +66,11 @@ public abstract class FailoverOutput<I, FV> extends Output<I> {
 	@Override
 	public final long enqueue(List<I> els) {
 		Map<String, List<FV>> map = new HashMap<>();
-		for (I e : els) {
-			Tuple2<String, FV> t = parse(e);
-			map.computeIfAbsent(t._1, core -> new ArrayList<>()).add(t._2);
-		}
+		for (I e : els)
+			if (null != e) {
+				Tuple2<String, FV> t = parse(e);
+				map.computeIfAbsent(t._1, core -> new ArrayList<>()).add(t._2);
+			}
 		failover.dotry(map);
 		return els.size();
 	}

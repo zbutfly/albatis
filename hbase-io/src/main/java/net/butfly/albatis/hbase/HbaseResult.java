@@ -2,7 +2,9 @@ package net.butfly.albatis.hbase;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import org.apache.hadoop.hbase.Cell;
@@ -26,10 +28,14 @@ public class HbaseResult implements Serializable {
 	// private final Map<String, Cell> cells = new HashMap<>();
 
 	public HbaseResult(String table, byte[] row, Cell... cells) {
+		this(table, row, Arrays.asList(cells));
+	}
+
+	public HbaseResult(String table, byte[] row, List<Cell> cells) {
 		super();
 		this.table = table;
 		this.row = row;
-		this.result = Result.create(cells);
+		this.result = Result.create(Collections.noNull(cells));
 	}
 
 	public HbaseResult(String table, Result result) {

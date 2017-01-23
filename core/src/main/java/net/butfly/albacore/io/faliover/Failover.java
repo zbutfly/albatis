@@ -50,7 +50,7 @@ public abstract class Failover<K, V> extends OpenableThread implements Statistic
 
 	protected abstract void retry();
 
-	public final <W> void dotry(Map<K, List<V>> map) {
+	final <W> void dotry(Map<K, List<V>> map) {
 		for (Entry<K, List<V>> e : map.entrySet()) {
 			boolean inserted = false;
 			if (opened()) do {

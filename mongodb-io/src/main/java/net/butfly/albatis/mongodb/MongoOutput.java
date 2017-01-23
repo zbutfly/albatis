@@ -3,6 +3,7 @@ package net.butfly.albatis.mongodb;
 import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 import net.butfly.albacore.io.Output;
+import net.butfly.albacore.utils.Collections;
 
 import java.io.IOException;
 import java.util.List;
@@ -34,6 +35,6 @@ public class MongoOutput extends Output<DBObject> {
 
 	@Override
 	public long enqueue(List<DBObject> dbos) {
-		return collection.insert(dbos).getN();
+		return collection.insert(Collections.noNull(dbos)).getN();
 	}
 }

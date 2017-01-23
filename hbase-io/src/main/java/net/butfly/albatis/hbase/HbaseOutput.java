@@ -58,7 +58,7 @@ public final class HbaseOutput extends FailoverOutput<HbaseResult, Result> {
 	@Override
 	protected Exception write(String key, List<Result> values) {
 		try {
-			List<Put> puts = Collections.transform(values, r -> {
+			table(key).put(Collections.transN(values, r -> {
 				Put p;
 				try {
 					p = new Put(r.getRow());
@@ -73,8 +73,7 @@ public final class HbaseOutput extends FailoverOutput<HbaseResult, Result> {
 						logger().warn("Hbase cell converting failure, ignored and continued.", e);
 					}
 				return p;
-			});
-			table(key).put(Collections.cleanNull(puts));
+			}));
 			return null;
 		} catch (IOException e) {
 			return e;

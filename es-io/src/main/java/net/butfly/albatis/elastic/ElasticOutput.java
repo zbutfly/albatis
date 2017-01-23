@@ -30,7 +30,7 @@ public class ElasticOutput extends Output<ElasticMessage> {
 	@Override
 	public long enqueue(List<ElasticMessage> docs) {
 		long s = 0;
-		for (BulkItemResponse r : conn.client().bulk(new BulkRequest().add(Collections.transform(docs, d -> d.update()).toArray(
+		for (BulkItemResponse r : conn.client().bulk(new BulkRequest().add(Collections.transN(docs, d -> d.update()).toArray(
 				new UpdateRequest[0]))).actionGet())
 			if (!r.isFailed()) s++;
 		return s;
