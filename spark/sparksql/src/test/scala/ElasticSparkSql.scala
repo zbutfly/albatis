@@ -28,6 +28,11 @@ class ElasticSparkSql{
     val distData = spark.parallelize(data)
     distData.map(a=>a+1)
     distData.collect()
+    val f = spark.textFile("")
+   // f.map()
+
+
+
   }
   def test1(a: Int, v: Int = 1): Unit = {
 
