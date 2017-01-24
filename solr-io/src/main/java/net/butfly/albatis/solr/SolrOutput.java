@@ -39,8 +39,15 @@ public class SolrOutput extends FailoverOutput<SolrMessage<SolrInputDocument>, S
 	}
 
 	@Override
-	protected void write(String key, List<SolrInputDocument> values) throws Exception {
-		solr.client().add(key, values, DEFAULT_AUTO_COMMIT_MS);
+	protected int write(String key, List<SolrInputDocument> values) {
+		try {
+			solr.client().add(key, values, DEFAULT_AUTO_COMMIT_MS);
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+		return values.size();
 	}
 
 	@Override

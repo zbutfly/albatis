@@ -12,9 +12,9 @@ public class ElasticInputTest {
 	public void ioInputTest() throws IOException {
 		String uri = "elasticsearch://@10.118.159.45:39300/scattered_data";
 		try (ElasticInput elasticInput = new ElasticInput(uri);) {
-			Object a = elasticInput.dequeue0();
+			Object a = elasticInput.dequeue();
 			System.out.print(a);
-			a = elasticInput.dequeue0();
+			a = elasticInput.dequeue();
 			System.out.print(a);
 		}
 	}

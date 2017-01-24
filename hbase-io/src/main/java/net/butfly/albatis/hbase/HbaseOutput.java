@@ -57,23 +57,31 @@ public final class HbaseOutput extends FailoverOutput<HbaseResult, Result> {
 	}
 
 	@Override
-	protected void write(String key, List<Result> values) throws Exception {
-		table(key).put(Collections.transN(values, r -> {
-			Put p;
-			try {
-				p = new Put(r.getRow());
-			} catch (Exception ex) {
-				logger().warn("Hbase converting failure, ignored and continued.", ex);
-				return null;
-			}
-			for (Cell c : r.listCells())
+	protected int write(String key, List<Result> values) {
+		try {
+			List<Put> t = Collections.transN(values, r -> {
+				Put p;
 				try {
-					p.add(c);
-				} catch (Exception e) {
-					logger().warn("Hbase cell converting failure, ignored and continued.", e);
+					p = new Put(r.getRow());
+				} catch (Exception ex) {
+					logger().warn("Hbase converting failure, ignored and continued.", ex);
+					return null;
 				}
-			return p;
-		}));
+				for (Cell c : r.listCells())
+					try {
+						p.add(c);
+					} catch (Exception e) {
+						logger().warn("Hbase cell converting failure, ignored and continued.", e);
+					}
+				return p;
+			});
+			table(key).put(t);
+			return t.size();
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	@Override

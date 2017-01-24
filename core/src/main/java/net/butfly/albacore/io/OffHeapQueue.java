@@ -6,12 +6,12 @@ import java.util.List;
 import com.leansoft.bigqueue.BigQueueImpl;
 import com.leansoft.bigqueue.IBigQueue;
 
-import net.butfly.albacore.io.queue.QImpl;
+import net.butfly.albacore.io.queue.QueueImpl;
 import net.butfly.albacore.lambda.Converter;
 import net.butfly.albacore.utils.async.Concurrents;
 import net.butfly.albacore.utils.logger.Logger;
 
-public class OffHeapQueue<I, O> extends QImpl<I, O> {
+public class OffHeapQueue<I, O> extends QueueImpl<I, O> {
 	protected static final Logger logger = Logger.getLogger(OffHeapQueue.class);
 
 	protected final String dataFolder;
@@ -38,7 +38,7 @@ public class OffHeapQueue<I, O> extends QImpl<I, O> {
 	}
 
 	@Override
-	public boolean enqueue0(I e) {
+	public boolean enqueue(I e, boolean block) {
 		if (null == e) return false;
 		try {
 			byte[] v = iconv.apply(e);
@@ -52,7 +52,7 @@ public class OffHeapQueue<I, O> extends QImpl<I, O> {
 	}
 
 	@Override
-	public O dequeue0() {
+	public O dequeue(boolean block) {
 		try {
 			return oconv.apply(queue.dequeue());
 		} catch (IOException e) {
@@ -69,7 +69,7 @@ public class OffHeapQueue<I, O> extends QImpl<I, O> {
 			if (!Concurrents.waitSleep()) logger.warn("Wait for full interrupted");
 		long c = 0;
 		for (I m : messages)
-			if (enqueue0(m)) c++;
+			if (enqueue(m)) c++;
 		return c;
 	}
 

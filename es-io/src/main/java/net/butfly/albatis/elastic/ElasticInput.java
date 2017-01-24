@@ -76,7 +76,7 @@ public class ElasticInput extends InputImpl<SearchResponse> {
 	}
 
 	@Override
-	public SearchResponse dequeue0() {
+	public SearchResponse dequeue(boolean block) {
 		if (searchResponse == null) scanType();
 		else scanType2(searchResponse);
 		return searchResponse;

@@ -1,29 +1,27 @@
 package net.butfly.albacore.io;
 
-import net.butfly.albacore.io.queue.QImpl;
+import net.butfly.albacore.io.queue.QueueImpl;
 
-public class MapdbQueue<I, O> extends QImpl<I, O> {
+public class MapdbQueue<I, O> extends QueueImpl<I, O> {
 	protected MapdbQueue(String name, long capacity) {
 		super(name, capacity);
 	}
 
 	@Override
-	public boolean enqueue0(I d) {
-		return false;
-	}
-
-	@Override
-	public O dequeue0() {
-		return null;
-	}
-
-	@Override
 	public long size() {
+		// TODO Auto-generated method stub
 		return 0;
 	}
 
 	@Override
-	public void close() {
-		super.close();
+	public O dequeue(boolean block) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public boolean enqueue(I item, boolean block) {
+		// TODO Auto-generated method stub
+		return false;
 	}
 }

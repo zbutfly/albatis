@@ -2,9 +2,11 @@ package net.butfly.albatis.kafka;
 
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.RecordMetadata;
 
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.JdkFutureAdapters;
@@ -19,7 +21,7 @@ public class KafkaOutput extends OutputImpl<KafkaMessage> {
 	private final KafkaProducer<byte[], byte[]> connect;
 
 	public KafkaOutput(final String name, final String kafkaURI) throws ConfigException {
-super(name);
+		super(name);
 		connect = new KafkaProducer<byte[], byte[]>(new KafkaOutputConfig(new URISpec(kafkaURI)).props());
 	}
 
@@ -29,14 +31,20 @@ super(name);
 	}
 
 	@Override
-	public boolean enqueue0(KafkaMessage m) {
+	public boolean enqueue(KafkaMessage m, boolean block) {
 		if (null == m) return false;
 		m.setTopic(m.getTopic());
-		connect.send(m.toProducer(), (meta, ex) -> {
+		Future<RecordMetadata> r = connect.send(m.toProducer(), (meta, ex) -> {
 			if (null != ex) logger().error("Kafka send failure on topic [" + m.getTopic() + "] with key: [" + new String(m.getKey()) + "]",
 					ex);
 		});
-		return true;
+		if (block) try {
+			r.get();
+			return true;
+		} catch (InterruptedException | ExecutionException e) {
+			return false;
+		}
+		else return true;
 	}
 
 	@Override

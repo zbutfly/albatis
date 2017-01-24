@@ -60,9 +60,9 @@ public class KafkaInput extends KafkaInputBase<KafkaInput.Fetcher> {
 	}
 
 	@Override
-	public List<KafkaMessage> dequeue(long batchSize, String... topic) {
+	public List<KafkaMessage> dequeue(long batchSize, Iterable<String> topics) {
 		try {
-			return super.dequeue(batchSize, topic);
+			return super.dequeue(batchSize, topics);
 		} finally {
 			// System.gc();
 			try {

@@ -11,7 +11,7 @@ import java.util.Set;
 import kafka.consumer.KafkaStream;
 import kafka.javaapi.consumer.ConsumerConnector;
 import net.butfly.albacore.exception.ConfigException;
-import net.butfly.albacore.io.InputImpl;
+import net.butfly.albacore.io.KeyInputImpl;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.lambda.Consumer;
 import net.butfly.albacore.utils.Collections;
@@ -21,13 +21,13 @@ import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.kafka.config.KafkaInputConfig;
 import net.butfly.albatis.kafka.config.Kafkas;
 
-abstract class KafkaInputBase<T> extends InputImpl<KafkaMessage> {
+abstract class KafkaInputBase<V> extends KeyInputImpl<String, KafkaMessage> {
 	protected static final Logger logger = Logger.getLogger(KafkaInputBase.class);
 	protected final KafkaInputConfig conf;
 	protected final Map<String, Integer> topics;
 	protected final ConsumerConnector connect;
 	protected final Map<String, List<KafkaStream<byte[], byte[]>>> raws;
-	protected final Map<String, Map<KafkaStream<byte[], byte[]>, T>> streams;
+	protected final Map<String, Map<KafkaStream<byte[], byte[]>, V>> streams;
 
 	public KafkaInputBase(String name, final String kafkaURI, String... topic) throws ConfigException, IOException {
 		super(name);
@@ -48,39 +48,52 @@ abstract class KafkaInputBase<T> extends InputImpl<KafkaMessage> {
 		streams = new HashMap<>();
 	}
 
-	protected abstract KafkaMessage fetch(KafkaStream<byte[], byte[]> stream, T lock, Consumer<KafkaMessage> result);
+	protected abstract KafkaMessage fetch(KafkaStream<byte[], byte[]> stream, V lock, Consumer<KafkaMessage> result);
+
+	@Override
+	protected void readTo(String key, List<KafkaMessage> batch) {
+		for (Entry<KafkaStream<byte[], byte[]>, V> s : Collections.disorderize(streams.get(key).entrySet()))
+			fetch(s.getKey(), s.getValue(), e -> batch.add(e));
+	}
+
+	@Override
+	protected void readCommit() {
+		connect.commitOffsets(true);
+	}
 
 	@Override
 	public List<KafkaMessage> dequeue(long batchSize) {
-		return dequeue(batchSize, keys().toArray(new String[0]));
+		return dequeue(batchSize, keys());
 	}
 
 	@Override
-	public KafkaMessage dequeue0() {
+	public KafkaMessage dequeue(boolean block) {
 		String topic = Collections.disorderize(keys()).get(0);
-		for (Entry<KafkaStream<byte[], byte[]>, T> s : Collections.disorderize(streams.get(topic).entrySet())) {
+		for (Entry<KafkaStream<byte[], byte[]>, V> s : Collections.disorderize(streams.get(topic).entrySet())) {
 			KafkaMessage e = fetch(s.getKey(), s.getValue(), v -> connect.commitOffsets(false));
 			if (null != e) return e;
 		}
 		return null;
 	}
 
-	public KafkaMessage dequeue0(String topic) {
-		for (Entry<KafkaStream<byte[], byte[]>, T> s : Collections.disorderize(streams.get(topic).entrySet())) {
+	@Override
+	public KafkaMessage dequeue(String topic) {
+		for (Entry<KafkaStream<byte[], byte[]>, V> s : Collections.disorderize(streams.get(topic).entrySet())) {
 			KafkaMessage e = fetch(s.getKey(), s.getValue(), v -> connect.commitOffsets(false));
 			if (null != e) return e;
 		}
 		return null;
 	}
 
-	public List<KafkaMessage> dequeue(long batchSize, String... topic) {
+	@Override
+	public List<KafkaMessage> dequeue(long batchSize, Iterable<String> topics) {
 		List<KafkaMessage> batch = new ArrayList<>();
 		long prev;
 		try {
 			do {
 				prev = batch.size();
-				for (String t : topic)
-					for (Entry<KafkaStream<byte[], byte[]>, T> s : Collections.disorderize(streams.get(t).entrySet()))
+				for (String topic : topics)
+					for (Entry<KafkaStream<byte[], byte[]>, V> s : Collections.disorderize(streams.get(topic).entrySet()))
 						fetch(s.getKey(), s.getValue(), e -> batch.add(e));
 				if (batch.size() >= batchSize) return batch;
 				if (batch.size() == 0) Concurrents.waitSleep();
@@ -91,6 +104,7 @@ abstract class KafkaInputBase<T> extends InputImpl<KafkaMessage> {
 		}
 	}
 
+	@Override
 	public Set<String> keys() {
 		return streams.keySet();
 	}
@@ -102,8 +116,8 @@ abstract class KafkaInputBase<T> extends InputImpl<KafkaMessage> {
 	}
 
 	private void closeKafka() {
-		for (Map<KafkaStream<byte[], byte[]>, T> tm : streams.values())
-			for (T f : tm.values())
+		for (Map<KafkaStream<byte[], byte[]>, V> tm : streams.values())
+			for (V f : tm.values())
 				if (f instanceof AutoCloseable) try {
 					((AutoCloseable) f).close();
 				} catch (Exception e) {

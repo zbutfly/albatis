@@ -90,7 +90,7 @@ public class HbaseInput extends InputImpl<HbaseResult> {
 	}
 
 	@Override
-	public HbaseResult dequeue0() {
+	public HbaseResult dequeue(boolean block) {
 		try {
 			return new HbaseResult(tableName, scaner.next());
 		} catch (IOException e) {

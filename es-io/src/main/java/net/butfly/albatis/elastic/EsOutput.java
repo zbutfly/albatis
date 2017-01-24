@@ -3,8 +3,10 @@ package net.butfly.albatis.elastic;
 import java.io.IOException;
 import java.util.List;
 
+import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkRequest;
+import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.update.UpdateRequest;
 
 import net.butfly.albacore.io.faliover.FailoverOutput;
@@ -29,12 +31,20 @@ public class EsOutput extends FailoverOutput<ElasticMessage, ElasticMessage> {
 	}
 
 	@Override
-	protected void write(String key, List<ElasticMessage> values) throws Exception {
+	protected int write(String key, List<ElasticMessage> values) {
 		// TODO: List<ElasticMessage> fails = new ArrayList<>();
-		for (BulkItemResponse r : conn.client().bulk(//
-				new BulkRequest().add(Collections.transN(values, d -> d.update()).toArray(new UpdateRequest[0]))//
-		).actionGet())
-			if (r.isFailed()) throw new RuntimeException("ES bulk update failure: " + r.getFailureMessage());
+		try {
+			ActionFuture<BulkResponse> resps = conn.client().bulk(new BulkRequest().add(Collections.transN(values, d -> d.update()).toArray(
+					new UpdateRequest[0])));
+			int c = 0;
+			for (BulkItemResponse r : resps.actionGet())
+				if (!r.isFailed()) c++;
+			return c;
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	@Override

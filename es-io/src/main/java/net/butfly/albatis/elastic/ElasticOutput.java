@@ -3,9 +3,11 @@ package net.butfly.albatis.elastic;
 import java.io.IOException;
 import java.util.List;
 
+import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.update.UpdateRequest;
+import org.elasticsearch.action.update.UpdateResponse;
 
 import net.butfly.albacore.io.OutputImpl;
 import net.butfly.albacore.utils.Collections;
@@ -19,10 +21,17 @@ public class ElasticOutput extends OutputImpl<ElasticMessage> {
 	}
 
 	@Override
-	public boolean enqueue0(ElasticMessage s) {
+	public boolean enqueue(ElasticMessage s, boolean block) {
 		if (s == null) return false;
-		conn.client().update(s.update()).actionGet();
-		return true;
+		ActionFuture<UpdateResponse> f = conn.client().update(s.update());
+		if (block) try {
+			f.actionGet();
+			return true;
+		} catch (Exception e) {
+			logger().error("Failure", e);
+			return false;
+		}
+		else return true;
 	}
 
 	@Override

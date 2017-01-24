@@ -15,7 +15,7 @@ public class MongoOutput extends OutputImpl<DBObject> {
 	private final DBCollection collection;
 
 	public MongoOutput(String name, String uri, String collection, boolean upsert) throws IOException {
-super(name);
+		super(name);
 		this.upsert = upsert;
 		this.conn = new MongoConnection(uri);
 		this.collection = conn.db().getCollection(collection);
@@ -27,7 +27,7 @@ super(name);
 	}
 
 	@Override
-	public boolean enqueue0(DBObject dbo) {
+	public boolean enqueue(DBObject dbo, boolean block) {
 		if (null == dbo) return false;
 		if (!upsert) return collection.insert(dbo).getN() == 1;
 		else return collection.save(dbo).getN() == 1;

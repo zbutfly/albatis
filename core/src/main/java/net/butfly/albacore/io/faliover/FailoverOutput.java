@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 
 import net.butfly.albacore.io.OutputImpl;
+import net.butfly.albacore.utils.Collections;
 import scala.Tuple2;
 
 /**
@@ -29,7 +30,7 @@ public abstract class FailoverOutput<I, FV> extends OutputImpl<I> {
 	private final Failover<String, FV> failover;
 
 	public FailoverOutput(String name, String failoverPath, int packageSize, int parallenism) throws IOException {
-super(name);
+		super(name);
 		if (failoverPath == null) failover = new HeapFailover<String, FV>(name(), kvs -> write(kvs._1, kvs._2), this::commit, packageSize,
 				parallenism);
 		else failover = new OffHeapFailover<String, FV>(name(), kvs -> write(kvs._1, kvs._2), this::commit, failoverPath, null, packageSize,
@@ -48,7 +49,7 @@ super(name);
 		};
 	}
 
-	protected abstract void write(String key, List<FV> values) throws Exception;
+	protected abstract int write(String key, List<FV> values);
 
 	protected void commit(String key) throws Exception {}
 
@@ -78,20 +79,19 @@ super(name);
 	protected abstract I unparse(String key, FV value);
 
 	@Override
-	public final boolean enqueue0(I e) {
+	public final boolean enqueue(I e, boolean block) {
 		return enqueue(Arrays.asList(e)) == 1;
 	}
 
 	@Override
 	public final long enqueue(List<I> els) {
 		Map<String, List<FV>> map = new HashMap<>();
-		for (I e : els)
-			if (null != e) {
-				Tuple2<String, FV> t = parse(e);
-				map.computeIfAbsent(t._1, core -> new ArrayList<>()).add(t._2);
-			}
-		failover.dotry(map);
-		return els.size();
+		Collections.transWN(els, e -> {
+			Tuple2<String, FV> t = parse(e);
+			map.computeIfAbsent(t._1, core -> new ArrayList<>()).add(t._2);
+			return e;
+		});
+		return failover.insertTask(map);
 	}
 
 	@Override
@@ -105,5 +105,9 @@ super(name);
 
 	public final long fails() {
 		return failover.size();
+	}
+
+	public final int tasks() {
+		return failover.tasks();
 	}
 }
