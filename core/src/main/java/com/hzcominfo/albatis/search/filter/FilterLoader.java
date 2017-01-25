@@ -23,6 +23,7 @@ import com.hzcominfo.albatis.search.exception.SearchAPIException;
  * <p>
  * 最简化的通过反射构造并注入参数的过程
  */
+@SuppressWarnings("unused")
 public abstract class FilterLoader {
 	public static List<FilterChainConfig> configList;
 
@@ -141,25 +142,16 @@ public abstract class FilterLoader {
 	 * @throws SearchAPIException
 	 *             异常
 	 */
-	@SuppressWarnings("unchecked")
-	public static <Q, R> FilterChain<Q, R> invokeOf(Class clazz, String name) throws SearchAPIException {
+	@SuppressWarnings({ "unchecked", "rawtypes" })
+	public static <Q, R> FilterChain<Q, R> invokeOf(Class<?> clazz, String name) throws SearchAPIException {
 		if (configList == null) return null;
 		FilterChainConfig ret = null;
-		for (FilterChainConfig config : configList) {
-			if (config.name != null && config.name.equals(name)) {
-				ret = config;
-			}
-		}
-		if (ret == null) {
-			for (FilterChainConfig config : configList) {
-				if (config.invoke != null && config.invoke.equals(clazz.getCanonicalName())) {
-					ret = config;
-				}
-			}
-		}
-		if (ret == null) { return null; }
-		if (ret.filterConfigs.size() == 0) { return null; // 在构建的时候就要检查，这里仅用做验证
-		}
+		for (FilterChainConfig config : configList)
+			if (config.name != null && config.name.equals(name)) ret = config;
+		if (ret == null) for (FilterChainConfig config : configList)
+			if (config.invoke != null && config.invoke.equals(clazz.getCanonicalName())) ret = config;
+		if (ret == null) return null;
+		if (ret.filterConfigs.size() == 0) return null; // 在构建的时候就要检查，这里仅用做验证
 		try {
 			Class invoke = Class.forName(ret.clazz);
 			FilterChain filterChain = (FilterChain) invoke.getConstructor().newInstance();
@@ -194,7 +186,7 @@ public abstract class FilterLoader {
 	 * @throws SearchAPIException
 	 *             异常
 	 */
-	public static <Q, R> FilterChain<Q, R> invokeOf(Class clazz) throws SearchAPIException {
+	public static <Q, R> FilterChain<Q, R> invokeOf(Class<FilterChain<Q, R>> clazz) throws SearchAPIException {
 		return invokeOf(clazz, null);
 	}
 
@@ -213,11 +205,8 @@ public abstract class FilterLoader {
 		String className = getInvokedClazz();
 		if (className != null) {
 			try {
-				Class clazz = Class.forName(className);
-				return invokeOf(clazz, null);
-			} catch (ClassNotFoundException e) {
-				e.printStackTrace();
-			}
+				return invokeOf(Class.forName(className), null);
+			} catch (ClassNotFoundException e) {}
 		}
 		return null;
 	}

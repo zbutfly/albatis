@@ -55,9 +55,9 @@ public interface SearchItem extends Serializable {
 
 	public static abstract class ByFunctionColumns extends Function {
 		private static final long serialVersionUID = -9146428976219684894L;
-		private String fristColumn;
-		private String secondColumn;
-		private String alias;
+		protected String fristColumn;
+		protected String secondColumn;
+		protected String alias;
 
 		public ByFunctionColumns(String fristColumn, String secondColumn) {
 			this.fristColumn = fristColumn;

@@ -10,5 +10,5 @@ import com.hzcominfo.albatis.search.exception.SearchAPIException;
 @FunctionalInterface
 public interface Filter<Q, R> extends Cloneable {
 
-	void doFilter(final Q before, final R after, FilterChain filterChain) throws SearchAPIException;
+	void doFilter(final Q before, final R after, FilterChain<Q, R> filterChain) throws SearchAPIException;
 }
