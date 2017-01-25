@@ -14,6 +14,7 @@ import com.mongodb.DBObject;
 import com.mongodb.MongoException;
 
 import net.butfly.albacore.io.InputImpl;
+import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.logger.Logger;
 
 public class MongoInput extends InputImpl<DBObject> {
@@ -26,9 +27,20 @@ public class MongoInput extends InputImpl<DBObject> {
 		super(name);
 		lock = new ReentrantReadWriteLock();
 		logger.info("[" + name + "] from [" + uri + "], core [" + table + "]");
-		this.conn = new MongoConnection(uri);
-		long now;
+		URISpec spec = new URISpec(uri);
+		this.conn = new MongoConnection(spec);
 		logger.debug("[" + name + "] find begin...");
+		cursor = initCursor(table, filter);
+		String p = spec.getParameter("limit");
+		if (p != null) cursor.limit(Integer.parseInt(p));
+		p = spec.getParameter("skip");
+		if (p != null) cursor.skip(Integer.parseInt(p));
+		cursor = cursor.batchSize(inputBatchSize).addOption(Bytes.QUERYOPTION_NOTIMEOUT);
+	}
+
+	private DBCursor initCursor(String table, DBObject[] filter) {
+		DBCursor cursor;
+		long now;
 		if (null == filter || filter.length == 0) {
 			now = System.nanoTime();
 			cursor = conn.collection(table).find();
@@ -50,7 +62,7 @@ public class MongoInput extends InputImpl<DBObject> {
 		int count = cursor.count();
 		logger.debug(() -> "[" + name + "] find [" + count + " records], end in [" + (System.nanoTime() - now) / 1000 + " ms].");
 		logger.trace(() -> "[" + name + "] find [" + cursor.size() + " records].");
-		cursor = cursor.batchSize(inputBatchSize).addOption(Bytes.QUERYOPTION_NOTIMEOUT);
+		return cursor;
 	}
 
 	@Override
@@ -108,13 +120,5 @@ public class MongoInput extends InputImpl<DBObject> {
 			}
 		} while (opened() && retry && batch.size() == 0);
 		return batch;
-	}
-
-	public final void limit(int limit) {
-		cursor = cursor.limit(limit);
-	}
-
-	public final void skip(int skip) {
-		cursor = cursor.skip(skip);
 	}
 }
