@@ -88,7 +88,7 @@ public abstract class FailoverOutput<I, FV> extends OutputImpl<I> {
 		Map<String, List<FV>> map = new HashMap<>();
 		Collections.transWN(els, e -> {
 			Tuple2<String, FV> t = parse(e);
-			map.computeIfAbsent(t._1, core -> new ArrayList<>()).add(t._2);
+			map.computeIfAbsent(t._1, core -> java.util.Collections.synchronizedList(new ArrayList<>())).add(t._2);
 			return e;
 		});
 		return failover.insertTask(map);
