@@ -3,6 +3,7 @@ package net.butfly.albacore.io.faliover;
 import java.io.IOException;
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,8 +21,8 @@ public abstract class OffHeapFailover<K, V> extends Failover<K, V> {
 	private static final long serialVersionUID = -4766585003300311051L;
 	private IBigQueue failover;
 
-	public OffHeapFailover(String parentName, Converter<Tuple2<K, List<V>>, Integer> writing, Callback<K> committing, String path, String poolName,
-			int packageSize, int parallelism) throws IOException {
+	public OffHeapFailover(String parentName, Converter<Tuple2<K, Collection<V>>, Integer> writing, Callback<K> committing, String path,
+			String poolName, int packageSize, int parallelism) throws IOException {
 		super(parentName, writing, committing, packageSize, parallelism);
 		if (poolName == null) poolName = "POOL";
 		failover = new BigQueueImpl(IOs.mkdirs(path + "/" + parentName), poolName);
@@ -76,7 +77,7 @@ public abstract class OffHeapFailover<K, V> extends Failover<K, V> {
 	}
 
 	@Override
-	public int fail(K key, List<V> docs, Exception err) {
+	public int fail(K key, Collection<V> docs, Exception err) {
 		int c = 0;
 		for (V value : docs)
 			try {

@@ -1,7 +1,7 @@
 package net.butfly.albatis.solr;
 
 import java.io.IOException;
-import java.util.List;
+import java.util.Collection;
 
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.common.SolrInputDocument;
@@ -40,7 +40,7 @@ public final class SolrOutput extends FailoverOutput<SolrMessage<SolrInputDocume
 	}
 
 	@Override
-	protected int write(String key, List<SolrInputDocument> values) {
+	protected int write(String key, Collection<SolrInputDocument> values) {
 		try {
 			solr.client().add(key, values, DEFAULT_AUTO_COMMIT_MS);
 		} catch (RuntimeException e) {

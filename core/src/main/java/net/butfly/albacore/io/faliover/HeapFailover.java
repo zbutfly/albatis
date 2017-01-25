@@ -3,6 +3,7 @@ package net.butfly.albacore.io.faliover;
 import java.io.IOException;
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -17,8 +18,8 @@ public class HeapFailover<K, V> extends Failover<K, V> {
 	private static final int MAX_FAILOVER = 50000;
 	private Map<K, LinkedBlockingQueue<V>> failover = new ConcurrentHashMap<>();
 
-	public HeapFailover(String parentName, Converter<Tuple2<K, List<V>>, Integer> writing, Callback<K> committing, int packageSize, int parallelism)
-			throws IOException {
+	public HeapFailover(String parentName, Converter<Tuple2<K, Collection<V>>, Integer> writing, Callback<K> committing, int packageSize,
+			int parallelism) throws IOException {
 		super(parentName, writing, committing, packageSize, parallelism);
 		failover = new ConcurrentHashMap<>();
 		logger.info(MessageFormat.format("SolrOutput [{0}] failover [memory mode] init.", parentName));
@@ -38,10 +39,9 @@ public class HeapFailover<K, V> extends Failover<K, V> {
 	}
 
 	@Override
-	public int fail(K core, List<V> docs, Exception err) {
-		LinkedBlockingQueue<V> fails = failover.computeIfAbsent(core, k -> new LinkedBlockingQueue<>(MAX_FAILOVER));
+	public int fail(K core, Collection<V> docs, Exception err) {
 		try {
-			fails.addAll(docs);
+			failover.computeIfAbsent(core, k -> new LinkedBlockingQueue<>(MAX_FAILOVER)).addAll(docs);
 			if (null != err) logger.warn(MessageFormat.format(
 					"Failure added on [{0}] with [{1}] docs, now [{2}] failover on [{0}], caused by [{3}]", //
 					core, docs.size(), size(), err.getMessage()));

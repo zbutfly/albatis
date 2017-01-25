@@ -1,7 +1,7 @@
 package net.butfly.albatis.elastic;
 
 import java.io.IOException;
-import java.util.List;
+import java.util.Collection;
 
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.bulk.BulkItemResponse;
@@ -32,7 +32,7 @@ public final class EsOutput extends FailoverOutput<ElasticMessage, ElasticMessag
 	}
 
 	@Override
-	protected int write(String key, List<ElasticMessage> values) {
+	protected int write(String key, Collection<ElasticMessage> values) {
 		// TODO: List<ElasticMessage> fails = new ArrayList<>();
 		try {
 			ActionFuture<BulkResponse> resps = conn.client().bulk(new BulkRequest().add(Collections.transN(values, d -> d.update()).toArray(

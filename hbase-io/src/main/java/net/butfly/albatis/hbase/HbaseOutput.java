@@ -3,6 +3,7 @@ package net.butfly.albatis.hbase;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -59,7 +60,7 @@ public final class HbaseOutput extends FailoverOutput<HbaseResult, Result> {
 	}
 
 	@Override
-	protected int write(String key, List<Result> values) {
+	protected int write(String key, Collection<Result> values) {
 		try {
 			List<Put> t = Collections.transN(values, r -> {
 				Put p;

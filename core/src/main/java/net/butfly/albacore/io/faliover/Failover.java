@@ -1,6 +1,7 @@
 package net.butfly.albacore.io.faliover;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -18,14 +19,14 @@ import scala.Tuple2;
 public abstract class Failover<K, V> extends OpenableThread implements Statistical<Failover<K, V>> {
 	private static final long serialVersionUID = -7515454826294115208L;
 	protected static final Logger logger = Logger.getLogger(Failover.class);
-	protected final Converter<Tuple2<K, List<V>>, Integer> writing;
+	protected final Converter<Tuple2<K, Collection<V>>, Integer> writing;
 	protected final int packageSize;
 	private final LinkedBlockingQueue<Runnable> tasks;
 	private final List<Sender> senders;
 	private Callback<K> committing;
 	protected final ThreadGroup threadGroup;
 
-	protected Failover(String parentName, Converter<Tuple2<K, List<V>>, Integer> writing, Callback<K> committing, int packageSize,
+	protected Failover(String parentName, Converter<Tuple2<K, Collection<V>>, Integer> writing, Callback<K> committing, int packageSize,
 			int parallelism) {
 		super(parentName + "Failover");
 		threadGroup = new ThreadGroup(name());
@@ -43,9 +44,9 @@ public abstract class Failover<K, V> extends OpenableThread implements Statistic
 
 	public abstract long size();
 
-	protected abstract int fail(K key, List<V> values, Exception err);
+	protected abstract int fail(K key, Collection<V> values, Exception err);
 
-	protected final int doWrite(K key, List<V> values, boolean stating) {
+	protected final int doWrite(K key, Collection<V> values, boolean stating) {
 		if (values.isEmpty()) return 0;
 		int c = 0;
 		try {
@@ -57,14 +58,14 @@ public abstract class Failover<K, V> extends OpenableThread implements Statistic
 		return c;
 	}
 
-	final <W> int insertTask(Map<K, List<V>> map) {
+	final <W> int insertTask(Map<K, ? extends Collection<V>> map) {
 		int c = 0;
-		for (Entry<K, List<V>> e : map.entrySet()) {
+		for (Entry<K, ? extends Collection<V>> e : map.entrySet()) {
 			boolean inserted = false;
 			if (opened()) do {
 				c += e.getValue().size();
 				inserted = tasks.offer(() -> {
-					for (List<V> pkg : Collections.chopped(e.getValue(), packageSize))
+					for (Collection<V> pkg : Collections.chopped(e.getValue(), packageSize))
 						doWrite(e.getKey(), pkg, false);
 					if (committing != null) try {
 						committing.call(e.getKey());
