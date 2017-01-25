@@ -28,24 +28,20 @@ public class MongoInput extends InputImpl<DBObject> {
 		lock = new ReentrantReadWriteLock();
 		logger.info("[" + name + "] from [" + uri + "], core [" + table + "]");
 		URISpec spec = new URISpec(uri);
-		this.conn = new MongoConnection(spec);
+		conn = new MongoConnection(spec);
 		logger.debug("[" + name + "] find begin...");
-		cursor = initCursor(table, filter);
-		String p = spec.getParameter("limit");
-		if (p != null) cursor.limit(Integer.parseInt(p));
-		p = spec.getParameter("skip");
-		if (p != null) cursor.skip(Integer.parseInt(p));
+		cursor = open(spec, table, filter);
 		cursor = cursor.batchSize(inputBatchSize).addOption(Bytes.QUERYOPTION_NOTIMEOUT);
 	}
 
-	private DBCursor initCursor(String table, DBObject[] filter) {
+	private DBCursor open(URISpec spec, String table, DBObject[] filter) {
 		DBCursor cursor;
 		long now;
 		if (null == filter || filter.length == 0) {
 			now = System.nanoTime();
 			cursor = conn.collection(table).find();
 		} else {
-			logger.info("[" + name + "] filters: \n\t" + Joiner.on("\n\t").join(filter));
+			logger.info("[" + name + "] filters: \n\t" + Joiner.on("\n\t").join(filter) + "\nnow count:");
 			if (filter.length == 1) {
 				now = System.nanoTime();
 				cursor = conn.collection(table).find(filter[0]);
@@ -59,6 +55,10 @@ public class MongoInput extends InputImpl<DBObject> {
 				cursor = conn.collection(table).find(and);
 			}
 		}
+		String p = spec.getParameter("limit");
+		if (p != null) cursor.limit(Integer.parseInt(p));
+		p = spec.getParameter("skip");
+		if (p != null) cursor.skip(Integer.parseInt(p));
 		int count = cursor.count();
 		logger.debug(() -> "[" + name + "] find [" + count + " records], end in [" + (System.nanoTime() - now) / 1000 + " ms].");
 		logger.trace(() -> "[" + name + "] find [" + cursor.size() + " records].");
