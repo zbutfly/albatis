@@ -72,7 +72,7 @@ public final class Hbases extends Utils {
 
 	}
 
-	public static byte[] resultToBytes(Result result) throws IOException {
+	public static byte[] toBytes(Result result) throws IOException {
 		try (ByteArrayOutputStream baos = new ByteArrayOutputStream();) {
 			for (Cell c : result.rawCells())
 				IOs.writeBytes(baos, cellToBytes(c));
@@ -80,7 +80,7 @@ public final class Hbases extends Utils {
 		}
 	}
 
-	public static Result resultFromBytes(byte[] bytes) throws IOException {
+	public static Result toResult(byte[] bytes) throws IOException {
 		List<Cell> cells = new ArrayList<>();
 		try (ByteArrayInputStream bais = new ByteArrayInputStream(bytes)) {
 			byte[] buf;

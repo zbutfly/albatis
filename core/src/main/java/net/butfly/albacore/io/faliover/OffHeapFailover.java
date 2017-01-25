@@ -49,19 +49,19 @@ public abstract class OffHeapFailover<K, V> extends Failover<K, V> {
 					continue;
 				}
 				if (null == buf) return;
-				Tuple2<K, V> sm;
+				Tuple2<K, V> kv;
 				try {
-					sm = fromBytes(buf);
+					kv = fromBytes(buf);
 				} catch (IOException e) {
 					logger.error("invalid failover found and lost.");
 					continue;
 				}
-				List<V> l = fails.computeIfAbsent(sm._1, c -> new ArrayList<>(packageSize));
-				l.add(sm._2);
-				if (l.size() >= packageSize) doWrite(sm._1, fails.remove(sm._1), true);
+				List<V> l = fails.computeIfAbsent(kv._1, c -> new ArrayList<>(packageSize));
+				l.add(kv._2);
+				if (l.size() >= packageSize) doWrite(kv._1, fails.remove(kv._1), true);
 			}
-			for (K core : fails.keySet())
-				doWrite(core, fails.remove(core), true);
+			for (K key : fails.keySet())
+				doWrite(key, fails.remove(key), true);
 		}
 	}
 
@@ -76,20 +76,20 @@ public abstract class OffHeapFailover<K, V> extends Failover<K, V> {
 	}
 
 	@Override
-	public int fail(K core, List<V> docs, Exception err) {
+	public int fail(K key, List<V> docs, Exception err) {
 		int c = 0;
-		for (V doc : docs)
+		for (V value : docs)
 			try {
-				failover.enqueue(toBytes(core, doc));
+				failover.enqueue(toBytes(key, value));
 				c++;
 			} catch (IOException e) {
 				if (null != err) logger.error(MessageFormat.format("Failover failed, [{0}] docs lost on [{1}], original caused by [{2}]", //
-						docs.size(), core, err.getMessage()), e);
-				else logger.error(MessageFormat.format("Failover failed, [{0}] docs lost on [{1}]", docs.size(), core), e);
+						docs.size(), key, err.getMessage()), e);
+				else logger.error(MessageFormat.format("Failover failed, [{0}] docs lost on [{1}]", docs.size(), key), e);
 			}
 		if (null != err) logger.warn(MessageFormat.format(
 				"Failure added on [{0}] with [{1}] docs, now [{2}] failover on [{0}], caused by [{3}]", //
-				core, docs.size(), size(), err.getMessage()));
+				key, docs.size(), size(), err.getMessage()));
 		return c;
 	}
 

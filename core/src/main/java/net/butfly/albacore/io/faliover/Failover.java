@@ -43,7 +43,7 @@ public abstract class Failover<K, V> extends OpenableThread implements Statistic
 
 	public abstract long size();
 
-	protected abstract int fail(K core, List<V> docs, Exception err);
+	protected abstract int fail(K key, List<V> values, Exception err);
 
 	protected final int doWrite(K key, List<V> values, boolean stating) {
 		if (values.isEmpty()) return 0;

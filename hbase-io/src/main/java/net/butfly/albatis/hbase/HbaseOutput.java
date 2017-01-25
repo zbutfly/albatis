@@ -90,7 +90,7 @@ public final class HbaseOutput extends FailoverOutput<HbaseResult, Result> {
 	protected byte[] toBytes(String key, Result value) throws IOException {
 		try (ByteArrayOutputStream baos = new ByteArrayOutputStream();) {
 			IOs.writeBytes(baos, key.getBytes());
-			IOs.writeBytes(baos, Hbases.resultToBytes(value));
+			IOs.writeBytes(baos, Hbases.toBytes(value));
 			return baos.toByteArray();
 		}
 	}
@@ -98,7 +98,7 @@ public final class HbaseOutput extends FailoverOutput<HbaseResult, Result> {
 	@Override
 	protected Tuple2<String, Result> fromBytes(byte[] bytes) throws IOException {
 		try (ByteArrayInputStream bais = new ByteArrayInputStream(bytes);) {
-			return new Tuple2<>(new String(IOs.readBytes(bais)), Hbases.resultFromBytes(IOs.readBytes(bais)));
+			return new Tuple2<>(new String(IOs.readBytes(bais)), Hbases.toResult(IOs.readBytes(bais)));
 		}
 	}
 
