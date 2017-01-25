@@ -8,6 +8,7 @@ import net.butfly.albatis.elastic.ElasticInput;
  * Created by hzcominfo67 on 2017/1/18.
  */
 public class ElasticInputTest {
+	@SuppressWarnings("deprecation")
 	@Test
 	public void ioInputTest() throws IOException {
 		String uri = "elasticsearch://@10.118.159.45:39300/scattered_data";

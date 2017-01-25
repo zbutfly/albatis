@@ -16,6 +16,7 @@ import org.apache.hadoop.hbase.client.Table;
 
 import net.butfly.albacore.io.faliover.FailoverOutput;
 import net.butfly.albacore.utils.Collections;
+import net.butfly.albacore.utils.IOs;
 import scala.Tuple2;
 
 public final class HbaseOutput extends FailoverOutput<HbaseResult, Result> {
@@ -87,8 +88,8 @@ public final class HbaseOutput extends FailoverOutput<HbaseResult, Result> {
 	@Override
 	protected byte[] toBytes(String key, Result value) throws IOException {
 		try (ByteArrayOutputStream baos = new ByteArrayOutputStream();) {
-			Hbases.writeBuffer(baos, key.getBytes());
-			Hbases.writeBuffer(baos, Hbases.resultToBytes(value));
+			IOs.writeBytes(baos, key.getBytes());
+			IOs.writeBytes(baos, Hbases.resultToBytes(value));
 			return baos.toByteArray();
 		}
 	}
@@ -96,7 +97,7 @@ public final class HbaseOutput extends FailoverOutput<HbaseResult, Result> {
 	@Override
 	protected Tuple2<String, Result> fromBytes(byte[] bytes) throws IOException {
 		try (ByteArrayInputStream bais = new ByteArrayInputStream(bytes);) {
-			return new Tuple2<>(new String(Hbases.readBuffer(bais)), Hbases.resultFromBytes(Hbases.readBuffer(bais)));
+			return new Tuple2<>(new String(IOs.readBytes(bais)), Hbases.resultFromBytes(IOs.readBytes(bais)));
 		}
 	}
 

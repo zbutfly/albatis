@@ -69,7 +69,7 @@ public class OffHeapQueue<I, O> extends QueueImpl<I, O> {
 			if (!Concurrents.waitSleep()) logger.warn("Wait for full interrupted");
 		long c = 0;
 		for (I m : messages)
-			if (enqueue(m)) c++;
+			if (enqueue(m, false)) c++;
 		return c;
 	}
 

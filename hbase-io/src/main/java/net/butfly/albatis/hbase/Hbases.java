@@ -3,8 +3,6 @@ package net.butfly.albatis.hbase;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
@@ -26,6 +24,7 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import net.butfly.albacore.lambda.Converter;
+import net.butfly.albacore.utils.IOs;
 import net.butfly.albacore.utils.Utils;
 import net.butfly.albacore.utils.logger.Logger;
 
@@ -76,7 +75,7 @@ public final class Hbases extends Utils {
 	public static byte[] resultToBytes(Result result) throws IOException {
 		try (ByteArrayOutputStream baos = new ByteArrayOutputStream();) {
 			for (Cell c : result.rawCells())
-				writeBuffer(baos, cellToBytes(c));
+				IOs.writeBytes(baos, cellToBytes(c));
 			return baos.toByteArray();
 		}
 	}
@@ -84,39 +83,27 @@ public final class Hbases extends Utils {
 	public static Result resultFromBytes(byte[] bytes) throws IOException {
 		List<Cell> cells = new ArrayList<>();
 		try (ByteArrayInputStream bais = new ByteArrayInputStream(bytes)) {
-			cells.add(cellFromBytes(readBuffer(bais)));
+			byte[] buf;
+			while ((buf = IOs.readBytes(bais)) != null && buf.length > 0)
+				cells.add(cellFromBytes(buf));
 			return Result.create(cells);
 		}
 	}
 
 	public static byte[] cellToBytes(Cell cell) throws IOException {
 		try (ByteArrayOutputStream baos = new ByteArrayOutputStream();) {
-			writeBuffer(baos, CellUtil.cloneRow(cell));
-			writeBuffer(baos, CellUtil.cloneFamily(cell));
-			writeBuffer(baos, CellUtil.cloneQualifier(cell));
-			writeBuffer(baos, CellUtil.cloneValue(cell));
+			IOs.writeBytes(baos, CellUtil.cloneRow(cell));
+			IOs.writeBytes(baos, CellUtil.cloneFamily(cell));
+			IOs.writeBytes(baos, CellUtil.cloneQualifier(cell));
+			IOs.writeBytes(baos, CellUtil.cloneValue(cell));
 			return baos.toByteArray();
 		}
 	}
 
 	public static Cell cellFromBytes(byte[] bytes) throws IOException {
 		try (ByteArrayInputStream bais = new ByteArrayInputStream(bytes)) {
-			return new KeyValue(readBuffer(bais), readBuffer(bais), readBuffer(bais), readBuffer(bais));
+			return new KeyValue(IOs.readBytes(bais), IOs.readBytes(bais), IOs.readBytes(bais), IOs.readBytes(bais));
 		}
 	}
 
-	public static void writeBuffer(OutputStream out, byte[] buf) throws IOException {
-		out.write(buf.length);
-		out.write(buf);
-	}
-
-	public static byte[] readBuffer(InputStream in) throws IOException {
-		int l = in.read();
-		if (l >= 0) {
-			byte[] buf = new byte[l];
-			int ll = in.read(buf, 0, l);
-			if (ll < l) throw new IOException("Invalid data, need " + l + " bytes, read " + ll + " bytes");
-			return buf;
-		} else return null;
-	}
 }

@@ -63,4 +63,8 @@ public class MongoConnection extends NoSqlConnection<MongoClient> {
 		}
 		client().close();
 	}
+
+	public String defaultCollection() {
+		return defaultCollection;
+	}
 }

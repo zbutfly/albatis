@@ -31,12 +31,12 @@ public class MongoInput extends InputImpl<DBObject> {
 		logger.debug("[" + name + "] find begin...");
 		if (null == filter || filter.length == 0) {
 			now = System.nanoTime();
-			cursor = conn.db().getCollection(table).find();
+			cursor = conn.collection(table).find();
 		} else {
 			logger.info("[" + name + "] filters: \n\t" + Joiner.on("\n\t").join(filter));
 			if (filter.length == 1) {
 				now = System.nanoTime();
-				cursor = conn.db().getCollection(table).find(filter[0]);
+				cursor = conn.collection(table).find(filter[0]);
 			} else {
 				BasicDBList filters = new BasicDBList();
 				for (DBObject f : filter)
@@ -44,7 +44,7 @@ public class MongoInput extends InputImpl<DBObject> {
 				DBObject and = new BasicDBObject();
 				and.put("$and", filters);
 				now = System.nanoTime();
-				cursor = conn.db().getCollection(table).find(and);
+				cursor = conn.collection(table).find(and);
 			}
 		}
 		int count = cursor.count();
