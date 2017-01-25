@@ -23,7 +23,7 @@ import net.butfly.albacore.io.InputImpl;
 import net.butfly.albacore.lambda.Supplier;
 import net.butfly.albacore.utils.Collections;
 
-public class HbaseInput extends InputImpl<HbaseResult> {
+public final class HbaseInput extends InputImpl<HbaseResult> {
 	protected final Connection connect;
 	protected final String tableName;
 	protected final Table table;
@@ -72,6 +72,7 @@ public class HbaseInput extends InputImpl<HbaseResult> {
 		scaner = scaning.get();
 		scanerLock = new ReentrantReadWriteLock();
 		ended = new AtomicBoolean(false);
+		open();
 	}
 
 	@Override

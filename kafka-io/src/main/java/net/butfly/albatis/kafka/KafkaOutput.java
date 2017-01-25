@@ -17,12 +17,13 @@ import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.Collections;
 import net.butfly.albatis.kafka.config.KafkaOutputConfig;
 
-public class KafkaOutput extends OutputImpl<KafkaMessage> {
+public final class KafkaOutput extends OutputImpl<KafkaMessage> {
 	private final KafkaProducer<byte[], byte[]> connect;
 
 	public KafkaOutput(final String name, final String kafkaURI) throws ConfigException {
 		super(name);
 		connect = new KafkaProducer<byte[], byte[]>(new KafkaOutputConfig(new URISpec(kafkaURI)).props());
+		open();
 	}
 
 	@Override

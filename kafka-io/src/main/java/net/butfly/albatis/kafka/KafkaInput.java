@@ -18,7 +18,7 @@ import net.butfly.albacore.lambda.Consumer;
 import net.butfly.albacore.utils.IOs;
 import net.butfly.albacore.utils.Systems;
 
-public class KafkaInput extends KafkaInputBase<KafkaInput.Fetcher> {
+public final class KafkaInput extends KafkaInputBase<KafkaInput.Fetcher> {
 	private IBigQueue pool;
 
 	public KafkaInput(String name, final String kafkaURI, final String poolPath, String... topic) throws ConfigException, IOException {
@@ -43,6 +43,7 @@ public class KafkaInput extends KafkaInputBase<KafkaInput.Fetcher> {
 					return v1;
 				});
 		}
+		open();
 	}
 
 	@Override

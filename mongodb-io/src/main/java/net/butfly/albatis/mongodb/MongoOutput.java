@@ -9,7 +9,7 @@ import com.mongodb.DBObject;
 import net.butfly.albacore.io.OutputImpl;
 import net.butfly.albacore.utils.Collections;
 
-public class MongoOutput extends OutputImpl<DBObject> {
+public final class MongoOutput extends OutputImpl<DBObject> {
 	private final boolean upsert;
 	private final MongoConnection conn;
 	private final DBCollection collection;
@@ -19,6 +19,7 @@ public class MongoOutput extends OutputImpl<DBObject> {
 		this.upsert = upsert;
 		this.conn = new MongoConnection(uri);
 		this.collection = conn.db().getCollection(collection);
+		open();
 	}
 
 	@Override

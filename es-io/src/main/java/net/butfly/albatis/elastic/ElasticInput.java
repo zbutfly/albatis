@@ -11,7 +11,7 @@ import org.elasticsearch.index.query.QueryBuilders;
 import net.butfly.albacore.io.InputImpl;
 import net.butfly.albacore.utils.logger.Logger;
 
-public class ElasticInput extends InputImpl<SearchResponse> {
+public final class ElasticInput extends InputImpl<SearchResponse> {
 	protected static final Logger logger = Logger.getLogger(ElasticInput.class);
 	private final ElasticConnection elastic;
 	// view time def 10 minute
@@ -26,6 +26,7 @@ public class ElasticInput extends InputImpl<SearchResponse> {
 		elastic = new ElasticConnection(connection);
 		index = elastic.getDefaultIndex();
 		type = elastic.getDefaultType();
+		open();
 	}
 
 	@Override

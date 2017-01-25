@@ -30,8 +30,10 @@ public class MongoInput extends InputImpl<DBObject> {
 		URISpec spec = new URISpec(uri);
 		conn = new MongoConnection(spec);
 		logger.debug("[" + name + "] find begin...");
-		cursor = open(spec, table, filter);
-		cursor = cursor.batchSize(inputBatchSize).addOption(Bytes.QUERYOPTION_NOTIMEOUT);
+		open(() -> {
+			cursor = open(spec, table, filter);
+			cursor = cursor.batchSize(inputBatchSize).addOption(Bytes.QUERYOPTION_NOTIMEOUT);
+		});
 	}
 
 	private DBCursor open(URISpec spec, String table, DBObject[] filter) {

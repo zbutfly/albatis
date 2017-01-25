@@ -9,12 +9,13 @@ import org.apache.solr.common.SolrInputDocument;
 import net.butfly.albacore.io.faliover.FailoverOutput;
 import scala.Tuple2;
 
-public class SolrOutput extends FailoverOutput<SolrMessage<SolrInputDocument>, SolrInputDocument> {
+public final class SolrOutput extends FailoverOutput<SolrMessage<SolrInputDocument>, SolrInputDocument> {
 	static final int DEFAULT_AUTO_COMMIT_MS = 30000;
 	private final SolrConnection solr;
 
 	public SolrOutput(String name, String baseUrl) throws IOException {
 		this(name, baseUrl, null);
+		open();
 	}
 
 	public SolrOutput(String name, String baseUrl, String failoverPath) throws IOException {

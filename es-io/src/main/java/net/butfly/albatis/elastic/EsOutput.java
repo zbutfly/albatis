@@ -13,12 +13,13 @@ import net.butfly.albacore.io.faliover.FailoverOutput;
 import net.butfly.albacore.utils.Collections;
 import scala.Tuple2;
 
-public class EsOutput extends FailoverOutput<ElasticMessage, ElasticMessage> {
+public final class EsOutput extends FailoverOutput<ElasticMessage, ElasticMessage> {
 	private final ElasticConnection conn;
 
 	public EsOutput(String name, String esUri, String failoverPath) throws IOException {
 		super(name, failoverPath, 100, 20);
 		conn = new ElasticConnection(esUri);
+		open();
 	}
 
 	public ElasticConnection getConnection() {

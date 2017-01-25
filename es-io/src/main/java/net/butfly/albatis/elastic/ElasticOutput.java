@@ -13,11 +13,12 @@ import net.butfly.albacore.io.OutputImpl;
 import net.butfly.albacore.utils.Collections;
 
 @Deprecated
-public class ElasticOutput extends OutputImpl<ElasticMessage> {
+public final class ElasticOutput extends OutputImpl<ElasticMessage> {
 	private final ElasticConnection conn;
 
 	public ElasticOutput(ElasticConnection conn) throws IOException {
 		this.conn = conn;
+		open();
 	}
 
 	@Override
