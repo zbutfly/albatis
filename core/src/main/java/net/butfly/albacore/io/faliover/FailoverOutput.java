@@ -51,7 +51,7 @@ public abstract class FailoverOutput<I, FV> extends OutputImpl<I> {
 
 	protected abstract int write(String key, List<FV> values);
 
-	protected void commit(String key) throws Exception {}
+	protected void commit(String key) {}
 
 	protected byte[] toBytes(String key, FV value) throws IOException {
 		if (null == key || null == value) return null;

@@ -52,8 +52,14 @@ public final class SolrOutput extends FailoverOutput<SolrMessage<SolrInputDocume
 	}
 
 	@Override
-	protected void commit(String key) throws Exception {
-		solr.client().commit(key, false, false, true);
+	protected void commit(String key) {
+		try {
+			solr.client().commit(key, false, false, true);
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	@Override
