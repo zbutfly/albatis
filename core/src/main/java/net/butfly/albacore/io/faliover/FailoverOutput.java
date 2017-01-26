@@ -8,7 +8,6 @@ import java.io.ObjectOutputStream;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 import net.butfly.albacore.io.OutputImpl;
@@ -84,17 +83,8 @@ public abstract class FailoverOutput<I, FV> extends OutputImpl<I> {
 
 	@Override
 	public final long enqueue(List<I> els) {
-		Map<String, List<FV>> map = els.stream().map(e -> parse(e)).collect(Collectors.groupingBy(t -> t._1, Collectors.mapping(t -> t._2,
-				Collectors.toList())));
-		// Map<String, ConcurrentLinkedQueue<FV>> map = new HashMap<>();
-		// Collections.transWN(els, e -> {
-		// Tuple2<String, FV> t = parse(e);
-		// if (null == t._2) return null;
-		// map.computeIfAbsent(t._1, core -> new
-		// ConcurrentLinkedQueue<>()).offer(t._2);
-		// return e;
-		// });
-		return failover.insertTask(map);
+		return failover.insertTask(els.stream().filter(e -> null != e).map(e -> parse(e)).collect(Collectors.groupingBy(t -> t._1,
+				Collectors.mapping(t -> t._2, Collectors.toList()))));
 	}
 
 	@Override
