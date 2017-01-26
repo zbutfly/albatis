@@ -35,7 +35,7 @@ public final class EsOutput extends FailoverOutput<ElasticMessage, ElasticMessag
 	protected int write(String key, Collection<ElasticMessage> values) {
 		// TODO: List<ElasticMessage> fails = new ArrayList<>();
 		try {
-			ActionFuture<BulkResponse> resps = conn.client().bulk(new BulkRequest().add(Collections.transN(values, d -> d.update()).toArray(
+			ActionFuture<BulkResponse> resps = conn.client().bulk(new BulkRequest().add(Collections.mapNoNull(values, d -> d.update()).toArray(
 					new UpdateRequest[0])));
 			int c = 0;
 			for (BulkItemResponse r : resps.actionGet())

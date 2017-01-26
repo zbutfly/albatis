@@ -62,7 +62,7 @@ public final class HbaseOutput extends FailoverOutput<HbaseResult, Result> {
 	@Override
 	protected int write(String key, Collection<Result> values) {
 		try {
-			List<Put> t = Collections.transN(values, r -> {
+			List<Put> t = Collections.mapNoNull(values, r -> {
 				Put p;
 				try {
 					p = new Put(r.getRow());

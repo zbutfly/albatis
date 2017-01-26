@@ -52,7 +52,7 @@ public final class KafkaOutput extends OutputImpl<KafkaMessage> {
 	public long enqueue(List<KafkaMessage> messages) {
 		AtomicLong c = new AtomicLong(0);
 		try {
-			Futures.allAsList(Collections.transWN(messages, msg -> JdkFutureAdapters.listenInPoolThread(connect.send(msg.toProducer(), (
+			Futures.allAsList(Collections.mapNoNullIn(messages, msg -> JdkFutureAdapters.listenInPoolThread(connect.send(msg.toProducer(), (
 					meta, ex) -> {
 				if (null != ex) logger().error("Kafka send failure on topic [" + msg.getTopic() + "] with key: [" + new String(msg.getKey())
 						+ "]", ex);

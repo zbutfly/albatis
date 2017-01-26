@@ -83,7 +83,7 @@ public abstract class FailoverOutput<I, FV> extends OutputImpl<I> {
 
 	@Override
 	public final long enqueue(List<I> els) {
-		return failover.insertTask(els.stream().filter(e -> null != e).map(e -> parse(e)).collect(Collectors.groupingBy(t -> t._1,
+		return failover.insertTask(els.parallelStream().filter(e -> null != e).map(e -> parse(e)).collect(Collectors.groupingBy(t -> t._1,
 				Collectors.mapping(t -> t._2, Collectors.toList()))));
 	}
 

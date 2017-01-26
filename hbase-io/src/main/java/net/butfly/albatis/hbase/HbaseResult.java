@@ -103,6 +103,7 @@ public class HbaseResult implements Serializable {
 	}
 
 	public Set<String> cols() {
-		return new HashSet<String>(Collections.transform(Hbases::colFamily, result.rawCells()));
+		List<Cell> cells = result.listCells();
+		return null == cells ? null : new HashSet<String>(Collections.map(cells, Hbases::colFamily));
 	}
 }

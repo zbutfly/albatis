@@ -109,8 +109,7 @@ public final class HbaseInput extends InputImpl<HbaseResult> {
 		if (ended.get()) return new ArrayList<>();
 		if (scanerLock.writeLock().tryLock()) {
 			try {
-				List<HbaseResult> l = Collections.transform(Arrays.asList(scaner.next((int) batchSize)), r -> new HbaseResult(tableName,
-						r));
+				List<HbaseResult> l = Collections.map(Arrays.asList(scaner.next((int) batchSize)), r -> new HbaseResult(tableName, r));
 				ended.set(l.isEmpty());
 				return l;
 			} catch (ScannerTimeoutException ex) {
@@ -124,6 +123,6 @@ public final class HbaseInput extends InputImpl<HbaseResult> {
 	}
 
 	public List<HbaseResult> get(List<Get> gets) throws IOException {
-		return Collections.transform(r -> new HbaseResult(tableName, r), table.get(gets));
+		return Collections.map(Arrays.asList(table.get(gets)), r -> new HbaseResult(tableName, r));
 	}
 }
