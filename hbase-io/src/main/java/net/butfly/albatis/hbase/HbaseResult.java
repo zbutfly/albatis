@@ -98,8 +98,9 @@ public class HbaseResult implements Serializable {
 	}
 
 	public void each(Consumer<Cell> consumer) {
-		for (Cell c : result.rawCells())
-			consumer.accept(c);
+		List<Cell> cells = result.listCells();
+		if (null == cells) return;
+		else cells.parallelStream().forEach(consumer);
 	}
 
 	public Set<String> cols() {

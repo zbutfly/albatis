@@ -6,9 +6,7 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
@@ -23,7 +21,6 @@ import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
 
-import net.butfly.albacore.lambda.Converter;
 import net.butfly.albacore.utils.IOs;
 import net.butfly.albacore.utils.Utils;
 import net.butfly.albacore.utils.logger.Logger;
@@ -57,19 +54,6 @@ public final class Hbases extends Utils {
 
 	public static String colFamily(Cell cell) {
 		return Bytes.toString(CellUtil.cloneFamily(cell)) + ":" + Bytes.toString(CellUtil.cloneQualifier(cell));
-	}
-
-	public static <T> Map<String, T> mapCols(HbaseResult r, Converter<byte[], T> conv) {
-		Map<String, T> v = new HashMap<>();
-		r.each(c -> {
-			try {
-				v.put(Bytes.toString(CellUtil.cloneQualifier(c)), conv.apply(CellUtil.cloneValue(c)));
-			} catch (Exception e) {
-				logger.error("Hbase read failure", e);
-			}
-		});
-		return v;
-
 	}
 
 	public static byte[] toBytes(Result result) throws IOException {
