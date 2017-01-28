@@ -25,7 +25,7 @@ abstract class KafkaInputBase<V> extends KeyInputImpl<String, KafkaMessage> {
 	protected static final Logger logger = Logger.getLogger(KafkaInputBase.class);
 	protected final KafkaInputConfig conf;
 	protected final Map<String, Integer> topics;
-	protected final ConsumerConnector connect;
+	protected ConsumerConnector connect;
 	protected final Map<String, List<KafkaStream<byte[], byte[]>>> raws;
 	protected final Map<String, Map<KafkaStream<byte[], byte[]>, V>> streams;
 
@@ -125,5 +125,6 @@ abstract class KafkaInputBase<V> extends KeyInputImpl<String, KafkaMessage> {
 				}
 		connect.commitOffsets(true);
 		connect.shutdown();
+		connect = null;
 	}
 }

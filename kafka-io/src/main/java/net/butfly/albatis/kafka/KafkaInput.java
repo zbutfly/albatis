@@ -38,7 +38,7 @@ public final class KafkaInput extends KafkaInputBase<KafkaInput.Fetcher> {
 					Map<KafkaStream<byte[], byte[]>, Fetcher> v1 = v == null ? new HashMap<>() : v;
 					Fetcher f = new Fetcher(name + "Fetcher#" + t, stream, i.incrementAndGet(), pool, conf.getPoolSize());
 					f.start();
-					logger.info("[" + name + "] fetcher [" + i.get() + "] started.");
+					logger.trace("[" + name + "] fetcher [" + i.get() + "] started at topic [" + t + "].");
 					v1.put(stream, f);
 					return v1;
 				});
