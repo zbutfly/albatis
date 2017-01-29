@@ -11,7 +11,6 @@ import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
-import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 
@@ -75,8 +74,12 @@ public class MongoConnection extends NoSqlConnection<MongoClient> {
 		return defaultCollection;
 	}
 
-	public static DBObject dbobj(String key, Object... valueAndKeys) {
-		BasicDBObject dbo = new BasicDBObject();
+	public static BasicDBObject dbobj() {
+		return new BasicDBObject();
+	}
+
+	public static BasicDBObject dbobj(String key, Object... valueAndKeys) {
+		BasicDBObject dbo = dbobj();
 		dbo.put(key, valueAndKeys[0]);
 		for (int i = 1; i + 1 < valueAndKeys.length; i += 2)
 			dbo.put(((CharSequence) valueAndKeys[i]).toString(), valueAndKeys[i + 1]);
