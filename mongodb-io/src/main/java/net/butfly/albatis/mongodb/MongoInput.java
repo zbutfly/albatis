@@ -1,5 +1,7 @@
 package net.butfly.albatis.mongodb;
 
+import static net.butfly.albatis.mongodb.MongoConnection.dbobj;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -7,7 +9,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import com.google.common.base.Joiner;
 import com.mongodb.BasicDBList;
-import com.mongodb.BasicDBObject;
 import com.mongodb.Bytes;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
@@ -51,10 +52,8 @@ public class MongoInput extends InputImpl<DBObject> {
 				BasicDBList filters = new BasicDBList();
 				for (DBObject f : filter)
 					filters.add(f);
-				DBObject and = new BasicDBObject();
-				and.put("$and", filters);
 				now = System.nanoTime();
-				cursor = conn.collection(table).find(and);
+				cursor = conn.collection(table).find(dbobj("$and", filters));
 			}
 		}
 		String p = spec.getParameter("limit");

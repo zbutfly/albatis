@@ -2,12 +2,16 @@ package net.butfly.albatis.mongodb;
 
 import java.io.IOException;
 import java.net.UnknownHostException;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.hzcominfo.albatis.nosql.NoSqlConnection;
+import com.mongodb.BasicDBList;
+import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
+import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 
@@ -69,5 +73,20 @@ public class MongoConnection extends NoSqlConnection<MongoClient> {
 
 	public String defaultCollection() {
 		return defaultCollection;
+	}
+
+	public static DBObject dbobj(String key, Object... valueAndKeys) {
+		BasicDBObject dbo = new BasicDBObject();
+		dbo.put(key, valueAndKeys[0]);
+		for (int i = 1; i + 1 < valueAndKeys.length; i += 2)
+			dbo.put(((CharSequence) valueAndKeys[i]).toString(), valueAndKeys[i + 1]);
+		return dbo;
+	}
+
+	public static BasicDBList dblist(Object first, Object... others) {
+		BasicDBList dbl = new BasicDBList();
+		dbl.add(first);
+		dbl.addAll(Arrays.asList(others));
+		return dbl;
 	}
 }
