@@ -39,20 +39,22 @@ public final class KafkaOutput extends OutputImpl<KafkaMessage> {
 	}
 
 	@Override
-	public boolean enqueue(KafkaMessage m, boolean block) {
+	public boolean enqueue(KafkaMessage m) {
 		if (null == m) return false;
 		m.setTopic(m.getTopic());
 		Future<RecordMetadata> r = connect.send(m.toProducer(), (meta, ex) -> {
 			if (null != ex) logger().error("Kafka send failure on topic [" + m.getTopic() + "] with key: [" + new String(m.getKey()) + "]",
 					ex);
 		});
-		if (block) try {
+		try {
 			r.get();
 			return true;
-		} catch (InterruptedException | ExecutionException e) {
+		} catch (InterruptedException e) {
+			return false;
+		} catch (ExecutionException e) {
+			logger().warn("Kafka send failure", e.getCause());
 			return false;
 		}
-		else return true;
 	}
 
 	@Override

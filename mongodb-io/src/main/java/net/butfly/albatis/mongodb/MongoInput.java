@@ -91,7 +91,7 @@ public class MongoInput extends InputImpl<DBObject> {
 	}
 
 	@Override
-	public DBObject dequeue(boolean block) {
+	public DBObject dequeue() {
 		if (lock.writeLock().tryLock()) try {
 			return cursor.hasNext() ? cursor.next() : null;
 		} catch (MongoException ex) {

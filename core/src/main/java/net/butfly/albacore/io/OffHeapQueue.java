@@ -36,7 +36,7 @@ public class OffHeapQueue<I, O> extends QueueImpl<I, O> {
 	}
 
 	@Override
-	public boolean enqueue(I e, boolean block) {
+	public boolean enqueue(I e) {
 		if (null == e) return false;
 		try {
 			byte[] v = iconv.apply(e);
@@ -50,7 +50,7 @@ public class OffHeapQueue<I, O> extends QueueImpl<I, O> {
 	}
 
 	@Override
-	public O dequeue(boolean block) {
+	public O dequeue() {
 		try {
 			return oconv.apply(queue.dequeue());
 		} catch (IOException e) {

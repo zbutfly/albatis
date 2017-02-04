@@ -21,17 +21,16 @@ public final class ElasticOutput extends OutputImpl<ElasticMessage> {
 	}
 
 	@Override
-	public boolean enqueue(ElasticMessage s, boolean block) {
+	public boolean enqueue(ElasticMessage s) {
 		if (s == null) return false;
 		ActionFuture<UpdateResponse> f = conn.client().update(s.update());
-		if (block) try {
+		try {
 			f.actionGet();
 			return true;
 		} catch (Exception e) {
 			logger().error("Failure", e);
 			return false;
 		}
-		else return true;
 	}
 
 	@Override

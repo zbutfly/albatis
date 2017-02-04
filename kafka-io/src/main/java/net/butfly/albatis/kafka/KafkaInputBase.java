@@ -66,7 +66,7 @@ abstract class KafkaInputBase<V> extends KeyInputImpl<String, KafkaMessage> {
 	}
 
 	@Override
-	public KafkaMessage dequeue(boolean block) {
+	public KafkaMessage dequeue() {
 		String topic = Collections.disorderize(keys()).get(0);
 		for (Entry<KafkaStream<byte[], byte[]>, V> s : Collections.disorderize(streams.get(topic).entrySet())) {
 			KafkaMessage e = fetch(s.getKey(), s.getValue(), v -> connect.commitOffsets(false));

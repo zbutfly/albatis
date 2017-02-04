@@ -77,7 +77,7 @@ public abstract class FailoverOutput<I, FV> extends OutputImpl<I> {
 	protected abstract I unparse(String key, FV value);
 
 	@Override
-	public final boolean enqueue(I e, boolean block) {
+	public final boolean enqueue(I e) {
 		return enqueue(Arrays.asList(e).stream()) == 1;
 	}
 
