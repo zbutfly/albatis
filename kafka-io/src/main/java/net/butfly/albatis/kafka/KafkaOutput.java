@@ -3,27 +3,34 @@ package net.butfly.albatis.kafka;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.RecordMetadata;
 
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.JdkFutureAdapters;
+import com.google.common.util.concurrent.ListenableFuture;
 
 import net.butfly.albacore.exception.ConfigException;
 import net.butfly.albacore.io.OutputImpl;
 import net.butfly.albacore.io.URISpec;
-import net.butfly.albacore.utils.Collections;
 import net.butfly.albatis.kafka.config.KafkaOutputConfig;
 
 public final class KafkaOutput extends OutputImpl<KafkaMessage> {
 	private final KafkaProducer<byte[], byte[]> connect;
+	private final boolean async;
 
-	public KafkaOutput(final String name, final String kafkaURI) throws ConfigException {
+	public KafkaOutput(final String name, final String kafkaURI, boolean async) throws ConfigException {
 		super(name);
 		connect = new KafkaProducer<byte[], byte[]>(new KafkaOutputConfig(new URISpec(kafkaURI)).props());
+		this.async = async;
 		open();
+	}
+
+	public KafkaOutput(final String name, final String kafkaURI) throws ConfigException {
+		this(name, kafkaURI, false);
 	}
 
 	@Override
@@ -49,22 +56,17 @@ public final class KafkaOutput extends OutputImpl<KafkaMessage> {
 	}
 
 	@Override
-	public long enqueue(List<KafkaMessage> messages) {
-		AtomicLong c = new AtomicLong(0);
-		try {
-			Futures.allAsList(Collections.mapNoNullIn(messages, msg -> JdkFutureAdapters.listenInPoolThread(connect.send(msg.toProducer(), (
-					meta, ex) -> {
-				if (null != ex) logger().error("Kafka send failure on topic [" + msg.getTopic() + "] with key: [" + new String(msg.getKey())
-						+ "]", ex);
-				else c.incrementAndGet();// TODO: Failover
-			})))).get();
-			logger().trace("[" + name() + "] sent: " + messages.size());
+	public long enqueue(Stream<KafkaMessage> messages) {
+		List<ListenableFuture<RecordMetadata>> fs = messages.filter(t -> t != null).map(msg -> JdkFutureAdapters.listenInPoolThread(connect
+				.send(msg.toProducer()))).collect(Collectors.toList());
+		if (!async) try {
+			return Futures.successfulAsList(fs).get().parallelStream().filter(t -> t != null).count();
 		} catch (InterruptedException e) {
 			logger().error("[" + name() + "] interrupted", e);
 		} catch (ExecutionException e) {
 			logger().error("[" + name() + "] failure", e.getCause());
 		}
-		return c.get();
+		return fs.size();
 	}
 
 	public long fails() {

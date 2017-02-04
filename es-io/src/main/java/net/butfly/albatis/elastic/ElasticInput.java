@@ -1,7 +1,6 @@
 package net.butfly.albatis.elastic;
 
 import java.io.IOException;
-import java.util.List;
 
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
@@ -81,11 +80,6 @@ public final class ElasticInput extends InputImpl<SearchResponse> {
 		if (searchResponse == null) scanType();
 		else scanType2(searchResponse);
 		return searchResponse;
-	}
-
-	@Override
-	public List<SearchResponse> dequeue(long batchSize) {
-		return super.dequeue(batchSize);
 	}
 
 	public void scanType() {

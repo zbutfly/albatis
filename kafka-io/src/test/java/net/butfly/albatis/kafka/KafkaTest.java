@@ -8,8 +8,8 @@ import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import net.butfly.albacore.exception.ConfigException;
 
@@ -28,15 +28,15 @@ public class KafkaTest {
 		long now = begin;
 		try (KafkaInput in = new KafkaInput("KafkaIn", "kafka.properties", "./cache", topics);) {
 			do {
-				List<KafkaMessage> l = in.dequeue(batchSize);
-				long size = 0;
-				for (KafkaMessage m : l) {
+				AtomicInteger count = new AtomicInteger(0);
+				long size = in.dequeue(batchSize).mapToInt(m -> {
+					count.incrementAndGet();
 					counts.compute(m.getTopic(), (k, v) -> v + 1);
-					size += m.toBytes().length;
-				}
+					return m.toBytes().length;
+				}).sum();
 				long curr = new Date().getTime();
 				total += (size / 1024.0 / 1024);
-				System.out.println(df.format(new Date()) + "<Count: " + l.size() + ">: <" + nf.format((curr - now) / 1000.0) + " secs>, "//
+				System.out.println(df.format(new Date()) + "<Count: " + count.get() + ">: <" + nf.format((curr - now) / 1000.0) + " secs>, "//
 						+ "size: <" + nf.format(size / 1024.0 / 1024) + " MByte>, "//
 						+ "total: <" + nf.format(total / 1024) + " Gbytes>, "//
 						+ "avg: <" + nf.format(total / ((curr - begin) / 1000.0)) + " MBytes/sec>, " //

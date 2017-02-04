@@ -1,13 +1,13 @@
 package net.butfly.albatis.mongodb;
 
 import java.io.IOException;
-import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 
 import net.butfly.albacore.io.OutputImpl;
-import net.butfly.albacore.utils.Collections;
 
 public final class MongoOutput extends OutputImpl<DBObject> {
 	private final boolean upsert;
@@ -35,7 +35,7 @@ public final class MongoOutput extends OutputImpl<DBObject> {
 	}
 
 	@Override
-	public long enqueue(List<DBObject> dbos) {
-		return collection.insert(Collections.noNull(dbos)).getN();
+	public long enqueue(Stream<DBObject> dbos) {
+		return collection.insert(dbos.filter(t -> t != null).collect(Collectors.toList())).getN();
 	}
 }

@@ -1,12 +1,12 @@
 package net.butfly.albatis.kafka;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import kafka.consumer.KafkaStream;
 import kafka.javaapi.consumer.ConsumerConnector;
@@ -16,7 +16,6 @@ import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.lambda.Consumer;
 import net.butfly.albacore.utils.Collections;
 import net.butfly.albacore.utils.Systems;
-import net.butfly.albacore.utils.async.Concurrents;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.kafka.config.KafkaInputConfig;
 import net.butfly.albatis.kafka.config.Kafkas;
@@ -62,7 +61,7 @@ abstract class KafkaInputBase<V> extends KeyInputImpl<String, KafkaMessage> {
 	}
 
 	@Override
-	public List<KafkaMessage> dequeue(long batchSize) {
+	public Stream<KafkaMessage> dequeue(long batchSize) {
 		return dequeue(batchSize, keys());
 	}
 
@@ -83,25 +82,6 @@ abstract class KafkaInputBase<V> extends KeyInputImpl<String, KafkaMessage> {
 			if (null != e) return e;
 		}
 		return null;
-	}
-
-	@Override
-	public List<KafkaMessage> dequeue(long batchSize, Iterable<String> topics) {
-		List<KafkaMessage> batch = new ArrayList<>();
-		long prev;
-		try {
-			do {
-				prev = batch.size();
-				for (String topic : topics)
-					for (Entry<KafkaStream<byte[], byte[]>, V> s : Collections.disorderize(streams.get(topic).entrySet()))
-						fetch(s.getKey(), s.getValue(), e -> batch.add(e));
-				if (batch.size() >= batchSize) return batch;
-				if (batch.size() == 0) Concurrents.waitSleep();
-			} while (opened() && batch.size() < batchSize && (prev != batch.size() || batch.size() == 0));
-			return batch;
-		} finally {
-			connect.commitOffsets(true);
-		}
 	}
 
 	@Override

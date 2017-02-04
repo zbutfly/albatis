@@ -6,10 +6,9 @@ import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.google.common.util.concurrent.AtomicDouble;
-import com.mongodb.DBObject;
 
 import net.butfly.albacore.lambda.Runnable;
 
@@ -31,15 +30,16 @@ public class MongoIOTest {
 					final NumberFormat nf = new DecimalFormat("0.00");
 					final DateFormat df = new SimpleDateFormat("MM-dd hh:mm:ss ");
 					long now = begin;
-					List<DBObject> l;
-					while ((l = in.dequeue(1000)).size() > 0) {
-						long size = 0;
-						for (DBObject m : l)
-							size += m.toString().length();
+					while (!in.empty()) {
+						AtomicInteger count = new AtomicInteger(0);
+						int size = in.dequeue(1000).mapToInt(m -> {
+							count.incrementAndGet();
+							return m.toString().length();
+						}).sum();
 						long curr = new Date().getTime();
 						total.addAndGet(size / 1024.0 / 1024);
 						System.out.println(df.format(new Date()) + ii //
-								+ "<count: " + l.size() + "> in <" + nf.format((curr - now) / 1000.0) + " secs>, "//
+								+ "<count: " + count.get() + "> in <" + nf.format((curr - now) / 1000.0) + " secs>, "//
 								+ "size: <" + nf.format(size / 1024.0 / 1024) + " MByte>, "//
 								+ "total: <" + nf.format(total.get() / 1024) + " Gbytes>, "//
 								+ "avg: <" + nf.format(total.get() / ((curr - begin) / 1000.0)) + " MBytes/sec>, " //

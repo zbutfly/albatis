@@ -1,14 +1,12 @@
 package net.butfly.albacore.io;
 
 import java.io.IOException;
-import java.util.List;
 
 import com.leansoft.bigqueue.BigQueueImpl;
 import com.leansoft.bigqueue.IBigQueue;
 
 import net.butfly.albacore.io.queue.QueueImpl;
 import net.butfly.albacore.lambda.Converter;
-import net.butfly.albacore.utils.async.Concurrents;
 import net.butfly.albacore.utils.logger.Logger;
 
 public class OffHeapQueue<I, O> extends QueueImpl<I, O> {
@@ -61,16 +59,6 @@ public class OffHeapQueue<I, O> extends QueueImpl<I, O> {
 		} finally {
 			if (queue.isEmpty()) gc();
 		}
-	}
-
-	@Override
-	public final long enqueue(List<I> messages) {
-		while (full())
-			if (!Concurrents.waitSleep()) logger.warn("Wait for full interrupted");
-		long c = 0;
-		for (I m : messages)
-			if (enqueue(m, false)) c++;
-		return c;
 	}
 
 	@Override

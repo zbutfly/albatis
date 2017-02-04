@@ -3,9 +3,9 @@ package net.butfly.albatis.kafka;
 import java.io.IOException;
 import java.text.MessageFormat;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
 
 import com.leansoft.bigqueue.BigQueueImpl;
 import com.leansoft.bigqueue.IBigQueue;
@@ -61,7 +61,7 @@ public final class KafkaInput extends KafkaInputBase<KafkaInput.Fetcher> {
 	}
 
 	@Override
-	public List<KafkaMessage> dequeue(long batchSize, Iterable<String> topics) {
+	public Stream<KafkaMessage> dequeue(long batchSize, Iterable<String> topics) {
 		try {
 			return super.dequeue(batchSize, topics);
 		} finally {

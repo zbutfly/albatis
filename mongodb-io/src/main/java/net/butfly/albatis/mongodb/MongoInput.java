@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.stream.Stream;
 
 import com.google.common.base.Joiner;
 import com.mongodb.BasicDBList;
@@ -103,14 +104,14 @@ public class MongoInput extends InputImpl<DBObject> {
 	}
 
 	@Override
-	public List<DBObject> dequeue(long batchSize) {
+	public Stream<DBObject> dequeue(long batchSize) {
 		boolean retry;
 		List<DBObject> batch = new ArrayList<>();
 		do {
 			retry = false;
 			if (lock.writeLock().tryLock()) try {
 				while (opened() && batch.size() < batchSize) {
-					if (!cursor.hasNext()) return batch;
+					if (!cursor.hasNext()) return batch.parallelStream();
 					batch.add(cursor.next());
 				}
 			} catch (MongoException ex) {
@@ -120,6 +121,6 @@ public class MongoInput extends InputImpl<DBObject> {
 				lock.writeLock().unlock();
 			}
 		} while (opened() && retry && batch.size() == 0);
-		return batch;
+		return batch.parallelStream();
 	}
 }

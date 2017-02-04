@@ -7,8 +7,8 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import net.butfly.albacore.io.OutputImpl;
 import scala.Tuple2;
@@ -78,13 +78,13 @@ public abstract class FailoverOutput<I, FV> extends OutputImpl<I> {
 
 	@Override
 	public final boolean enqueue(I e, boolean block) {
-		return enqueue(Arrays.asList(e)) == 1;
+		return enqueue(Arrays.asList(e).stream()) == 1;
 	}
 
 	@Override
-	public final long enqueue(List<I> els) {
-		return failover.insertTask(els.parallelStream().filter(e -> null != e).map(e -> parse(e)).collect(Collectors.groupingBy(t -> t._1,
-				Collectors.mapping(t -> t._2, Collectors.toList()))));
+	public final long enqueue(Stream<I> els) {
+		return failover.insertTask(els.filter(e -> null != e).map(e -> parse(e)).collect(Collectors.groupingBy(t -> t._1, Collectors
+				.mapping(t -> t._2, Collectors.toList()))));
 	}
 
 	@Override

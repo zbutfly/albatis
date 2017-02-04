@@ -1,20 +1,20 @@
 package net.butfly.albatis.hbase;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.stream.Stream;
 
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.Get;
+import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.client.ScannerTimeoutException;
 import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterList;
@@ -105,21 +105,19 @@ public final class HbaseInput extends InputImpl<HbaseResult> {
 	}
 
 	@Override
-	public List<HbaseResult> dequeue(long batchSize) {
-		if (ended.get()) return new ArrayList<>();
-		if (scanerLock.writeLock().tryLock()) {
+	public Stream<HbaseResult> dequeue(long batchSize) {
+		if (!ended.get() && scanerLock.writeLock().tryLock()) {
 			try {
-				List<HbaseResult> l = Collections.map(Arrays.asList(scaner.next((int) batchSize)), r -> new HbaseResult(tableName, r));
+				List<Result> l = Arrays.asList(scaner.next((int) batchSize));
 				ended.set(l.isEmpty());
-				return l;
-			} catch (ScannerTimeoutException ex) {
-				return new ArrayList<>();
-			} catch (IOException e) {
-				return new ArrayList<>();
+				return l.parallelStream().filter(t -> t != null).map(r -> new HbaseResult(tableName, r));
+			} catch (Exception ex) {
+				logger().warn("Hbase failure", ex);
 			} finally {
 				scanerLock.writeLock().unlock();
 			}
-		} else return new ArrayList<>();
+		}
+		return Stream.empty();
 	}
 
 	public List<HbaseResult> get(List<Get> gets) throws IOException {
