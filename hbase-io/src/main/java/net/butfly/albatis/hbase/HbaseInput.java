@@ -82,8 +82,11 @@ public final class HbaseInput extends InputImpl<HbaseResult> {
 
 	private void closeHbase() {
 		try {
-			scaner.close();
-			table.close();
+			closeScaning();
+		} catch (IOException e) {
+			logger().error("Close failure", e);
+		}
+		try {
 			connect.close();
 		} catch (IOException e) {
 			logger().error("Close failure", e);
@@ -120,7 +123,20 @@ public final class HbaseInput extends InputImpl<HbaseResult> {
 		return Stream.empty();
 	}
 
+	public void closeScaning() throws IOException {
+		scaner.close();
+		table.close();
+	}
+
 	public List<HbaseResult> get(List<Get> gets) throws IOException {
-		return Collections.map(Arrays.asList(table.get(gets)), r -> new HbaseResult(tableName, r));
+		try (Table t = connect.getTable(TableName.valueOf(tableName));) {
+			return Collections.map(Arrays.asList(t.get(gets)), r -> new HbaseResult(tableName, r));
+		}
+	}
+
+	public List<HbaseResult> get(String table, List<Get> gets) throws IOException {
+		try (Table t = connect.getTable(TableName.valueOf(table));) {
+			return Collections.map(Arrays.asList(t.get(gets)), r -> new HbaseResult(tableName, r));
+		}
 	}
 }

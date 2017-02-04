@@ -36,7 +36,6 @@ public class KafkaOutputConfig extends KafkaConfigBase {
 	@Deprecated
 	public KafkaOutputConfig(Properties props) {
 		super(props);
-
 		requestRequiredAcks = Integer.parseInt(props.getProperty("albatis.kafka.request.required.acks", "-1"));
 		compressionCodec = props.getProperty("albatis.kafka.compression.codec", "snappy");
 		retries = Integer.parseInt(props.getProperty("albatis.kafka.retries", "0"));

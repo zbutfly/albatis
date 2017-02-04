@@ -103,8 +103,8 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 			baseUri = url;
 			defaultCore = null;
 		} catch (SolrServerException e) { // XXX IOException?
-			if (uri.getPathSegs().length == 0) throw new IOException("Solr uri invalid: " + uri);
-			defaultCore = uri.getPathSegs()[0];
+			defaultCore = uri.getPathAt(0);
+			if (defaultCore == null) throw new IOException("Solr uri invalid: " + uri);
 			baseUri = url.replaceAll("/?" + defaultCore + "/?$", "");
 			try (SolrConnection conn = new SolrConnection(baseUri, parserClass)) {
 				cores = conn.getCores();

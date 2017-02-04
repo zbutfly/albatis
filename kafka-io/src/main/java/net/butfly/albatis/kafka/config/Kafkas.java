@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooKeeper;
@@ -81,21 +82,21 @@ public final class Kafkas extends Utils {
 		return topics;
 	}
 
-	public static Map<String, Integer> getTopicInfo(String zkconn, String... topic) throws IOException {
-		if (topic == null || topic.length == 0) return getAllTopicInfo(zkconn);
-		Map<String, Integer> topics = new HashMap<>();
+	public static Map<String, Integer> getTopicInfo(String zkconn, Set<String> topics) throws IOException {
+		if (topics == null || topics.isEmpty()) return getAllTopicInfo(zkconn);
+		Map<String, Integer> topicsMap = new HashMap<>();
 		ZooKeeper zk = new ZooKeeper(zkconn, 500, e -> {});
 		try {
-			for (String t : topic) {
+			for (String t : topics) {
 				try {
 					byte[] d = zk.getData(ZkUtils.BrokerTopicsPath() + "/" + t, false, null);
 					Map<String, Object> info = JsonSerder.JSON_MAPPER.der(new String(d));
 					Map<Integer, int[]> counts = (Map<Integer, int[]>) info.get("partitions");
 					logger.debug(() -> "Kafka topic [" + t + "] info fetch from zk [" + zkconn + "]: " + counts.toString());
-					topics.put(t, counts.keySet().size());
+					topicsMap.put(t, counts.keySet().size());
 				} catch (Exception e) {
 					logger.error("Topic info fetch failure, return topic with count -1", e);
-					topics.put(t, -1);
+					topicsMap.put(t, -1);
 				}
 			}
 		} finally {
@@ -105,7 +106,7 @@ public final class Kafkas extends Utils {
 				logger.warn("Kafka closing [" + zkconn + "]  interrupted and ignored.");
 			}
 		}
-		return topics;
+		return topicsMap;
 	}
 
 	public static void main(String[] args) throws IOException {

@@ -1,7 +1,9 @@
 package net.butfly.albatis.kafka;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -22,27 +24,28 @@ import net.butfly.albatis.kafka.config.Kafkas;
 
 abstract class KafkaInputBase<V> extends KeyInputImpl<String, KafkaMessage> {
 	protected static final Logger logger = Logger.getLogger(KafkaInputBase.class);
-	protected final KafkaInputConfig conf;
-	protected final Map<String, Integer> topics;
+	protected final KafkaInputConfig config;
+	protected final Map<String, Integer> allTopics;
 	protected ConsumerConnector connect;
 	protected final Map<String, List<KafkaStream<byte[], byte[]>>> raws;
 	protected final Map<String, Map<KafkaStream<byte[], byte[]>, V>> streams;
 
-	public KafkaInputBase(String name, final String kafkaURI, String... topic) throws ConfigException, IOException {
+	public KafkaInputBase(String name, final String kafkaURI, String[] topics) throws ConfigException, IOException {
 		super(name);
-		conf = new KafkaInputConfig(new URISpec(kafkaURI));
-		logger.info("[" + name() + "] connecting with config [" + conf.toString() + "].");
-		topics = new HashMap<>();
-		int kp = conf.getPartitionParallelism();
-		for (Entry<String, Integer> info : Kafkas.getTopicInfo(conf.getZookeeperConnect(), topic).entrySet()) {
-			if (kp <= 0) topics.put(info.getKey(), 1);
-			else if (kp >= info.getValue()) topics.put(info.getKey(), info.getValue());
-			else topics.put(info.getKey(), (int) Math.ceil(info.getValue() * 1.0 / kp));
+		config = new KafkaInputConfig(new URISpec(kafkaURI));
+		logger.info("[" + name() + "] connecting with config [" + config.toString() + "].");
+		allTopics = new HashMap<>();
+		int kp = config.getPartitionParallelism();
+		for (Entry<String, Integer> info : Kafkas.getTopicInfo(config.getZookeeperConnect(), (topics != null && topics.length > 0)
+				? new HashSet<>(Arrays.asList(topics)) : topics()).entrySet()) {
+			if (kp <= 0) allTopics.put(info.getKey(), 1);
+			else if (kp >= info.getValue()) allTopics.put(info.getKey(), info.getValue());
+			else allTopics.put(info.getKey(), (int) Math.ceil(info.getValue() * 1.0 / kp));
 		}
 
-		logger.debug("[" + name() + "] parallelism of topics: " + topics.toString() + ".");
-		connect = kafka.consumer.Consumer.createJavaConsumerConnector(conf.getConfig());
-		raws = connect.createMessageStreams(topics);
+		logger.debug("[" + name() + "] parallelism of topics: " + allTopics.toString() + ".");
+		connect = kafka.consumer.Consumer.createJavaConsumerConnector(config.getConfig());
+		raws = connect.createMessageStreams(allTopics);
 		logger.debug("[" + name() + "] connected.");
 		streams = new HashMap<>();
 	}
@@ -106,5 +109,10 @@ abstract class KafkaInputBase<V> extends KeyInputImpl<String, KafkaMessage> {
 		connect.commitOffsets(true);
 		connect.shutdown();
 		connect = null;
+	}
+
+	public Set<String> topics() {
+		String[] topics = config.getTopics();
+		return topics == null || topics.length == 0 ? new HashSet<>() : new HashSet<>(Arrays.asList(topics));
 	}
 }

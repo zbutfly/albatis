@@ -5,7 +5,6 @@ import java.text.DateFormat;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -15,18 +14,16 @@ import net.butfly.albacore.exception.ConfigException;
 
 public class KafkaTest {
 	public static void main(String[] args) throws ConfigException, IOException {
-		int batchSize = Integer.parseInt(args[0]);
-		String[] topics = Arrays.copyOfRange(args, 1, args.length);
+		if (args.length != 2) throw new RuntimeException("KafkaTest <uri> <batchSize> , topics in url");
+		int batchSize = Integer.parseInt(args[1]);
 
 		Map<String, Integer> counts = new HashMap<>();
-		for (String t : topics)
-			counts.put(t, 0);
 		NumberFormat nf = new DecimalFormat("0.00");
 		DateFormat df = new SimpleDateFormat("MM-dd hh:mm:ss ");
 		double total = 0;
 		long begin = new Date().getTime();
 		long now = begin;
-		try (KafkaInput in = new KafkaInput("KafkaIn", "kafka.properties", "./cache", topics);) {
+		try (KafkaInput in = new KafkaInput("KafkaIn", args[0], "./cache");) {
 			do {
 				AtomicInteger count = new AtomicInteger(0);
 				long size = in.dequeue(batchSize).mapToInt(m -> {

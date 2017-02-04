@@ -21,22 +21,22 @@ import net.butfly.albacore.utils.Systems;
 public final class KafkaInput extends KafkaInputBase<KafkaInput.Fetcher> {
 	private IBigQueue pool;
 
-	public KafkaInput(String name, final String kafkaURI, final String poolPath, String... topic) throws ConfigException, IOException {
-		super(name, kafkaURI, topic);
+	public KafkaInput(String name, final String kafkaURI, final String poolPath, String... topics) throws ConfigException, IOException {
+		super(name, kafkaURI, topics);
 		Systems.enableGC();
 		try {
-			pool = new BigQueueImpl(IOs.mkdirs(poolPath + "/" + name), conf.toString());
+			pool = new BigQueueImpl(IOs.mkdirs(poolPath + "/" + name), config.toString());
 		} catch (IOException e) {
 			throw new RuntimeException("Offheap pool init failure", e);
 		}
-		logger.info(MessageFormat.format("[{0}] local pool init: [{1}/{0}] with name [{2}], init size [{3}].", name, poolPath, conf
+		logger.info(MessageFormat.format("[{0}] local pool init: [{1}/{0}] with name [{2}], init size [{3}].", name, poolPath, config
 				.toString(), pool.size()));
 		for (String t : raws.keySet()) {
 			AtomicInteger i = new AtomicInteger(0);
 			for (KafkaStream<byte[], byte[]> stream : raws.get(t))
 				streams.compute(t, (k, v) -> {
 					Map<KafkaStream<byte[], byte[]>, Fetcher> v1 = v == null ? new HashMap<>() : v;
-					Fetcher f = new Fetcher(name + "Fetcher#" + t, stream, i.incrementAndGet(), pool, conf.getPoolSize());
+					Fetcher f = new Fetcher(name + "Fetcher#" + t, stream, i.incrementAndGet(), pool, config.getPoolSize());
 					f.start();
 					logger.trace("[" + name + "] fetcher [" + i.get() + "] started at topic [" + t + "].");
 					v1.put(stream, f);

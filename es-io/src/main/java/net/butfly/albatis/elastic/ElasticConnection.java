@@ -40,15 +40,11 @@ public class ElasticConnection extends NoSqlConnection<TransportClient> {
 	}
 
 	public String getDefaultIndex() {
-		String[] paths = uri.getPathSegs();
-		if (paths.length > 0) return paths[0];
-		else return null;
+		return uri.getPathAt(0);
 	}
 
 	public String getDefaultType() {
-		String[] paths = uri.getPathSegs();
-		if (paths.length > 1) return paths[1];
-		else return null;
+		return uri.getPathAt(1);
 	}
 
 	@Override
