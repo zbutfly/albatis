@@ -53,29 +53,18 @@ abstract class KafkaInputBase<V> extends KeyInputImpl<String, KafkaMessage> {
 	protected abstract KafkaMessage fetch(KafkaStream<byte[], byte[]> stream, V lock, Consumer<KafkaMessage> result);
 
 	@Override
-	protected void readTo(String key, List<KafkaMessage> batch) {
-		for (Entry<KafkaStream<byte[], byte[]>, V> s : Collections.disorderize(streams.get(key).entrySet()))
+	protected final void read(String topic, List<KafkaMessage> batch) {
+		for (Entry<KafkaStream<byte[], byte[]>, V> s : Collections.disorderize(streams.get(topic).entrySet()))
 			fetch(s.getKey(), s.getValue(), e -> batch.add(e));
 	}
 
 	@Override
-	protected void readCommit() {
-		connect.commitOffsets(true);
-	}
-
-	@Override
-	public Stream<KafkaMessage> dequeue(long batchSize) {
-		return dequeue(batchSize, keys());
-	}
-
-	@Override
-	public KafkaMessage dequeue() {
-		String topic = Collections.disorderize(keys()).get(0);
-		for (Entry<KafkaStream<byte[], byte[]>, V> s : Collections.disorderize(streams.get(topic).entrySet())) {
-			KafkaMessage e = fetch(s.getKey(), s.getValue(), v -> connect.commitOffsets(false));
-			if (null != e) return e;
+	public Stream<KafkaMessage> dequeue(long batchSize, Iterable<String> keys) {
+		try {
+			return super.dequeue(batchSize, keys);
+		} finally {
+			connect.commitOffsets(true);
 		}
-		return null;
 	}
 
 	@Override

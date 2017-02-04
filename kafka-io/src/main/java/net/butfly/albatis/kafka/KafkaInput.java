@@ -17,6 +17,7 @@ import net.butfly.albacore.io.OpenableThread;
 import net.butfly.albacore.lambda.Consumer;
 import net.butfly.albacore.utils.IOs;
 import net.butfly.albacore.utils.Systems;
+import net.butfly.albacore.utils.async.Concurrents;
 
 public final class KafkaInput extends KafkaInputBase<KafkaInput.Fetcher> {
 	private IBigQueue pool;
@@ -61,16 +62,19 @@ public final class KafkaInput extends KafkaInputBase<KafkaInput.Fetcher> {
 	}
 
 	@Override
-	public Stream<KafkaMessage> dequeue(long batchSize, Iterable<String> topics) {
+	public Stream<KafkaMessage> dequeue(long batchSize, Iterable<String> keys) {
 		try {
-			return super.dequeue(batchSize, topics);
+			return super.dequeue(batchSize, keys);
 		} finally {
-			// System.gc();
-			try {
-				pool.gc();
-			} catch (IOException e) {
-				logger.warn("[" + name() + "] local pool gc failure", e);
-			}
+			gc(pool);
+		}
+	}
+
+	private static void gc(IBigQueue pool) {
+		try {
+			pool.gc();
+		} catch (IOException e) {
+			logger.warn("Local pool gc() failure", e);
 		}
 	}
 
@@ -119,12 +123,14 @@ public final class KafkaInput extends KafkaInputBase<KafkaInput.Fetcher> {
 					while (opened() && it.hasNext()) {
 						byte[] km = new KafkaMessage(it.next()).toBytes();
 						while (opened() && pool.size() > poolSize)
-							sleep(100);
+							Concurrents.waitSleep(100);
 						pool.enqueue(km);
 					}
 					sleep(1000); // kafka empty
 				} catch (Exception e) {
 					// logger.warn("Consumer fetching failure", e);
+				} finally {
+					gc(pool);
 				}
 			logger.info("Fetcher finished and exited, pool [" + pool.size() + "].");
 		}
