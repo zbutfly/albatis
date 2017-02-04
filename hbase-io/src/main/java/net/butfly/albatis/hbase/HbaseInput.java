@@ -3,7 +3,6 @@ package net.butfly.albatis.hbase;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Stream;
@@ -22,6 +21,7 @@ import org.apache.hadoop.hbase.filter.FilterList;
 import net.butfly.albacore.io.InputImpl;
 import net.butfly.albacore.lambda.Supplier;
 import net.butfly.albacore.utils.Collections;
+import net.butfly.albacore.utils.collection.Maps;
 
 public final class HbaseInput extends InputImpl<HbaseResult> {
 	protected final Connection connect;
@@ -35,9 +35,7 @@ public final class HbaseInput extends InputImpl<HbaseResult> {
 	public HbaseInput(String name, final String table, final Filter... filter) throws IOException {
 		super(name);
 		this.tableName = table;
-		Properties p = new Properties();
-		p.setProperty(HConstants.HBASE_CLIENT_SCANNER_TIMEOUT_PERIOD, Integer.toString(Integer.MAX_VALUE));
-		this.connect = Hbases.connect(p);
+		connect = Hbases.connect(Maps.of(HConstants.HBASE_CLIENT_SCANNER_TIMEOUT_PERIOD, Integer.toString(Integer.MAX_VALUE)));
 		this.table = connect.getTable(TableName.valueOf(table));
 		if (null != filter && filter.length > 0) {
 			if (filter.length == 1) scaning = () -> {
