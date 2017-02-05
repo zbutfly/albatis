@@ -14,7 +14,6 @@ import net.butfly.albacore.lambda.Converter;
 import scala.Tuple2;
 
 public class HeapFailover<K, V> extends Failover<K, V> {
-	private static final long serialVersionUID = -7766759011944551301L;
 	private static final int MAX_FAILOVER = 50000;
 	private Map<K, LinkedBlockingQueue<V>> failover = new ConcurrentHashMap<>();
 

@@ -33,8 +33,6 @@ public abstract class FailoverOutput<I, FV> extends OutputImpl<I> {
 				parallelism);
 		else failover = new OffHeapFailover<String, FV>(name(), kvs -> write(kvs._1, kvs._2), this::commit, failoverPath, null, packageSize,
 				parallelism) {
-			private static final long serialVersionUID = -6942345655578531843L;
-
 			@Override
 			protected byte[] toBytes(String key, FV value) throws IOException {
 				return FailoverOutput.this.toBytes(key, value);
