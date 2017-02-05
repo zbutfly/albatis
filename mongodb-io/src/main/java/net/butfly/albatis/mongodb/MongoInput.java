@@ -121,6 +121,6 @@ public class MongoInput extends InputImpl<DBObject> {
 				lock.writeLock().unlock();
 			}
 		} while (opened() && retry && batch.size() == 0);
-		return batch.parallelStream();
+		return batch.parallelStream().filter(t -> t != null);
 	}
 }
