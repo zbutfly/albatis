@@ -36,7 +36,7 @@ public final class ElasticOutput extends OutputImpl<ElasticMessage> {
 	@Override
 	public long enqueue(Stream<ElasticMessage> docs) {
 		long s = 0;
-		for (BulkItemResponse r : conn.client().bulk(new BulkRequest().add(docs.filter(t -> t != null).map(d -> d.update()).collect(
+		for (BulkItemResponse r : conn.client().bulk(new BulkRequest().add(docs.filter(t -> t != null).map(ElasticMessage::update).collect(
 				Collectors.toList()))).actionGet())
 			if (!r.isFailed()) s++;
 		return s;
