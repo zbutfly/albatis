@@ -23,29 +23,24 @@ import net.butfly.albacore.io.InputImpl;
 import net.butfly.albacore.utils.collection.Maps;
 
 public final class HbaseInput extends InputImpl<HbaseResult> {
-	protected final Connection connect;
-	protected final String tableName;
-	protected final Table table;
-	protected final ResultScanner scaner;
-	private final ReentrantReadWriteLock scanerLock;
-	private final AtomicBoolean ended;
+	protected final Connection hconn;
+	protected final String tname;
+	protected final Table htable;
+	private final Filter filter;
 
-	public HbaseInput(String name, final String table, final Filter... filter) throws IOException {
+	protected ResultScanner scaner = null;
+	private ReentrantReadWriteLock scanerLock;
+	private AtomicBoolean ended;
+
+	public HbaseInput(String name, final String table, final Filter... filters) throws IOException {
 		super(name);
-		this.tableName = table;
-		connect = Hbases.connect(Maps.of(HConstants.HBASE_CLIENT_SCANNER_TIMEOUT_PERIOD, Integer.toString(Integer.MAX_VALUE)));
-		this.table = connect.getTable(TableName.valueOf(table));
-		if (null != filter && filter.length > 0) {
-			if (filter.length == 1) scaner = this.table.getScanner(new Scan().setFilter(filter[0]));
-			else {
-				FilterList all = new FilterList();
-				for (Filter f : filter)
-					all.addFilter(f);
-				scaner = this.table.getScanner(new Scan().setFilter(all));
-			}
-		} else scaner = this.table.getScanner(new Scan());;
-		scanerLock = new ReentrantReadWriteLock();
-		ended = new AtomicBoolean(false);
+		hconn = Hbases.connect(Maps.of(HConstants.HBASE_CLIENT_SCANNER_TIMEOUT_PERIOD, Integer.toString(Integer.MAX_VALUE)));
+		tname = table;
+		htable = hconn.getTable(TableName.valueOf(table));
+		if (null != filters && filters.length > 0) {
+			filter = filters.length == 1 ? filters[0] : new FilterList(filters);
+			logger().debug(name() + " filtered: " + filter.toString());
+		} else filter = null;
 		open();
 	}
 
@@ -61,18 +56,9 @@ public final class HbaseInput extends InputImpl<HbaseResult> {
 			logger().error("Close failure", e);
 		}
 		try {
-			connect.close();
+			hconn.close();
 		} catch (IOException e) {
 			logger().error("Close failure", e);
-		}
-	}
-
-	@Override
-	public HbaseResult dequeue() {
-		try {
-			return new HbaseResult(tableName, scaner.next());
-		} catch (IOException e) {
-			return null;
 		}
 	}
 
@@ -81,13 +67,38 @@ public final class HbaseInput extends InputImpl<HbaseResult> {
 		return ended.get();
 	}
 
+	private void begin() {
+		if (null == scaner) {
+			Scan scan = new Scan();
+			if (null != filter) scan = scan.setFilter(filter);
+			try {
+				scaner = htable.getScanner(scan);
+			} catch (IOException e) {
+				scaner = null;
+			}
+			scanerLock = new ReentrantReadWriteLock();
+			ended = new AtomicBoolean(false);
+		}
+	}
+
+	@Override
+	public HbaseResult dequeue() {
+		begin();
+		try {
+			return new HbaseResult(tname, scaner.next());
+		} catch (IOException e) {
+			return null;
+		}
+	}
+
 	@Override
 	public Stream<HbaseResult> dequeue(long batchSize) {
+		begin();
 		if (!ended.get() && scanerLock.writeLock().tryLock()) {
 			try {
 				List<Result> l = Arrays.asList(scaner.next((int) batchSize));
 				ended.set(l.isEmpty());
-				return l.parallelStream().filter(t -> t != null).map(r -> new HbaseResult(tableName, r));
+				return l.parallelStream().filter(t -> t != null).map(r -> new HbaseResult(tname, r));
 			} catch (Exception ex) {
 				logger().warn("Hbase failure", ex);
 			} finally {
@@ -99,18 +110,12 @@ public final class HbaseInput extends InputImpl<HbaseResult> {
 
 	public void closeScaning() throws IOException {
 		scaner.close();
-		table.close();
+		htable.close();
 	}
 
 	public List<HbaseResult> get(List<Get> gets) throws IOException {
-		try (Table t = connect.getTable(TableName.valueOf(tableName))) {
-			return Arrays.asList(t.get(gets)).parallelStream().map(r -> new HbaseResult(tableName, r)).collect(Collectors.toList());
-		}
-	}
-
-	public List<HbaseResult> get(String table, List<Get> gets) throws IOException {
-		try (Table t = connect.getTable(TableName.valueOf(table));) {
-			return Collections.map(Arrays.asList(t.get(gets)), r -> new HbaseResult(tableName, r));
+		try (Table t = hconn.getTable(TableName.valueOf(tname));) {
+			return Arrays.asList(t.get(gets)).parallelStream().map(r -> new HbaseResult(tname, r)).collect(Collectors.toList());
 		}
 	}
 }
