@@ -17,7 +17,6 @@ import net.butfly.albacore.utils.logger.Logger;
 import scala.Tuple2;
 
 public abstract class Failover<K, V> extends OpenableThread implements Statistical<Failover<K, V>> {
-	private static final long serialVersionUID = -7515454826294115208L;
 	protected static final Logger logger = Logger.getLogger(Failover.class);
 	protected final Converter<Tuple2<K, Collection<V>>, Integer> writing;
 	protected final int packageSize;

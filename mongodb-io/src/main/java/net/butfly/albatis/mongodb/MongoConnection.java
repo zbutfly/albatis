@@ -26,13 +26,16 @@ public class MongoConnection extends NoSqlConnection<MongoClient> {
 	public MongoConnection(URISpec urispec) throws IOException {
 		super(urispec, u -> {
 			try {
-				return new MongoClient(new MongoClientURI(u.getScheme() + "://" + u.getAuthority() + "/" + u.getPathSegs()[0]));
+				String str = u.getScheme() + "://" + u.getAuthority() + "/";
+				String db = u.getPathAt(0);
+				if (null != db) str += db;
+				return new MongoClient(new MongoClientURI(str));
 			} catch (UnknownHostException e) {
 				throw new RuntimeException(e);
 			}
 		}, "mongodb");
-		defaultDB = uri.getPathSegs()[0];
-		defaultCollection = uri.getPathSegs().length > 1 ? uri.getPathSegs()[1] : null;
+		defaultDB = uri.getPathAt(0);
+		defaultCollection = uri.getPathAt(1);
 		dbs = new ConcurrentHashMap<>();
 	}
 

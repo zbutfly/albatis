@@ -14,13 +14,13 @@ public class MapdbQueue<I, O> extends QueueImpl<I, O> {
 	}
 
 	@Override
-	public O dequeue(boolean block) {
+	public O dequeue() {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public boolean enqueue(I item, boolean block) {
+	public boolean enqueue(I item) {
 		// TODO Auto-generated method stub
 		return false;
 	}

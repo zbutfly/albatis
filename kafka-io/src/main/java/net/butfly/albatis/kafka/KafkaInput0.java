@@ -13,8 +13,8 @@ import net.butfly.albacore.lambda.Consumer;
 
 @Deprecated
 public final class KafkaInput0 extends KafkaInputBase<ReentrantLock> {
-	public KafkaInput0(String name, final String config, String... topic) throws ConfigException, IOException {
-		super(name, config, topic);
+	public KafkaInput0(String name, final String config, String... topics) throws ConfigException, IOException {
+		super(name, config, topics);
 		for (String t : raws.keySet())
 			for (KafkaStream<byte[], byte[]> stream : raws.get(t))
 				streams.compute(t, (k, v) -> {

@@ -27,14 +27,12 @@ import scala.Tuple2;
 public abstract class FailoverOutput<I, FV> extends OutputImpl<I> {
 	private final Failover<String, FV> failover;
 
-	public FailoverOutput(String name, String failoverPath, int packageSize, int parallenism) throws IOException {
+	public FailoverOutput(String name, String failoverPath, int packageSize, int parallelism) throws IOException {
 		super(name);
 		if (failoverPath == null) failover = new HeapFailover<String, FV>(name(), kvs -> write(kvs._1, kvs._2), this::commit, packageSize,
-				parallenism);
+				parallelism);
 		else failover = new OffHeapFailover<String, FV>(name(), kvs -> write(kvs._1, kvs._2), this::commit, failoverPath, null, packageSize,
-				parallenism) {
-			private static final long serialVersionUID = -6942345655578531843L;
-
+				parallelism) {
 			@Override
 			protected byte[] toBytes(String key, FV value) throws IOException {
 				return FailoverOutput.this.toBytes(key, value);
@@ -77,7 +75,7 @@ public abstract class FailoverOutput<I, FV> extends OutputImpl<I> {
 	protected abstract I unparse(String key, FV value);
 
 	@Override
-	public final boolean enqueue(I e, boolean block) {
+	public final boolean enqueue(I e) {
 		return enqueue(Arrays.asList(e).stream()) == 1;
 	}
 

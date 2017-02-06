@@ -18,7 +18,6 @@ import net.butfly.albacore.utils.async.Concurrents;
 import scala.Tuple2;
 
 public abstract class OffHeapFailover<K, V> extends Failover<K, V> {
-	private static final long serialVersionUID = -4766585003300311051L;
 	private IBigQueue failover;
 
 	public OffHeapFailover(String parentName, Converter<Tuple2<K, Collection<V>>, Integer> writing, Callback<K> committing, String path,

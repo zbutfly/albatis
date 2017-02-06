@@ -19,12 +19,16 @@ import net.butfly.albacore.io.URISpec;
 import net.butfly.albatis.kafka.config.KafkaOutputConfig;
 
 public final class KafkaOutput extends OutputImpl<KafkaMessage> {
+	private final URISpec uri;
+	private final KafkaOutputConfig config;
 	private final KafkaProducer<byte[], byte[]> connect;
 	private final boolean async;
 
 	public KafkaOutput(final String name, final String kafkaURI, boolean async) throws ConfigException {
 		super(name);
-		connect = new KafkaProducer<byte[], byte[]>(new KafkaOutputConfig(new URISpec(kafkaURI)).props());
+		uri = new URISpec(kafkaURI);
+		config = new KafkaOutputConfig(uri);
+		connect = new KafkaProducer<byte[], byte[]>(config.props());
 		this.async = async;
 		open();
 	}
@@ -39,20 +43,22 @@ public final class KafkaOutput extends OutputImpl<KafkaMessage> {
 	}
 
 	@Override
-	public boolean enqueue(KafkaMessage m, boolean block) {
+	public boolean enqueue(KafkaMessage m) {
 		if (null == m) return false;
 		m.setTopic(m.getTopic());
 		Future<RecordMetadata> r = connect.send(m.toProducer(), (meta, ex) -> {
 			if (null != ex) logger().error("Kafka send failure on topic [" + m.getTopic() + "] with key: [" + new String(m.getKey()) + "]",
 					ex);
 		});
-		if (block) try {
+		try {
 			r.get();
 			return true;
-		} catch (InterruptedException | ExecutionException e) {
+		} catch (InterruptedException e) {
+			return false;
+		} catch (ExecutionException e) {
+			logger().warn("Kafka send failure", e.getCause());
 			return false;
 		}
-		else return true;
 	}
 
 	@Override
@@ -71,5 +77,10 @@ public final class KafkaOutput extends OutputImpl<KafkaMessage> {
 
 	public long fails() {
 		return 0;
+	}
+
+	public String getDefaultTopic() {
+		String[] topics = config.getTopics();
+		return topics == null || topics.length == 0 ? null : topics[0];
 	}
 }

@@ -3,7 +3,6 @@ package net.butfly.albatis.hbase;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
@@ -21,7 +20,7 @@ import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterList;
 
 import net.butfly.albacore.io.InputImpl;
-import net.butfly.albacore.lambda.Supplier;
+import net.butfly.albacore.utils.collection.Maps;
 
 public final class HbaseInput extends InputImpl<HbaseResult> {
 	protected final Connection connect;
@@ -30,46 +29,21 @@ public final class HbaseInput extends InputImpl<HbaseResult> {
 	protected final ResultScanner scaner;
 	private final ReentrantReadWriteLock scanerLock;
 	private final AtomicBoolean ended;
-	private final Supplier<ResultScanner> scaning;
 
 	public HbaseInput(String name, final String table, final Filter... filter) throws IOException {
 		super(name);
 		this.tableName = table;
-		Properties p = new Properties();
-		p.setProperty(HConstants.HBASE_CLIENT_SCANNER_TIMEOUT_PERIOD, Integer.toString(Integer.MAX_VALUE));
-		this.connect = Hbases.connect(p);
+		connect = Hbases.connect(Maps.of(HConstants.HBASE_CLIENT_SCANNER_TIMEOUT_PERIOD, Integer.toString(Integer.MAX_VALUE)));
 		this.table = connect.getTable(TableName.valueOf(table));
 		if (null != filter && filter.length > 0) {
-			if (filter.length == 1) scaning = () -> {
-				try {
-					return this.table.getScanner(new Scan().setFilter(filter[0]));
-				} catch (Exception e) {
-					logger().error("ResultScaner create failure", e);
-					return null;
-				}
-			};
+			if (filter.length == 1) scaner = this.table.getScanner(new Scan().setFilter(filter[0]));
 			else {
 				FilterList all = new FilterList();
 				for (Filter f : filter)
 					all.addFilter(f);
-				scaning = () -> {
-					try {
-						return this.table.getScanner(new Scan().setFilter(all));
-					} catch (Exception e) {
-						logger().error("ResultScaner create failure", e);
-						return null;
-					}
-				};
+				scaner = this.table.getScanner(new Scan().setFilter(all));
 			}
-		} else scaning = () -> {
-			try {
-				return this.table.getScanner(new Scan());
-			} catch (Exception e) {
-				logger().error("ResultScaner create failure", e);
-				return null;
-			}
-		};
-		scaner = scaning.get();
+		} else scaner = this.table.getScanner(new Scan());;
 		scanerLock = new ReentrantReadWriteLock();
 		ended = new AtomicBoolean(false);
 		open();
@@ -82,8 +56,11 @@ public final class HbaseInput extends InputImpl<HbaseResult> {
 
 	private void closeHbase() {
 		try {
-			scaner.close();
-			table.close();
+			closeScaning();
+		} catch (IOException e) {
+			logger().error("Close failure", e);
+		}
+		try {
 			connect.close();
 		} catch (IOException e) {
 			logger().error("Close failure", e);
@@ -91,7 +68,7 @@ public final class HbaseInput extends InputImpl<HbaseResult> {
 	}
 
 	@Override
-	public HbaseResult dequeue(boolean block) {
+	public HbaseResult dequeue() {
 		try {
 			return new HbaseResult(tableName, scaner.next());
 		} catch (IOException e) {
@@ -120,9 +97,20 @@ public final class HbaseInput extends InputImpl<HbaseResult> {
 		return Stream.empty();
 	}
 
+	public void closeScaning() throws IOException {
+		scaner.close();
+		table.close();
+	}
+
 	public List<HbaseResult> get(List<Get> gets) throws IOException {
 		try (Table t = connect.getTable(TableName.valueOf(tableName))) {
 			return Arrays.asList(t.get(gets)).parallelStream().map(r -> new HbaseResult(tableName, r)).collect(Collectors.toList());
+		}
+	}
+
+	public List<HbaseResult> get(String table, List<Get> gets) throws IOException {
+		try (Table t = connect.getTable(TableName.valueOf(table));) {
+			return Collections.map(Arrays.asList(t.get(gets)), r -> new HbaseResult(tableName, r));
 		}
 	}
 }

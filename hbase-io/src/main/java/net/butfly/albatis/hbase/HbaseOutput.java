@@ -26,7 +26,7 @@ public final class HbaseOutput extends FailoverOutput<HbaseResult, Result> {
 
 	public HbaseOutput(String name, String failoverPath) throws IOException {
 		super(name, failoverPath, 500, 10);
-		this.connect = Hbases.connect();
+		connect = Hbases.connect();
 		tables = new ConcurrentHashMap<>();
 		open();
 	}

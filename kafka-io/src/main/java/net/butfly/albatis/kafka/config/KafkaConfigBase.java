@@ -25,6 +25,7 @@ public abstract class KafkaConfigBase implements Serializable {
 	protected String valueSerializerClass;
 
 	private final long poolSize;
+	private final String[] topics;
 
 	public long getPoolSize() {
 		return poolSize;
@@ -55,6 +56,8 @@ public abstract class KafkaConfigBase implements Serializable {
 		keySerializerClass = props.getProperty(PROP_PREFIX + "key.serializer.class", ByteArraySerializer.class.getName());
 		valueSerializerClass = props.getProperty(PROP_PREFIX + "value.serializer.class", ByteArraySerializer.class.getName());
 		poolSize = Long.parseLong(props.getProperty(PROP_PREFIX + "internal.pool.size", "3000000"));
+		String ts = props.getProperty(PROP_PREFIX + "topics");
+		topics = null == ts ? new String[0] : ts.split(",");
 	}
 
 	public KafkaConfigBase(URISpec uri) {
@@ -87,6 +90,8 @@ public abstract class KafkaConfigBase implements Serializable {
 		keySerializerClass = props.getProperty("kserial", ByteArraySerializer.class.getName());
 		valueSerializerClass = props.getProperty("vserial", ByteArraySerializer.class.getName());
 		poolSize = Long.parseLong(props.getProperty("pool", "3000000"));
+		String ts = props.getProperty("topics");
+		topics = null == ts ? new String[0] : ts.split(",");
 	}
 
 	/**
@@ -108,5 +113,9 @@ public abstract class KafkaConfigBase implements Serializable {
 
 	public String getZookeeperConnect() {
 		return zookeeperConnect;
+	}
+
+	public String[] getTopics() {
+		return topics;
 	}
 }

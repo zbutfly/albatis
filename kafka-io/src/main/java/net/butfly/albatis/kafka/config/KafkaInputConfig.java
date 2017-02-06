@@ -39,6 +39,8 @@ import net.butfly.albacore.utils.logger.Logger;
 public class KafkaInputConfig extends KafkaConfigBase {
 	private static final long serialVersionUID = -3028341800709486625L;
 	private static final Logger logger = Logger.getLogger(KafkaInputConfig.class);
+	private static final String DEFAULT_AUTO_COMMIT_MS = "60000";
+
 	protected long zookeeperSyncTimeMs;
 	protected String groupId;
 	protected boolean autoCommitEnable;
@@ -70,7 +72,7 @@ public class KafkaInputConfig extends KafkaConfigBase {
 		Properties props = uri.getParameters();
 
 		zookeeperSyncTimeMs = Long.parseLong(props.getProperty("zksynctime", "15000").trim());
-		autoCommitIntervalMs = Long.parseLong(props.getProperty("autocommit", "-1").trim());
+		autoCommitIntervalMs = Long.parseLong(props.getProperty("autocommit", DEFAULT_AUTO_COMMIT_MS).trim());
 		autoCommitEnable = autoCommitIntervalMs > 0;
 		autoOffsetReset = props.getProperty("autoreset", "smallest");
 		sessionTimeoutMs = Long.parseLong(props.getProperty("sessiontimeout", "30000").trim());
@@ -96,8 +98,9 @@ public class KafkaInputConfig extends KafkaConfigBase {
 		groupId = Systems.suffixDebug(groupId, logger);
 
 		zookeeperSyncTimeMs = Long.parseLong(props.getProperty("albatis.kafka.zookeeper.sync.time.ms", "15000").trim());
-		autoCommitEnable = Boolean.parseBoolean(props.getProperty("albatis.kafka.auto.commit.enable", "false").trim());
-		autoCommitIntervalMs = Long.parseLong(props.getProperty("albatis.kafka.auto.commit.interval.ms", "60000").trim());
+		autoCommitIntervalMs = Long.parseLong(props.getProperty("albatis.kafka.auto.commit.interval.ms", DEFAULT_AUTO_COMMIT_MS).trim());
+		autoCommitEnable = Boolean.parseBoolean(props.getProperty("albatis.kafka.auto.commit.enable", Boolean.toString(
+				autoCommitIntervalMs > 0)).trim());
 		autoOffsetReset = props.getProperty("albatis.kafka.auto.offset.reset", "smallest");
 		sessionTimeoutMs = Long.parseLong(props.getProperty("albatis.kafka.session.timeout.ms", "30000").trim());
 		fetchWaitTimeoutMs = Long.parseLong(props.getProperty("albatis.kafka.fetch.wait.timeout.ms", "500").trim());
