@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.hadoop.hbase.HConstants;
@@ -21,7 +22,6 @@ import org.apache.hadoop.hbase.filter.FilterList;
 
 import net.butfly.albacore.io.InputImpl;
 import net.butfly.albacore.lambda.Supplier;
-import net.butfly.albacore.utils.Collections;
 
 public final class HbaseInput extends InputImpl<HbaseResult> {
 	protected final Connection connect;
@@ -121,6 +121,8 @@ public final class HbaseInput extends InputImpl<HbaseResult> {
 	}
 
 	public List<HbaseResult> get(List<Get> gets) throws IOException {
-		return Collections.map(Arrays.asList(table.get(gets)), r -> new HbaseResult(tableName, r));
+		try (Table t = connect.getTable(TableName.valueOf(tableName))) {
+			return Arrays.asList(t.get(gets)).parallelStream().map(r -> new HbaseResult(tableName, r)).collect(Collectors.toList());
+		}
 	}
 }
