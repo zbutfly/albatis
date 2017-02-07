@@ -109,7 +109,7 @@ public final class HbaseInput extends InputImpl<HbaseResult> {
 	}
 
 	public void closeScaning() throws IOException {
-		scaner.close();
+		if (null != scaner) scaner.close();
 		htable.close();
 	}
 

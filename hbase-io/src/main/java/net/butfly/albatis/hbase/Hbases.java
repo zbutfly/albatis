@@ -56,8 +56,11 @@ public final class Hbases extends Utils {
 
 	public static byte[] toBytes(Result result) throws IOException {
 		try (ByteArrayOutputStream baos = new ByteArrayOutputStream();) {
-			for (Cell c : result.rawCells())
-				IOs.writeBytes(baos, cellToBytes(c));
+			if (!result.isEmpty()) result.listCells().forEach(c -> {
+				try {
+					IOs.writeBytes(baos, cellToBytes(c));
+				} catch (Exception e) {}
+			});
 			return baos.toByteArray();
 		}
 	}

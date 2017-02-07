@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableSet;
 
 import net.butfly.albacore.utils.Objects;
 
+@Deprecated
 public final class HbaseResultMap implements Map<String, byte[]>, Serializable {
 	private static final long serialVersionUID = -8275186612187030057L;
 	private final Result result;

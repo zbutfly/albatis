@@ -6,6 +6,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
@@ -46,10 +47,7 @@ public class HbaseResult implements Serializable {
 	}
 
 	public long size() {
-		long s = 0;
-		for (Cell c : result.rawCells())
-			s += c.getValueLength();
-		return s;
+		return isEmpty() ? 0 : result.listCells().parallelStream().collect(Collectors.summarizingInt(c -> c.getValueLength())).getSum();
 	}
 
 	public String getTable() {
@@ -64,10 +62,13 @@ public class HbaseResult implements Serializable {
 		return result;
 	}
 
-	public Put put() throws IOException {
+	public Put put() {
 		Put put = new Put(row);
-		for (Cell c : result.rawCells())
-			put.add(c);
+		each(c -> {
+			try {
+				put.add(c);
+			} catch (Exception e) {}
+		});
 		return put;
 	}
 
@@ -91,20 +92,20 @@ public class HbaseResult implements Serializable {
 	public String toString() {
 		StringBuilder sb = new StringBuilder(table).append(":").append(Bytes.toString(row)).append("[").append(size()).append("]");
 		sb.append("\n");
-		for (Cell c : result.rawCells())
-			sb.append("\t").append(CellUtil.cloneFamily(c)).append(":").append(CellUtil.cloneQualifier(c)).append("[").append(c
-					.getValueLength()).append("]");
+		each(c -> sb.append("\t").append(CellUtil.cloneFamily(c)).append(":").append(CellUtil.cloneQualifier(c)).append("[").append(c
+				.getValueLength()).append("]"));
 		return sb.toString();
 	}
 
 	public void each(Consumer<Cell> consumer) {
-		List<Cell> cells = result.listCells();
-		if (null == cells) return;
-		else cells.parallelStream().forEach(consumer);
+		if (!isEmpty()) result.listCells().parallelStream().forEach(consumer);
 	}
 
 	public Set<String> cols() {
-		List<Cell> cells = result.listCells();
-		return null == cells ? null : new HashSet<String>(Collections.map(cells, Hbases::colFamily));
+		return isEmpty() ? null : new HashSet<String>(Collections.map(result.listCells(), Hbases::colFamily));
+	}
+
+	public boolean isEmpty() {
+		return null == result || result.isEmpty();
 	}
 }

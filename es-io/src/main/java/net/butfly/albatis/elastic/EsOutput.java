@@ -2,6 +2,8 @@ package net.butfly.albatis.elastic;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.bulk.BulkItemResponse;
@@ -10,7 +12,6 @@ import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.update.UpdateRequest;
 
 import net.butfly.albacore.io.faliover.FailoverOutput;
-import net.butfly.albacore.utils.Collections;
 import scala.Tuple2;
 
 public final class EsOutput extends FailoverOutput<ElasticMessage, ElasticMessage> {
@@ -35,10 +36,12 @@ public final class EsOutput extends FailoverOutput<ElasticMessage, ElasticMessag
 	protected int write(String key, Collection<ElasticMessage> values) {
 		// TODO: List<ElasticMessage> fails = new ArrayList<>();
 		try {
-			ActionFuture<BulkResponse> resps = conn.client().bulk(new BulkRequest().add(Collections.mapNoNull(values,
-					ElasticMessage::update).toArray(new UpdateRequest[0])));
+			List<UpdateRequest> v = values.parallelStream().filter(t -> null != t).map(ElasticMessage::update).collect(Collectors.toList());
+			BulkRequest req = new BulkRequest().add(v.toArray(new UpdateRequest[v.size()]));
+			logger().trace("Bulk size: " + req.estimatedSizeInBytes());
+			ActionFuture<BulkResponse> resp = conn.client().bulk(req);
 			int c = 0;
-			for (BulkItemResponse r : resps.actionGet())
+			for (BulkItemResponse r : resp.actionGet())
 				if (!r.isFailed()) c++;
 			return c;
 		} catch (RuntimeException e) {
