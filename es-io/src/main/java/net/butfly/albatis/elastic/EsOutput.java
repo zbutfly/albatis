@@ -37,12 +37,14 @@ public final class EsOutput extends FailoverOutput<ElasticMessage, ElasticMessag
 		// TODO: List<ElasticMessage> fails = new ArrayList<>();
 		try {
 			List<UpdateRequest> v = values.parallelStream().filter(t -> null != t).map(ElasticMessage::update).collect(Collectors.toList());
+			if (v.isEmpty()) return 0;
 			BulkRequest req = new BulkRequest().add(v.toArray(new UpdateRequest[v.size()]));
 			logger().trace("Bulk size: " + req.estimatedSizeInBytes());
 			ActionFuture<BulkResponse> resp = conn.client().bulk(req);
 			int c = 0;
 			for (BulkItemResponse r : resp.actionGet())
 				if (!r.isFailed()) c++;
+				else throw new RuntimeException(r.getFailureMessage() + "@" + r.getFailure().getId(), r.getFailure().getCause());
 			return c;
 		} catch (RuntimeException e) {
 			throw e;
