@@ -18,6 +18,7 @@ import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.script.Script;
 import org.elasticsearch.script.ScriptService.ScriptType;
+import org.elasticsearch.transport.RemoteTransportException;
 
 import net.butfly.albacore.io.faliover.FailoverOutput;
 import net.butfly.albacore.utils.async.Concurrents;
@@ -108,6 +109,12 @@ public final class EsOutput extends FailoverOutput<ElasticMessage, ElasticMessag
 					Concurrents.waitSleep();
 				}
 			} while (true);
+		} catch (RemoteTransportException e) {
+			while (e.getCause() != null && e.getCause() instanceof RemoteTransportException)
+				e = (RemoteTransportException) e.getCause();
+			if (null == e.getCause()) throw e;
+			else if (e.getCause() instanceof RuntimeException) throw (RuntimeException) e.getCause();
+			else throw new RuntimeException(e);
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Throwable e) {
