@@ -123,7 +123,7 @@ public final class KafkaInput extends KafkaInputBase<KafkaInput.Fetcher> {
 					while (opened() && it.hasNext()) {
 						byte[] km = new KafkaMessage(it.next()).toBytes();
 						while (opened() && pool.size() > poolSize)
-							Concurrents.waitSleep(100);
+							Concurrents.waitSleep();
 						pool.enqueue(km);
 					}
 					sleep(1000); // kafka empty

@@ -3,6 +3,7 @@ package net.butfly.albatis.elastic;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.Map;
 
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.settings.Settings;
@@ -16,9 +17,10 @@ import net.butfly.albacore.utils.logger.Logger;
 public class ElasticConnection extends NoSqlConnection<TransportClient> {
 	private static final Logger logger = Logger.getLogger(ElasticConnection.class);
 
-	public ElasticConnection(String connection) throws IOException {
+	public ElasticConnection(String connection, Map<String, String> props) throws IOException {
 		super(new ElasticURI(connection), uri -> {
 			Settings.Builder settings = Settings.settingsBuilder();
+			if (null != props && !props.isEmpty()) settings.put(props);
 			settings.put(uri.getParameters());
 			settings.put("client.transport.ignore_cluster_name", true);
 			TransportClient c = TransportClient.builder().settings(settings).build();
@@ -34,9 +36,8 @@ public class ElasticConnection extends NoSqlConnection<TransportClient> {
 		}, "es", "elasticsearch");
 	}
 
-	public ElasticConnection(String url, String... indexAndType) throws IOException {
-		this(url);
-		if (indexAndType.length > 2) logger.warn("only index and type parsed, other is ignore");
+	public ElasticConnection(String url) throws IOException {
+		this(url, (Map<String, String>) null);
 	}
 
 	public String getDefaultIndex() {

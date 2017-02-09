@@ -11,6 +11,7 @@ import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
+import org.elasticsearch.index.engine.VersionConflictEngineException;
 
 import net.butfly.albacore.io.faliover.FailoverOutput;
 import net.butfly.albacore.utils.async.Concurrents;
@@ -48,8 +49,8 @@ public final class EsOutput extends FailoverOutput<ElasticMessage, ElasticMessag
 							true).collect(Collectors.partitioningBy(r -> r.isFailed()));
 					if (resps.get(Boolean.TRUE).isEmpty()) return resps.get(Boolean.FALSE).size();
 					else throw resps.get(Boolean.TRUE).get(0).getFailure().getCause();
-				} catch (EsRejectedExecutionException e) {
-					Concurrents.waitSleep(100);
+				} catch (EsRejectedExecutionException | VersionConflictEngineException e) {
+					Concurrents.waitSleep();
 				}
 			} while (true);
 		} catch (RuntimeException e) {
@@ -61,7 +62,7 @@ public final class EsOutput extends FailoverOutput<ElasticMessage, ElasticMessag
 
 	@Override
 	protected Tuple2<String, ElasticMessage> parse(ElasticMessage e) {
-		return new Tuple2<>("", e);
+		return new Tuple2<>(e.getIndex() + "/" + e.getType(), e);
 	}
 
 	@Override

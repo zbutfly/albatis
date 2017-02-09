@@ -14,6 +14,10 @@ import org.elasticsearch.script.ScriptService.ScriptType;
 public class ElasticScript extends org.elasticsearch.script.Script implements Serializable {
 	private static final long serialVersionUID = -2198364206131002839L;
 
+	public ElasticScript() {
+		super(null);
+	}
+
 	public ElasticScript(String script, ScriptType type, String lang, Map<String, ? extends Object> params) {
 		super(script, type, lang, params);
 	}
@@ -32,8 +36,8 @@ public class ElasticScript extends org.elasticsearch.script.Script implements Se
 
 		public String read(Class<?> loadClass, String templateName) {
 			StringBuilder content = new StringBuilder();
-			String tempFile = content.append("/").append(loadClass.getPackage().getName().replaceAll("\\.", "/")).append("/")
-					.append(templateName).append(".").append(ext).toString();
+			String tempFile = content.append("/").append(loadClass.getPackage().getName().replaceAll("\\.", "/")).append("/").append(
+					templateName).append(".").append(ext).toString();
 			content.delete(0, content.length());
 			try (InputStream is = loadClass.getResourceAsStream(tempFile);
 					BufferedReader r = new BufferedReader(new InputStreamReader(is));) {

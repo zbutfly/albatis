@@ -13,6 +13,7 @@ import net.butfly.albacore.io.stats.Statistical;
 import net.butfly.albacore.lambda.Callback;
 import net.butfly.albacore.lambda.Converter;
 import net.butfly.albacore.utils.Collections;
+import net.butfly.albacore.utils.async.Concurrents;
 import net.butfly.albacore.utils.logger.Logger;
 import scala.Tuple2;
 
@@ -60,9 +61,9 @@ public abstract class Failover<K, V> extends OpenableThread implements Statistic
 	final <W> int insertTask(Map<K, ? extends Collection<V>> map) {
 		int c = 0;
 		for (Entry<K, ? extends Collection<V>> e : map.entrySet()) {
+			c += e.getValue().size();
 			boolean inserted = false;
 			if (opened()) do {
-				c += e.getValue().size();
 				inserted = tasks.offer(() -> {
 					for (Collection<V> pkg : Collections.chopped(e.getValue(), packageSize))
 						doWrite(e.getKey(), pkg, false);
@@ -72,7 +73,7 @@ public abstract class Failover<K, V> extends OpenableThread implements Statistic
 						logger.warn("[" + name() + "] commit failure on core [" + e.getKey() + "]", err);
 					}
 				});
-			} while (opened() && !inserted);
+			} while (opened() && !inserted && Concurrents.waitSleep());
 			if (!inserted) fail(e.getKey(), e.getValue(), null);
 		}
 		return c;
