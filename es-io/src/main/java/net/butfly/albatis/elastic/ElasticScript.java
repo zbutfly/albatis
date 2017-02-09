@@ -32,8 +32,10 @@ public class ElasticScript extends org.elasticsearch.script.Script implements Se
 
 		public String read(Class<?> loadClass, String templateName) {
 			StringBuilder content = new StringBuilder();
-			String tempFile = "/" + ElasticMessage.class.getPackage().getName().replaceAll("\\.", "/") + "/template." + ext;
-			try (InputStream is = this.getClass().getResourceAsStream(tempFile);
+			String tempFile = content.append("/").append(loadClass.getPackage().getName().replaceAll("\\.", "/")).append("/")
+					.append(templateName).append(".").append(ext).toString();
+			content.delete(0, content.length());
+			try (InputStream is = loadClass.getResourceAsStream(tempFile);
 					BufferedReader r = new BufferedReader(new InputStreamReader(is));) {
 				String l;
 				while ((l = r.readLine()) != null)

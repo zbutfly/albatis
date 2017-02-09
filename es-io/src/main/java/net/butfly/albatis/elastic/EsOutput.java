@@ -7,10 +7,8 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkRequest;
-import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 
@@ -46,11 +44,10 @@ public final class EsOutput extends FailoverOutput<ElasticMessage, ElasticMessag
 			logger().trace("Bulk size: " + req.estimatedSizeInBytes());
 			do {
 				try {
-					ActionFuture<BulkResponse> resp = conn.client().bulk(req);
-					Map<Boolean, List<BulkItemResponse>> resps = StreamSupport.stream(resp.actionGet().spliterator(), true).collect(
-							Collectors.partitioningBy(r -> r.isFailed()));
-					if (!resps.get(Boolean.TRUE).isEmpty()) throw resps.get(Boolean.TRUE).get(0).getFailure().getCause();
-					else return resps.get(Boolean.FALSE).size();
+					Map<Boolean, List<BulkItemResponse>> resps = StreamSupport.stream(conn.client().bulk(req).actionGet().spliterator(),
+							true).collect(Collectors.partitioningBy(r -> r.isFailed()));
+					if (resps.get(Boolean.TRUE).isEmpty()) return resps.get(Boolean.FALSE).size();
+					else throw resps.get(Boolean.TRUE).get(0).getFailure().getCause();
 				} catch (EsRejectedExecutionException e) {
 					Concurrents.waitSleep(100);
 				}
