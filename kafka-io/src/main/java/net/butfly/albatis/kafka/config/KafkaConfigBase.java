@@ -45,7 +45,7 @@ public abstract class KafkaConfigBase implements Serializable {
 			try {
 				bootstrapServers = Joiner.on(",").join(Kafkas.getBorkers(zookeeperConnect));
 				logger.info("Zookeeper detect broken list automatically: [" + bootstrapServers + "])");
-			} catch (IOException e) {
+			} catch (Exception e) {
 				bootstrapServers = null;
 				logger.warn("Zookeeper detect broken list failure", e);
 			}
@@ -72,7 +72,7 @@ public abstract class KafkaConfigBase implements Serializable {
 			try {
 				bootstrapServers = Joiner.on(",").join(Kafkas.getBorkers(zookeeperConnect));
 				logger.debug("Zookeeper detect broken list automatically: [" + bootstrapServers + "])");
-			} catch (IOException e) {
+			} catch (Exception e) {
 				bootstrapServers = null;
 				logger.warn("Zookeeper detect broken list failure", e);
 			}
