@@ -12,6 +12,7 @@ import com.google.common.base.Joiner;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.logger.Logger;
+import net.butfly.albatis.kafka.ZKConn;
 
 public abstract class KafkaConfigBase implements Serializable {
 	private static final long serialVersionUID = -4020530608706621876L;
@@ -42,8 +43,8 @@ public abstract class KafkaConfigBase implements Serializable {
 		if (zookeeperConnect != null) {
 			if (bootstrapServers != null) logger.warn("Zookeeper detect broken list automatically, configured [" + PROP_PREFIX
 					+ "bootstrap.servers] is not used (current value: [" + bootstrapServers + "])");
-			try {
-				bootstrapServers = Joiner.on(",").join(Kafkas.getBorkers(zookeeperConnect));
+			try (ZKConn zk = new ZKConn(zookeeperConnect)) {
+				bootstrapServers = Joiner.on(",").join(zk.getBorkers());
 				logger.info("Zookeeper detect broken list automatically: [" + bootstrapServers + "])");
 			} catch (Exception e) {
 				bootstrapServers = null;
@@ -69,8 +70,8 @@ public abstract class KafkaConfigBase implements Serializable {
 		case "zookeeper":
 		case "kafka":
 			zookeeperConnect = uri.getHost() + uri.getPath();
-			try {
-				bootstrapServers = Joiner.on(",").join(Kafkas.getBorkers(zookeeperConnect));
+			try (ZKConn zk = new ZKConn(zookeeperConnect)) {
+				bootstrapServers = Joiner.on(",").join(zk.getBorkers());
 				logger.debug("Zookeeper detect broken list automatically: [" + bootstrapServers + "])");
 			} catch (Exception e) {
 				bootstrapServers = null;

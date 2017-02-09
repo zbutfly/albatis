@@ -20,7 +20,6 @@ import net.butfly.albacore.utils.Collections;
 import net.butfly.albacore.utils.Systems;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.kafka.config.KafkaInputConfig;
-import net.butfly.albatis.kafka.config.Kafkas;
 
 abstract class KafkaInputBase<V> extends KeyInputImpl<String, KafkaMessage> {
 	protected static final Logger logger = Logger.getLogger(KafkaInputBase.class);
@@ -36,11 +35,14 @@ abstract class KafkaInputBase<V> extends KeyInputImpl<String, KafkaMessage> {
 		logger.info("[" + name() + "] connecting with config [" + config.toString() + "].");
 		allTopics = new HashMap<>();
 		int kp = config.getPartitionParallelism();
-		for (Entry<String, Integer> info : Kafkas.getTopicInfo(config.getZookeeperConnect(), (topics != null && topics.length > 0)
-				? new HashSet<>(Arrays.asList(topics)) : topics()).entrySet()) {
+		Map<String, int[]> parts;
+		try (ZKConn zk = new ZKConn(config.getZookeeperConnect())) {
+			parts = zk.getTopicPartitions((topics != null && topics.length > 0) ? topics : topics().toArray(new String[0]));
+		}
+		for (Entry<String, int[]> info : parts.entrySet()) {
 			if (kp <= 0) allTopics.put(info.getKey(), 1);
-			else if (kp >= info.getValue()) allTopics.put(info.getKey(), info.getValue());
-			else allTopics.put(info.getKey(), (int) Math.ceil(info.getValue() * 1.0 / kp));
+			else if (kp >= info.getValue().length) allTopics.put(info.getKey(), info.getValue().length);
+			else allTopics.put(info.getKey(), (int) Math.ceil(info.getValue().length * 1.0 / kp));
 		}
 
 		logger.debug("[" + name() + "] parallelism of topics: " + allTopics.toString() + ".");
