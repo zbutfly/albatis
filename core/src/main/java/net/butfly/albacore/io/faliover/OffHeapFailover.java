@@ -53,14 +53,12 @@ public abstract class OffHeapFailover<K, V> extends Failover<K, V> {
 				try {
 					kv = fromBytes(buf);
 				} catch (IOException e) {
-					logger.error("invalid failover found and lost.");
+					logger.error("invalid failover found and lost.", e);
 					continue;
 				}
-				if (null != kv) {
-					List<V> l = fails.computeIfAbsent(kv._1, c -> new ArrayList<>(packageSize));
-					l.add(kv._2);
-					if (l.size() >= packageSize) doWrite(kv._1, fails.remove(kv._1), true);
-				}
+				List<V> l = fails.computeIfAbsent(kv._1, c -> new ArrayList<>(packageSize));
+				l.add(kv._2);
+				if (l.size() >= packageSize) doWrite(kv._1, fails.remove(kv._1), true);
 			}
 			for (K key : fails.keySet())
 				doWrite(key, fails.remove(key), true);

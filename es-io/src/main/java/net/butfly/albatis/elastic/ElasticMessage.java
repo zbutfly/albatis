@@ -60,6 +60,10 @@ public class ElasticMessage implements Serializable {
 		return type;
 	}
 
+	public Script getScript() {
+		return script;
+	}
+
 	public UpdateRequest update() {
 		UpdateRequest req = script != null ? new UpdateRequest().script(script) : new UpdateRequest().docAsUpsert(upsert).doc(values);
 		return req.index(index).type(type).id(id).retryOnConflict(5);

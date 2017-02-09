@@ -50,23 +50,20 @@ public abstract class FailoverOutput<I, FV> extends OutputImpl<I> {
 	protected void commit(String key) {}
 
 	protected byte[] toBytes(String key, FV value) throws IOException {
-		if (null == key || null == value) return null;
+		if (null == key || null == value) throw new IOException("Data to be failover should not be null");
 		try (ByteArrayOutputStream baos = new ByteArrayOutputStream(); ObjectOutputStream oos = new ObjectOutputStream(baos);) {
 			oos.writeObject(unparse(key, value));
 			return baos.toByteArray();
-		} catch (IOException e) {
-			logger().error("Serializing failure", e);
-			return null;
 		}
 	}
 
 	@SuppressWarnings("unchecked")
 	protected Tuple2<String, FV> fromBytes(byte[] bytes) throws IOException {
-		if (null == bytes) return null;
+		if (null == bytes) throw new IOException("Data to be failover should not be null");
 		try {
 			return parse((I) new ObjectInputStream(new ByteArrayInputStream(bytes)).readObject());
-		} catch (ClassNotFoundException | IOException e) {
-			return null;
+		} catch (ClassNotFoundException e) {
+			throw new IOException(e);
 		}
 	}
 
