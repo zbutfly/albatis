@@ -64,4 +64,12 @@ public class ElasticMessage implements Serializable {
 		UpdateRequest req = script != null ? new UpdateRequest().script(script) : new UpdateRequest().docAsUpsert(upsert).doc(values);
 		return req.index(index).type(type).id(id).retryOnConflict(5);
 	}
+
+	@Override
+	public String toString() {
+		StringBuilder sb = new StringBuilder().append("/").append(index).append("/").append(type).append("/").append(id);
+		if (script == null) sb.append("(upsert:").append(upsert).append("):\n\tdocument:").append(values);
+		else sb.append(":\n\tscript: ").append(script);
+		return sb.toString();
+	}
 }
