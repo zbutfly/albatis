@@ -25,9 +25,9 @@ public class ElasticConnection extends NoSqlConnection<TransportClient> {
 			settings.put("client.transport.ignore_cluster_name", true);
 			TransportClient c = TransportClient.builder().settings(settings).build();
 			for (Pair<String, Integer> h : uri.getHosts()) {
-				int port = h.value2() == null ? 39300 : h.value2();
+				int port = h.v2() == null ? 39300 : h.v2();
 				try {
-					c.addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName(h.value1()), port));
+					c.addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName(h.v1()), port));
 				} catch (UnknownHostException e) {
 					throw new RuntimeException(e);
 				}

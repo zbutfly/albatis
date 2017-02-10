@@ -153,4 +153,8 @@ public class KafkaInputConfig extends KafkaConfigBase {
 	public String toString() {
 		return groupId + "@" + zookeeperConnect;
 	}
+
+	public String getGroupId() {
+		return groupId;
+	}
 }

@@ -35,9 +35,12 @@ abstract class KafkaInputBase<V> extends KeyInputImpl<String, KafkaMessage> {
 		logger.info("[" + name() + "] connecting with config [" + config.toString() + "].");
 		allTopics = new HashMap<>();
 		int kp = config.getPartitionParallelism();
+		topics = (topics != null && topics.length > 0) ? topics : topics().toArray(new String[0]);
 		Map<String, int[]> parts;
 		try (ZKConn zk = new ZKConn(config.getZookeeperConnect())) {
-			parts = zk.getTopicPartitions((topics != null && topics.length > 0) ? topics : topics().toArray(new String[0]));
+			parts = zk.getTopicPartitions(topics);
+			for (String t : topics)
+				logger.debug(() -> "Lag of " + config.getGroupId() + "@" + t + ": " + zk.getLag(t, config.getGroupId()));
 		}
 		for (Entry<String, int[]> info : parts.entrySet()) {
 			if (kp <= 0) allTopics.put(info.getKey(), 1);
