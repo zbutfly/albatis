@@ -12,6 +12,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import net.butfly.albacore.io.OutputImpl;
+import net.butfly.albacore.io.Streams;
+import net.butfly.albacore.io.faliover.Failover.FailoverException;
 import scala.Tuple2;
 
 /**
@@ -46,7 +48,7 @@ public abstract class FailoverOutput<I, FV> extends OutputImpl<I> {
 		};
 	}
 
-	protected abstract int write(String key, Collection<FV> values);
+	protected abstract int write(String key, Collection<FV> values) throws FailoverException;
 
 	protected void commit(String key) {}
 
@@ -79,7 +81,7 @@ public abstract class FailoverOutput<I, FV> extends OutputImpl<I> {
 
 	@Override
 	public final long enqueue(Stream<I> els) {
-		Map<String, List<FV>> v = io.collect(els.map(e -> parse(e)), Collectors.groupingBy(t -> t._1, Collectors.mapping(t -> t._2, Collectors
+		Map<String, List<FV>> v = io.collect(Streams.of(els).map(e -> parse(e)), Collectors.groupingBy(t -> t._1, Collectors.mapping(t -> t._2, Collectors
 				.toList())));
 		return failover.enqueueTask(v);
 	}

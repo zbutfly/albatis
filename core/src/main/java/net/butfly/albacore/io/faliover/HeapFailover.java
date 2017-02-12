@@ -10,14 +10,12 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import net.butfly.albacore.lambda.Callback;
-import net.butfly.albacore.lambda.Converter;
-import scala.Tuple2;
 
 public class HeapFailover<K, V> extends Failover<K, V> {
 	private static final int MAX_FAILOVER = 50000;
 	private Map<K, LinkedBlockingQueue<V>> failover = new ConcurrentHashMap<>();
 
-	public HeapFailover(String parentName, Converter<Tuple2<K, Collection<V>>, Integer> writing, Callback<K> committing, int packageSize,
+	public HeapFailover(String parentName, Writing<K, V> writing, Callback<K> committing, int packageSize,
 			int parallelism) throws IOException {
 		super(parentName, writing, committing, packageSize, parallelism);
 		failover = new ConcurrentHashMap<>();

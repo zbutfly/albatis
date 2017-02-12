@@ -12,7 +12,6 @@ import com.leansoft.bigqueue.BigQueueImpl;
 import com.leansoft.bigqueue.IBigQueue;
 
 import net.butfly.albacore.lambda.Callback;
-import net.butfly.albacore.lambda.Converter;
 import net.butfly.albacore.utils.IOs;
 import net.butfly.albacore.utils.async.Concurrents;
 import scala.Tuple2;
@@ -20,7 +19,7 @@ import scala.Tuple2;
 public abstract class OffHeapFailover<K, V> extends Failover<K, V> {
 	private IBigQueue failover;
 
-	public OffHeapFailover(String parentName, Converter<Tuple2<K, Collection<V>>, Integer> writing, Callback<K> committing, String path,
+	public OffHeapFailover(String parentName, Writing<K, V> writing, Callback<K> committing, String path,
 			String poolName, int packageSize, int parallelism) throws IOException {
 		super(parentName, writing, committing, packageSize, parallelism);
 		if (poolName == null) poolName = "POOL";

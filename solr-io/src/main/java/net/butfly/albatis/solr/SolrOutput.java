@@ -1,12 +1,16 @@
 package net.butfly.albatis.solr;
 
+import static net.butfly.albacore.utils.Exceptions.unwrap;
 import java.io.IOException;
 import java.util.Collection;
+import java.util.stream.Collectors;
 
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.common.SolrInputDocument;
 
+import net.butfly.albacore.io.Streams;
 import net.butfly.albacore.io.faliover.FailoverOutput;
+import net.butfly.albacore.io.faliover.Failover.FailoverException;
 import scala.Tuple2;
 
 public final class SolrOutput extends FailoverOutput<SolrMessage<SolrInputDocument>, SolrInputDocument> {
@@ -40,13 +44,11 @@ public final class SolrOutput extends FailoverOutput<SolrMessage<SolrInputDocume
 	}
 
 	@Override
-	protected int write(String key, Collection<SolrInputDocument> values) {
+	protected int write(String key, Collection<SolrInputDocument> values) throws FailoverException {
 		try {
 			solr.client().add(key, values, DEFAULT_AUTO_COMMIT_MS);
-		} catch (RuntimeException e) {
-			throw e;
 		} catch (Exception e) {
-			throw new RuntimeException(e);
+			throw new FailoverException(io.collect(Streams.of(values), Collectors.toConcurrentMap(r -> r, r -> unwrap(e).getMessage())));
 		}
 		return values.size();
 	}

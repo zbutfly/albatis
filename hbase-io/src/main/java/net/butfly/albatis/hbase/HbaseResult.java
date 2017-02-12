@@ -15,7 +15,7 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import net.butfly.albacore.io.IO;
-import net.butfly.albacore.utils.Collections;
+import net.butfly.albacore.io.Streams;
 
 public class HbaseResult implements Serializable {
 	private static final long serialVersionUID = -486156318929790823L;
@@ -36,7 +36,7 @@ public class HbaseResult implements Serializable {
 		super();
 		this.table = table;
 		this.row = row;
-		this.result = Result.create(Collections.noNull(cells));
+		this.result = Result.create(IO.list(Streams.of(cells)));
 	}
 
 	public HbaseResult(String table, Result result) {

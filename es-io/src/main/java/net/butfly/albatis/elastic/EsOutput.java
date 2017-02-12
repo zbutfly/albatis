@@ -5,22 +5,27 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkRequest;
-import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.script.Script;
 import org.elasticsearch.script.ScriptService.ScriptType;
 import org.elasticsearch.transport.RemoteTransportException;
 
+import net.butfly.albacore.io.Streams;
+import net.butfly.albacore.io.faliover.Failover.FailoverException;
 import net.butfly.albacore.io.faliover.FailoverOutput;
-import net.butfly.albacore.utils.async.Concurrents;
+import net.butfly.albacore.utils.Exceptions;
+import net.butfly.albacore.utils.Pair;
 import scala.Tuple2;
 
 public final class EsOutput extends FailoverOutput<ElasticMessage, ElasticMessage> {
@@ -91,34 +96,40 @@ public final class EsOutput extends FailoverOutput<ElasticMessage, ElasticMessag
 	}
 
 	@Override
-	protected int write(String key, Collection<ElasticMessage> values) {
-		// TODO: List<ElasticMessage> fails = new ArrayList<>();
-		try {
-			List<UpdateRequest> v = io.list(values, ElasticMessage::update);
-			if (v.isEmpty()) return 0;
-			BulkRequest req = new BulkRequest().add(v.toArray(new UpdateRequest[v.size()]));
+	protected int write(String key, Collection<ElasticMessage> values) throws FailoverException {
+		if (values.isEmpty()) return 0;
+		Map<String, String> fails = new ConcurrentHashMap<>();
+		List<ElasticMessage> retries = new ArrayList<>(values);
+		do {
+			BulkRequest req = new BulkRequest().add(io.list(retries, ElasticMessage::update));
 			logger().trace("Bulk size: " + req.estimatedSizeInBytes());
-			do {
-				try {
-					Map<Boolean, List<BulkItemResponse>> resps = io.collect(conn.client().bulk(req).actionGet(), Collectors.partitioningBy(
-							r -> r.isFailed()));
-					if (resps.get(Boolean.TRUE).isEmpty()) return resps.get(Boolean.FALSE).size();
-					else throw resps.get(Boolean.TRUE).get(0).getFailure().getCause();
-				} catch (EsRejectedExecutionException | VersionConflictEngineException e) {
-					Concurrents.waitSleep();
-				}
-			} while (true);
-		} catch (RemoteTransportException e) {
-			while (e.getCause() != null && e.getCause() instanceof RemoteTransportException)
-				e = (RemoteTransportException) e.getCause();
-			if (null == e.getCause()) throw e;
-			else if (e.getCause() instanceof RuntimeException) throw (RuntimeException) e.getCause();
-			else throw new RuntimeException(e);
-		} catch (RuntimeException e) {
-			throw e;
-		} catch (Throwable e) {
-			throw new RuntimeException(e);
+			Map<Boolean, List<BulkItemResponse>> resps = io.collect(conn.client().bulk(req).actionGet(), Collectors.partitioningBy(r -> r
+					.isFailed()));
+			if (resps.get(Boolean.TRUE).isEmpty()) return resps.get(Boolean.FALSE).size();
+			Set<String> succs = io.map(resps.get(Boolean.FALSE), r -> r.getId(), Collectors.toSet());
+			Map<Boolean, List<BulkItemResponse>> retryMap = io.collect(Streams.of(resps.get(Boolean.TRUE)), Collectors.partitioningBy(r -> {
+				@SuppressWarnings("unchecked")
+				Class<Throwable> c = (Class<Throwable>) r.getFailure().getCause().getClass();
+				return EsRejectedExecutionException.class.isAssignableFrom(c) || VersionConflictEngineException.class.isAssignableFrom(c);
+			}));
+			Map<String, String> failing = io.collect(retryMap.get(Boolean.FALSE), Collectors.toConcurrentMap(r -> r.getFailure().getId(),
+					r -> {
+						try {
+							return "Writing failed id [" + r.getId() + "] for: " + Exceptions.unwrap(r.getFailure().getCause(),
+									RemoteTransportException.class.getMethod("getCause")).getMessage();
+						} catch (NoSuchMethodException e) {
+							throw new RuntimeException(e);
+						}
+					}));
+			retries = io.list(Streams.of(retries).filter(es -> !succs.contains(es.getId()) && !failing.containsKey(es.getId())));
+			fails.putAll(failing);
+		} while (!retries.isEmpty());
+		if (fails.isEmpty()) return values.size();
+		else {
+			throw new FailoverException(io.collect(Streams.of(values).filter(es -> fails.containsKey(es.getId())), Collectors.toMap(
+					es -> es, es -> fails.get(es.getId()))));
 		}
+
 	}
 
 	@Override

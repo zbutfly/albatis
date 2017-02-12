@@ -1,5 +1,7 @@
 package net.butfly.albatis.hbase;
 
+import static net.butfly.albacore.utils.Exceptions.unwrap;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -7,16 +9,20 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Table;
+import org.apache.hadoop.hbase.util.Bytes;
 
+import net.butfly.albacore.io.Streams;
+import net.butfly.albacore.io.faliover.Failover.FailoverException;
 import net.butfly.albacore.io.faliover.FailoverOutput;
-import net.butfly.albacore.utils.Collections;
 import net.butfly.albacore.utils.IOs;
 import scala.Tuple2;
 
@@ -60,31 +66,30 @@ public final class HbaseOutput extends FailoverOutput<HbaseResult, Result> {
 	}
 
 	@Override
-	protected int write(String key, Collection<Result> values) {
-		try {
-			List<Put> t = Collections.mapNoNull(values, r -> {
-				Put p;
+	protected int write(String key, Collection<Result> values) throws FailoverException {
+		List<Put> t = io.list(values, r -> {
+			Put p;
+			try {
+				p = new Put(r.getRow());
+			} catch (Exception ex) {
+				logger().warn("Hbase converting failure, ignored and continued, row: " + Bytes.toString(r.getRow()), ex);
+				return null;
+			}
+			for (Cell c : r.listCells())
 				try {
-					p = new Put(r.getRow());
-				} catch (Exception ex) {
-					logger().warn("Hbase converting failure, ignored and continued.", ex);
-					return null;
+					p.add(c);
+				} catch (Exception e) {
+					logger().warn("Hbase cell converting failure, ignored and continued, row: " + Bytes.toString(r.getRow()) + ", cell: "
+							+ CellUtil.cloneFamily(c) + CellUtil.cloneQualifier(c), e);
 				}
-				for (Cell c : r.listCells())
-					try {
-						p.add(c);
-					} catch (Exception e) {
-						logger().warn("Hbase cell converting failure, ignored and continued.", e);
-					}
-				return p;
-			});
+			return p;
+		});
+		try {
 			table(key).put(t);
-			return t.size();
-		} catch (RuntimeException e) {
-			throw e;
 		} catch (Exception e) {
-			throw new RuntimeException(e);
+			throw new FailoverException(io.collect(Streams.of(values), Collectors.toConcurrentMap(r -> r, r -> unwrap(e).getMessage())));
 		}
+		return t.size();
 	}
 
 	@Override
