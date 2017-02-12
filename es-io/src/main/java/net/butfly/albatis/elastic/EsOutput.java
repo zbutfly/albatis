@@ -25,7 +25,6 @@ import net.butfly.albacore.io.Streams;
 import net.butfly.albacore.io.faliover.Failover.FailoverException;
 import net.butfly.albacore.io.faliover.FailoverOutput;
 import net.butfly.albacore.utils.Exceptions;
-import net.butfly.albacore.utils.Pair;
 import scala.Tuple2;
 
 public final class EsOutput extends FailoverOutput<ElasticMessage, ElasticMessage> {
@@ -129,7 +128,6 @@ public final class EsOutput extends FailoverOutput<ElasticMessage, ElasticMessag
 			throw new FailoverException(io.collect(Streams.of(values).filter(es -> fails.containsKey(es.getId())), Collectors.toMap(
 					es -> es, es -> fails.get(es.getId()))));
 		}
-
 	}
 
 	@Override

@@ -129,7 +129,7 @@ public abstract class Failover<K, V> extends OpenableThread implements Statistic
 		private final Map<?, String> fails;
 
 		public <V> FailoverException(Map<V, String> fails) {
-			super("\n\t" + Joiner.on("Output fail:\n\t").join(fails.values()));
+			super("Output fail:\n\t" + Joiner.on("\n\t").join(fails.values()));
 			this.fails = fails;
 		}
 	}
