@@ -5,8 +5,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -73,13 +74,14 @@ public abstract class FailoverOutput<I, FV> extends OutputImpl<I> {
 
 	@Override
 	public final boolean enqueue(I e) {
-		return enqueue(Arrays.asList(e).stream()) == 1;
+		return enqueue(Stream.of(e)) == 1;
 	}
 
 	@Override
 	public final long enqueue(Stream<I> els) {
-		return failover.insertTask(els.filter(e -> null != e).map(e -> parse(e)).collect(Collectors.groupingBy(t -> t._1, Collectors
-				.mapping(t -> t._2, Collectors.toList()))));
+		Map<String, List<FV>> v = io.collect(els.map(e -> parse(e)), Collectors.groupingBy(t -> t._1, Collectors.mapping(t -> t._2, Collectors
+				.toList())));
+		return failover.enqueueTask(v);
 	}
 
 	@Override

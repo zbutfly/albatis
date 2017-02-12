@@ -9,7 +9,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkRequest;
@@ -95,14 +94,14 @@ public final class EsOutput extends FailoverOutput<ElasticMessage, ElasticMessag
 	protected int write(String key, Collection<ElasticMessage> values) {
 		// TODO: List<ElasticMessage> fails = new ArrayList<>();
 		try {
-			List<UpdateRequest> v = values.parallelStream().filter(t -> null != t).map(ElasticMessage::update).collect(Collectors.toList());
+			List<UpdateRequest> v = io.list(values, ElasticMessage::update);
 			if (v.isEmpty()) return 0;
 			BulkRequest req = new BulkRequest().add(v.toArray(new UpdateRequest[v.size()]));
 			logger().trace("Bulk size: " + req.estimatedSizeInBytes());
 			do {
 				try {
-					Map<Boolean, List<BulkItemResponse>> resps = StreamSupport.stream(conn.client().bulk(req).actionGet().spliterator(),
-							true).collect(Collectors.partitioningBy(r -> r.isFailed()));
+					Map<Boolean, List<BulkItemResponse>> resps = io.collect(conn.client().bulk(req).actionGet(), Collectors.partitioningBy(
+							r -> r.isFailed()));
 					if (resps.get(Boolean.TRUE).isEmpty()) return resps.get(Boolean.FALSE).size();
 					else throw resps.get(Boolean.TRUE).get(0).getFailure().getCause();
 				} catch (EsRejectedExecutionException | VersionConflictEngineException e) {

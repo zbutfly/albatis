@@ -1,7 +1,6 @@
 package net.butfly.albatis.mongodb;
 
 import java.io.IOException;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.mongodb.DBCollection;
@@ -36,6 +35,6 @@ public final class MongoOutput extends OutputImpl<DBObject> {
 
 	@Override
 	public long enqueue(Stream<DBObject> dbos) {
-		return collection.insert(dbos.filter(t -> t != null).collect(Collectors.toList())).getN();
+		return collection.insert(io.list(dbos)).getN();
 	}
 }

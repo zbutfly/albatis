@@ -6,6 +6,7 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.Properties;
 import java.util.function.Function;
+import java.util.stream.Stream;
 
 import com.google.common.base.Joiner;
 import com.hzcominfo.albatis.search.exception.SearchAPIError;
@@ -31,7 +32,7 @@ public abstract class NoSqlConnection<C> implements Connection {
 		String qstr = uri.getQuery();
 		if (qstr != null && !qstr.isEmpty()) {
 			String[] propertisies = qstr.split("&");
-			Arrays.asList(propertisies).stream().forEach(value -> {
+			Stream.of(propertisies).forEach(value -> {
 				String[] keyValue = value.split("=", 2);
 				if (keyValue.length != 2) throw new SearchAPIError("parameter error " + Arrays.toString(keyValue));
 				parameters.put(keyValue[0], keyValue[1]);

@@ -14,6 +14,7 @@ import com.google.common.util.concurrent.JdkFutureAdapters;
 import com.google.common.util.concurrent.ListenableFuture;
 
 import net.butfly.albacore.exception.ConfigException;
+import net.butfly.albacore.io.IO;
 import net.butfly.albacore.io.OutputImpl;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albatis.kafka.config.KafkaOutputConfig;
@@ -63,10 +64,10 @@ public final class KafkaOutput extends OutputImpl<KafkaMessage> {
 
 	@Override
 	public long enqueue(Stream<KafkaMessage> messages) {
-		List<ListenableFuture<RecordMetadata>> fs = messages.filter(t -> t != null).map(msg -> JdkFutureAdapters.listenInPoolThread(connect
-				.send(msg.toProducer()))).collect(Collectors.toList());
+		List<ListenableFuture<RecordMetadata>> fs = IO.list(messages.map(msg -> JdkFutureAdapters.listenInPoolThread(connect.send(msg
+				.toProducer()))));
 		if (!async) try {
-			return Futures.successfulAsList(fs).get().parallelStream().filter(t -> t != null).count();
+			return io.collect(Futures.successfulAsList(fs).get(), Collectors.counting());
 		} catch (InterruptedException e) {
 			logger().error("[" + name() + "] interrupted", e);
 		} catch (ExecutionException e) {

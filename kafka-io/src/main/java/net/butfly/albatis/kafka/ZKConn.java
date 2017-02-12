@@ -2,7 +2,6 @@ package net.butfly.albatis.kafka;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -103,7 +102,7 @@ public class ZKConn implements AutoCloseable {
 
 	public Map<String, int[]> getTopicPartitions(String... topics) {
 		if (topics == null || topics.length == 0) return getTopicPartitions();
-		return Arrays.asList(topics).stream().collect(Collectors.toMap(t -> t, t -> {
+		return Stream.of(topics).collect(Collectors.toMap(t -> t, t -> {
 			Map<String, Object> info = fetchMap(ZkUtils.getTopicPath(t));
 			if (null == info) return new int[0];
 			else {

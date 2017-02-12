@@ -3,10 +3,10 @@ package net.butfly.albatis.hbase;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
@@ -14,7 +14,7 @@ import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
 
-import net.butfly.albacore.lambda.Consumer;
+import net.butfly.albacore.io.IO;
 import net.butfly.albacore.utils.Collections;
 
 public class HbaseResult implements Serializable {
@@ -47,7 +47,7 @@ public class HbaseResult implements Serializable {
 	}
 
 	public long size() {
-		return isEmpty() ? 0 : result.listCells().parallelStream().collect(Collectors.summarizingInt(c -> c.getValueLength())).getSum();
+		return isEmpty() ? 0 : cells().mapToLong(c -> c.getValueLength()).sum();
 	}
 
 	public String getTable() {
@@ -64,11 +64,10 @@ public class HbaseResult implements Serializable {
 
 	public Put put() {
 		Put put = new Put(row);
-		each(c -> {
+		if (!isEmpty()) for (Cell c : result.rawCells())
 			try {
 				put.add(c);
 			} catch (Exception e) {}
-		});
 		return put;
 	}
 
@@ -90,19 +89,18 @@ public class HbaseResult implements Serializable {
 
 	@Override
 	public String toString() {
-		StringBuilder sb = new StringBuilder(table).append(":").append(Bytes.toString(row)).append("[").append(size()).append("]");
-		sb.append("\n");
-		each(c -> sb.append("\t").append(CellUtil.cloneFamily(c)).append(":").append(CellUtil.cloneQualifier(c)).append("[").append(c
-				.getValueLength()).append("]"));
-		return sb.toString();
+		return new StringBuilder(table).append(":").append(Bytes.toString(row)).append("[").append(size()).append("]").append("\n").append(
+				cells().map(c -> new StringBuilder().append("\t").append(CellUtil.cloneFamily(c)).append(":").append(CellUtil
+						.cloneQualifier(c)).append("[").append(c.getValueLength()).append("]")).collect(Collectors.joining("\n")))
+				.toString();
 	}
 
-	public void each(Consumer<Cell> consumer) {
-		if (!isEmpty()) result.listCells().parallelStream().forEach(consumer);
+	public Stream<Cell> cells() {
+		return isEmpty() ? Stream.empty() : Stream.of(result.rawCells());
 	}
 
 	public Set<String> cols() {
-		return isEmpty() ? null : new HashSet<String>(Collections.map(result.listCells(), Hbases::colFamily));
+		return isEmpty() ? null : IO.collect(cells().map(Hbases::colFamily), Collectors.toSet());
 	}
 
 	public boolean isEmpty() {

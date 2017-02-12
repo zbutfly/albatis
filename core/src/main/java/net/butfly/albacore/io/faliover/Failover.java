@@ -58,7 +58,7 @@ public abstract class Failover<K, V> extends OpenableThread implements Statistic
 		return c;
 	}
 
-	final <W> int insertTask(Map<K, ? extends Collection<V>> map) {
+	final <W> int enqueueTask(Map<K, ? extends Collection<V>> map) {
 		int c = 0;
 		for (Entry<K, ? extends Collection<V>> e : map.entrySet()) {
 			c += e.getValue().size();

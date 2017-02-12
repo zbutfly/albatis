@@ -6,7 +6,6 @@ import java.util.stream.Collectors;
 import scala.Tuple2;
 
 public class StreamMapping {
-
 	public static void main(String[] args) {
 		List<Tuple2<String, String>> origin = new ArrayList<>();
 		origin.add(new Tuple2<>("a", "a1"));
@@ -21,5 +20,4 @@ public class StreamMapping {
 				.toList())));
 		System.err.println(map);
 	}
-
 }

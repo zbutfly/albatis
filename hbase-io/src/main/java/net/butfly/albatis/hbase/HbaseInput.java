@@ -1,14 +1,11 @@
 package net.butfly.albatis.hbase;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import net.butfly.albacore.utils.Collections;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Connection;
@@ -97,9 +94,9 @@ public final class HbaseInput extends InputImpl<HbaseResult> {
 		begin();
 		if (!ended.get() && scanerLock.writeLock().tryLock()) {
 			try {
-				List<Result> l = Arrays.asList(scaner.next((int) batchSize));
-				ended.set(l.isEmpty());
-				return l.parallelStream().filter(t -> t != null).map(r -> new HbaseResult(tname, r));
+				Result[] rs = scaner.next((int) batchSize);
+				ended.set(rs == null || rs.length == 0);
+				return Stream.of(rs).map(r -> new HbaseResult(tname, r));
 			} catch (Exception ex) {
 				logger().warn("Hbase failure", ex);
 			} finally {
@@ -116,7 +113,13 @@ public final class HbaseInput extends InputImpl<HbaseResult> {
 
 	public List<HbaseResult> get(List<Get> gets) throws IOException {
 		try (Table t = hconn.getTable(TableName.valueOf(tname));) {
-			return Arrays.asList(t.get(gets)).parallelStream().map(r -> new HbaseResult(tname, r)).collect(Collectors.toList());
+			return io.list(Stream.of(t.get(gets)).parallel().map(r -> new HbaseResult(tname, r)));
+		}
+	}
+
+	public HbaseResult get(Get get) throws IOException {
+		try (Table t = hconn.getTable(TableName.valueOf(tname));) {
+			return new HbaseResult(tname, t.get(get));
 		}
 	}
 }

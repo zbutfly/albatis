@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
+import java.util.stream.Collectors;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.Cell;
@@ -20,6 +21,8 @@ import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
 
+import net.butfly.albacore.io.IO;
+import net.butfly.albacore.io.Streams;
 import net.butfly.albacore.utils.IOs;
 import net.butfly.albacore.utils.Utils;
 import net.butfly.albacore.utils.collection.Maps;
@@ -77,11 +80,8 @@ public final class Hbases extends Utils {
 
 	public static byte[] cellToBytes(Cell cell) throws IOException {
 		try (ByteArrayOutputStream baos = new ByteArrayOutputStream();) {
-			IOs.writeBytes(baos, CellUtil.cloneRow(cell));
-			IOs.writeBytes(baos, CellUtil.cloneFamily(cell));
-			IOs.writeBytes(baos, CellUtil.cloneQualifier(cell));
-			IOs.writeBytes(baos, CellUtil.cloneValue(cell));
-			return baos.toByteArray();
+			return IOs.writeBytes(baos, CellUtil.cloneRow(cell), CellUtil.cloneFamily(cell), CellUtil.cloneQualifier(cell), CellUtil
+					.cloneValue(cell)).toByteArray();
 		}
 	}
 
@@ -91,4 +91,7 @@ public final class Hbases extends Utils {
 		}
 	}
 
+	public static long totalCellSize(List<HbaseResult> rs) {
+		return IO.collect(Streams.of(rs), Collectors.summingLong(r -> r.size()));
+	}
 }

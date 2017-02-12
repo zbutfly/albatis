@@ -16,6 +16,7 @@ import com.mongodb.DBObject;
 import com.mongodb.MongoException;
 
 import net.butfly.albacore.io.InputImpl;
+import net.butfly.albacore.io.Streams;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.logger.Logger;
 
@@ -111,7 +112,7 @@ public class MongoInput extends InputImpl<DBObject> {
 			retry = false;
 			if (lock.writeLock().tryLock()) try {
 				while (opened() && batch.size() < batchSize) {
-					if (!cursor.hasNext()) return batch.parallelStream();
+					if (!cursor.hasNext()) return Streams.of(batch);
 					batch.add(cursor.next());
 				}
 			} catch (MongoException ex) {
@@ -121,6 +122,6 @@ public class MongoInput extends InputImpl<DBObject> {
 				lock.writeLock().unlock();
 			}
 		} while (opened() && retry && batch.size() == 0);
-		return batch.parallelStream().filter(t -> t != null);
+		return Streams.of(batch);
 	}
 }
