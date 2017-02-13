@@ -16,7 +16,6 @@ import net.butfly.albacore.exception.ConfigException;
 import net.butfly.albacore.io.OpenableThread;
 import net.butfly.albacore.lambda.Consumer;
 import net.butfly.albacore.utils.IOs;
-import net.butfly.albacore.utils.Systems;
 import net.butfly.albacore.utils.async.Concurrents;
 
 public final class KafkaInput extends KafkaInputBase<KafkaInput.Fetcher> {
@@ -24,7 +23,6 @@ public final class KafkaInput extends KafkaInputBase<KafkaInput.Fetcher> {
 
 	public KafkaInput(String name, final String kafkaURI, final String poolPath, String... topics) throws ConfigException, IOException {
 		super(name, kafkaURI, topics);
-		Systems.enableGC();
 		try {
 			pool = new BigQueueImpl(IOs.mkdirs(poolPath + "/" + name), config.toString());
 		} catch (IOException e) {
@@ -34,7 +32,7 @@ public final class KafkaInput extends KafkaInputBase<KafkaInput.Fetcher> {
 				.toString(), pool.size()));
 		for (String t : raws.keySet()) {
 			AtomicInteger i = new AtomicInteger(0);
-			for (KafkaStream<byte[], byte[]> stream : raws.get(t))
+			for (KafkaStream<byte[], byte[]> stream : raws.get(t)) {
 				streams.compute(t, (k, v) -> {
 					Map<KafkaStream<byte[], byte[]>, Fetcher> v1 = v == null ? new HashMap<>() : v;
 					Fetcher f = new Fetcher(name + "Fetcher#" + t, stream, i.incrementAndGet(), pool, config.getPoolSize());
@@ -43,12 +41,19 @@ public final class KafkaInput extends KafkaInputBase<KafkaInput.Fetcher> {
 					v1.put(stream, f);
 					return v1;
 				});
+			}
 		}
 		open();
 	}
 
 	@Override
 	protected KafkaMessage fetch(KafkaStream<byte[], byte[]> stream, Fetcher fetcher, Consumer<KafkaMessage> result) {
+		KafkaMessage m = fetch();
+		result.accept(m);
+		return m;
+	}
+
+	private KafkaMessage fetch() {
 		byte[] buf;
 		try {
 			buf = pool.dequeue();
@@ -56,9 +61,7 @@ public final class KafkaInput extends KafkaInputBase<KafkaInput.Fetcher> {
 			return null;
 		}
 		if (null == buf) return null;
-		KafkaMessage m = new KafkaMessage(buf);
-		result.accept(m);
-		return m;
+		return new KafkaMessage(buf);
 	}
 
 	@Override

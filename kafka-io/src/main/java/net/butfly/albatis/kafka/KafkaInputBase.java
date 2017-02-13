@@ -16,8 +16,6 @@ import net.butfly.albacore.exception.ConfigException;
 import net.butfly.albacore.io.KeyInputImpl;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.lambda.Consumer;
-import net.butfly.albacore.utils.Collections;
-import net.butfly.albacore.utils.Systems;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.kafka.config.KafkaInputConfig;
 
@@ -36,16 +34,16 @@ abstract class KafkaInputBase<V> extends KeyInputImpl<String, KafkaMessage> {
 		allTopics = new HashMap<>();
 		int kp = config.getPartitionParallelism();
 		topics = (topics != null && topics.length > 0) ? topics : topics().toArray(new String[0]);
-		Map<String, int[]> parts;
+		Map<String, int[]> topicParts;
 		try (ZKConn zk = new ZKConn(config.getZookeeperConnect())) {
-			parts = zk.getTopicPartitions(topics);
+			topicParts = zk.getTopicPartitions(topics);
 			for (String t : topics)
 				logger.debug(() -> "Lag of " + config.getGroupId() + "@" + t + ": " + zk.getLag(t, config.getGroupId()));
 		}
-		for (Entry<String, int[]> info : parts.entrySet()) {
-			if (kp <= 0) allTopics.put(info.getKey(), 1);
-			else if (kp >= info.getValue().length) allTopics.put(info.getKey(), info.getValue().length);
-			else allTopics.put(info.getKey(), (int) Math.ceil(info.getValue().length * 1.0 / kp));
+		for (String t : topicParts.keySet()) {
+			if (kp <= 0) allTopics.put(t, 1);
+			else if (kp >= topicParts.get(t).length) allTopics.put(t, topicParts.get(t).length);
+			else allTopics.put(t, (int) Math.ceil(topicParts.get(t).length * 1.0 / kp));
 		}
 
 		logger.debug("[" + name() + "] parallelism of topics: " + allTopics.toString() + ".");
@@ -59,7 +57,7 @@ abstract class KafkaInputBase<V> extends KeyInputImpl<String, KafkaMessage> {
 
 	@Override
 	protected final void read(String topic, List<KafkaMessage> batch) {
-		for (Entry<KafkaStream<byte[], byte[]>, V> s : Collections.disorderize(streams.get(topic).entrySet()))
+		for (Entry<KafkaStream<byte[], byte[]>, V> s : streams.get(topic).entrySet())
 			fetch(s.getKey(), s.getValue(), e -> batch.add(e));
 	}
 
@@ -74,7 +72,7 @@ abstract class KafkaInputBase<V> extends KeyInputImpl<String, KafkaMessage> {
 
 	@Override
 	public KafkaMessage dequeue(String topic) {
-		for (Entry<KafkaStream<byte[], byte[]>, V> s : Collections.disorderize(streams.get(topic).entrySet())) {
+		for (Entry<KafkaStream<byte[], byte[]>, V> s : streams.get(topic).entrySet()) {
 			KafkaMessage e = fetch(s.getKey(), s.getValue(), v -> connect.commitOffsets(false));
 			if (null != e) return e;
 		}
@@ -89,7 +87,6 @@ abstract class KafkaInputBase<V> extends KeyInputImpl<String, KafkaMessage> {
 	@Override
 	public void close() {
 		super.close(this::closeKafka);
-		Systems.disableGC();
 	}
 
 	private void closeKafka() {

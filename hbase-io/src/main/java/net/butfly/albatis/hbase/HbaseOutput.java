@@ -67,7 +67,7 @@ public final class HbaseOutput extends FailoverOutput<HbaseResult, Result> {
 
 	@Override
 	protected int write(String key, Collection<Result> values) throws FailoverException {
-		List<Put> t = io.list(values, r -> {
+		List<Put> puts = io.list(values, r -> {
 			Put p;
 			try {
 				p = new Put(r.getRow());
@@ -85,11 +85,15 @@ public final class HbaseOutput extends FailoverOutput<HbaseResult, Result> {
 			return p;
 		});
 		try {
-			table(key).put(t);
+			table(key).put(puts);
 		} catch (Exception e) {
-			throw new FailoverException(io.collect(Streams.of(values), Collectors.toConcurrentMap(r -> r, r -> unwrap(e).getMessage())));
+			throw new FailoverException(io.collect(Streams.of(values), Collectors.toConcurrentMap(r -> r, r -> {
+				String m = unwrap(e).getMessage();
+				if (null == m) m = "Unknown message";
+				return m;
+			})));
 		}
-		return t.size();
+		return puts.size();
 	}
 
 	@Override
