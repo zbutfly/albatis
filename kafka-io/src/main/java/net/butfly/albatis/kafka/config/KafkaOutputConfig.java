@@ -10,9 +10,13 @@ import net.butfly.albacore.utils.Configs;
 
 public class KafkaOutputConfig extends KafkaConfigBase {
 	private static final long serialVersionUID = -3028341800709486625L;
-	private int retries;
-	private int requestRequiredAcks;
-	private String compressionCodec;
+	final private boolean async;
+	final private int retries;
+	final private String requestRequiredAcks;
+	final private String compressionCodec;
+	final private int batchSize;
+	final private boolean batchBlock;
+	final private long bufferBytes;
 
 	/**
 	 * @deprecated use {@link URISpec} to construct kafka configuration.
@@ -25,9 +29,13 @@ public class KafkaOutputConfig extends KafkaConfigBase {
 	public KafkaOutputConfig(URISpec uri) {
 		super(uri);
 		Properties props = uri.getParameters();
-		requestRequiredAcks = Integer.parseInt(props.getProperty("acks", "all"));
+		async = Boolean.parseBoolean(props.getProperty("async", "false"));
+		requestRequiredAcks = props.getProperty("acks", "all");
 		compressionCodec = props.getProperty("compression", "snappy");
 		retries = Integer.parseInt(props.getProperty("retries", "0"));
+		batchSize = Integer.parseInt(props.getProperty("batch", "2000"));
+		batchBlock = Boolean.parseBoolean(props.getProperty("block", "true"));
+		bufferBytes = Long.parseLong(props.getProperty("buffer", Long.toString(128 * 1024 * 1024)));
 	}
 
 	/**
@@ -36,28 +44,45 @@ public class KafkaOutputConfig extends KafkaConfigBase {
 	@Deprecated
 	public KafkaOutputConfig(Properties props) {
 		super(props);
-		requestRequiredAcks = Integer.parseInt(props.getProperty("albatis.kafka.request.required.acks", "-1"));
-		compressionCodec = props.getProperty("albatis.kafka.compression.codec", "snappy");
-		retries = Integer.parseInt(props.getProperty("albatis.kafka.retries", "0"));
+		async = Boolean.parseBoolean(props.getProperty(PROP_PREFIX + "async", "false"));
+		requestRequiredAcks = props.getProperty(PROP_PREFIX + "request.required.acks", "all");
+		compressionCodec = props.getProperty(PROP_PREFIX + "compression.codec", "snappy");
+		retries = Integer.parseInt(props.getProperty(PROP_PREFIX + "retries", "0"));
+		batchSize = Integer.parseInt(props.getProperty(PROP_PREFIX + "batch.size", "2000"));
+		batchBlock = Boolean.parseBoolean(props.getProperty(PROP_PREFIX + "batch.block", "true"));
+		bufferBytes = Long.parseLong(props.getProperty(PROP_PREFIX + "buffer", Long.toString(128 * 1024 * 1024)));
 	}
 
 	public ProducerConfig getConfig() throws ConfigException {
-		return new ProducerConfig(props());
+		Properties props = props();
+		Properties prod = new Properties();
+
+		prod.setProperty("metadata.broker.list", bootstrapServers);
+		prod.setProperty("partitioner.class", props.getProperty("partitioner.class", "kafka.producer.DefaultPartitioner"));
+		prod.setProperty("producer.type", async ? "async" : "sync");
+		prod.setProperty("compression.codec", compressionCodec);
+		// prod.setProperty("compressed.topics", null);
+		prod.setProperty("retry.backoff.ms", Long.toString(backoffMs));
+		prod.setProperty("message.send.max.retries", Integer.toString(retries));
+		// prod.setProperty("topic.metadata.refresh.interval.ms", 600000);
+		return new ProducerConfig(prod);
 	}
 
 	@Override
 	public Properties props() {
 		Properties props = super.props();
 		props.setProperty("max.block.ms", Long.toString(zookeeperConnectionTimeoutMs));
-		props.setProperty("acks", Integer.toString(requestRequiredAcks));
+		props.setProperty("acks", requestRequiredAcks);
 		props.setProperty("compression.type", compressionCodec);
 		props.setProperty("retries", Integer.toString(retries));
-		props.setProperty("buffer.memory", Long.toString(transferBufferBytes));
+		props.setProperty("buffer.memory", Long.toString(bufferBytes));
 		props.setProperty("send.buffer.bytes", Long.toString(transferBufferBytes));
 		// props.setProperty("timeout.ms", "60000");
 		// props.setProperty("metric.reporters", );
 		// props.setProperty("metadata.max.age.ms", );
-		// props.setProperty("batch.size", );
+		props.setProperty("batch.size", Long.toString(batchSize));
+		props.setProperty("batch.block", Boolean.toString(batchBlock));
+		props.setProperty("max.block.ms", Long.toString(Long.MAX_VALUE));
 		// props.setProperty("reconnect.backoff.ms", );
 
 		// props.setProperty("receive.buffer.bytes", );
@@ -72,6 +97,10 @@ public class KafkaOutputConfig extends KafkaConfigBase {
 		// props.setProperty("client.id", );
 
 		return props;
+	}
+
+	public boolean isAsync() {
+		return async;
 	}
 
 	@Override

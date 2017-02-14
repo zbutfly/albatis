@@ -10,12 +10,14 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Stream;
 
+import kafka.common.ConsumerRebalanceFailedException;
 import kafka.consumer.KafkaStream;
 import kafka.javaapi.consumer.ConsumerConnector;
 import net.butfly.albacore.exception.ConfigException;
 import net.butfly.albacore.io.KeyInputImpl;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.lambda.Consumer;
+import net.butfly.albacore.utils.async.Concurrents;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.kafka.config.KafkaInputConfig;
 
@@ -48,7 +50,16 @@ abstract class KafkaInputBase<V> extends KeyInputImpl<String, KafkaMessage> {
 
 		logger.debug("[" + name() + "] parallelism of topics: " + allTopics.toString() + ".");
 		connect = kafka.consumer.Consumer.createJavaConsumerConnector(config.getConfig());
-		raws = connect.createMessageStreams(allTopics);
+		Map<String, List<KafkaStream<byte[], byte[]>>> temp = null;
+		do
+			try {
+				temp = connect.createMessageStreams(allTopics);
+			} catch (ConsumerRebalanceFailedException e) {
+				logger.warn("Kafka close and open too quickly, wait 10 seconds and retry", e);
+				if (!Concurrents.waitSleep(1000 * 10)) throw e;
+			}
+		while (temp == null);
+		raws = temp;
 		logger.debug("[" + name() + "] connected.");
 		streams = new HashMap<>();
 	}

@@ -51,7 +51,6 @@ public class KafkaInputConfig extends KafkaConfigBase {
 	protected String partitionAssignmentStrategy;
 	protected long fetchMessageMaxBytes;
 	protected long fetchWaitTimeoutMs;
-	protected long rebalanceBackoffMs;
 	protected int rebalanceRetries;
 	protected long zookeeperSessionTimeoutMs;
 
@@ -81,7 +80,6 @@ public class KafkaInputConfig extends KafkaConfigBase {
 		fetchWaitTimeoutMs = Long.parseLong(props.getProperty("fetchtimeout", "500").trim());
 		partitionAssignmentStrategy = props.getProperty("strategy", "range");
 		fetchMessageMaxBytes = Long.parseLong(props.getProperty("fetchmax", "10485760").trim());
-		rebalanceBackoffMs = Long.parseLong(props.getProperty("rebalancetime", "10000"));
 		rebalanceRetries = Integer.parseInt(props.getProperty("rebalanceretries", "2"));
 		zookeeperSessionTimeoutMs = Long.parseLong(props.getProperty("zksessiontimeout", "30000"));
 
@@ -100,20 +98,19 @@ public class KafkaInputConfig extends KafkaConfigBase {
 		if (groupId == null || "".equals(groupId)) groupId = Systems.getMainClass().getSimpleName();
 		groupId = Systems.suffixDebug(groupId, logger);
 
-		zookeeperSyncTimeMs = Long.parseLong(props.getProperty("albatis.kafka.zookeeper.sync.time.ms", "15000").trim());
-		autoCommitIntervalMs = Long.parseLong(props.getProperty("albatis.kafka.auto.commit.interval.ms", DEFAULT_AUTO_COMMIT_MS).trim());
-		autoCommitEnable = Boolean.parseBoolean(props.getProperty("albatis.kafka.auto.commit.enable", Boolean.toString(
+		zookeeperSyncTimeMs = Long.parseLong(props.getProperty(PROP_PREFIX + "zookeeper.sync.time.ms", "15000").trim());
+		autoCommitIntervalMs = Long.parseLong(props.getProperty(PROP_PREFIX + "auto.commit.interval.ms", DEFAULT_AUTO_COMMIT_MS).trim());
+		autoCommitEnable = Boolean.parseBoolean(props.getProperty(PROP_PREFIX + "auto.commit.enable", Boolean.toString(
 				autoCommitIntervalMs > 0)).trim());
-		autoOffsetReset = props.getProperty("albatis.kafka.auto.offset.reset", "smallest");
-		sessionTimeoutMs = Long.parseLong(props.getProperty("albatis.kafka.session.timeout.ms", "30000").trim());
-		fetchWaitTimeoutMs = Long.parseLong(props.getProperty("albatis.kafka.fetch.wait.timeout.ms", "500").trim());
-		partitionAssignmentStrategy = props.getProperty("albatis.kafka.partition.assignment.strategy", "range");
-		fetchMessageMaxBytes = Long.parseLong(props.getProperty("albatis.kafka.fetch.message.max.bytes", "10485760").trim());
-		rebalanceBackoffMs = Long.parseLong(props.getProperty("albatis.kafka.rebalance.backoff.ms", "10000"));
-		rebalanceRetries = Integer.parseInt(props.getProperty("albatis.kafka.rebalance.retries", "2"));
-		zookeeperSessionTimeoutMs = Long.parseLong(props.getProperty("albatis.kafka.zookeeper.session.timeout.ms", "30000"));
+		autoOffsetReset = props.getProperty(PROP_PREFIX + "auto.offset.reset", "smallest");
+		sessionTimeoutMs = Long.parseLong(props.getProperty(PROP_PREFIX + "session.timeout.ms", "30000").trim());
+		fetchWaitTimeoutMs = Long.parseLong(props.getProperty(PROP_PREFIX + "fetch.wait.timeout.ms", "500").trim());
+		partitionAssignmentStrategy = props.getProperty(PROP_PREFIX + "partition.assignment.strategy", "range");
+		fetchMessageMaxBytes = Long.parseLong(props.getProperty(PROP_PREFIX + "fetch.message.max.bytes", "10485760").trim());
+		rebalanceRetries = Integer.parseInt(props.getProperty(PROP_PREFIX + "rebalance.retries", "2"));
+		zookeeperSessionTimeoutMs = Long.parseLong(props.getProperty(PROP_PREFIX + "zookeeper.session.timeout.ms", "30000"));
 
-		partitionParallelism = Integer.parseInt(props.getProperty("albatis.kafka.partition.parallelism", "0").trim());
+		partitionParallelism = Integer.parseInt(props.getProperty(PROP_PREFIX + "partition.parallelism", "0").trim());
 	}
 
 	public int getPartitionParallelism() {
@@ -137,7 +134,7 @@ public class KafkaInputConfig extends KafkaConfigBase {
 		props.setProperty("socket.timeout.ms", Long.toString(sessionTimeoutMs));
 		props.setProperty("fetch.wait.max.ms", Long.toString(fetchWaitTimeoutMs));
 		props.setProperty("consumer.timeout.ms", Long.toString(fetchWaitTimeoutMs));
-		props.setProperty("rebalance.backoff.ms", Long.toString(rebalanceBackoffMs));
+		props.setProperty("rebalance.backoff.ms", Long.toString(backoffMs));
 		props.setProperty("rebalance.max.retries", Integer.toString(rebalanceRetries));
 		props.setProperty("auto.commit.interval.ms", Long.toString(autoCommitIntervalMs));
 

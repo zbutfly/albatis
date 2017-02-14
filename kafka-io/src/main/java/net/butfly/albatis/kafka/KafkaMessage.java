@@ -17,9 +17,9 @@ import net.butfly.albacore.utils.IOs;
 public class KafkaMessage implements Serializable {
 	private static final long serialVersionUID = -8599938670114294267L;
 
-	private String topic;
-	private byte[] key;
-	private byte[] body;
+	private final String topic;
+	private final byte[] key;
+	private final byte[] body;
 
 	public KafkaMessage(MessageAndMetadata<byte[], byte[]> meta) {
 		this(meta.topic(), meta.key(), meta.message());
@@ -27,10 +27,6 @@ public class KafkaMessage implements Serializable {
 
 	public KafkaMessage(ConsumerRecord<byte[], byte[]> record) throws Exception {
 		this(record.topic(), record.key(), record.value());
-	}
-
-	public void setTopic(String topic) {
-		this.topic = topic;
 	}
 
 	public KafkaMessage(String topic, byte[] key, byte[] body) {
@@ -44,7 +40,9 @@ public class KafkaMessage implements Serializable {
 			topic = new String(IOs.readBytes(bo), Charsets.UTF_8);
 			key = IOs.readBytes(bo);
 			body = IOs.readBytes(bo);
-		} catch (IOException e) {}
+		} catch (IOException e) {
+			throw new RuntimeException();
+		}
 	}
 
 	public String getTopic() {

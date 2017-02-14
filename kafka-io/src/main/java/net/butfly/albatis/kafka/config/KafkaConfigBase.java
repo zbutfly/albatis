@@ -16,10 +16,11 @@ import net.butfly.albatis.kafka.ZKConn;
 
 public abstract class KafkaConfigBase implements Serializable {
 	private static final long serialVersionUID = -4020530608706621876L;
-	private static final String PROP_PREFIX = "albatis.kafka.";
+	protected static final String PROP_PREFIX = "albatis.kafka.";
 	static final Logger logger = Logger.getLogger(KafkaConfigBase.class);
 	protected final String zookeeperConnect;
 	protected String bootstrapServers;
+	final protected long backoffMs; // input: rebalance, output: retry
 	protected final long zookeeperConnectionTimeoutMs;
 	protected final long transferBufferBytes;
 	protected String keySerializerClass;
@@ -53,12 +54,13 @@ public abstract class KafkaConfigBase implements Serializable {
 		} else if (bootstrapServers == null) throw new ConfigException("Neither [" + PROP_PREFIX + "zookeeper] nor [" + PROP_PREFIX
 				+ "bootstrap.servers] found");
 		zookeeperConnectionTimeoutMs = Long.valueOf(props.getProperty(PROP_PREFIX + "zookeeper.connection.timeout.ms", "20000"));
-		transferBufferBytes = Long.valueOf(props.getProperty(PROP_PREFIX + "transfer.buffer.bytes", "5242880"));
+		transferBufferBytes = Long.valueOf(props.getProperty(PROP_PREFIX + "socket.buffer.bytes", Long.toString(5 * 1024 * 1024)));
 		keySerializerClass = props.getProperty(PROP_PREFIX + "key.serializer.class", ByteArraySerializer.class.getName());
 		valueSerializerClass = props.getProperty(PROP_PREFIX + "value.serializer.class", ByteArraySerializer.class.getName());
 		poolSize = Long.parseLong(props.getProperty(PROP_PREFIX + "internal.pool.size", "3000000"));
 		String ts = props.getProperty(PROP_PREFIX + "topics");
 		topics = null == ts ? new String[0] : ts.split(",");
+		backoffMs = Long.parseLong(props.getProperty(PROP_PREFIX + "backoff.ms", "100"));
 	}
 
 	public KafkaConfigBase(URISpec uri) {
@@ -87,12 +89,13 @@ public abstract class KafkaConfigBase implements Serializable {
 		}
 		Properties props = uri.getParameters();
 		zookeeperConnectionTimeoutMs = Long.valueOf(props.getProperty("zkconntimeout", "20000"));
-		transferBufferBytes = Long.valueOf(props.getProperty("buffer", "5242880"));
+		transferBufferBytes = Long.valueOf(props.getProperty("socketBuffer", Long.toString(5 * 1024 * 1024)));
 		keySerializerClass = props.getProperty("kserial", ByteArraySerializer.class.getName());
 		valueSerializerClass = props.getProperty("vserial", ByteArraySerializer.class.getName());
 		poolSize = Long.parseLong(props.getProperty("pool", "3000000"));
 		String ts = props.getProperty("topics");
 		topics = null == ts ? new String[0] : ts.split(",");
+		backoffMs = Long.parseLong(props.getProperty("backoff", "100"));
 	}
 
 	/**
@@ -109,6 +112,8 @@ public abstract class KafkaConfigBase implements Serializable {
 		if (null != bootstrapServers) props.setProperty("bootstrap.servers", bootstrapServers);
 		if (null != keySerializerClass) props.setProperty("key.serializer", keySerializerClass);
 		if (null != valueSerializerClass) props.setProperty("value.serializer", valueSerializerClass);
+		props.setProperty("connections.max.idle.ms", Long.toString(Long.MAX_VALUE));
+
 		return props;
 	}
 
