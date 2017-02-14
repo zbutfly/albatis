@@ -51,7 +51,7 @@ public abstract class FailoverOutput<I, FV> extends OutputImpl<I> {
 	@Override
 	public void open(java.lang.Runnable run) {
 		super.open(run);
-		failover.start();
+		failover.open();
 	}
 
 	protected abstract int write(String key, Collection<FV> values) throws FailoverException;

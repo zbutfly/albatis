@@ -75,8 +75,7 @@ public final class EsOutput extends FailoverOutput<ElasticMessage, ElasticMessag
 				retries = io.list(Streams.of(retries).filter(es -> !succs.contains(es.getId()) && !failing.containsKey(es.getId())));
 				fails.putAll(failing);
 			} catch (Exception e) {
-				e.printStackTrace();
-				throw new RuntimeException();
+				throw new RuntimeException(e);
 			}
 		} while (!retries.isEmpty());
 		if (fails.isEmpty()) return values.size();

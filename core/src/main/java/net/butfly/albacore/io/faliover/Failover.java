@@ -90,7 +90,6 @@ public abstract class Failover<K, V> extends OpenableThread implements Statistic
 		public Sender(String parentName, LinkedBlockingQueue<Runnable> tasks, int i) {
 			super(threadGroup, parentName + "Sender#" + (i + 1));
 			this.tasks = tasks;
-			start();
 		}
 
 		@Override
@@ -115,6 +114,13 @@ public abstract class Failover<K, V> extends OpenableThread implements Statistic
 					logger.error("Sending failure", e);
 				}
 		}
+	}
+
+	@Override
+	public void open(Runnable opening) {
+		super.open(opening);
+		for (Sender s : senders)
+			s.open();
 	}
 
 	@Override

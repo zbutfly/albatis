@@ -25,7 +25,7 @@ public class KafkaOutputConfig extends KafkaConfigBase {
 	public KafkaOutputConfig(URISpec uri) {
 		super(uri);
 		Properties props = uri.getParameters();
-		requestRequiredAcks = Integer.parseInt(props.getProperty("acks", "-1"));
+		requestRequiredAcks = Integer.parseInt(props.getProperty("acks", "all"));
 		compressionCodec = props.getProperty("compression", "snappy");
 		retries = Integer.parseInt(props.getProperty("retries", "0"));
 	}

@@ -17,6 +17,7 @@ import kafka.common.TopicAndPartition;
 import kafka.javaapi.OffsetRequest;
 import kafka.javaapi.consumer.SimpleConsumer;
 import kafka.utils.ZkUtils;
+import net.butfly.albacore.io.IO;
 import net.butfly.albacore.serder.JsonSerder;
 import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.collection.Maps;
@@ -145,12 +146,12 @@ public class ZKConn implements AutoCloseable {
 		if (null == nodes || nodes.isEmpty()) {
 			Map<String, Object> map = fetchMap(path);
 			return null == map ? fetchValue(path) : (T) map;
-		} else return (T) nodes.parallelStream().map(node -> {
+		} else return (T) IO.collect(nodes, s -> s.map(node -> {
 			String subpath = "/".equals(path) ? "/" + node : path + "/" + node;
 			System.err.println("Scan zk: " + subpath);
 			Object sub = fetchTree(subpath);
 			return new Pair<String, Object>(node, sub);
-		}).filter(p -> p.v2() != null).collect(Pair.toMap());
+		}).filter(p -> p.v2() != null), Collectors.toMap(p -> p.v1(), p -> p.v2()));
 	}
 
 	@Override
