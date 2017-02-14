@@ -29,7 +29,7 @@ abstract class KafkaInputBase<V> extends KeyInputImpl<String, KafkaMessage> {
 
 	public KafkaInputBase(String name, final String kafkaURI, String[] topics) throws ConfigException, IOException {
 		super(name);
-		config = new KafkaInputConfig(new URISpec(kafkaURI));
+		config = new KafkaInputConfig(name(), new URISpec(kafkaURI));
 		logger.info("[" + name() + "] connecting with config [" + config.toString() + "].");
 		allTopics = new HashMap<>();
 		int kp = config.getPartitionParallelism();

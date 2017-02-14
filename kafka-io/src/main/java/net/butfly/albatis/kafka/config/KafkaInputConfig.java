@@ -42,6 +42,7 @@ public class KafkaInputConfig extends KafkaConfigBase {
 	private static final String DEFAULT_AUTO_COMMIT_MS = "60000";
 
 	protected long zookeeperSyncTimeMs;
+	protected final String consumerId;
 	protected String groupId;
 	protected boolean autoCommitEnable;
 	protected long autoCommitIntervalMs;
@@ -61,12 +62,13 @@ public class KafkaInputConfig extends KafkaConfigBase {
 	 * @deprecated use {@link URISpec} to construct kafka configuration.
 	 */
 	@Deprecated
-	public KafkaInputConfig(String uri) throws IOException {
-		this(Configs.read(URIs.open(uri, Schema.FILE, Schema.CLASSPATH, Schema.ZOOKEEPER)));
+	public KafkaInputConfig(String consumerId, String uri) throws IOException {
+		this(consumerId, Configs.read(URIs.open(uri, Schema.FILE, Schema.CLASSPATH, Schema.ZOOKEEPER)));
 	}
 
-	public KafkaInputConfig(URISpec uri) {
+	public KafkaInputConfig(String consumerId, URISpec uri) {
 		super(uri);
+		this.consumerId = consumerId;
 		groupId = uri.getUsername();
 		if (groupId == null || "".equals(groupId)) groupId = Systems.suffixDebug(Systems.getMainClass().getSimpleName(), logger);
 		Properties props = uri.getParameters();
@@ -90,8 +92,9 @@ public class KafkaInputConfig extends KafkaConfigBase {
 	 * @deprecated use {@link URISpec} to construct kafka configuration.
 	 */
 	@Deprecated
-	public KafkaInputConfig(Properties props) {
+	public KafkaInputConfig(String consumerId, Properties props) {
 		super(props);
+		this.consumerId = consumerId;
 		groupId = null;
 		if (props.containsKey("albatis.kafka.group.id")) groupId = props.getProperty("albatis.kafka.group.id");
 		if (groupId == null || "".equals(groupId)) groupId = Systems.getMainClass().getSimpleName();
