@@ -24,7 +24,6 @@ public abstract class OffHeapFailover<K, V> extends Failover<K, V> {
 		super(parentName, writing, committing, packageSize, parallelism);
 		if (poolName == null) poolName = "POOL";
 		failover = new BigQueueImpl(IOs.mkdirs(path + "/" + parentName), poolName);
-		start();
 		logger.info(MessageFormat.format("Failover [persist mode] init: [{0}/{1}] with name [{2}], init size [{3}].", //
 				path, parentName, poolName, size()));
 	}

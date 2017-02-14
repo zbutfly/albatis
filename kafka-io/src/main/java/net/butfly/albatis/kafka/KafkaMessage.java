@@ -11,6 +11,7 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import com.google.common.base.Charsets;
 
 import kafka.message.MessageAndMetadata;
+import kafka.producer.KeyedMessage;
 import net.butfly.albacore.utils.IOs;
 
 public class KafkaMessage implements Serializable {
@@ -69,6 +70,10 @@ public class KafkaMessage implements Serializable {
 
 	public ProducerRecord<byte[], byte[]> toProducer() {
 		return new ProducerRecord<byte[], byte[]>(topic, key, body);
+	}
+
+	public KeyedMessage<byte[], byte[]> toKeyedMessage() {
+		return new KeyedMessage<>(topic, key, body);
 	}
 
 	@Override

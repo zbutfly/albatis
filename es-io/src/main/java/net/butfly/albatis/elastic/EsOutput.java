@@ -13,8 +13,11 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
+import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkRequest;
+import org.elasticsearch.action.bulk.BulkResponse;
+import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.script.Script;
@@ -28,6 +31,75 @@ import net.butfly.albacore.utils.Exceptions;
 import scala.Tuple2;
 
 public final class EsOutput extends FailoverOutput<ElasticMessage, ElasticMessage> {
+	private final ElasticConnection conn;
+
+	public EsOutput(String name, String esUri, String failoverPath) throws IOException {
+		super(name, failoverPath, 100, 20);
+		conn = new ElasticConnection(esUri);
+		open();
+	}
+
+	public ElasticConnection getConnection() {
+		return conn;
+	}
+
+	@Override
+	protected void closeInternal() {
+		conn.close();
+	}
+
+	@Override
+	protected int write(String key, Collection<ElasticMessage> values) throws FailoverException {
+		if (values.isEmpty()) return 0;
+		Map<String, String> fails = new ConcurrentHashMap<>();
+		List<ElasticMessage> retries = new ArrayList<>(values);
+		do {
+			BulkRequest req = new BulkRequest().add(io.list(retries, ElasticMessage::update));
+			logger().trace("Bulk size: " + req.estimatedSizeInBytes());
+			try {
+				TransportClient tc = conn.client();
+				ActionFuture<BulkResponse> f = tc.bulk(req);
+				BulkResponse bulk = f.actionGet();
+				Map<Boolean, List<BulkItemResponse>> resps = io.collect(bulk, Collectors.partitioningBy(r -> r.isFailed()));
+				if (resps.get(Boolean.TRUE).isEmpty()) return resps.get(Boolean.FALSE).size();
+				Set<String> succs = io.map(resps.get(Boolean.FALSE), r -> r.getId(), Collectors.toSet());
+				Map<Boolean, List<BulkItemResponse>> retryMap = io.collect(Streams.of(resps.get(Boolean.TRUE)), Collectors.partitioningBy(
+						r -> {
+							@SuppressWarnings("unchecked")
+							Class<Throwable> c = (Class<Throwable>) r.getFailure().getCause().getClass();
+							return EsRejectedExecutionException.class.isAssignableFrom(c) || VersionConflictEngineException.class
+									.isAssignableFrom(c);
+						}));
+				Map<String, String> failing = io.collect(retryMap.get(Boolean.FALSE), Collectors.toConcurrentMap(r -> r.getFailure()
+						.getId(), this::wrapErrorMessage));
+				retries = io.list(Streams.of(retries).filter(es -> !succs.contains(es.getId()) && !failing.containsKey(es.getId())));
+				fails.putAll(failing);
+			} catch (Exception e) {
+				e.printStackTrace();
+				throw new RuntimeException();
+			}
+		} while (!retries.isEmpty());
+		if (fails.isEmpty()) return values.size();
+		else {
+			throw new FailoverException(io.collect(Streams.of(values).filter(es -> fails.containsKey(es.getId())), Collectors.toMap(
+					es -> es, es -> fails.get(es.getId()))));
+		}
+	}
+
+	private String wrapErrorMessage(BulkItemResponse r) {
+		return "Writing failed id [" + r.getId() + "] for: " + Exceptions.unwrap(r.getFailure().getCause()).getMessage();
+	}
+
+	@Override
+	protected Tuple2<String, ElasticMessage> parse(ElasticMessage e) {
+		return new Tuple2<>(e.getIndex() + "/" + e.getType(), e);
+	}
+
+	@Override
+	protected ElasticMessage unparse(String key, ElasticMessage value) {
+		return value;
+	}
+
 	@Override
 	protected byte[] toBytes(String key, ElasticMessage value) throws IOException {
 		if (null == key || null == value) throw new IOException("Data to be failover should not be null");
@@ -77,66 +149,7 @@ public final class EsOutput extends FailoverOutput<ElasticMessage, ElasticMessag
 		}
 	}
 
-	private final ElasticConnection conn;
-
-	public EsOutput(String name, String esUri, String failoverPath) throws IOException {
-		super(name, failoverPath, 100, 20);
-		conn = new ElasticConnection(esUri);
-		open();
-	}
-
-	public ElasticConnection getConnection() {
-		return conn;
-	}
-
-	@Override
-	protected void closeInternal() {
-		conn.close();
-	}
-
-	@Override
-	protected int write(String key, Collection<ElasticMessage> values) throws FailoverException {
-		if (values.isEmpty()) return 0;
-		Map<String, String> fails = new ConcurrentHashMap<>();
-		List<ElasticMessage> retries = new ArrayList<>(values);
-		do {
-			BulkRequest req = new BulkRequest().add(io.list(retries, ElasticMessage::update));
-			logger().trace("Bulk size: " + req.estimatedSizeInBytes());
-			Map<Boolean, List<BulkItemResponse>> resps = io.collect(conn.client().bulk(req).actionGet(), Collectors.partitioningBy(r -> r
-					.isFailed()));
-			if (resps.get(Boolean.TRUE).isEmpty()) return resps.get(Boolean.FALSE).size();
-			Set<String> succs = io.map(resps.get(Boolean.FALSE), r -> r.getId(), Collectors.toSet());
-			Map<Boolean, List<BulkItemResponse>> retryMap = io.collect(Streams.of(resps.get(Boolean.TRUE)), Collectors.partitioningBy(r -> {
-				@SuppressWarnings("unchecked")
-				Class<Throwable> c = (Class<Throwable>) r.getFailure().getCause().getClass();
-				return EsRejectedExecutionException.class.isAssignableFrom(c) || VersionConflictEngineException.class.isAssignableFrom(c);
-			}));
-			Map<String, String> failing = io.collect(retryMap.get(Boolean.FALSE), Collectors.toConcurrentMap(r -> r.getFailure().getId(),
-					r -> {
-						try {
-							return "Writing failed id [" + r.getId() + "] for: " + Exceptions.unwrap(r.getFailure().getCause(),
-									RemoteTransportException.class.getMethod("getCause")).getMessage();
-						} catch (NoSuchMethodException e) {
-							throw new RuntimeException(e);
-						}
-					}));
-			retries = io.list(Streams.of(retries).filter(es -> !succs.contains(es.getId()) && !failing.containsKey(es.getId())));
-			fails.putAll(failing);
-		} while (!retries.isEmpty());
-		if (fails.isEmpty()) return values.size();
-		else {
-			throw new FailoverException(io.collect(Streams.of(values).filter(es -> fails.containsKey(es.getId())), Collectors.toMap(
-					es -> es, es -> fails.get(es.getId()))));
-		}
-	}
-
-	@Override
-	protected Tuple2<String, ElasticMessage> parse(ElasticMessage e) {
-		return new Tuple2<>(e.getIndex() + "/" + e.getType(), e);
-	}
-
-	@Override
-	protected ElasticMessage unparse(String key, ElasticMessage value) {
-		return value;
+	static {
+		Exceptions.unwrap(RemoteTransportException.class, "getCause");
 	}
 }

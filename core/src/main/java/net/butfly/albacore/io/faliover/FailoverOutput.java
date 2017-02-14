@@ -30,7 +30,7 @@ import scala.Tuple2;
 public abstract class FailoverOutput<I, FV> extends OutputImpl<I> {
 	private final Failover<String, FV> failover;
 
-	public FailoverOutput(String name, String failoverPath, int packageSize, int parallelism) throws IOException {
+	protected FailoverOutput(String name, String failoverPath, int packageSize, int parallelism) throws IOException {
 		super(name);
 		if (failoverPath == null) failover = new HeapFailover<String, FV>(name(), kvs -> write(kvs._1, kvs._2), this::commit, packageSize,
 				parallelism);
@@ -46,6 +46,12 @@ public abstract class FailoverOutput<I, FV> extends OutputImpl<I> {
 				return FailoverOutput.this.fromBytes(bytes);
 			}
 		};
+	}
+
+	@Override
+	public void open(java.lang.Runnable run) {
+		super.open(run);
+		failover.start();
 	}
 
 	protected abstract int write(String key, Collection<FV> values) throws FailoverException;
@@ -81,8 +87,8 @@ public abstract class FailoverOutput<I, FV> extends OutputImpl<I> {
 
 	@Override
 	public final long enqueue(Stream<I> els) {
-		Map<String, List<FV>> v = io.collect(Streams.of(els).map(e -> parse(e)), Collectors.groupingBy(t -> t._1, Collectors.mapping(t -> t._2, Collectors
-				.toList())));
+		Map<String, List<FV>> v = io.collect(Streams.of(els).map(e -> parse(e)), Collectors.groupingBy(t -> t._1, Collectors.mapping(
+				t -> t._2, Collectors.toList())));
 		return failover.enqueueTask(v);
 	}
 

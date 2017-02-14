@@ -19,6 +19,11 @@ import net.butfly.albacore.io.OutputImpl;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albatis.kafka.config.KafkaOutputConfig;
 
+/**
+ * @author zx
+ * @deprecated memory leak!
+ */
+@Deprecated
 public final class KafkaOutput extends OutputImpl<KafkaMessage> {
 	private final URISpec uri;
 	private final KafkaOutputConfig config;
@@ -46,7 +51,6 @@ public final class KafkaOutput extends OutputImpl<KafkaMessage> {
 	@Override
 	public boolean enqueue(KafkaMessage m) {
 		if (null == m) return false;
-		m.setTopic(m.getTopic());
 		Future<RecordMetadata> r = connect.send(m.toProducer(), (meta, ex) -> {
 			if (null != ex) logger().error("Kafka send failure on topic [" + m.getTopic() + "] with key: [" + new String(m.getKey()) + "]",
 					ex);
