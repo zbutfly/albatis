@@ -30,14 +30,18 @@ public class ElasticMessage implements Serializable {
 		this.script = null;
 	}
 
-	public ElasticMessage(String index, String type, String id, Script script) {
+	public ElasticMessage(String index, String type, String id, Script script, boolean upsert) {
 		super();
 		this.index = index;
 		this.type = type;
 		this.id = id;
 		this.script = script;
+		this.upsert = upsert;
 		this.values = null;
-		this.upsert = false;
+	}
+
+	public ElasticMessage(String index, String type, String id, Script script) {
+		this(index, type, id, script, true);
 	}
 
 	public Map<String, Object> getValues() {
@@ -65,8 +69,8 @@ public class ElasticMessage implements Serializable {
 	}
 
 	public UpdateRequest update() {
-		UpdateRequest req = script != null ? new UpdateRequest().script(script) : new UpdateRequest().docAsUpsert(upsert).doc(values);
-		return req.index(index).type(type).id(id).retryOnConflict(5);
+		UpdateRequest req = script != null ? new UpdateRequest().script(script) : new UpdateRequest().doc(values);
+		return req.index(index).type(type).id(id).retryOnConflict(5).docAsUpsert(upsert);
 	}
 
 	@Override

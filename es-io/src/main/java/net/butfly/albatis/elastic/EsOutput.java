@@ -108,6 +108,7 @@ public final class EsOutput extends FailoverOutput<ElasticMessage, ElasticMessag
 			oos.writeUTF(value.getIndex());
 			oos.writeUTF(value.getType());
 			oos.writeUTF(value.getId());
+			oos.writeBoolean(value.isUpsert());
 			Script script = value.getScript();
 			if (null != script) {
 				oos.writeBoolean(true);
@@ -117,7 +118,6 @@ public final class EsOutput extends FailoverOutput<ElasticMessage, ElasticMessag
 				oos.writeObject(script.getParams());
 			} else {
 				oos.writeBoolean(false);
-				oos.writeBoolean(value.isUpsert());
 				oos.writeObject(value.getValues());
 			}
 			return baos.toByteArray();
@@ -133,14 +133,14 @@ public final class EsOutput extends FailoverOutput<ElasticMessage, ElasticMessag
 			String index = oos.readUTF();
 			String type = oos.readUTF();
 			String id = oos.readUTF();
+			boolean upsert = oos.readBoolean();
 			if (oos.readBoolean()) {
 				String script = oos.readUTF();
 				ScriptType st = ScriptType.valueOf(oos.readUTF());
 				String lang = oos.readUTF();
 				return new Tuple2<>(key, new ElasticMessage(index, type, id, new Script(script, st, lang, (Map<String, Object>) oos
-						.readObject())));
+						.readObject()), upsert));
 			} else {
-				boolean upsert = oos.readBoolean();
 				return new Tuple2<>(key, new ElasticMessage(index, type, id, (Map<String, Object>) oos.readObject(), upsert));
 			}
 		} catch (ClassNotFoundException e) {

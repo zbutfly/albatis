@@ -8,6 +8,7 @@ import kafka.producer.KeyedMessage;
 import net.butfly.albacore.exception.ConfigException;
 import net.butfly.albacore.io.OutputImpl;
 import net.butfly.albacore.io.URISpec;
+import net.butfly.albacore.utils.Exceptions;
 import net.butfly.albatis.kafka.config.KafkaOutputConfig;
 
 /**
@@ -38,7 +39,7 @@ public final class KafkaOutput0 extends OutputImpl<KafkaMessage> {
 			producer.send(m.toKeyedMessage());
 			return true;
 		} catch (Exception e) {
-			logger().error("Kafka sending failure", e);
+			logger().error("Kafka sending failure", Exceptions.unwrap(e));
 			return false;
 		}
 	}
@@ -50,7 +51,7 @@ public final class KafkaOutput0 extends OutputImpl<KafkaMessage> {
 			producer.send(ms);
 			return ms.size();
 		} catch (Exception e) {
-			logger().error("Kafka sending failure", e);
+			logger().error("Kafka sending failure", Exceptions.unwrap(e));
 			return 0;
 		}
 	}
