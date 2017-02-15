@@ -1,6 +1,7 @@
 package net.butfly.albatis.solr;
 
 import static net.butfly.albacore.utils.Exceptions.unwrap;
+
 import java.io.IOException;
 import java.util.Collection;
 import java.util.stream.Collectors;
@@ -8,12 +9,12 @@ import java.util.stream.Collectors;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.common.SolrInputDocument;
 
+import net.butfly.albacore.io.Message;
 import net.butfly.albacore.io.Streams;
-import net.butfly.albacore.io.faliover.FailoverOutput;
 import net.butfly.albacore.io.faliover.Failover.FailoverException;
-import scala.Tuple2;
+import net.butfly.albacore.io.faliover.FailoverOutput;
 
-public final class SolrOutput extends FailoverOutput<SolrMessage<SolrInputDocument>, SolrInputDocument> {
+public final class SolrOutput extends FailoverOutput<SolrMessage<SolrInputDocument>> {
 	static final int DEFAULT_AUTO_COMMIT_MS = 30000;
 	private final SolrConnection solr;
 
@@ -23,7 +24,7 @@ public final class SolrOutput extends FailoverOutput<SolrMessage<SolrInputDocume
 	}
 
 	public SolrOutput(String name, String baseUrl, String failoverPath) throws IOException {
-		super(name, failoverPath, 500, 5);
+		super(name, b -> Message.<SolrMessage<SolrInputDocument>> fromBytes(b), failoverPath, 500, 5);
 		logger().info("[" + name + "] from [" + baseUrl + "]");
 		solr = new SolrConnection(baseUrl);
 	}
@@ -44,13 +45,13 @@ public final class SolrOutput extends FailoverOutput<SolrMessage<SolrInputDocume
 	}
 
 	@Override
-	protected int write(String key, Collection<SolrInputDocument> values) throws FailoverException {
+	protected int write(String core, Collection<SolrMessage<SolrInputDocument>> docs) throws FailoverException {
 		try {
-			solr.client().add(key, values, DEFAULT_AUTO_COMMIT_MS);
+			solr.client().add(core, io.list(docs, SolrMessage<SolrInputDocument>::forWrite), DEFAULT_AUTO_COMMIT_MS);
 		} catch (Exception e) {
-			throw new FailoverException(io.collect(Streams.of(values), Collectors.toConcurrentMap(r -> r, r -> unwrap(e).getMessage())));
+			throw new FailoverException(io.collect(Streams.of(docs), Collectors.toConcurrentMap(r -> r, r -> unwrap(e).getMessage())));
 		}
-		return values.size();
+		return docs.size();
 	}
 
 	@Override
@@ -62,15 +63,5 @@ public final class SolrOutput extends FailoverOutput<SolrMessage<SolrInputDocume
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
-	}
-
-	@Override
-	protected Tuple2<String, SolrInputDocument> parse(SolrMessage<SolrInputDocument> e) {
-		return new Tuple2<>(e.getCore() == null ? solr.getDefaultCore() : e.getCore(), e.getDoc());
-	}
-
-	@Override
-	protected SolrMessage<SolrInputDocument> unparse(String key, SolrInputDocument value) {
-		return new SolrMessage<SolrInputDocument>(key, value);
 	}
 }

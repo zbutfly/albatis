@@ -1,10 +1,6 @@
 package net.butfly.albatis.elastic;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -20,21 +16,18 @@ import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
-import org.elasticsearch.script.Script;
-import org.elasticsearch.script.ScriptService.ScriptType;
 import org.elasticsearch.transport.RemoteTransportException;
 
 import net.butfly.albacore.io.Streams;
 import net.butfly.albacore.io.faliover.Failover.FailoverException;
 import net.butfly.albacore.io.faliover.FailoverOutput;
 import net.butfly.albacore.utils.Exceptions;
-import scala.Tuple2;
 
-public final class EsOutput extends FailoverOutput<ElasticMessage, ElasticMessage> {
+public final class EsOutput extends FailoverOutput<ElasticMessage> {
 	private final ElasticConnection conn;
 
 	public EsOutput(String name, String esUri, String failoverPath) throws IOException {
-		super(name, failoverPath, 100, 20);
+		super(name, b -> new ElasticMessage(b), failoverPath, 100, 20);
 		conn = new ElasticConnection(esUri);
 		open();
 	}
@@ -49,12 +42,12 @@ public final class EsOutput extends FailoverOutput<ElasticMessage, ElasticMessag
 	}
 
 	@Override
-	protected int write(String key, Collection<ElasticMessage> values) throws FailoverException {
+	protected int write(String type, Collection<ElasticMessage> values) throws FailoverException {
 		if (values.isEmpty()) return 0;
 		Map<String, String> fails = new ConcurrentHashMap<>();
 		List<ElasticMessage> retries = new ArrayList<>(values);
 		do {
-			BulkRequest req = new BulkRequest().add(io.list(retries, ElasticMessage::update));
+			BulkRequest req = new BulkRequest().add(io.list(retries, ElasticMessage::forWrite));
 			logger().trace("Bulk size: " + req.estimatedSizeInBytes());
 			try {
 				TransportClient tc = conn.client();
@@ -72,7 +65,7 @@ public final class EsOutput extends FailoverOutput<ElasticMessage, ElasticMessag
 						}));
 				Map<String, String> failing = io.collect(retryMap.get(Boolean.FALSE), Collectors.toConcurrentMap(r -> r.getFailure()
 						.getId(), this::wrapErrorMessage));
-				retries = io.list(Streams.of(retries).filter(es -> !succs.contains(es.getId()) && !failing.containsKey(es.getId())));
+				retries = io.list(Streams.of(retries).filter(es -> !succs.contains(es.id) && !failing.containsKey(es.id)));
 				fails.putAll(failing);
 			} catch (Exception e) {
 				throw new RuntimeException(e);
@@ -80,72 +73,13 @@ public final class EsOutput extends FailoverOutput<ElasticMessage, ElasticMessag
 		} while (!retries.isEmpty());
 		if (fails.isEmpty()) return values.size();
 		else {
-			throw new FailoverException(io.collect(Streams.of(values).filter(es -> fails.containsKey(es.getId())), Collectors.toMap(
-					es -> es, es -> fails.get(es.getId()))));
+			throw new FailoverException(io.collect(Streams.of(values).filter(es -> fails.containsKey(es.id)), Collectors.toMap(es -> es,
+					es -> fails.get(es.id))));
 		}
 	}
 
 	private String wrapErrorMessage(BulkItemResponse r) {
 		return "Writing failed id [" + r.getId() + "] for: " + Exceptions.unwrap(r.getFailure().getCause()).getMessage();
-	}
-
-	@Override
-	protected Tuple2<String, ElasticMessage> parse(ElasticMessage e) {
-		return new Tuple2<>(e.getIndex() + "/" + e.getType(), e);
-	}
-
-	@Override
-	protected ElasticMessage unparse(String key, ElasticMessage value) {
-		return value;
-	}
-
-	@Override
-	protected byte[] toBytes(String key, ElasticMessage value) throws IOException {
-		if (null == key || null == value) throw new IOException("Data to be failover should not be null");
-
-		try (ByteArrayOutputStream baos = new ByteArrayOutputStream(); ObjectOutputStream oos = new ObjectOutputStream(baos);) {
-			oos.writeUTF(key);
-			oos.writeUTF(value.getIndex());
-			oos.writeUTF(value.getType());
-			oos.writeUTF(value.getId());
-			oos.writeBoolean(value.isUpsert());
-			Script script = value.getScript();
-			if (null != script) {
-				oos.writeBoolean(true);
-				oos.writeUTF(script.getScript());
-				oos.writeUTF(script.getType().name());
-				oos.writeUTF(script.getLang());
-				oos.writeObject(script.getParams());
-			} else {
-				oos.writeBoolean(false);
-				oos.writeObject(value.getValues());
-			}
-			return baos.toByteArray();
-		}
-	}
-
-	@SuppressWarnings("unchecked")
-	@Override
-	protected Tuple2<String, ElasticMessage> fromBytes(byte[] bytes) throws IOException {
-		if (null == bytes) throw new IOException("Data to be failover should not be null");
-		try (ObjectInputStream oos = new ObjectInputStream(new ByteArrayInputStream(bytes));) {
-			String key = oos.readUTF();
-			String index = oos.readUTF();
-			String type = oos.readUTF();
-			String id = oos.readUTF();
-			boolean upsert = oos.readBoolean();
-			if (oos.readBoolean()) {
-				String script = oos.readUTF();
-				ScriptType st = ScriptType.valueOf(oos.readUTF());
-				String lang = oos.readUTF();
-				return new Tuple2<>(key, new ElasticMessage(index, type, id, new Script(script, st, lang, (Map<String, Object>) oos
-						.readObject()), upsert));
-			} else {
-				return new Tuple2<>(key, new ElasticMessage(index, type, id, (Map<String, Object>) oos.readObject(), upsert));
-			}
-		} catch (ClassNotFoundException e) {
-			throw new IOException(e);
-		}
 	}
 
 	static {

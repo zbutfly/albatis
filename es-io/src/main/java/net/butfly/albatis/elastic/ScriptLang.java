@@ -22,7 +22,7 @@ public enum ScriptLang {
 		this.ext = ext;
 	}
 
-	public String read(Class<?> loadClass, String templateName) {
+	public String readTemplate(Class<?> loadClass, String templateName) {
 		StringBuilder content = new StringBuilder();
 		String tempFile = content.append("/").append(loadClass.getPackage().getName().replaceAll("\\.", "/")).append("/").append(
 				templateName).append(".").append(ext).toString();
@@ -37,7 +37,7 @@ public enum ScriptLang {
 		return content.toString();
 	}
 
-	public Script load(Map<String, Object> scriptParams, String template, Object... templateArgs) {
+	public Script construct(Map<String, Object> scriptParams, String template, Object... templateArgs) {
 		return new Script(MessageFormat.format(template, templateArgs), ScriptType.INLINE, lang, scriptParams);
 	}
 }

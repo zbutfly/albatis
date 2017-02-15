@@ -24,7 +24,7 @@ public final class ElasticOutput extends OutputImpl<ElasticMessage> {
 	@Override
 	public boolean enqueue(ElasticMessage s) {
 		if (s == null) return false;
-		ActionFuture<UpdateResponse> f = conn.client().update(s.update());
+		ActionFuture<UpdateResponse> f = conn.client().update(s.forWrite());
 		try {
 			f.actionGet();
 			return true;
@@ -37,7 +37,7 @@ public final class ElasticOutput extends OutputImpl<ElasticMessage> {
 	@Override
 	public long enqueue(Stream<ElasticMessage> docs) {
 		long s = 0;
-		for (BulkItemResponse r : conn.client().bulk(new BulkRequest().add(IO.list(Streams.of(docs).map(ElasticMessage::update))))
+		for (BulkItemResponse r : conn.client().bulk(new BulkRequest().add(IO.list(Streams.of(docs).map(ElasticMessage::forWrite))))
 				.actionGet())
 			if (!r.isFailed()) s++;
 		return s;

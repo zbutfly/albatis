@@ -2,8 +2,6 @@ package net.butfly.albatis.hbase;
 
 import static net.butfly.albacore.utils.Exceptions.unwrap;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
@@ -11,27 +9,21 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
-import org.apache.hadoop.hbase.Cell;
-import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Table;
-import org.apache.hadoop.hbase.util.Bytes;
 
 import net.butfly.albacore.io.Streams;
 import net.butfly.albacore.io.faliover.Failover.FailoverException;
 import net.butfly.albacore.io.faliover.FailoverOutput;
-import net.butfly.albacore.utils.IOs;
-import scala.Tuple2;
 
-public final class HbaseOutput extends FailoverOutput<HbaseResult, Result> {
+public final class HbaseOutput extends FailoverOutput<HbaseResult> {
 	private final Connection connect;
 	private final Map<String, Table> tables;
 
 	public HbaseOutput(String name, String failoverPath) throws IOException {
-		super(name, failoverPath, 500, 10);
+		super(name, b -> new HbaseResult(b), failoverPath, 500, 10);
 		connect = Hbases.connect();
 		tables = new ConcurrentHashMap<>();
 		open();
@@ -66,26 +58,10 @@ public final class HbaseOutput extends FailoverOutput<HbaseResult, Result> {
 	}
 
 	@Override
-	protected int write(String key, Collection<Result> values) throws FailoverException {
-		List<Put> puts = io.list(values, r -> {
-			Put p;
-			try {
-				p = new Put(r.getRow());
-			} catch (Exception ex) {
-				logger().warn("Hbase converting failure, ignored and continued, row: " + Bytes.toString(r.getRow()), ex);
-				return null;
-			}
-			for (Cell c : r.listCells())
-				try {
-					p.add(c);
-				} catch (Exception e) {
-					logger().warn("Hbase cell converting failure, ignored and continued, row: " + Bytes.toString(r.getRow()) + ", cell: "
-							+ CellUtil.cloneFamily(c) + CellUtil.cloneQualifier(c), e);
-				}
-			return p;
-		});
+	protected int write(String table, Collection<HbaseResult> values) throws FailoverException {
+		List<Put> puts = io.list(values, HbaseResult::forWrite);
 		try {
-			table(key).put(puts);
+			table(table).put(puts);
 		} catch (Exception e) {
 			throw new FailoverException(io.collect(Streams.of(values), Collectors.toConcurrentMap(r -> r, r -> {
 				String m = unwrap(e).getMessage();
@@ -94,31 +70,5 @@ public final class HbaseOutput extends FailoverOutput<HbaseResult, Result> {
 			})));
 		}
 		return puts.size();
-	}
-
-	@Override
-	protected byte[] toBytes(String key, Result value) throws IOException {
-		try (ByteArrayOutputStream baos = new ByteArrayOutputStream();) {
-			IOs.writeBytes(baos, key.getBytes());
-			IOs.writeBytes(baos, Hbases.toBytes(value));
-			return baos.toByteArray();
-		}
-	}
-
-	@Override
-	protected Tuple2<String, Result> fromBytes(byte[] bytes) throws IOException {
-		try (ByteArrayInputStream bais = new ByteArrayInputStream(bytes);) {
-			return new Tuple2<>(new String(IOs.readBytes(bais)), Hbases.toResult(IOs.readBytes(bais)));
-		}
-	}
-
-	@Override
-	protected Tuple2<String, Result> parse(HbaseResult e) {
-		return new Tuple2<>(e.getTable(), e.getResult());
-	}
-
-	@Override
-	protected HbaseResult unparse(String key, Result value) {
-		return new HbaseResult(key, value);
 	}
 }

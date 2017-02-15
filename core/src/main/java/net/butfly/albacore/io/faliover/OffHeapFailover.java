@@ -7,37 +7,37 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 
 import com.leansoft.bigqueue.BigQueueImpl;
 import com.leansoft.bigqueue.IBigQueue;
 
+import net.butfly.albacore.io.IO;
+import net.butfly.albacore.io.Message;
 import net.butfly.albacore.lambda.Callback;
 import net.butfly.albacore.utils.IOs;
 import net.butfly.albacore.utils.async.Concurrents;
-import scala.Tuple2;
 
-public abstract class OffHeapFailover<K, V> extends Failover<K, V> {
+public abstract class OffHeapFailover<K, V extends Message<K, ?, V>> extends Failover<K, V> {
 	private IBigQueue failover;
 
-	public OffHeapFailover(String parentName, Writing<K, V> writing, Callback<K> committing, String path,
-			String poolName, int packageSize, int parallelism) throws IOException {
-		super(parentName, writing, committing, packageSize, parallelism);
+	public OffHeapFailover(String parentName, Writing<K, V> writing, Callback<K> committing, Function<byte[], ? extends V> constructor,
+			String path, String poolName, int packageSize, int parallelism) throws IOException {
+		super(parentName, writing, committing, constructor, packageSize, parallelism);
 		if (poolName == null) poolName = "POOL";
 		failover = new BigQueueImpl(IOs.mkdirs(path + "/" + parentName), poolName);
 		logger.info(MessageFormat.format("Failover [persist mode] init: [{0}/{1}] with name [{2}], init size [{3}].", //
 				path, parentName, poolName, size()));
 	}
 
-	protected abstract byte[] toBytes(K key, V value) throws IOException;
-
-	protected abstract Tuple2<K, V> fromBytes(byte[] bytes) throws IOException;
-
 	@Override
 	protected void exec() {
+		Map<K, List<V>> fails = new HashMap<>();
 		while (opened()) {
 			while (opened() && failover.isEmpty())
 				Concurrents.waitSleep(1000);
-			Map<K, List<V>> fails = new HashMap<>();
+			fails.clear();
 			while (opened() && !failover.isEmpty()) {
 				byte[] buf;
 				try {
@@ -47,16 +47,11 @@ public abstract class OffHeapFailover<K, V> extends Failover<K, V> {
 					continue;
 				}
 				if (null == buf) return;
-				Tuple2<K, V> kv;
-				try {
-					kv = fromBytes(buf);
-				} catch (IOException e) {
-					logger.error("invalid failover found and lost.", e);
-					continue;
-				}
-				List<V> l = fails.computeIfAbsent(kv._1, c -> new ArrayList<>(packageSize));
-				l.add(kv._2);
-				if (l.size() >= packageSize) doWrite(kv._1, fails.remove(kv._1), true);
+				V value = construct.apply(buf);
+				K key = value.partition();
+				List<V> l = fails.computeIfAbsent(key, c -> new ArrayList<>(packageSize));
+				l.add(value);
+				if (l.size() >= packageSize) doWrite(key, fails.remove(key), true);
 			}
 			for (K key : fails.keySet())
 				doWrite(key, fails.remove(key), true);
@@ -74,21 +69,22 @@ public abstract class OffHeapFailover<K, V> extends Failover<K, V> {
 	}
 
 	@Override
-	public int fail(K key, Collection<V> docs, Exception err) {
-		int c = 0;
-		for (V value : docs)
+	public int fail(K key, Collection<V> values, Exception err) {
+		AtomicInteger c = new AtomicInteger();
+		IO.each(values, v -> {
 			try {
-				failover.enqueue(toBytes(key, value));
-				c++;
+				failover.enqueue(v.toBytes());
+				c.incrementAndGet();
 			} catch (IOException e) {
 				if (null != err) logger.error(MessageFormat.format("Failover failed, [{0}] docs lost on [{1}], original caused by [{2}]", //
-						docs.size(), key, err.getMessage()), e);
-				else logger.error(MessageFormat.format("Failover failed, [{0}] docs lost on [{1}]", docs.size(), key), e);
+						values.size(), key, err.getMessage()), e);
+				else logger.error(MessageFormat.format("Failover failed, [{0}] docs lost on [{1}]", values.size(), key), e);
 			}
+		});
 		if (null != err) logger.warn(MessageFormat.format(
 				"Failure added on [{0}] with [{1}] docs, now [{2}] failover on [{0}], caused by [{3}]", //
-				key, docs.size(), size(), err.getMessage()));
-		return c;
+				key, values.size(), size(), err.getMessage()));
+		return c.get();
 	}
 
 	@Override

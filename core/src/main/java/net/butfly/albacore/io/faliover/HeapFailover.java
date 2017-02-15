@@ -8,16 +8,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.function.Function;
 
+import net.butfly.albacore.io.Message;
 import net.butfly.albacore.lambda.Callback;
 
-public class HeapFailover<K, V> extends Failover<K, V> {
+public class HeapFailover<K, V extends Message<K, ?, V>> extends Failover<K, V> {
 	private static final int MAX_FAILOVER = 50000;
 	private Map<K, LinkedBlockingQueue<V>> failover = new ConcurrentHashMap<>();
 
-	public HeapFailover(String parentName, Writing<K, V> writing, Callback<K> committing, int packageSize,
-			int parallelism) throws IOException {
-		super(parentName, writing, committing, packageSize, parallelism);
+	public HeapFailover(String parentName, Writing<K, V> writing, Callback<K> committing, Function<byte[], ? extends V> constructor,
+			int packageSize, int parallelism) throws IOException {
+		super(parentName, writing, committing, constructor, packageSize, parallelism);
 		failover = new ConcurrentHashMap<>();
 		logger.info(MessageFormat.format("SolrOutput [{0}] failover [memory mode] init.", parentName));
 	}

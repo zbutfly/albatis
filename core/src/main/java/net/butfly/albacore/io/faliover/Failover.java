@@ -7,9 +7,11 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 import com.google.common.base.Joiner;
 
+import net.butfly.albacore.io.Message;
 import net.butfly.albacore.io.OpenableThread;
 import net.butfly.albacore.io.stats.Statistical;
 import net.butfly.albacore.lambda.Callback;
@@ -18,20 +20,23 @@ import net.butfly.albacore.utils.async.Concurrents;
 import net.butfly.albacore.utils.logger.Logger;
 import scala.Tuple2;
 
-public abstract class Failover<K, V> extends OpenableThread implements Statistical<Failover<K, V>> {
+public abstract class Failover<K, V extends Message<K, ?, V>> extends OpenableThread implements Statistical<Failover<K, V>> {
 	protected static final Logger logger = Logger.getLogger(Failover.class);
 	protected final Writing<K, V> writing;
 	protected final int packageSize;
 	private final LinkedBlockingQueue<Runnable> tasks;
 	private final List<Sender> senders;
 	private Callback<K> committing;
+	protected final Function<byte[], ? extends V> construct;
 	protected final ThreadGroup threadGroup;
 
-	protected Failover(String parentName, Writing<K, V> writing, Callback<K> committing, int packageSize, int parallelism) {
+	protected Failover(String parentName, Writing<K, V> writing, Callback<K> committing, Function<byte[], ? extends V> constructor,
+			int packageSize, int parallelism) {
 		super(parentName + "Failover");
 		threadGroup = new ThreadGroup(name());
 		this.writing = writing;
 		this.committing = committing;
+		this.construct = constructor;
 		this.packageSize = packageSize;
 		tasks = new LinkedBlockingQueue<>(parallelism);
 		senders = new ArrayList<>();

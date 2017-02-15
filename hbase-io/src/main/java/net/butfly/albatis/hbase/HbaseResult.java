@@ -1,7 +1,8 @@
 package net.butfly.albatis.hbase;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.Serializable;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
@@ -15,16 +16,20 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import net.butfly.albacore.io.IO;
+import net.butfly.albacore.io.Message;
 import net.butfly.albacore.io.Streams;
+import net.butfly.albacore.utils.IOs;
+import net.butfly.albacore.utils.logger.Logger;
 
-public class HbaseResult implements Serializable {
+public class HbaseResult extends Message<String, Put, HbaseResult> {
 	private static final long serialVersionUID = -486156318929790823L;
+	private static final Logger logger = Logger.getLogger(HbaseResult.class);
 	public static final String DEFAULT_COL_FAMILY_NAME = "cf1";
 	public static final byte[] DEFAULT_COL_FAMILY_VALUE = Bytes.toBytes(DEFAULT_COL_FAMILY_NAME);
 
-	private final String table;
-	private final byte[] row;
-	private final Result result;
+	private String table;
+	private byte[] row;
+	private Result result;
 
 	// private final Map<String, Cell> cells = new HashMap<>();
 
@@ -41,6 +46,10 @@ public class HbaseResult implements Serializable {
 
 	public HbaseResult(String table, Result result) {
 		super();
+		init(table, result);
+	}
+
+	private void init(String table, Result result) {
 		this.table = table;
 		this.row = result.getRow();
 		this.result = result;
@@ -62,12 +71,16 @@ public class HbaseResult implements Serializable {
 		return result;
 	}
 
-	public Put put() {
+	@Override
+	public Put forWrite() {
 		Put put = new Put(row);
 		if (!isEmpty()) for (Cell c : result.rawCells())
 			try {
 				put.add(c);
-			} catch (Exception e) {}
+			} catch (Exception e) {
+				logger.warn("Hbase cell converting failure, ignored and continued, row: " + Bytes.toString(row) + ", cell: " + Bytes
+						.toString(CellUtil.cloneFamily(c)) + Bytes.toString(CellUtil.cloneQualifier(c)), e);
+			}
 		return put;
 	}
 
@@ -105,5 +118,29 @@ public class HbaseResult implements Serializable {
 
 	public boolean isEmpty() {
 		return null == result || result.isEmpty();
+	}
+
+	@Override
+	public byte[] toBytes() {
+		try (ByteArrayOutputStream baos = new ByteArrayOutputStream();) {
+			IOs.writeBytes(baos, table.getBytes());
+			IOs.writeBytes(baos, Hbases.toBytes(result));
+			return baos.toByteArray();
+		} catch (IOException e) {
+			throw new IllegalArgumentException(e);
+		}
+	}
+
+	@Override
+	public String partition() {
+		return table;
+	}
+
+	public HbaseResult(byte[] bytes) {
+		try (ByteArrayInputStream bais = new ByteArrayInputStream(bytes);) {
+			init(new String(IOs.readBytes(bais)), Hbases.toResult(IOs.readBytes(bais)));
+		} catch (IOException e) {
+			throw new IllegalArgumentException(e);
+		}
 	}
 }
