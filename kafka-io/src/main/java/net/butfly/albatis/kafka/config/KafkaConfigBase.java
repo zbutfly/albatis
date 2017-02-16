@@ -2,6 +2,7 @@ package net.butfly.albatis.kafka.config;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.List;
 import java.util.Properties;
 
 import org.apache.kafka.common.config.ConfigException;
@@ -11,6 +12,7 @@ import com.google.common.base.Joiner;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.Configs;
+import net.butfly.albacore.utils.Texts;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.kafka.ZKConn;
 
@@ -27,7 +29,7 @@ public abstract class KafkaConfigBase implements Serializable {
 	protected String valueSerializerClass;
 
 	private final long poolSize;
-	private final String[] topics;
+	protected final List<String> topics;
 
 	public long getPoolSize() {
 		return poolSize;
@@ -58,7 +60,7 @@ public abstract class KafkaConfigBase implements Serializable {
 		keySerializerClass = props.getProperty(PROP_PREFIX + "key.serializer.class", ByteArraySerializer.class.getName());
 		valueSerializerClass = props.getProperty(PROP_PREFIX + "value.serializer.class", ByteArraySerializer.class.getName());
 		poolSize = Long.parseLong(props.getProperty(PROP_PREFIX + "internal.pool.size", "3000000"));
-		topics = props.getProperty(PROP_PREFIX + "topic", "").split(",");
+		topics = Texts.split(props.getProperty(PROP_PREFIX + "topic", ""), ",");
 		backoffMs = Long.parseLong(props.getProperty(PROP_PREFIX + "backoff.ms", "100"));
 	}
 
@@ -92,7 +94,7 @@ public abstract class KafkaConfigBase implements Serializable {
 		keySerializerClass = props.getProperty("kserial", ByteArraySerializer.class.getName());
 		valueSerializerClass = props.getProperty("vserial", ByteArraySerializer.class.getName());
 		poolSize = Long.parseLong(props.getProperty("pool", "3000000"));
-		topics = props.getProperty("topic", "").split(",");
+		topics = Texts.split(props.getProperty("topic", ""), ",");
 		backoffMs = Long.parseLong(props.getProperty("backoff", "100"));
 	}
 
@@ -119,7 +121,7 @@ public abstract class KafkaConfigBase implements Serializable {
 		return zookeeperConnect;
 	}
 
-	public String[] getTopics() {
+	public List<String> topics() {
 		return topics;
 	}
 }

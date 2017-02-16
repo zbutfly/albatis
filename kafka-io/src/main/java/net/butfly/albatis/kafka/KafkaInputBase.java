@@ -2,13 +2,13 @@ package net.butfly.albatis.kafka;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
 
 import kafka.common.ConsumerRebalanceFailedException;
@@ -18,6 +18,7 @@ import net.butfly.albacore.exception.ConfigException;
 import net.butfly.albacore.io.KeyInputImpl;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.lambda.Consumer;
+import net.butfly.albacore.utils.Texts;
 import net.butfly.albacore.utils.async.Concurrents;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.kafka.config.KafkaInputConfig;
@@ -32,22 +33,22 @@ abstract class KafkaInputBase<V> extends KeyInputImpl<String, KafkaMessage> {
 
 	public KafkaInputBase(String name, URISpec kafkaURI) throws ConfigException {
 		super(name);
-		init(kafkaURI, kafkaURI.getParameter("topic", "").split(","));
+		init(kafkaURI, Texts.split(kafkaURI.getParameter("topic", ""), ","));
 	}
 
-	public KafkaInputBase(String name, final String kafkaURI, String[] topics) throws ConfigException, IOException {
+	public KafkaInputBase(String name, final String kafkaURI, String... topics) throws ConfigException, IOException {
 		super(name);
-		init(new URISpec(kafkaURI), topics);
+		init(new URISpec(kafkaURI), Arrays.asList(topics));
 	}
 
-	private void init(URISpec uri, String... topics) throws ConfigException {
+	private void init(URISpec uri, Collection<String> topics) throws ConfigException {
 		config = new KafkaInputConfig(name(), uri);
 		int kp = config.getPartitionParallelism();
 		logger.info("[" + name() + "] connecting with config [" + config.toString() + "].");
-		if (topics.length == 0) topics = topics().toArray(new String[0]);
+		if (topics.isEmpty()) topics = config.topics();
 		Map<String, int[]> topicParts;
 		try (ZKConn zk = new ZKConn(config.getZookeeperConnect())) {
-			topicParts = zk.getTopicPartitions(topics);
+			topicParts = zk.getTopicPartitions(topics.toArray(new String[topics.size()]));
 			for (String t : topics)
 				logger.debug(() -> "Lag of " + config.getGroupId() + "@" + t + ": " + zk.getLag(t, config.getGroupId()));
 		}
@@ -120,10 +121,5 @@ abstract class KafkaInputBase<V> extends KeyInputImpl<String, KafkaMessage> {
 				}
 		connect.commitOffsets(true);
 		connect.shutdown();
-	}
-
-	public Set<String> topics() {
-		String[] topics = config.getTopics();
-		return topics == null || topics.length == 0 ? new HashSet<>() : new HashSet<>(Arrays.asList(topics));
 	}
 }

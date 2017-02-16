@@ -98,7 +98,6 @@ public final class KafkaOutput extends OutputImpl<KafkaMessage> {
 	}
 
 	public String getDefaultTopic() {
-		String[] topics = config.getTopics();
-		return topics == null || topics.length == 0 ? null : topics[0];
+		return config.topics().isEmpty() ? null : config.topics().get(0);
 	}
 }

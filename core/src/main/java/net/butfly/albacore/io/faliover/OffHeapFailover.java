@@ -16,6 +16,7 @@ import com.leansoft.bigqueue.IBigQueue;
 import net.butfly.albacore.io.IO;
 import net.butfly.albacore.io.Message;
 import net.butfly.albacore.lambda.Callback;
+import net.butfly.albacore.utils.Exceptions;
 import net.butfly.albacore.utils.IOs;
 import net.butfly.albacore.utils.async.Concurrents;
 
@@ -47,7 +48,13 @@ public abstract class OffHeapFailover<K, V extends Message<K, ?, V>> extends Fai
 					continue;
 				}
 				if (null == buf) return;
-				V value = construct.apply(buf);
+				V value;
+				try {
+					value = construct.apply(buf);
+				} catch (Throwable t) {
+					logger().error("Failover data invalid on loading and lost", Exceptions.unwrap(t));
+					continue;
+				}
 				K key = value.partition();
 				List<V> l = fails.computeIfAbsent(key, c -> new ArrayList<>(packageSize));
 				l.add(value);
