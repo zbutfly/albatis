@@ -4,11 +4,11 @@ import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.text.MessageFormat;
-import java.util.Map;
 
 import org.elasticsearch.script.Script;
 import org.elasticsearch.script.ScriptService.ScriptType;
 
+import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
 
 public enum ScriptLang {
@@ -45,7 +45,7 @@ public enum ScriptLang {
 		return c;
 	}
 
-	public Script construct(Map<String, Object> scriptParams, String template, Object... templateArgs) {
-		return new Script(MessageFormat.format(template, templateArgs), ScriptType.INLINE, lang, scriptParams);
+	public Script construct(Object scriptParams, String template, Object... templateArgs) {
+		return new Script(MessageFormat.format(template, templateArgs), ScriptType.INLINE, lang, Maps.of("scriptParams", scriptParams));
 	}
 }

@@ -7,6 +7,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.Map;
 
+import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.script.Script;
 
@@ -53,7 +54,12 @@ public class ElasticMessage extends Message<String, UpdateRequest, ElasticMessag
 	@Override
 	public UpdateRequest forWrite() {
 		UpdateRequest req = new UpdateRequest(index, type, id);
-		return script != null ? req.script(script).upsert(doc) : req.doc(doc).docAsUpsert(upsert);
+		if (script == null) req.doc(doc).docAsUpsert(upsert);
+		else {
+			req.script(script);
+			if (upsert && doc != null && !doc.isEmpty()) req.upsert(new IndexRequest(index, type, id).source(doc));
+		}
+		return req;
 	}
 
 	@Override
