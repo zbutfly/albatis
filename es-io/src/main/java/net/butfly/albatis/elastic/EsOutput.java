@@ -9,7 +9,6 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
-import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
@@ -19,9 +18,10 @@ import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.transport.RemoteTransportException;
 
 import net.butfly.albacore.io.Streams;
+import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.io.faliover.Failover.FailoverException;
 import net.butfly.albacore.io.faliover.FailoverOutput;
-import net.butfly.albacore.utils.Exceptions;
+import static net.butfly.albacore.utils.Exceptions.unwrap;
 
 public final class EsOutput extends FailoverOutput<ElasticMessage> {
 	private final ElasticConnection conn;
@@ -29,6 +29,12 @@ public final class EsOutput extends FailoverOutput<ElasticMessage> {
 	public EsOutput(String name, String esUri, String failoverPath) throws IOException {
 		super(name, b -> new ElasticMessage(b), failoverPath, 100, 20);
 		conn = new ElasticConnection(esUri);
+		open();
+	}
+
+	public EsOutput(String name, URISpec esURI, String failoverPath) throws IOException {
+		super(name, b -> new ElasticMessage(b), failoverPath, 100, 20);
+		conn = new ElasticConnection(esURI);
 		open();
 	}
 
@@ -51,8 +57,7 @@ public final class EsOutput extends FailoverOutput<ElasticMessage> {
 			logger().trace("Bulk size: " + req.estimatedSizeInBytes());
 			try {
 				TransportClient tc = conn.client();
-				ActionFuture<BulkResponse> f = tc.bulk(req);
-				BulkResponse bulk = f.actionGet();
+				BulkResponse bulk = tc.bulk(req).actionGet();
 				Map<Boolean, List<BulkItemResponse>> resps = io.collect(bulk, Collectors.partitioningBy(r -> r.isFailed()));
 				if (resps.get(Boolean.TRUE).isEmpty()) return resps.get(Boolean.FALSE).size();
 				Set<String> succs = io.map(resps.get(Boolean.FALSE), r -> r.getId(), Collectors.toSet());
@@ -68,7 +73,7 @@ public final class EsOutput extends FailoverOutput<ElasticMessage> {
 				retries = io.list(Streams.of(retries).filter(es -> !succs.contains(es.id) && !failing.containsKey(es.id)));
 				fails.putAll(failing);
 			} catch (Exception e) {
-				throw new RuntimeException(e);
+				throw new RuntimeException(unwrap(e));
 			}
 		} while (!retries.isEmpty());
 		if (fails.isEmpty()) return values.size();
@@ -79,10 +84,10 @@ public final class EsOutput extends FailoverOutput<ElasticMessage> {
 	}
 
 	private String wrapErrorMessage(BulkItemResponse r) {
-		return "Writing failed id [" + r.getId() + "] for: " + Exceptions.unwrap(r.getFailure().getCause()).getMessage();
+		return "Writing failed id [" + r.getId() + "] for: " + unwrap(r.getFailure().getCause()).getMessage();
 	}
 
 	static {
-		Exceptions.unwrap(RemoteTransportException.class, "getCause");
+		unwrap(RemoteTransportException.class, "getCause");
 	}
 }

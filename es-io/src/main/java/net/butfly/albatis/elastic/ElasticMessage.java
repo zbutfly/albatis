@@ -22,8 +22,8 @@ public class ElasticMessage extends Message<String, UpdateRequest, ElasticMessag
 	private transient Script script;
 	private final Map<String, Object> doc;
 
-	public ElasticMessage(String index, String type, String id, Map<String, Object> values) {
-		this(index, type, id, values, true);
+	public ElasticMessage(String index, String type, String id, Map<String, Object> doc) {
+		this(index, type, id, doc, true);
 	}
 
 	public ElasticMessage(String index, String type, String id, Map<String, Object> doc, boolean upsert) {
@@ -52,8 +52,8 @@ public class ElasticMessage extends Message<String, UpdateRequest, ElasticMessag
 
 	@Override
 	public UpdateRequest forWrite() {
-		UpdateRequest req = script != null ? new UpdateRequest().script(script) : new UpdateRequest().doc(doc);
-		return req.index(index).type(type).id(id).retryOnConflict(5).docAsUpsert(upsert);
+		UpdateRequest req = new UpdateRequest(index, type, id);
+		return script != null ? req.script(script).upsert(doc) : req.doc(doc).docAsUpsert(upsert);
 	}
 
 	@Override

@@ -58,8 +58,7 @@ public abstract class KafkaConfigBase implements Serializable {
 		keySerializerClass = props.getProperty(PROP_PREFIX + "key.serializer.class", ByteArraySerializer.class.getName());
 		valueSerializerClass = props.getProperty(PROP_PREFIX + "value.serializer.class", ByteArraySerializer.class.getName());
 		poolSize = Long.parseLong(props.getProperty(PROP_PREFIX + "internal.pool.size", "3000000"));
-		String ts = props.getProperty(PROP_PREFIX + "topics");
-		topics = null == ts ? new String[0] : ts.split(",");
+		topics = props.getProperty(PROP_PREFIX + "topic", "").split(",");
 		backoffMs = Long.parseLong(props.getProperty(PROP_PREFIX + "backoff.ms", "100"));
 	}
 
@@ -93,8 +92,7 @@ public abstract class KafkaConfigBase implements Serializable {
 		keySerializerClass = props.getProperty("kserial", ByteArraySerializer.class.getName());
 		valueSerializerClass = props.getProperty("vserial", ByteArraySerializer.class.getName());
 		poolSize = Long.parseLong(props.getProperty("pool", "3000000"));
-		String ts = props.getProperty("topics");
-		topics = null == ts ? new String[0] : ts.split(",");
+		topics = props.getProperty("topic", "").split(",");
 		backoffMs = Long.parseLong(props.getProperty("backoff", "100"));
 	}
 

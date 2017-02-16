@@ -7,6 +7,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.Set;
 import java.util.stream.Stream;
 
@@ -23,19 +24,27 @@ import net.butfly.albatis.kafka.config.KafkaInputConfig;
 
 abstract class KafkaInputBase<V> extends KeyInputImpl<String, KafkaMessage> {
 	protected static final Logger logger = Logger.getLogger(KafkaInputBase.class);
-	protected final KafkaInputConfig config;
-	protected final Map<String, Integer> allTopics;
+	protected KafkaInputConfig config;
+	protected final Map<String, Integer> allTopics = new ConcurrentHashMap<>();
 	protected ConsumerConnector connect;
-	protected final Map<String, List<KafkaStream<byte[], byte[]>>> raws;
-	protected final Map<String, Map<KafkaStream<byte[], byte[]>, V>> streams;
+	protected Map<String, List<KafkaStream<byte[], byte[]>>> raws;
+	protected Map<String, Map<KafkaStream<byte[], byte[]>, V>> streams;
+
+	public KafkaInputBase(String name, URISpec kafkaURI) throws ConfigException {
+		super(name);
+		init(kafkaURI, kafkaURI.getParameter("topic", "").split(","));
+	}
 
 	public KafkaInputBase(String name, final String kafkaURI, String[] topics) throws ConfigException, IOException {
 		super(name);
-		config = new KafkaInputConfig(name(), new URISpec(kafkaURI));
-		logger.info("[" + name() + "] connecting with config [" + config.toString() + "].");
-		allTopics = new HashMap<>();
+		init(new URISpec(kafkaURI), topics);
+	}
+
+	private void init(URISpec uri, String... topics) throws ConfigException {
+		config = new KafkaInputConfig(name(), uri);
 		int kp = config.getPartitionParallelism();
-		topics = (topics != null && topics.length > 0) ? topics : topics().toArray(new String[0]);
+		logger.info("[" + name() + "] connecting with config [" + config.toString() + "].");
+		if (topics.length == 0) topics = topics().toArray(new String[0]);
 		Map<String, int[]> topicParts;
 		try (ZKConn zk = new ZKConn(config.getZookeeperConnect())) {
 			topicParts = zk.getTopicPartitions(topics);
@@ -62,6 +71,7 @@ abstract class KafkaInputBase<V> extends KeyInputImpl<String, KafkaMessage> {
 		raws = temp;
 		logger.debug("[" + name() + "] connected.");
 		streams = new HashMap<>();
+
 	}
 
 	protected abstract KafkaMessage fetch(KafkaStream<byte[], byte[]> stream, V lock, Consumer<KafkaMessage> result);
@@ -110,7 +120,6 @@ abstract class KafkaInputBase<V> extends KeyInputImpl<String, KafkaMessage> {
 				}
 		connect.commitOffsets(true);
 		connect.shutdown();
-		connect = null;
 	}
 
 	public Set<String> topics() {

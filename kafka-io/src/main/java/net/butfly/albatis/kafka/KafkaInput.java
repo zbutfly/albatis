@@ -14,6 +14,7 @@ import kafka.consumer.ConsumerIterator;
 import kafka.consumer.KafkaStream;
 import net.butfly.albacore.exception.ConfigException;
 import net.butfly.albacore.io.OpenableThread;
+import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.lambda.Consumer;
 import net.butfly.albacore.utils.IOs;
 import net.butfly.albacore.utils.async.Concurrents;
@@ -23,6 +24,15 @@ public final class KafkaInput extends KafkaInputBase<KafkaInput.Fetcher> {
 
 	public KafkaInput(String name, final String kafkaURI, final String poolPath, String... topics) throws ConfigException, IOException {
 		super(name, kafkaURI, topics);
+		init(poolPath);
+	}
+
+	public KafkaInput(String name, URISpec kafkaURI, String poolPath) throws ConfigException {
+		super(name, kafkaURI);
+		init(poolPath);
+	}
+
+	private void init(String poolPath) {
 		try {
 			pool = new BigQueueImpl(IOs.mkdirs(poolPath + "/" + name), config.toString());
 		} catch (IOException e) {

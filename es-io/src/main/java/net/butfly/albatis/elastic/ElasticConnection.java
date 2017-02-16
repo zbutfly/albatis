@@ -11,6 +11,7 @@ import org.elasticsearch.common.transport.InetSocketTransportAddress;
 
 import com.hzcominfo.albatis.nosql.NoSqlConnection;
 
+import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.logger.Logger;
 
@@ -18,9 +19,21 @@ public class ElasticConnection extends NoSqlConnection<TransportClient> {
 	private static final Logger logger = Logger.getLogger(ElasticConnection.class);
 
 	public ElasticConnection(String connection, Map<String, String> props) throws IOException {
-		super(new ElasticURI(connection), uri -> {
+		this(new URISpec(connection), props);
+	}
+
+	public ElasticConnection(String url) throws IOException {
+		this(url, (Map<String, String>) null);
+	}
+
+	public ElasticConnection(URISpec esURI) throws IOException {
+		this(esURI, null);
+	}
+
+	public ElasticConnection(URISpec esURI, Map<String, String> props) throws IOException {
+		super(esURI, uri -> {
 			Settings.Builder settings = Settings.settingsBuilder();
-			if (null != props && !props.isEmpty()) settings.put(props);
+			if (null != props && !props.isEmpty()) settings.put(uri.getParameters());
 			settings.put(uri.getParameters());
 			settings.put("client.transport.ignore_cluster_name", true);
 			TransportClient c = TransportClient.builder().settings(settings).build();
@@ -34,10 +47,6 @@ public class ElasticConnection extends NoSqlConnection<TransportClient> {
 			}
 			return c;
 		}, "es", "elasticsearch");
-	}
-
-	public ElasticConnection(String url) throws IOException {
-		this(url, (Map<String, String>) null);
 	}
 
 	public String getDefaultIndex() {
