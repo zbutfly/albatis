@@ -62,7 +62,7 @@ public final class HbaseInput extends InputImpl<HbaseResult> {
 
 	@Override
 	public boolean empty() {
-		return ended.get();
+		return ended == null || ended.get();
 	}
 
 	private void begin() {
