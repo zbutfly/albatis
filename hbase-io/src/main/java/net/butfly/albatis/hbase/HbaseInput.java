@@ -39,7 +39,7 @@ public final class HbaseInput extends InputImpl<HbaseResult> {
 			filter = filters.length == 1 ? filters[0] : new FilterList(filters);
 			logger().debug(name() + " filtered: " + filter.toString());
 		} else filter = null;
-		open();
+		open(this::begin);
 	}
 
 	@Override
@@ -81,7 +81,6 @@ public final class HbaseInput extends InputImpl<HbaseResult> {
 
 	@Override
 	public HbaseResult dequeue() {
-		begin();
 		try {
 			return new HbaseResult(tname, scaner.next());
 		} catch (IOException e) {
@@ -91,7 +90,6 @@ public final class HbaseInput extends InputImpl<HbaseResult> {
 
 	@Override
 	public Stream<HbaseResult> dequeue(long batchSize) {
-		begin();
 		if (!ended.get() && scanerLock.writeLock().tryLock()) {
 			try {
 				Result[] rs = scaner.next((int) batchSize);
