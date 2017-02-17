@@ -46,6 +46,6 @@ public enum ScriptLang {
 	}
 
 	public Script construct(Object scriptParams, String template, Object... templateArgs) {
-		return new Script(MessageFormat.format(template, templateArgs), ScriptType.INLINE, lang, Maps.of("scriptParams", scriptParams));
+		return new Script(MessageFormat.format(template, templateArgs), ScriptType.INLINE, lang, Maps.of("__scriptParams", scriptParams));
 	}
 }
