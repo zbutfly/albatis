@@ -24,22 +24,42 @@ public final class HbaseInput extends InputImpl<HbaseResult> {
 	protected final Connection hconn;
 	protected final String tname;
 	protected final Table htable;
-	private final Filter filter;
 
 	protected ResultScanner scaner = null;
 	private ReentrantReadWriteLock scanerLock;
 	private AtomicBoolean ended;
+
+	public HbaseInput(String name, final String table, byte[] startRow, byte[] stopRow) throws IOException {
+		super(name);
+		hconn = Hbases.connect(Maps.of(HConstants.HBASE_CLIENT_SCANNER_TIMEOUT_PERIOD, Integer.toString(Integer.MAX_VALUE)));
+		tname = table;
+		htable = hconn.getTable(TableName.valueOf(table));
+
+		Scan scan = new Scan(startRow, stopRow);
+		scaner = htable.getScanner(scan);
+		scanerLock = new ReentrantReadWriteLock();
+		ended = new AtomicBoolean(false);
+
+		open();
+	}
 
 	public HbaseInput(String name, final String table, final Filter... filters) throws IOException {
 		super(name);
 		hconn = Hbases.connect(Maps.of(HConstants.HBASE_CLIENT_SCANNER_TIMEOUT_PERIOD, Integer.toString(Integer.MAX_VALUE)));
 		tname = table;
 		htable = hconn.getTable(TableName.valueOf(table));
+
+		Scan scan = new Scan();
 		if (null != filters && filters.length > 0) {
-			filter = filters.length == 1 ? filters[0] : new FilterList(filters);
+			Filter filter = filters.length == 1 ? filters[0] : new FilterList(filters);
 			logger().debug(name() + " filtered: " + filter.toString());
-		} else filter = null;
-		open(this::begin);
+			scan = scan.setFilter(filter);
+		}
+		scaner = htable.getScanner(scan);
+		scanerLock = new ReentrantReadWriteLock();
+		ended = new AtomicBoolean(false);
+
+		open();
 	}
 
 	@Override
@@ -63,20 +83,6 @@ public final class HbaseInput extends InputImpl<HbaseResult> {
 	@Override
 	public boolean empty() {
 		return ended == null || ended.get();
-	}
-
-	private void begin() {
-		if (null == scaner) {
-			Scan scan = new Scan();
-			if (null != filter) scan = scan.setFilter(filter);
-			try {
-				scaner = htable.getScanner(scan);
-			} catch (IOException e) {
-				scaner = null;
-			}
-			scanerLock = new ReentrantReadWriteLock();
-			ended = new AtomicBoolean(false);
-		}
 	}
 
 	@Override
