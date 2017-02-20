@@ -1,12 +1,10 @@
 package net.butfly.albatis.kafka.config;
 
-import java.io.IOException;
 import java.util.Properties;
 
 import kafka.producer.ProducerConfig;
 import net.butfly.albacore.exception.ConfigException;
 import net.butfly.albacore.io.URISpec;
-import net.butfly.albacore.utils.Configs;
 
 public class KafkaOutputConfig extends KafkaConfigBase {
 	private static final long serialVersionUID = -3028341800709486625L;
@@ -17,14 +15,6 @@ public class KafkaOutputConfig extends KafkaConfigBase {
 	final private int batchSize;
 	final private boolean batchBlock;
 	final private long bufferBytes;
-
-	/**
-	 * @deprecated use {@link URISpec} to construct kafka configuration.
-	 */
-	@Deprecated
-	public KafkaOutputConfig(String classpathResourceName) throws IOException {
-		this(Configs.read(classpathResourceName));
-	}
 
 	public KafkaOutputConfig(URISpec uri) {
 		super(uri);

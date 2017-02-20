@@ -1,6 +1,5 @@
 package net.butfly.albatis.kafka.config;
 
-import java.io.IOException;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Properties;
@@ -11,7 +10,6 @@ import org.apache.kafka.common.serialization.ByteArraySerializer;
 import com.google.common.base.Joiner;
 
 import net.butfly.albacore.io.URISpec;
-import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.Texts;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.kafka.ZKConn;
@@ -96,14 +94,6 @@ public abstract class KafkaConfigBase implements Serializable {
 		poolSize = Long.parseLong(props.getProperty("pool", "3000000"));
 		topics = Texts.split(props.getProperty("topic", ""), ",");
 		backoffMs = Long.parseLong(props.getProperty("backoff", "100"));
-	}
-
-	/**
-	 * @deprecated use {@link URISpec} to construct kafka configuration.
-	 */
-	@Deprecated
-	public KafkaConfigBase(String classpathResourceName) throws IOException {
-		this(Configs.read(classpathResourceName));
 	}
 
 	public Properties props() {

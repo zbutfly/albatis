@@ -1,14 +1,10 @@
 package net.butfly.albatis.kafka.config;
 
-import java.io.IOException;
 import java.util.Properties;
 
 import kafka.consumer.ConsumerConfig;
 import net.butfly.albacore.exception.ConfigException;
 import net.butfly.albacore.io.URISpec;
-import net.butfly.albacore.io.URIs;
-import net.butfly.albacore.io.URIs.Schema;
-import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.Systems;
 import net.butfly.albacore.utils.logger.Logger;
 
@@ -56,14 +52,6 @@ public class KafkaInputConfig extends KafkaConfigBase {
 
 	// not for kafka, for albatis
 	private int partitionParallelism;
-
-	/**
-	 * @deprecated use {@link URISpec} to construct kafka configuration.
-	 */
-	@Deprecated
-	public KafkaInputConfig(String consumerId, String uri) throws IOException {
-		this(consumerId, Configs.read(URIs.open(uri, Schema.FILE, Schema.CLASSPATH, Schema.ZOOKEEPER)));
-	}
 
 	public KafkaInputConfig(String consumerId, URISpec uri) {
 		super(uri);

@@ -42,7 +42,7 @@ public class URIs {
 	public static InputStream open(URISpec uri) throws IOException {
 		switch (schema(uri)) {
 		case FILE:
-			return IOs.loadJavaFile(uri.getPath());
+			return IOs.openFile(uri.getPath());
 		case CLASSPATH:
 			return Thread.currentThread().getContextClassLoader().getResourceAsStream(uri.getPath());
 		case HTTP:
