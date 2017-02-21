@@ -33,8 +33,8 @@ public class ElasticConnection extends NoSqlConnection<TransportClient> {
 	public ElasticConnection(URISpec esURI, Map<String, String> props) throws IOException {
 		super(esURI, uri -> {
 			Settings.Builder settings = Settings.settingsBuilder();
-			if (null != props && !props.isEmpty()) settings.put(uri.getParameters());
 			settings.put(uri.getParameters());
+			if (null != props && !props.isEmpty()) settings.put(props);
 			settings.put("client.transport.ignore_cluster_name", true);
 			TransportClient c = TransportClient.builder().settings(settings).build();
 			for (Pair<String, Integer> h : uri.getHosts()) {

@@ -21,18 +21,20 @@ import net.butfly.albacore.io.Streams;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.io.faliover.Failover.FailoverException;
 import net.butfly.albacore.io.faliover.FailoverOutput;
+import net.butfly.albacore.utils.Configs;
 
 public final class EsOutput extends FailoverOutput<String, ElasticMessage> {
+	private final static int PACKAGE_SIZE = Integer.parseInt(Configs.MAIN_CONF.getOrDefault("albatis.io.es.package.size", "100"));
 	private final ElasticConnection conn;
 
 	public EsOutput(String name, String esUri, String failoverPath) throws IOException {
-		super(name, b -> new ElasticMessage(b), failoverPath, 100);
+		super(name, b -> new ElasticMessage(b), failoverPath, PACKAGE_SIZE);
 		conn = new ElasticConnection(esUri);
 		open();
 	}
 
 	public EsOutput(String name, URISpec esURI, String failoverPath) throws IOException {
-		super(name, b -> new ElasticMessage(b), failoverPath, 100);
+		super(name, b -> new ElasticMessage(b), failoverPath, PACKAGE_SIZE);
 		conn = new ElasticConnection(esURI);
 		open();
 	}

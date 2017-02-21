@@ -31,8 +31,6 @@ public class HbaseResult extends Message<String, Put, HbaseResult> {
 	private byte[] row;
 	private Result result;
 
-	// private final Map<String, Cell> cells = new HashMap<>();
-
 	public HbaseResult(String table, byte[] row, Cell... cells) {
 		this(table, row, Arrays.asList(cells));
 	}
@@ -142,5 +140,10 @@ public class HbaseResult extends Message<String, Put, HbaseResult> {
 		} catch (IOException e) {
 			throw new IllegalArgumentException(e);
 		}
+	}
+
+	@Override
+	public String id() {
+		return Bytes.toString(row);
 	}
 }

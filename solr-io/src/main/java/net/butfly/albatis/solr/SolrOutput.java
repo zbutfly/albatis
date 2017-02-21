@@ -13,8 +13,10 @@ import net.butfly.albacore.io.Message;
 import net.butfly.albacore.io.Streams;
 import net.butfly.albacore.io.faliover.Failover.FailoverException;
 import net.butfly.albacore.io.faliover.FailoverOutput;
+import net.butfly.albacore.utils.Configs;
 
 public final class SolrOutput extends FailoverOutput<String, SolrMessage<SolrInputDocument>> {
+	private final static int PACKAGE_SIZE = Integer.parseInt(Configs.MAIN_CONF.getOrDefault("albatis.io.solr.package.size", "500"));
 	static final int DEFAULT_AUTO_COMMIT_MS = 30000;
 	private final SolrConnection solr;
 
@@ -24,7 +26,7 @@ public final class SolrOutput extends FailoverOutput<String, SolrMessage<SolrInp
 	}
 
 	public SolrOutput(String name, String baseUrl, String failoverPath) throws IOException {
-		super(name, b -> Message.<SolrMessage<SolrInputDocument>> fromBytes(b), failoverPath, 500);
+		super(name, b -> Message.<SolrMessage<SolrInputDocument>> fromBytes(b), failoverPath, PACKAGE_SIZE);
 		logger().info("[" + name + "] from [" + baseUrl + "]");
 		solr = new SolrConnection(baseUrl);
 	}

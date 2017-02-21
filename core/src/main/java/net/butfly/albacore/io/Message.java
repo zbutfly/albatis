@@ -21,9 +21,9 @@ public abstract class Message<P, W, MSG extends Message<P, W, MSG>> implements S
 		}
 	}
 
-	public P partition() {
-		return null;
-	}
+	abstract public P partition();
+
+	abstract public String id();
 
 	public abstract W forWrite();
 

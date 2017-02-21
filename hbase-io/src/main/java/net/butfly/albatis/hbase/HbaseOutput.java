@@ -17,13 +17,15 @@ import org.apache.hadoop.hbase.client.Table;
 import net.butfly.albacore.io.Streams;
 import net.butfly.albacore.io.faliover.Failover.FailoverException;
 import net.butfly.albacore.io.faliover.FailoverOutput;
+import net.butfly.albacore.utils.Configs;
 
 public final class HbaseOutput extends FailoverOutput<String, HbaseResult> {
+	private final static int PACKAGE_SIZE = Integer.parseInt(Configs.MAIN_CONF.getOrDefault("albatis.io.hbase.package.size", "500"));
 	private final Connection connect;
 	private final Map<String, Table> tables;
 
 	public HbaseOutput(String name, String failoverPath) throws IOException {
-		super(name, b -> new HbaseResult(b), failoverPath, 500);
+		super(name, b -> new HbaseResult(b), failoverPath, PACKAGE_SIZE);
 		connect = Hbases.connect();
 		tables = new ConcurrentHashMap<>();
 		open();

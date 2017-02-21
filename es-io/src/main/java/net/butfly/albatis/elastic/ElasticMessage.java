@@ -107,4 +107,9 @@ public class ElasticMessage extends Message<String, UpdateRequest, ElasticMessag
 			throw new IllegalArgumentException(e);
 		}
 	}
+
+	@Override
+	public String id() {
+		return id;
+	}
 }

@@ -10,11 +10,6 @@ public class SolrMessage<D extends SolrDocumentBase<?, D>> extends Message<Strin
 	private String core;
 	private D doc;
 
-	public SolrMessage() {
-		super();
-		// TODO Auto-generated constructor stub
-	}
-
 	public SolrMessage(String core, D doc) {
 		super();
 		this.core = core;
@@ -37,5 +32,15 @@ public class SolrMessage<D extends SolrDocumentBase<?, D>> extends Message<Strin
 	@Override
 	public String partition() {
 		return core;
+	}
+
+	@Override
+	public String id() {
+		return doc.toString();
+	}
+
+	@Override
+	public String toString() {
+		return doc.toString();
 	}
 }

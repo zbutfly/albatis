@@ -33,12 +33,15 @@ public abstract class Failover<K, V extends Message<K, ?, V>> extends OpenableTh
 
 	@SuppressWarnings("unchecked")
 	protected final long output(K key, Collection<V> pkg) {
-		long now = System.currentTimeMillis();
 		IO.io.each(Collections.chopped(pkg, output.packageSize), p -> {
+			long now = System.currentTimeMillis();
 			try {
 				output.write(key, p);
 			} catch (FailoverException ex) {
 				fail(key, (Collection<V>) ex.fails.keySet(), ex);
+			} finally {
+				IO.io.run(() -> logger().debug(() -> "Package [" + p.size() + "/" + pkg.size() + "] output/failover finished in [" + (System
+						.currentTimeMillis() - now) + "] ms, sample key: [" + p.get(0).id() + "]."));
 			}
 		});
 		try {
@@ -46,7 +49,6 @@ public abstract class Failover<K, V extends Message<K, ?, V>> extends OpenableTh
 		} catch (Exception e) {
 			logger().warn(output.name() + " commit failure", e);
 		}
-		logger().debug(() -> "Package [" + pkg.size() + "] output/failover finished in [" + (System.currentTimeMillis() - now) + "] ms.");
 		return pkg.size();
 	}
 
