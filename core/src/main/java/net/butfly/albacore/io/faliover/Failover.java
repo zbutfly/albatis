@@ -31,10 +31,14 @@ public abstract class Failover<K, V extends Message<K, ?, V>> extends OpenableTh
 
 	@SuppressWarnings("unchecked")
 	protected final void output(K key, Collection<V> pkg) {
+		long now = System.currentTimeMillis();
 		try {
 			output.write(key, pkg);
 		} catch (FailoverException ex) {
 			fail(key, (Collection<V>) ex.fails.keySet(), ex);
+		} finally {
+			logger().debug(() -> "Package [" + pkg.size() + "] output/failover finished in [" + (System.currentTimeMillis() - now)
+					+ "] ms.");
 		}
 	}
 

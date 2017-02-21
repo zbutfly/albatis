@@ -65,7 +65,7 @@ abstract class KafkaInputBase<V> extends KeyInputImpl<String, KafkaMessage> {
 			try {
 				temp = connect.createMessageStreams(allTopics);
 			} catch (ConsumerRebalanceFailedException e) {
-				logger.warn("Kafka close and open too quickly, wait 10 seconds and retry", e);
+				logger.warn("Kafka close and open too quickly, wait 10 seconds and retry");
 				if (!Concurrents.waitSleep(1000 * 10)) throw e;
 			}
 		while (temp == null);

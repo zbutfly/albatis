@@ -117,13 +117,23 @@ public final class HbaseInput extends InputImpl<HbaseResult> {
 
 	public List<HbaseResult> get(List<Get> gets) throws IOException {
 		try (Table t = hconn.getTable(TableName.valueOf(tname));) {
-			return io.list(Stream.of(t.get(gets)).parallel().map(r -> new HbaseResult(tname, r)));
+			for (int i = 1;; i++)
+				try {
+					return io.list(Stream.of(t.get(gets)).parallel().map(r -> new HbaseResult(tname, r)));
+				} catch (Exception ex) {
+					logger().warn("Hbase get failure and retry [" + i + "] times", ex);
+				}
 		}
 	}
 
 	public HbaseResult get(Get get) throws IOException {
 		try (Table t = hconn.getTable(TableName.valueOf(tname));) {
-			return new HbaseResult(tname, t.get(get));
+			for (int i = 1;; i++)
+				try {
+					return new HbaseResult(tname, t.get(get));
+				} catch (Exception ex) {
+					logger().warn("Hbase get failure and retry [" + i + "] times", ex);
+				}
 		}
 	}
 }
