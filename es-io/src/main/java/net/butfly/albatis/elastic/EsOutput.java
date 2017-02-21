@@ -1,5 +1,7 @@
 package net.butfly.albatis.elastic;
 
+import static net.butfly.albacore.utils.Exceptions.unwrap;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -11,8 +13,6 @@ import java.util.stream.Collectors;
 
 import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkRequest;
-import org.elasticsearch.action.bulk.BulkResponse;
-import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.transport.RemoteTransportException;
@@ -21,7 +21,6 @@ import net.butfly.albacore.io.Streams;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.io.faliover.Failover.FailoverException;
 import net.butfly.albacore.io.faliover.FailoverOutput;
-import static net.butfly.albacore.utils.Exceptions.unwrap;
 
 public final class EsOutput extends FailoverOutput<String, ElasticMessage> {
 	private final ElasticConnection conn;
@@ -56,9 +55,8 @@ public final class EsOutput extends FailoverOutput<String, ElasticMessage> {
 			BulkRequest req = new BulkRequest().add(io.list(retries, ElasticMessage::forWrite));
 			logger().trace("Bulk size: " + req.estimatedSizeInBytes());
 			try {
-				TransportClient tc = conn.client();
-				BulkResponse bulk = tc.bulk(req).actionGet();
-				Map<Boolean, List<BulkItemResponse>> resps = io.collect(bulk, Collectors.partitioningBy(r -> r.isFailed()));
+				Map<Boolean, List<BulkItemResponse>> resps = io.collect(conn.client().bulk(req).actionGet(), Collectors.partitioningBy(
+						r -> r.isFailed()));
 				if (resps.get(Boolean.TRUE).isEmpty()) return resps.get(Boolean.FALSE).size();
 				Set<String> succs = io.map(resps.get(Boolean.FALSE), r -> r.getId(), Collectors.toSet());
 				Map<Boolean, List<BulkItemResponse>> retryMap = io.collect(Streams.of(resps.get(Boolean.TRUE)), Collectors.partitioningBy(

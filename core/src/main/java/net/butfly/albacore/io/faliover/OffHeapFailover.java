@@ -1,13 +1,14 @@
 package net.butfly.albacore.io.faliover;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.text.MessageFormat;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
 import com.leansoft.bigqueue.BigQueueImpl;
@@ -15,8 +16,8 @@ import com.leansoft.bigqueue.IBigQueue;
 
 import net.butfly.albacore.io.IO;
 import net.butfly.albacore.io.Message;
-import net.butfly.albacore.utils.Exceptions;
 import net.butfly.albacore.utils.IOs;
+import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.async.Concurrents;
 
 public class OffHeapFailover<K, V extends Message<K, ?, V>> extends Failover<K, V> {
@@ -33,35 +34,24 @@ public class OffHeapFailover<K, V extends Message<K, ?, V>> extends Failover<K, 
 
 	@Override
 	protected void exec() {
-		Map<K, List<V>> fails = new HashMap<>();
 		while (opened()) {
 			while (opened() && failover.isEmpty())
 				Concurrents.waitSleep(1000);
-			fails.clear();
 			while (opened() && !failover.isEmpty()) {
-				byte[] buf;
+				Pair<K, List<V>> results;
 				try {
-					buf = failover.dequeue();
-				} catch (IOException e) {
-					logger.error("invalid failover found and lost.");
+					results = IO.io.run(this::fetch);
+				} catch (Exception e) {
 					continue;
 				}
-				if (null == buf) return;
-				V value;
-				try {
-					value = construct.apply(buf);
-				} catch (Throwable t) {
-					logger().error("Failover data invalid on loading and lost", Exceptions.unwrap(t));
-					continue;
-				}
-				K key = value.partition();
-				List<V> l = fails.computeIfAbsent(key, c -> new ArrayList<>(output.packageSize));
-				l.add(value);
-				if (l.size() >= output.packageSize) output(key, fails.remove(key));
+				IO.io.run(() -> output(results.v1(), results.v2()));
 			}
-			for (K key : fails.keySet())
-				output(key, fails.remove(key));
 		}
+	}
+
+	private Pair<K, List<V>> fetch() throws IOException {
+		Pair<K, byte[][]> results = fromBytes(failover.dequeue());
+		return new Pair<>(results.v1(), IO.io.list(Arrays.asList(results.v2()), b -> construct.apply(b)));
 	}
 
 	@Override
@@ -74,23 +64,42 @@ public class OffHeapFailover<K, V extends Message<K, ?, V>> extends Failover<K, 
 		return failover.isEmpty();
 	}
 
+	private byte[] toBytes(K key, Collection<V> values) throws IOException {
+		try (ByteArrayOutputStream baos = new ByteArrayOutputStream(); ObjectOutputStream oos = new ObjectOutputStream(baos);) {
+			oos.writeObject(key);
+			IOs.writeInt(baos, values.size());
+			IOs.writeBytes(baos, IO.io.list(values, v -> v.toBytes()).toArray(new byte[values.size()][]));
+			return baos.toByteArray();
+		}
+	}
+
+	private Pair<K, byte[][]> fromBytes(byte[] data) throws IOException {
+		try (ByteArrayInputStream baos = new ByteArrayInputStream(data); ObjectInputStream oos = new ObjectInputStream(baos);) {
+			@SuppressWarnings("unchecked")
+			K k = (K) oos.readObject();
+			int c = IOs.readInt(baos);
+			byte[][] results = new byte[c][];
+			for (int i = 0; i < c; i++)
+				results[i] = IOs.readBytes(baos);
+			return new Pair<>(k, results);
+		} catch (ClassNotFoundException e) {
+			throw new IOException(e);
+		}
+	}
+
 	@Override
-	public int fail(K key, Collection<V> values, Exception err) {
-		AtomicInteger c = new AtomicInteger();
-		IO.each(values, v -> {
-			try {
-				failover.enqueue(v.toBytes());
-				c.incrementAndGet();
-			} catch (IOException e) {
-				if (null != err) logger.error(MessageFormat.format("Failover failed, [{0}] docs lost on [{1}], original caused by [{2}]", //
-						values.size(), key, err.getMessage()), e);
-				else logger.error(MessageFormat.format("Failover failed, [{0}] docs lost on [{1}]", values.size(), key), e);
-			}
-		});
-		if (null != err) logger.warn(MessageFormat.format(
-				"Failure added on [{0}] with [{1}] docs, now [{2}] failover on [{0}], caused by [{3}]", //
-				key, values.size(), size(), err.getMessage()));
-		return c.get();
+	public void fail(K key, Collection<V> values, Exception err) {
+		try {
+			failover.enqueue(toBytes(key, values));
+			if (null != err) logger.warn(MessageFormat.format(
+					"Failure added on [{0}] with [{1}] docs, now [{2}] failover on [{0}], caused by [{3}]", //
+					key, values.size(), size(), err.getMessage()));
+		} catch (IOException e) {
+			if (null != err) logger.error(MessageFormat.format("Failover failed, [{0}] docs lost on [{1}], original caused by [{2}]", //
+					values.size(), key, err.getMessage()), e);
+			else logger.error(MessageFormat.format("Failover failed, [{0}] docs lost on [{1}]", values.size(), key), e);
+			return;
+		}
 	}
 
 	@Override

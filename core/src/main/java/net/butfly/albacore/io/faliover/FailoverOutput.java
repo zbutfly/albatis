@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -13,7 +13,6 @@ import net.butfly.albacore.io.Message;
 import net.butfly.albacore.io.OutputImpl;
 import net.butfly.albacore.io.Streams;
 import net.butfly.albacore.io.faliover.Failover.FailoverException;
-import net.butfly.albacore.utils.Collections;
 
 /**
  * Output with buffer and failover supporting.<br>
@@ -56,16 +55,8 @@ public abstract class FailoverOutput<K, M extends Message<K, ?, M>> extends Outp
 	public final long enqueue(Stream<M> els) {
 		Map<K, List<M>> map = io.collect(Streams.of(els), Collectors.groupingBy(e -> e.partition(), Collectors.mapping(t -> t, Collectors
 				.toList())));
-		AtomicInteger count = new AtomicInteger(0);
-		io.each(map.entrySet(), e -> {
-			count.addAndGet(e.getValue().size());
-			io.each(Collections.chopped(e.getValue(), packageSize), pkg -> failover.output(e.getKey(), pkg));
-			try {
-				io.run(() -> commit(e.getKey()));
-			} catch (Exception err) {
-				logger().warn("[" + name() + "] commit failure on core [" + e.getKey() + "]", err);
-			}
-		});
+		AtomicLong count = new AtomicLong(0);
+		io.each(map.entrySet(), e -> count.addAndGet(failover.output(e.getKey(), e.getValue())));
 		return count.get();
 	}
 

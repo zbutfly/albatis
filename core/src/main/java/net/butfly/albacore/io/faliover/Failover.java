@@ -6,9 +6,11 @@ import java.util.function.Function;
 
 import com.google.common.base.Joiner;
 
+import net.butfly.albacore.io.IO;
 import net.butfly.albacore.io.Message;
 import net.butfly.albacore.io.OpenableThread;
 import net.butfly.albacore.io.stats.Statistical;
+import net.butfly.albacore.utils.Collections;
 import net.butfly.albacore.utils.logger.Logger;
 
 public abstract class Failover<K, V extends Message<K, ?, V>> extends OpenableThread implements Statistical<Failover<K, V>> {
@@ -27,19 +29,25 @@ public abstract class Failover<K, V extends Message<K, ?, V>> extends OpenableTh
 
 	public abstract long size();
 
-	protected abstract int fail(K key, Collection<V> values, Exception err);
+	protected abstract void fail(K key, Collection<V> values, Exception err);
 
 	@SuppressWarnings("unchecked")
-	protected final void output(K key, Collection<V> pkg) {
+	protected final long output(K key, Collection<V> pkg) {
 		long now = System.currentTimeMillis();
+		IO.io.each(Collections.chopped(pkg, output.packageSize), p -> {
+			try {
+				output.write(key, p);
+			} catch (FailoverException ex) {
+				fail(key, (Collection<V>) ex.fails.keySet(), ex);
+			}
+		});
 		try {
-			output.write(key, pkg);
-		} catch (FailoverException ex) {
-			fail(key, (Collection<V>) ex.fails.keySet(), ex);
-		} finally {
-			logger().debug(() -> "Package [" + pkg.size() + "] output/failover finished in [" + (System.currentTimeMillis() - now)
-					+ "] ms.");
+			output.commit(key);
+		} catch (Exception e) {
+			logger().warn(output.name() + " commit failure", e);
 		}
+		logger().debug(() -> "Package [" + pkg.size() + "] output/failover finished in [" + (System.currentTimeMillis() - now) + "] ms.");
+		return pkg.size();
 	}
 
 	@Override
