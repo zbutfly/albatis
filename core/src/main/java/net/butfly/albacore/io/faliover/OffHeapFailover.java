@@ -15,17 +15,16 @@ import com.leansoft.bigqueue.IBigQueue;
 
 import net.butfly.albacore.io.IO;
 import net.butfly.albacore.io.Message;
-import net.butfly.albacore.lambda.Callback;
 import net.butfly.albacore.utils.Exceptions;
 import net.butfly.albacore.utils.IOs;
 import net.butfly.albacore.utils.async.Concurrents;
 
-public abstract class OffHeapFailover<K, V extends Message<K, ?, V>> extends Failover<K, V> {
+public class OffHeapFailover<K, V extends Message<K, ?, V>> extends Failover<K, V> {
 	private IBigQueue failover;
 
-	public OffHeapFailover(String parentName, Writing<K, V> writing, Callback<K> committing, Function<byte[], ? extends V> constructor,
-			String path, String poolName, int packageSize, int parallelism) throws IOException {
-		super(parentName, writing, committing, constructor, packageSize, parallelism);
+	public OffHeapFailover(String parentName, FailoverOutput<K, V> output, Function<byte[], ? extends V> constructor, String path,
+			String poolName) throws IOException {
+		super(parentName, output, constructor);
 		if (poolName == null) poolName = "POOL";
 		failover = new BigQueueImpl(IOs.mkdirs(path + "/" + parentName), poolName);
 		logger.info(MessageFormat.format("Failover [persist mode] init: [{0}/{1}] with name [{2}], init size [{3}].", //
@@ -56,12 +55,12 @@ public abstract class OffHeapFailover<K, V extends Message<K, ?, V>> extends Fai
 					continue;
 				}
 				K key = value.partition();
-				List<V> l = fails.computeIfAbsent(key, c -> new ArrayList<>(packageSize));
+				List<V> l = fails.computeIfAbsent(key, c -> new ArrayList<>(output.packageSize));
 				l.add(value);
-				if (l.size() >= packageSize) doWrite(key, fails.remove(key), true);
+				if (l.size() >= output.packageSize) output(key, fails.remove(key));
 			}
 			for (K key : fails.keySet())
-				doWrite(key, fails.remove(key), true);
+				output(key, fails.remove(key));
 		}
 	}
 

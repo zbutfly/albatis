@@ -14,7 +14,7 @@ import net.butfly.albacore.io.Streams;
 import net.butfly.albacore.io.faliover.Failover.FailoverException;
 import net.butfly.albacore.io.faliover.FailoverOutput;
 
-public final class SolrOutput extends FailoverOutput<SolrMessage<SolrInputDocument>> {
+public final class SolrOutput extends FailoverOutput<String, SolrMessage<SolrInputDocument>> {
 	static final int DEFAULT_AUTO_COMMIT_MS = 30000;
 	private final SolrConnection solr;
 
@@ -24,7 +24,7 @@ public final class SolrOutput extends FailoverOutput<SolrMessage<SolrInputDocume
 	}
 
 	public SolrOutput(String name, String baseUrl, String failoverPath) throws IOException {
-		super(name, b -> Message.<SolrMessage<SolrInputDocument>> fromBytes(b), failoverPath, 500, 5);
+		super(name, b -> Message.<SolrMessage<SolrInputDocument>> fromBytes(b), failoverPath, 500);
 		logger().info("[" + name + "] from [" + baseUrl + "]");
 		solr = new SolrConnection(baseUrl);
 	}

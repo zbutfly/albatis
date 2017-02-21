@@ -18,12 +18,12 @@ import net.butfly.albacore.io.Streams;
 import net.butfly.albacore.io.faliover.Failover.FailoverException;
 import net.butfly.albacore.io.faliover.FailoverOutput;
 
-public final class HbaseOutput extends FailoverOutput<HbaseResult> {
+public final class HbaseOutput extends FailoverOutput<String, HbaseResult> {
 	private final Connection connect;
 	private final Map<String, Table> tables;
 
 	public HbaseOutput(String name, String failoverPath) throws IOException {
-		super(name, b -> new HbaseResult(b), failoverPath, 500, 10);
+		super(name, b -> new HbaseResult(b), failoverPath, 500);
 		connect = Hbases.connect();
 		tables = new ConcurrentHashMap<>();
 		open();

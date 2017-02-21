@@ -23,17 +23,17 @@ import net.butfly.albacore.io.faliover.Failover.FailoverException;
 import net.butfly.albacore.io.faliover.FailoverOutput;
 import static net.butfly.albacore.utils.Exceptions.unwrap;
 
-public final class EsOutput extends FailoverOutput<ElasticMessage> {
+public final class EsOutput extends FailoverOutput<String, ElasticMessage> {
 	private final ElasticConnection conn;
 
 	public EsOutput(String name, String esUri, String failoverPath) throws IOException {
-		super(name, b -> new ElasticMessage(b), failoverPath, 100, 20);
+		super(name, b -> new ElasticMessage(b), failoverPath, 100);
 		conn = new ElasticConnection(esUri);
 		open();
 	}
 
 	public EsOutput(String name, URISpec esURI, String failoverPath) throws IOException {
-		super(name, b -> new ElasticMessage(b), failoverPath, 100, 20);
+		super(name, b -> new ElasticMessage(b), failoverPath, 100);
 		conn = new ElasticConnection(esURI);
 		open();
 	}

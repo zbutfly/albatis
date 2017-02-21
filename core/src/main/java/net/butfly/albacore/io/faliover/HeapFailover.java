@@ -11,15 +11,13 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Function;
 
 import net.butfly.albacore.io.Message;
-import net.butfly.albacore.lambda.Callback;
 
 public class HeapFailover<K, V extends Message<K, ?, V>> extends Failover<K, V> {
 	private static final int MAX_FAILOVER = 50000;
 	private Map<K, LinkedBlockingQueue<V>> failover = new ConcurrentHashMap<>();
 
-	public HeapFailover(String parentName, Writing<K, V> writing, Callback<K> committing, Function<byte[], ? extends V> constructor,
-			int packageSize, int parallelism) throws IOException {
-		super(parentName, writing, committing, constructor, packageSize, parallelism);
+	public HeapFailover(String parentName, FailoverOutput<K, V> output, Function<byte[], ? extends V> constructor) throws IOException {
+		super(parentName, output, constructor);
 		failover = new ConcurrentHashMap<>();
 		logger.info(MessageFormat.format("SolrOutput [{0}] failover [memory mode] init.", parentName));
 	}
@@ -55,17 +53,14 @@ public class HeapFailover<K, V extends Message<K, ?, V>> extends Failover<K, V> 
 
 	@Override
 	protected void exec() {
+		List<V> retries = new ArrayList<>(output.packageSize);
 		while (opened()) {
-			List<V> retries = new ArrayList<>(packageSize);
-			for (K core : failover.keySet()) {
-				LinkedBlockingQueue<V> fails = failover.get(core);
-				fails.drainTo(retries, packageSize);
-				if (!retries.isEmpty()) {
-					doWrite(core, retries, true);
-					retries.clear();
-				}
+			for (K key : failover.keySet()) {
+				LinkedBlockingQueue<V> fails = failover.get(key);
+				retries.clear();
+				fails.drainTo(retries, output.packageSize);
+				if (!retries.isEmpty()) output(key, retries);
 			}
 		}
 	}
-
 }
