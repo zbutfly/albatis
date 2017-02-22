@@ -11,6 +11,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 import org.elasticsearch.action.bulk.BulkItemResponse;
@@ -24,6 +25,7 @@ import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.io.faliover.Failover.FailoverException;
 import net.butfly.albacore.io.faliover.FailoverOutput;
 import net.butfly.albacore.utils.Configs;
+import net.butfly.albacore.utils.Texts;
 
 public final class EsOutput extends FailoverOutput<String, ElasticMessage> {
 	private final static int PACKAGE_SIZE = Integer.parseInt(Configs.MAIN_CONF.getOrDefault("albatis.io.es.batch.size", "100"));
@@ -56,41 +58,46 @@ public final class EsOutput extends FailoverOutput<String, ElasticMessage> {
 		int tc = values.size();
 		Map<String, String> fails = new ConcurrentHashMap<>();
 		List<ElasticMessage> retries = new ArrayList<>(values);
-		AtomicInteger t = new AtomicInteger();
+		AtomicInteger retry = new AtomicInteger(0);
 		Set<String> succs = new ConcurrentSkipListSet<>();
-		do {
-			long now = System.currentTimeMillis();
-			BulkRequest req = new BulkRequest().add(io.list(retries, ElasticMessage::forWrite));
-			try {
-				Map<Boolean, List<BulkItemResponse>> resps = io.collect(conn.client().bulk(req).actionGet(), Collectors.partitioningBy(
-						r -> r.isFailed()));
-				if (resps.get(Boolean.TRUE).isEmpty()) return resps.get(Boolean.FALSE).size();
-				succs.clear();
-				io.each(resps.get(Boolean.FALSE), r -> succs.add(r.getId()));
-				Map<String, String> failing = io.collect(Streams.of(resps.get(Boolean.TRUE)) //
-						// XXX: disable retry, damn slowly!
-						.filter(r -> {
-							@SuppressWarnings("unchecked")
-							Class<Throwable> c = (Class<Throwable>) r.getFailure().getCause().getClass();
-							return EsRejectedExecutionException.class.isAssignableFrom(c) || VersionConflictEngineException.class
-									.isAssignableFrom(c);
-						})//
-						, Collectors.toConcurrentMap(r -> r.getFailure().getId(), this::wrapErrorMessage));
-				retries = io.list(Streams.of(retries).filter(es -> !succs.contains(es.id) && !failing.containsKey(es.id)));
-				fails.putAll(failing);
-			} catch (Exception e) {
-				throw new RuntimeException(unwrap(e));
-			} finally {
-				if (logger().isTraceEnabled()) {
-					int rc = retries.size();
-					long reqs = req.estimatedSizeInBytes();
-					String sample = succs.isEmpty() ? null : new ArrayList<>(succs).get(0);
-					logger().trace(() -> "Retry#" + t.get() + ": [" + reqs + "] bytes in [" + (System.currentTimeMillis() - now)
-							+ "] ms, successed:[" + succs.size() + "], remained:[" + rc + "], failed:[" + fails.size() + "], total:[" + tc
-							+ "], sample id: [" + sample + "].");
+		long now = System.currentTimeMillis();
+		AtomicLong reqSize = new AtomicLong(0);
+		try {
+			for (; !retries.isEmpty() && retry.getAndIncrement() < maxRetry;) {
+				BulkRequest req = new BulkRequest().add(io.list(retries, ElasticMessage::forWrite));
+				if (logger().isTraceEnabled()) logger().trace("BulkRequesting#" + retry.get() + ": " + retries.size() + " requests/" + req
+						.estimatedSizeInBytes() + " bytes, sample: " + retries.get(0).toString() + ".");
+				Map<Boolean, List<BulkItemResponse>> resps = null;
+				try {
+					resps = io.collect(conn.client().bulk(req).actionGet(), Collectors.partitioningBy(r -> r.isFailed()));
+				} catch (Exception e) {
+					logger().warn("ES failure, request size [" + reqSize.get() + "], retry...", unwrap(e));
+				}
+				if (resps != null) {
+					if (resps.get(Boolean.TRUE).isEmpty()) return resps.get(Boolean.FALSE).size();
+					succs.clear();
+					io.each(resps.get(Boolean.FALSE), r -> succs.add(r.getId()));
+					Map<String, String> failing = io.collect(Streams.of(resps.get(Boolean.TRUE)) //
+							// XXX: disable retry, damn slowly!
+							.filter(r -> {
+								@SuppressWarnings("unchecked")
+								Class<Throwable> c = (Class<Throwable>) r.getFailure().getCause().getClass();
+								return EsRejectedExecutionException.class.isAssignableFrom(c) || VersionConflictEngineException.class
+										.isAssignableFrom(c);
+							})//
+							, Collectors.toConcurrentMap(r -> r.getFailure().getId(), this::wrapErrorMessage));
+					retries = io.list(Streams.of(retries).filter(es -> !succs.contains(es.id) && !failing.containsKey(es.id)));
+					fails.putAll(failing);
 				}
 			}
-		} while (!retries.isEmpty() && t.getAndIncrement() < maxRetry);
+		} finally {
+			if (logger().isTraceEnabled()) {
+				String sample = succs.isEmpty() ? "NONE" : new ArrayList<>(succs).get(0);
+				logger().trace("Try#" + retry.get() + ", total:[" + tc + "/" + Texts.formatKilo(reqSize.get(), " bytes") + "] in ["
+						+ (System.currentTimeMillis() - now) + "] ms, successed:[" + succs.size() + "], remained:[" + retries.size()
+						+ "], failed:[" + fails.size() + "], sample id: [" + sample + "].");
+			}
+		}
 		if (!retries.isEmpty()) fails.putAll(io.collect(retries, Collectors.toConcurrentMap(m -> m.id,
 				m -> "VersionConfliction or EsRejected")));
 		if (fails.isEmpty()) return tc;

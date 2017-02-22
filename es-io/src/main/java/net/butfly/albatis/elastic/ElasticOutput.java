@@ -6,7 +6,8 @@ import java.util.stream.Stream;
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkRequest;
-import org.elasticsearch.action.update.UpdateResponse;
+import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.action.update.UpdateRequest;
 
 import net.butfly.albacore.io.IO;
 import net.butfly.albacore.io.OutputImpl;
@@ -24,7 +25,8 @@ public final class ElasticOutput extends OutputImpl<ElasticMessage> {
 	@Override
 	public boolean enqueue(ElasticMessage s) {
 		if (s == null) return false;
-		ActionFuture<UpdateResponse> f = conn.client().update(s.forWrite());
+		ActionFuture<?> f = s.updating ? conn.client().update((UpdateRequest) s.forWrite())
+				: conn.client().index((IndexRequest) s.forWrite());
 		try {
 			f.actionGet();
 			return true;

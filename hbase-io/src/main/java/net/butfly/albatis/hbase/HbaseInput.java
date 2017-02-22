@@ -2,6 +2,7 @@ package net.butfly.albatis.hbase;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -78,15 +79,14 @@ public final class HbaseInput extends InputImpl<HbaseResult> {
 
 	private void closeHbase() {
 		try {
-			closeScaning();
-		} catch (IOException e) {
-			logger().error("Close failure", e);
-		}
+			if (null != scaner) scaner.close();
+		} catch (Exception e) {}
+		try {
+			htable.close();
+		} catch (Exception e) {}
 		try {
 			hconn.close();
-		} catch (IOException e) {
-			logger().error("Close failure", e);
-		}
+		} catch (Exception e) {}
 	}
 
 	@Override
@@ -119,21 +119,24 @@ public final class HbaseInput extends InputImpl<HbaseResult> {
 		return Stream.empty();
 	}
 
-	public void closeScaning() throws IOException {
-		if (null != scaner) scaner.close();
-		htable.close();
-	}
-
 	private static Random random = new Random();
 
 	public List<HbaseResult> get(List<Get> gets, long batchSize) {
-		int batchs = (int) (gets.size() / batchSize) + 1;
-		return batchs > 1 ? IO.list(Streams.of(IO.collect(gets, Collectors.groupingBy(g -> random.nextInt(batchs))).values()).map(this::get)
-				.flatMap(Streams::of)) : get(gets);
+		int b = (int) (gets.size() / batchSize) + 1;
+		long now = System.currentTimeMillis();
+
+		List<HbaseResult> results;
+		if (b <= 1) results = get(gets);
+		else {
+			Collection<List<Get>> batchs = IO.collect(gets, Collectors.groupingBy(g -> random.nextInt(b))).values();
+			results = IO.list(Streams.of(batchs).map(this::get).flatMap(Streams::of));
+		}
+		logger().trace("Hbase batch get: " + (System.currentTimeMillis() - now) + " ms, total [" + gets.size() + " gets]/[" + Texts
+				.formatKilo(HbaseResult.sizes(results), " bytes") + "]/[" + HbaseResult.cells(results) + " cells], ");
+		return results;
 	}
 
 	public List<HbaseResult> get(List<Get> gets) {
-		long now = System.currentTimeMillis();
 		List<HbaseResult> results;
 		try (Table t = hconn.getTable(TableName.valueOf(tname));) {
 			try {
@@ -144,8 +147,6 @@ public final class HbaseInput extends InputImpl<HbaseResult> {
 		} catch (IOException e) {
 			results = new ArrayList<>();
 		}
-		logger().trace("Hbase batch get: " + (System.currentTimeMillis() - now) + " ms, total [" + gets.size() + " gets]/[" + Texts
-				.formatKilo(HbaseResult.sizes(results), " bytes") + "]/[" + HbaseResult.cells(results) + " cells], ");
 		return results;
 	}
 
