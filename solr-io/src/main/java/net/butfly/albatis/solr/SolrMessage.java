@@ -35,12 +35,7 @@ public class SolrMessage<D extends SolrDocumentBase<?, D>> extends Message<Strin
 	}
 
 	@Override
-	public String id() {
-		return doc.toString();
-	}
-
-	@Override
 	public String toString() {
-		return doc.toString();
+		return core + ":\n\t" + doc.toString();
 	}
 }

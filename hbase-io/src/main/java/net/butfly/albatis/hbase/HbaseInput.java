@@ -1,9 +1,12 @@
 package net.butfly.albatis.hbase;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.hadoop.hbase.HConstants;
@@ -17,15 +20,21 @@ import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterList;
 
+import net.butfly.albacore.io.IO;
 import net.butfly.albacore.io.InputImpl;
+import net.butfly.albacore.io.Streams;
+import net.butfly.albacore.utils.Configs;
+import net.butfly.albacore.utils.Texts;
 import net.butfly.albacore.utils.collection.Maps;
 
 public final class HbaseInput extends InputImpl<HbaseResult> {
-	protected final Connection hconn;
-	protected final String tname;
-	protected final Table htable;
+	private final Connection hconn;
+	private final String tname;
+	private final Table htable;
+	private final static int MAX_RETRIES = Integer.parseInt(Configs.MAIN_CONF.getOrDefault("albatis.io.hbase.retry", "5"));
+	protected final static int BATCH_SIZE = Integer.parseInt(Configs.MAIN_CONF.getOrDefault("albatis.io.hbase.batch.size", "500"));
 
-	protected ResultScanner scaner = null;
+	private ResultScanner scaner = null;
 	private ReentrantReadWriteLock scanerLock;
 	private AtomicBoolean ended;
 
@@ -115,25 +124,42 @@ public final class HbaseInput extends InputImpl<HbaseResult> {
 		htable.close();
 	}
 
-	public List<HbaseResult> get(List<Get> gets) throws IOException {
-		try (Table t = hconn.getTable(TableName.valueOf(tname));) {
-			for (int i = 1;; i++)
-				try {
-					return io.list(Stream.of(t.get(gets)).parallel().map(r -> new HbaseResult(tname, r)));
-				} catch (Exception ex) {
-					logger().warn("Hbase get failure and retry [" + i + "] times", ex);
-				}
-		}
+	private static Random random = new Random();
+
+	public List<HbaseResult> get(List<Get> gets, long batchSize) {
+		int batchs = (int) (gets.size() / batchSize) + 1;
+		return batchs > 1 ? IO.list(Streams.of(IO.collect(gets, Collectors.groupingBy(g -> random.nextInt(batchs))).values()).map(this::get)
+				.flatMap(Streams::of)) : get(gets);
 	}
 
-	public HbaseResult get(Get get) throws IOException {
+	public List<HbaseResult> get(List<Get> gets) {
+		long now = System.currentTimeMillis();
+		List<HbaseResult> results;
 		try (Table t = hconn.getTable(TableName.valueOf(tname));) {
-			for (int i = 1;; i++)
+			try {
+				results = io.list(Stream.of(t.get(gets)).parallel().map(r -> new HbaseResult(tname, r)));
+			} catch (Exception ex) {
+				results = io.list(gets, this::get);
+			}
+		} catch (IOException e) {
+			results = new ArrayList<>();
+		}
+		logger().trace("Hbase batch get: " + (System.currentTimeMillis() - now) + " ms, total [" + gets.size() + " gets]/[" + Texts
+				.formatKilo(HbaseResult.sizes(results), " bytes") + "]/[" + HbaseResult.cells(results) + " cells], ");
+		return results;
+	}
+
+	public HbaseResult get(Get get) {
+		try (Table t = hconn.getTable(TableName.valueOf(tname));) {
+			for (int i = 0; i < MAX_RETRIES; i++)
 				try {
 					return new HbaseResult(tname, t.get(get));
 				} catch (Exception ex) {
-					logger().warn("Hbase get failure and retry [" + i + "] times", ex);
+					logger().warn("Hbase get failure to retry#" + (i + 1), ex);
 				}
+		} catch (IOException e) {
+			logger().warn("Hbase get failure and ignore", e);
 		}
+		return null;
 	}
 }

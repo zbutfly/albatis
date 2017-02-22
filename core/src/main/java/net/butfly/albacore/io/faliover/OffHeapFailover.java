@@ -45,6 +45,7 @@ public class OffHeapFailover<K, V extends Message<K, ?, V>> extends Failover<K, 
 					continue;
 				}
 				IO.io.run(() -> output(results.v1(), results.v2()));
+				stats(results.v2());
 			}
 		}
 	}

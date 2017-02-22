@@ -20,12 +20,12 @@ import net.butfly.albacore.io.faliover.FailoverOutput;
 import net.butfly.albacore.utils.Configs;
 
 public final class HbaseOutput extends FailoverOutput<String, HbaseResult> {
-	private final static int PACKAGE_SIZE = Integer.parseInt(Configs.MAIN_CONF.getOrDefault("albatis.io.hbase.package.size", "500"));
+	private final static int BATCH_SIZE = Integer.parseInt(Configs.MAIN_CONF.getOrDefault("albatis.io.hbase.batch.size", "500"));
 	private final Connection connect;
 	private final Map<String, Table> tables;
 
 	public HbaseOutput(String name, String failoverPath) throws IOException {
-		super(name, b -> new HbaseResult(b), failoverPath, PACKAGE_SIZE);
+		super(name, b -> new HbaseResult(b), failoverPath, BATCH_SIZE);
 		connect = Hbases.connect();
 		tables = new ConcurrentHashMap<>();
 		open();

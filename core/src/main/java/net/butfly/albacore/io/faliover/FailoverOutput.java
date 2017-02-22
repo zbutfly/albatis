@@ -34,6 +34,7 @@ public abstract class FailoverOutput<K, M extends Message<K, ?, M>> extends Outp
 		this.packageSize = packageSize;
 		failover = failoverPath == null ? new HeapFailover<K, M>(name(), this, constructor)
 				: new OffHeapFailover<K, M>(name(), this, constructor, failoverPath, null);
+		failover.trace(packageSize, () -> "failover: " + size());
 	}
 
 	@Override

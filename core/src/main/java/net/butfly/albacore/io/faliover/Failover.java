@@ -22,7 +22,6 @@ public abstract class Failover<K, V extends Message<K, ?, V>> extends OpenableTh
 		super(parentName + "Failover");
 		this.output = output;
 		this.construct = constructor;
-		// trace(packageSize, () -> "failover: " + size());
 	}
 
 	public abstract boolean isEmpty();
@@ -34,14 +33,10 @@ public abstract class Failover<K, V extends Message<K, ?, V>> extends OpenableTh
 	@SuppressWarnings("unchecked")
 	protected final long output(K key, Collection<V> pkg) {
 		IO.io.each(Collections.chopped(pkg, output.packageSize), p -> {
-			long now = System.currentTimeMillis();
 			try {
 				output.write(key, p);
 			} catch (FailoverException ex) {
 				fail(key, (Collection<V>) ex.fails.keySet(), ex);
-			} finally {
-				IO.io.run(() -> logger().debug(() -> "Package [" + p.size() + "/" + pkg.size() + "] output/failover finished in [" + (System
-						.currentTimeMillis() - now) + "] ms, sample key: [" + p.get(0).id() + "]."));
 			}
 		});
 		try {

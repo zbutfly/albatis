@@ -23,7 +23,8 @@ public abstract class Message<P, W, MSG extends Message<P, W, MSG>> implements S
 
 	abstract public P partition();
 
-	abstract public String id();
+	@Override
+	abstract public String toString();
 
 	public abstract W forWrite();
 

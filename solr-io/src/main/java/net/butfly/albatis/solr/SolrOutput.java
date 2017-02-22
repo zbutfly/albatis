@@ -16,7 +16,7 @@ import net.butfly.albacore.io.faliover.FailoverOutput;
 import net.butfly.albacore.utils.Configs;
 
 public final class SolrOutput extends FailoverOutput<String, SolrMessage<SolrInputDocument>> {
-	private final static int PACKAGE_SIZE = Integer.parseInt(Configs.MAIN_CONF.getOrDefault("albatis.io.solr.package.size", "500"));
+	private final static int PACKAGE_SIZE = Integer.parseInt(Configs.MAIN_CONF.getOrDefault("albatis.io.solr.batch.size", "500"));
 	static final int DEFAULT_AUTO_COMMIT_MS = 30000;
 	private final SolrConnection solr;
 

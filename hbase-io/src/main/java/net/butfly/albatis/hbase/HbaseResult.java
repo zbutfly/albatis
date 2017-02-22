@@ -53,6 +53,16 @@ public class HbaseResult extends Message<String, Put, HbaseResult> {
 		this.result = result;
 	}
 
+	public static long sizes(Iterable<HbaseResult> results) {
+		if (null == results) return 0;
+		return Streams.of(results).collect(Collectors.summingLong(r -> r.size()));
+	}
+
+	public static long cells(Iterable<HbaseResult> results) {
+		if (null == results) return 0;
+		return Streams.of(results).collect(Collectors.summingLong(r -> r.cells().collect(Collectors.counting())));
+	}
+
 	public long size() {
 		return isEmpty() ? 0 : cells().mapToLong(c -> c.getValueLength()).sum();
 	}
@@ -140,10 +150,5 @@ public class HbaseResult extends Message<String, Put, HbaseResult> {
 		} catch (IOException e) {
 			throw new IllegalArgumentException(e);
 		}
-	}
-
-	@Override
-	public String id() {
-		return Bytes.toString(row);
 	}
 }
