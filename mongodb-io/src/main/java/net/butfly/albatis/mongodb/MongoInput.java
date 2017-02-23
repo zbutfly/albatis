@@ -3,8 +3,6 @@ package net.butfly.albatis.mongodb;
 import static net.butfly.albatis.mongodb.MongoConnection.dbobj;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Stream;
 
@@ -106,22 +104,6 @@ public class MongoInput extends InputImpl<DBObject> {
 
 	@Override
 	public Stream<DBObject> dequeue(long batchSize) {
-		boolean retry;
-		List<DBObject> batch = new ArrayList<>();
-		do {
-			retry = false;
-			if (lock.writeLock().tryLock()) try {
-				while (opened() && batch.size() < batchSize) {
-					if (!cursor.hasNext()) return Streams.of(batch);
-					batch.add(cursor.next());
-				}
-			} catch (MongoException ex) {
-				logger.warn("[" + name() + "] read failure but processing will continue", ex);
-				retry = true;
-			} finally {
-				lock.writeLock().unlock();
-			}
-		} while (opened() && retry && batch.size() == 0);
-		return Streams.of(batch);
+		return Streams.fetch(batchSize, () -> cursor.hasNext() ? cursor.next() : null, () -> empty(), lock.writeLock(), true);
 	}
 }

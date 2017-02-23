@@ -129,7 +129,7 @@ public final class HbaseInput extends InputImpl<HbaseResult> {
 		List<HbaseResult> results;
 		if (b <= 1) results = get(gets);
 		else {
-			Collection<List<Get>> batchs = IO.collect(gets, Collectors.groupingBy(g -> random.nextInt(b))).values();
+			Collection<List<Get>> batchs = IO.collect(gets, Collectors.groupingByConcurrent(g -> random.nextInt(b))).values();
 			results = IO.list(Streams.of(batchs).map(this::get).flatMap(Streams::of));
 		}
 		logger().trace("Hbase batch get: " + (System.currentTimeMillis() - now) + " ms, total [" + gets.size() + " gets]/[" + Texts

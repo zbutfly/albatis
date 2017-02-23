@@ -22,7 +22,6 @@ import net.butfly.albacore.io.InputImpl;
 import net.butfly.albacore.io.OpenableThread;
 import net.butfly.albacore.io.Streams;
 import net.butfly.albacore.io.URISpec;
-import net.butfly.albacore.lambda.Consumer;
 import net.butfly.albacore.utils.IOs;
 import net.butfly.albacore.utils.Texts;
 import net.butfly.albacore.utils.async.Concurrents;
@@ -89,21 +88,6 @@ public final class KafkaInput extends InputImpl<KafkaMessage> {
 
 	@Override
 	protected KafkaMessage dequeue() {
-		return fetch();
-	}
-
-	@Override
-	public Stream<KafkaMessage> dequeue(long batchSize) {
-		return Streams.batch(batchSize, this::fetch, () -> false);
-	}
-
-	protected KafkaMessage fetch(KafkaStream<byte[], byte[]> stream, Fetcher fetcher, Consumer<KafkaMessage> result) {
-		KafkaMessage m = fetch();
-		result.accept(m);
-		return m;
-	}
-
-	private KafkaMessage fetch() {
 		byte[] buf;
 		try {
 			buf = pool.dequeue();

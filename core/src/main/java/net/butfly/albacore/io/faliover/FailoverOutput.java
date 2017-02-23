@@ -59,8 +59,8 @@ public abstract class FailoverOutput<K, M extends Message<K, ?, M>> extends Outp
 		while (it.hasNext()) {
 			fs.add(IO.listen(() -> {
 				AtomicLong c = new AtomicLong(0);
-				Map<K, List<M>> m = IO.collect(Streams.batch(batchSize, it), Collectors.groupingBy(e -> e.partition(), Collectors.mapping(
-						t -> t, Collectors.toList())));
+				Stream<M> batch = Streams.fetch(batchSize, () -> it.next(), () -> !it.hasNext(), null, false);
+				Map<K, List<M>> m = IO.collect(batch, Collectors.groupingByConcurrent(e -> e.partition()));
 				IO.each(m.entrySet(), e -> c.addAndGet(failover.output(e.getKey(), e.getValue())));
 				return c.get();
 			}));
