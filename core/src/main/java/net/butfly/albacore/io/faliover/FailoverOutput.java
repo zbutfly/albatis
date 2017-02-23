@@ -57,11 +57,10 @@ public abstract class FailoverOutput<K, M extends Message<K, ?, M>> extends Outp
 		Iterator<M> it = els.iterator();
 		List<ListenableFuture<Long>> fs = new ArrayList<>();
 		while (it.hasNext()) {
-			List<M> batch = Streams.batch(batchSize, it, null, false);
 			fs.add(IO.listen(() -> {
 				AtomicLong c = new AtomicLong(0);
-				Map<K, List<M>> m = IO.collect(Streams.of(batch), Collectors.groupingBy(e -> e.partition(), Collectors.mapping(t -> t,
-						Collectors.toList())));
+				Map<K, List<M>> m = IO.collect(Streams.batch(batchSize, it), Collectors.groupingBy(e -> e.partition(), Collectors.mapping(
+						t -> t, Collectors.toList())));
 				IO.each(m.entrySet(), e -> c.addAndGet(failover.output(e.getKey(), e.getValue())));
 				return c.get();
 			}));
