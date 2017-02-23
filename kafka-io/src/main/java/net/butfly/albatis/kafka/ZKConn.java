@@ -91,19 +91,12 @@ public class ZKConn implements AutoCloseable {
 					.collect(Collectors.toSet()));
 			return t;
 		});
-		return s.collect(Collectors.toMap(t -> {
-			return t._1;
-		}, t -> {
-			IntStream ss = t._2.stream().mapToInt(i -> {
-				return null == i ? 0 : i.intValue();
-			});
-			return ss.sorted().toArray();
-		}));
+		return IO.map(s, t -> t._1, t -> t._2.stream().mapToInt(i -> null == i ? 0 : i.intValue()).sorted().toArray());
 	}
 
 	public Map<String, int[]> getTopicPartitions(String... topics) {
 		if (topics == null || topics.length == 0) return getTopicPartitions();
-		return Stream.of(topics).collect(Collectors.toMap(t -> t, t -> {
+		return IO.map(Stream.of(topics), t -> t, t -> {
 			Map<String, Object> info = fetchMap(ZkUtils.getTopicPath(t));
 			if (null == info) return new int[0];
 			else {
@@ -115,7 +108,7 @@ public class ZKConn implements AutoCloseable {
 					return Integer.parseInt(i);
 				}).sorted().toArray();
 			}
-		}));
+		});
 	}
 
 	public long getLag(String topic, String group) {
@@ -146,7 +139,7 @@ public class ZKConn implements AutoCloseable {
 		if (null == nodes || nodes.isEmpty()) {
 			Map<String, Object> map = fetchMap(path);
 			return null == map ? fetchValue(path) : (T) map;
-		} else return (T) IO.collect(nodes, s -> s.map(node -> {
+		} else return (T) IO.mapping(nodes, s -> s.map(node -> {
 			String subpath = "/".equals(path) ? "/" + node : path + "/" + node;
 			System.err.println("Scan zk: " + subpath);
 			Object sub = fetchTree(subpath);

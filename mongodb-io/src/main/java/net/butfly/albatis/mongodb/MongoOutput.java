@@ -28,7 +28,7 @@ public final class MongoOutput extends OutputImpl<DBObject> {
 	}
 
 	@Override
-	public boolean enqueue(DBObject dbo) {
+	protected boolean enqueue(DBObject dbo) { 
 		if (null == dbo) return false;
 		if (!upsert) return collection.insert(dbo).getN() == 1;
 		else return collection.save(dbo).getN() == 1;

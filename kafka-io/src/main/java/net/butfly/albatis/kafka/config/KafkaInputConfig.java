@@ -1,5 +1,6 @@
 package net.butfly.albatis.kafka.config;
 
+import java.util.Map;
 import java.util.Properties;
 
 import kafka.consumer.ConsumerConfig;
@@ -58,20 +59,20 @@ public class KafkaInputConfig extends KafkaConfigBase {
 		this.consumerId = consumerId;
 		groupId = uri.getUsername();
 		if (groupId == null || "".equals(groupId)) groupId = Systems.suffixDebug(Systems.getMainClass().getSimpleName(), logger);
-		Properties props = uri.getParameters();
+		Map<String, String> props = uri.getParameters();
 
-		zookeeperSyncTimeMs = Long.parseLong(props.getProperty("zksynctime", "15000").trim());
-		autoCommitIntervalMs = Long.parseLong(props.getProperty("autocommit", DEFAULT_AUTO_COMMIT_MS).trim());
+		zookeeperSyncTimeMs = Long.parseLong(props.getOrDefault("zksynctime", "15000").trim());
+		autoCommitIntervalMs = Long.parseLong(props.getOrDefault("autocommit", DEFAULT_AUTO_COMMIT_MS).trim());
 		autoCommitEnable = autoCommitIntervalMs > 0;
-		autoOffsetReset = props.getProperty("autoreset", "smallest");
-		sessionTimeoutMs = Long.parseLong(props.getProperty("sessiontimeout", "30000").trim());
-		fetchWaitTimeoutMs = Long.parseLong(props.getProperty("fetchtimeout", "500").trim());
-		partitionAssignmentStrategy = props.getProperty("strategy", "range");
-		fetchMessageMaxBytes = Long.parseLong(props.getProperty("fetchmax", "10485760").trim());
-		rebalanceRetries = Integer.parseInt(props.getProperty("rebalanceretries", "2"));
-		zookeeperSessionTimeoutMs = Long.parseLong(props.getProperty("zksessiontimeout", "30000"));
+		autoOffsetReset = props.getOrDefault("autoreset", "smallest");
+		sessionTimeoutMs = Long.parseLong(props.getOrDefault("sessiontimeout", "30000").trim());
+		fetchWaitTimeoutMs = Long.parseLong(props.getOrDefault("fetchtimeout", "500").trim());
+		partitionAssignmentStrategy = props.getOrDefault("strategy", "range");
+		fetchMessageMaxBytes = Long.parseLong(props.getOrDefault("fetchmax", "10485760").trim());
+		rebalanceRetries = Integer.parseInt(props.getOrDefault("rebalanceretries", "2"));
+		zookeeperSessionTimeoutMs = Long.parseLong(props.getOrDefault("zksessiontimeout", "30000"));
 
-		partitionParallelism = Integer.parseInt(props.getProperty("parallelism", "0").trim());
+		partitionParallelism = Integer.parseInt(props.getOrDefault("parallelism", "0").trim());
 	}
 
 	/**

@@ -9,19 +9,16 @@ public class MapdbQueue<I, O> extends QueueImpl<I, O> {
 
 	@Override
 	public long size() {
-		// TODO Auto-generated method stub
 		return 0;
 	}
 
 	@Override
-	public O dequeue() {
-		// TODO Auto-generated method stub
+	protected O dequeue() {
 		return null;
 	}
 
 	@Override
-	public boolean enqueue(I item) {
-		// TODO Auto-generated method stub
+	protected boolean enqueue(I item) { 
 		return false;
 	}
 }

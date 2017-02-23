@@ -23,7 +23,7 @@ public final class ElasticOutput extends OutputImpl<ElasticMessage> {
 	}
 
 	@Override
-	public boolean enqueue(ElasticMessage s) {
+	protected boolean enqueue(ElasticMessage s) { 
 		if (s == null) return false;
 		ActionFuture<?> f = s.updating ? conn.client().update((UpdateRequest) s.forWrite())
 				: conn.client().index((IndexRequest) s.forWrite());

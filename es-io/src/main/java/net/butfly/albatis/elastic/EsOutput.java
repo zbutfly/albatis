@@ -70,7 +70,7 @@ public final class EsOutput extends FailoverOutput<String, ElasticMessage> {
 			}
 			if (resps != null) {
 				if (resps.get(Boolean.TRUE).isEmpty()) {
-					List<BulkItemResponse> s = resps.get(Boolean.TRUE);
+					List<BulkItemResponse> s = resps.get(Boolean.FALSE);
 					if (logger().isTraceEnabled()) logger().trace("Try#" + retry + " finished, total:[" + values.size() + "/" + Texts
 							.formatKilo(reqSize, " bytes") + "] in [" + (System.currentTimeMillis() - now) + "] ms, sample id: [" + (s
 									.isEmpty() ? "NONE" : s.get(0).getId()) + "].");
@@ -100,8 +100,8 @@ public final class EsOutput extends FailoverOutput<String, ElasticMessage> {
 		if (!retries.isEmpty()) fails.putAll(IO.collect(retries, Collectors.toConcurrentMap(m -> m.id,
 				m -> "VersionConfliction or EsRejected")));
 		if (fails.isEmpty()) return values.size();
-		else throw new FailoverException(IO.collect(Streams.of(values).filter(es -> fails.containsKey(es.id)), Collectors.toMap(es -> es,
-				es -> fails.get(es.id))));
+		else throw new FailoverException(IO.map(Streams.of(values).filter(es -> fails.containsKey(es.id)), es -> es, es -> fails.get(
+				es.id)));
 	}
 
 	private String wrapErrorMessage(BulkItemResponse r) {

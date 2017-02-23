@@ -48,7 +48,7 @@ public final class KafkaOutput extends OutputImpl<KafkaMessage> {
 	}
 
 	@Override
-	public boolean enqueue(KafkaMessage m) {
+	protected boolean enqueue(KafkaMessage m) { 
 		if (null == m) return false;
 		Future<RecordMetadata> future = send(m);
 		if (null == future) return false;

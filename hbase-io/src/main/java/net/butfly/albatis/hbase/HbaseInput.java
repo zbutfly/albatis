@@ -95,7 +95,7 @@ public final class HbaseInput extends InputImpl<HbaseResult> {
 	}
 
 	@Override
-	public HbaseResult dequeue() {
+	protected HbaseResult dequeue() {
 		try {
 			return new HbaseResult(tname, scaner.next());
 		} catch (IOException e) {
@@ -121,6 +121,7 @@ public final class HbaseInput extends InputImpl<HbaseResult> {
 
 	private static Random random = new Random();
 
+	@Deprecated
 	public List<HbaseResult> get(List<Get> gets, long batchSize) {
 		int b = (int) (gets.size() / batchSize) + 1;
 		long now = System.currentTimeMillis();
@@ -148,6 +149,10 @@ public final class HbaseInput extends InputImpl<HbaseResult> {
 			results = new ArrayList<>();
 		}
 		return results;
+	}
+
+	public Stream<HbaseResult> get(Stream<Get> gets) {
+		return gets.map(this::get);
 	}
 
 	public HbaseResult get(Get get) {

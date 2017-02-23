@@ -2,6 +2,7 @@ package net.butfly.albatis.kafka.config;
 
 import java.io.Serializable;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 import org.apache.kafka.common.config.ConfigException;
@@ -86,14 +87,14 @@ public abstract class KafkaConfigBase implements Serializable {
 		default:
 			throw new ConfigException("Neither [zk] nor [bootstrap.servers] found");
 		}
-		Properties props = uri.getParameters();
-		zookeeperConnectionTimeoutMs = Long.valueOf(props.getProperty("zkconntimeout", "20000"));
-		transferBufferBytes = Long.valueOf(props.getProperty("socketBuffer", Long.toString(5 * 1024 * 1024)));
-		keySerializerClass = props.getProperty("kserial", ByteArraySerializer.class.getName());
-		valueSerializerClass = props.getProperty("vserial", ByteArraySerializer.class.getName());
-		poolSize = Long.parseLong(props.getProperty("pool", "3000000"));
-		topics = Texts.split(props.getProperty("topic", ""), ",");
-		backoffMs = Long.parseLong(props.getProperty("backoff", "100"));
+		Map<String, String> props = uri.getParameters();
+		zookeeperConnectionTimeoutMs = Long.valueOf(props.getOrDefault("zkconntimeout", "20000"));
+		transferBufferBytes = Long.valueOf(props.getOrDefault("socketBuffer", Long.toString(5 * 1024 * 1024)));
+		keySerializerClass = props.getOrDefault("kserial", ByteArraySerializer.class.getName());
+		valueSerializerClass = props.getOrDefault("vserial", ByteArraySerializer.class.getName());
+		poolSize = Long.parseLong(props.getOrDefault("pool", "3000000"));
+		topics = Texts.split(props.getOrDefault("topic", ""), ",");
+		backoffMs = Long.parseLong(props.getOrDefault("backoff", "100"));
 	}
 
 	public Properties props() {

@@ -1,5 +1,6 @@
 package net.butfly.albatis.kafka.config;
 
+import java.util.Map;
 import java.util.Properties;
 
 import kafka.producer.ProducerConfig;
@@ -18,14 +19,14 @@ public class KafkaOutputConfig extends KafkaConfigBase {
 
 	public KafkaOutputConfig(URISpec uri) {
 		super(uri);
-		Properties props = uri.getParameters();
-		async = Boolean.parseBoolean(props.getProperty("async", "false"));
-		requestRequiredAcks = props.getProperty("acks", "all");
-		compressionCodec = props.getProperty("compression", "snappy");
-		retries = Integer.parseInt(props.getProperty("retries", "0"));
-		batchSize = Integer.parseInt(props.getProperty("batch", "2000"));
-		batchBlock = Boolean.parseBoolean(props.getProperty("block", "true"));
-		bufferBytes = Long.parseLong(props.getProperty("buffer", Long.toString(128 * 1024 * 1024)));
+		Map<String, String> props = uri.getParameters();
+		async = Boolean.parseBoolean(props.getOrDefault("async", "false"));
+		requestRequiredAcks = props.getOrDefault("acks", "all");
+		compressionCodec = props.getOrDefault("compression", "snappy");
+		retries = Integer.parseInt(props.getOrDefault("retries", "0"));
+		batchSize = Integer.parseInt(props.getOrDefault("batch", "2000"));
+		batchBlock = Boolean.parseBoolean(props.getOrDefault("block", "true"));
+		bufferBytes = Long.parseLong(props.getOrDefault("buffer", Long.toString(128 * 1024 * 1024)));
 	}
 
 	/**

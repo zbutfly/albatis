@@ -34,7 +34,7 @@ public final class KafkaOutput0 extends OutputImpl<KafkaMessage> {
 	}
 
 	@Override
-	public boolean enqueue(KafkaMessage m) {
+	protected boolean enqueue(KafkaMessage m) { 
 		if (null == m) return false;
 		try {
 			producer.send(m.toKeyedMessage());

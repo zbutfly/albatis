@@ -62,7 +62,7 @@
 // }
 //
 // @Override
-// public SolrDocument dequeue() {
+// protected SolrDocument dequeue() {
 // return super.dequeue();
 // }
 //

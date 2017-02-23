@@ -86,7 +86,7 @@ public final class ElasticInput extends InputImpl<SearchResponse> {
     }
 
     @Override
-    public SearchResponse dequeue() {
+    protected SearchResponse dequeue() {
         if (searchResponse == null) scanType();
         else scanType2(searchResponse);
         return searchResponse;
