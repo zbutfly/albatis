@@ -58,7 +58,7 @@ public class HeapFailover<K, V extends Message<K, ?, V>> extends Failover<K, V> 
 				LinkedBlockingQueue<V> fails = failover.get(key);
 				retries.clear();
 				fails.drainTo(retries, output.packageSize);
-				if (!retries.isEmpty()) IO.io.run(() -> output(key, retries));
+				if (!retries.isEmpty()) IO.run(() -> output(key, retries));
 			}
 		}
 	}

@@ -32,7 +32,7 @@ public abstract class Failover<K, V extends Message<K, ?, V>> extends OpenableTh
 
 	@SuppressWarnings("unchecked")
 	protected final long output(K key, Collection<V> pkg) {
-		IO.io.each(Collections.chopped(pkg, output.packageSize), p -> {
+		IO.each(Collections.chopped(pkg, output.packageSize), p -> {
 			try {
 				output.write(key, p);
 			} catch (FailoverException ex) {

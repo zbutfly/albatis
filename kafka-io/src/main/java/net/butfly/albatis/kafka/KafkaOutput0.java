@@ -6,6 +6,7 @@ import java.util.stream.Stream;
 import kafka.javaapi.producer.Producer;
 import kafka.producer.KeyedMessage;
 import net.butfly.albacore.exception.ConfigException;
+import net.butfly.albacore.io.IO;
 import net.butfly.albacore.io.OutputImpl;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.Exceptions;
@@ -46,7 +47,7 @@ public final class KafkaOutput0 extends OutputImpl<KafkaMessage> {
 
 	@Override
 	public long enqueue(Stream<KafkaMessage> messages) {
-		List<KeyedMessage<byte[], byte[]>> ms = io.list(messages.map(m -> m.toKeyedMessage()));
+		List<KeyedMessage<byte[], byte[]>> ms = IO.list(messages.map(m -> m.toKeyedMessage()));
 		try {
 			producer.send(ms);
 			return ms.size();

@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.common.SolrInputDocument;
 
+import net.butfly.albacore.io.IO;
 import net.butfly.albacore.io.Message;
 import net.butfly.albacore.io.Streams;
 import net.butfly.albacore.io.faliover.Failover.FailoverException;
@@ -49,9 +50,9 @@ public final class SolrOutput extends FailoverOutput<String, SolrMessage<SolrInp
 	@Override
 	protected int write(String core, Collection<SolrMessage<SolrInputDocument>> docs) throws FailoverException {
 		try {
-			solr.client().add(core, io.list(docs, SolrMessage<SolrInputDocument>::forWrite), DEFAULT_AUTO_COMMIT_MS);
+			solr.client().add(core, IO.list(docs, SolrMessage<SolrInputDocument>::forWrite), DEFAULT_AUTO_COMMIT_MS);
 		} catch (Exception e) {
-			throw new FailoverException(io.collect(Streams.of(docs), Collectors.toConcurrentMap(r -> r, r -> unwrap(e).getMessage())));
+			throw new FailoverException(IO.collect(Streams.of(docs), Collectors.toConcurrentMap(r -> r, r -> unwrap(e).getMessage())));
 		}
 		return docs.size();
 	}

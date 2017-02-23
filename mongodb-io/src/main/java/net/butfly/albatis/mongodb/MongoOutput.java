@@ -6,6 +6,7 @@ import java.util.stream.Stream;
 import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 
+import net.butfly.albacore.io.IO;
 import net.butfly.albacore.io.OutputImpl;
 
 public final class MongoOutput extends OutputImpl<DBObject> {
@@ -35,6 +36,6 @@ public final class MongoOutput extends OutputImpl<DBObject> {
 
 	@Override
 	public long enqueue(Stream<DBObject> dbos) {
-		return collection.insert(io.list(dbos)).getN();
+		return collection.insert(IO.list(dbos)).getN();
 	}
 }

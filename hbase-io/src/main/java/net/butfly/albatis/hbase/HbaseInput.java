@@ -140,9 +140,9 @@ public final class HbaseInput extends InputImpl<HbaseResult> {
 		List<HbaseResult> results;
 		try (Table t = hconn.getTable(TableName.valueOf(tname));) {
 			try {
-				results = io.list(Stream.of(t.get(gets)).parallel().map(r -> new HbaseResult(tname, r)));
+				results = IO.list(Streams.of(t.get(gets)).map(r -> new HbaseResult(tname, r)));
 			} catch (Exception ex) {
-				results = io.list(gets, this::get);
+				results = IO.list(gets, this::get);
 			}
 		} catch (IOException e) {
 			results = new ArrayList<>();

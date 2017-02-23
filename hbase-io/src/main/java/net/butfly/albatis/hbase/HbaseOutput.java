@@ -14,6 +14,7 @@ import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Table;
 
+import net.butfly.albacore.io.IO;
 import net.butfly.albacore.io.Streams;
 import net.butfly.albacore.io.faliover.Failover.FailoverException;
 import net.butfly.albacore.io.faliover.FailoverOutput;
@@ -61,11 +62,11 @@ public final class HbaseOutput extends FailoverOutput<String, HbaseResult> {
 
 	@Override
 	protected int write(String table, Collection<HbaseResult> values) throws FailoverException {
-		List<Put> puts = io.list(values, HbaseResult::forWrite);
+		List<Put> puts = IO.list(values, HbaseResult::forWrite);
 		try {
 			table(table).put(puts);
 		} catch (Exception e) {
-			throw new FailoverException(io.collect(Streams.of(values), Collectors.toConcurrentMap(r -> r, r -> {
+			throw new FailoverException(IO.collect(Streams.of(values), Collectors.toConcurrentMap(r -> r, r -> {
 				String m = unwrap(e).getMessage();
 				if (null == m) m = "Unknown message";
 				return m;

@@ -9,6 +9,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import net.butfly.albacore.io.IO;
 import net.butfly.albacore.io.Message;
 import net.butfly.albacore.io.OutputImpl;
 import net.butfly.albacore.io.Streams;
@@ -54,10 +55,10 @@ public abstract class FailoverOutput<K, M extends Message<K, ?, M>> extends Outp
 
 	@Override
 	public final long enqueue(Stream<M> els) {
-		Map<K, List<M>> map = io.collect(Streams.of(els), Collectors.groupingBy(e -> e.partition(), Collectors.mapping(t -> t, Collectors
+		Map<K, List<M>> map = IO.collect(Streams.of(els), Collectors.groupingBy(e -> e.partition(), Collectors.mapping(t -> t, Collectors
 				.toList())));
 		AtomicLong count = new AtomicLong(0);
-		io.each(map.entrySet(), e -> count.addAndGet(failover.output(e.getKey(), e.getValue())));
+		IO.each(map.entrySet(), e -> count.addAndGet(failover.output(e.getKey(), e.getValue())));
 		return count.get();
 	}
 
