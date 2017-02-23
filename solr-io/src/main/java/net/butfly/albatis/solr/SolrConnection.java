@@ -18,6 +18,7 @@ import org.apache.http.impl.nio.client.HttpAsyncClients;
 import org.apache.solr.client.solrj.ResponseParser;
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrServerException;
+import org.apache.solr.client.solrj.impl.BinaryResponseParser;
 import org.apache.solr.client.solrj.impl.CloudSolrClient;
 import org.apache.solr.client.solrj.impl.HttpClientUtil;
 import org.apache.solr.client.solrj.impl.HttpSolrClient;
@@ -25,6 +26,7 @@ import org.apache.solr.client.solrj.impl.HttpSolrClient.Builder;
 import org.apache.solr.client.solrj.impl.XMLResponseParser;
 import org.apache.solr.client.solrj.request.CoreAdminRequest;
 import org.apache.solr.client.solrj.response.CoreAdminResponse;
+import org.apache.solr.client.solrj.response.DelegationTokenResponse.JsonMapResponseParser;
 import org.apache.solr.common.params.CoreAdminParams.CoreAdminAction;
 import org.apache.solr.common.params.ModifiableSolrParams;
 
@@ -39,20 +41,49 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 	private static final CloseableHttpClient HTTP_CLIENT = SolrHttpContext.createDefaultHttpclient();
 	private static final Map<Class<? extends ResponseParser>, ResponseParser> PARSER_POOL = new ConcurrentHashMap<>();
 
+	public enum ResponseFormat {
+		XML(XMLResponseParser.class), JSON(JsonMapResponseParser.class), BINARY(BinaryResponseParser.class);
+		private final Class<? extends ResponseParser> parser;
+
+		private <P extends ResponseParser> ResponseFormat(Class<P> parser) {
+			this.parser = parser;
+		}
+
+		@SuppressWarnings("unchecked")
+		private static Class<? extends ResponseParser> parse(String id) {
+			try {
+				return ResponseFormat.valueOf(id.toUpperCase()).parser;
+			} catch (Exception e) {
+				try {
+					return (Class<? extends ResponseParser>) Class.forName(id);
+				} catch (ClassNotFoundException e1) {
+					throw new IllegalArgumentException("Parser [" + id + "] not found.");
+				}
+			}
+		}
+	}
+
 	private String baseUri;
 	private String defaultCore;
 	private String[] cores;
 	private final Class<? extends ResponseParser> parserClass;
 
 	public SolrConnection(String connection) throws IOException {
-		this(connection, XMLResponseParser.class);
+		this(new URISpec(connection));
 	}
 
-	public <P extends ResponseParser> SolrConnection(String connection, Class<P> parserClass) throws IOException {
-		super(new URISpec(connection), uri -> create(uri, parserClass), "solr", "zookeeper", "zk", "http");
+	public SolrConnection(String connection, Class<? extends ResponseParser> parserClass) throws IOException {
+		this(new URISpec(connection), parserClass);
+	}
+
+	public SolrConnection(URISpec uri) throws IOException {
+		this(uri, ResponseFormat.parse(uri.getParameter("parser", "XML")));
+	}
+
+	public SolrConnection(URISpec uri, Class<? extends ResponseParser> parserClass) throws IOException {
+		super(uri, u -> create(u, parserClass), "solr", "zookeeper", "zk", "http");
 		this.parserClass = parserClass;
 		parse();
-
 	}
 
 	private static SolrClient create(URISpec uri, Class<? extends ResponseParser> parserClass) {

@@ -27,15 +27,15 @@ import net.butfly.albacore.io.faliover.Failover.FailoverException;
  */
 public abstract class FailoverOutput<K, M extends Message<K, ?, M>> extends OutputImpl<M> {
 	private final Failover<K, M> failover;
-	final int packageSize;
+	final int batchSize;
 
-	protected FailoverOutput(String name, Function<byte[], ? extends M> constructor, String failoverPath, int packageSize)
+	protected FailoverOutput(String name, Function<byte[], ? extends M> constructor, String failoverPath, int batchSize)
 			throws IOException {
 		super(name);
-		this.packageSize = packageSize;
+		this.batchSize = batchSize;
 		failover = failoverPath == null ? new HeapFailover<K, M>(name(), this, constructor)
 				: new OffHeapFailover<K, M>(name(), this, constructor, failoverPath, null);
-		failover.trace(packageSize, () -> "failover: " + size());
+		failover.trace(batchSize, () -> "failover: " + size());
 	}
 
 	@Override

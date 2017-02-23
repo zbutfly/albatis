@@ -12,24 +12,23 @@ import org.apache.solr.common.SolrInputDocument;
 import net.butfly.albacore.io.IO;
 import net.butfly.albacore.io.Message;
 import net.butfly.albacore.io.Streams;
+import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.io.faliover.Failover.FailoverException;
 import net.butfly.albacore.io.faliover.FailoverOutput;
-import net.butfly.albacore.utils.Configs;
 
 public final class SolrOutput extends FailoverOutput<String, SolrMessage<SolrInputDocument>> {
-	private final static int PACKAGE_SIZE = Integer.parseInt(Configs.MAIN_CONF.getOrDefault("albatis.io.solr.batch.size", "500"));
 	static final int DEFAULT_AUTO_COMMIT_MS = 30000;
 	private final SolrConnection solr;
 
-	public SolrOutput(String name, String baseUrl) throws IOException {
-		this(name, baseUrl, null);
-		open();
+	public SolrOutput(String name, URISpec uri) throws IOException {
+		this(name, uri, null);
 	}
 
-	public SolrOutput(String name, String baseUrl, String failoverPath) throws IOException {
-		super(name, b -> Message.<SolrMessage<SolrInputDocument>> fromBytes(b), failoverPath, PACKAGE_SIZE);
-		logger().info("[" + name + "] from [" + baseUrl + "]");
-		solr = new SolrConnection(baseUrl);
+	public SolrOutput(String name, URISpec uri, String failoverPath) throws IOException {
+		super(name, b -> Message.<SolrMessage<SolrInputDocument>> fromBytes(b), failoverPath, Integer.parseInt(uri.getParameter("batch",
+				"200")));
+		solr = new SolrConnection(uri);
+		open();
 	}
 
 	@Override

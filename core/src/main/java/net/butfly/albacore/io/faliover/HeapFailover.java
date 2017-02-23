@@ -52,12 +52,12 @@ public class HeapFailover<K, V extends Message<K, ?, V>> extends Failover<K, V> 
 
 	@Override
 	protected void exec() {
-		List<V> retries = new ArrayList<>(output.packageSize);
+		List<V> retries = new ArrayList<>(output.batchSize);
 		while (opened()) {
 			for (K key : failover.keySet()) {
 				LinkedBlockingQueue<V> fails = failover.get(key);
 				retries.clear();
-				fails.drainTo(retries, output.packageSize);
+				fails.drainTo(retries, output.batchSize);
 				if (!retries.isEmpty()) IO.run(() -> output(key, retries));
 			}
 		}

@@ -22,22 +22,20 @@ import net.butfly.albacore.io.Streams;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.io.faliover.Failover.FailoverException;
 import net.butfly.albacore.io.faliover.FailoverOutput;
-import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.Texts;
 
 public final class EsOutput extends FailoverOutput<String, ElasticMessage> {
-	private final static int PACKAGE_SIZE = Integer.parseInt(Configs.MAIN_CONF.getOrDefault("albatis.io.es.batch.size", "100"));
 	private final ElasticConnection conn;
 	private final int maxRetry;
 
-	public EsOutput(String name, String esUri, String failoverPath) throws IOException {
-		this(name, new URISpec(esUri), failoverPath);
+	public EsOutput(String name, String uri, String failoverPath) throws IOException {
+		this(name, new URISpec(uri), failoverPath);
 	}
 
-	public EsOutput(String name, URISpec esURI, String failoverPath) throws IOException {
-		super(name, b -> new ElasticMessage(b), failoverPath, PACKAGE_SIZE);
-		conn = new ElasticConnection(esURI);
-		maxRetry = Integer.parseInt(esURI.getParameter("retry", "5"));
+	public EsOutput(String name, URISpec uri, String failoverPath) throws IOException {
+		super(name, b -> new ElasticMessage(b), failoverPath, Integer.parseInt(uri.getParameter("batch", "200")));
+		conn = new ElasticConnection(uri);
+		maxRetry = Integer.parseInt(uri.getParameter("retry", "5"));
 		open();
 	}
 
