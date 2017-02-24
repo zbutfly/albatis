@@ -61,26 +61,27 @@ public final class KafkaInput extends InputImpl<KafkaMessage> {
 		}
 
 		logger().debug("parallelism of topics: " + allTopics.toString() + ".");
-		connect = kafka.consumer.Consumer.createJavaConsumerConnector(config.getConfig());
 		Map<String, List<KafkaStream<byte[], byte[]>>> temp = null;
 		do
 			try {
+				connect = kafka.consumer.Consumer.createJavaConsumerConnector(config.getConfig());
 				temp = connect.createMessageStreams(allTopics);
 			} catch (ConsumerRebalanceFailedException | MessageStreamsExistException e) {
-				logger().warn("Kafka close and open too quickly, wait 10 seconds and retry");
-				if (!Concurrents.waitSleep(1000 * 10)) throw e;
+				logger().warn("Kafka reopen too quickly, wait 10 seconds and retry");
+				connect.shutdown();
 				temp = null;
+				if (!Concurrents.waitSleep(1000 * 10)) throw e;
 			}
 		while (temp == null);
 		Stream<KafkaStream<byte[], byte[]>> r = Streams.of(temp.values()).flatMap(t -> Streams.of(t));
-		AtomicInteger findex = new AtomicInteger();
-		raws = IO.map(r, s -> s, s -> new Fetcher(name + "Fetcher", s, findex.incrementAndGet(), pool, config.getPoolSize()));
 		logger().debug("connected.");
 		try {
 			pool = new BigQueueImpl(IOs.mkdirs(poolPath + "/" + name), config.toString());
 		} catch (IOException e) {
 			throw new RuntimeException("Offheap pool init failure", e);
 		}
+		AtomicInteger findex = new AtomicInteger();
+		raws = IO.map(r, s -> s, s -> new Fetcher(name + "Fetcher", s, findex.incrementAndGet(), pool, config.getPoolSize()));
 		logger().info(MessageFormat.format("[{0}] local pool init: [{1}/{0}] with name [{2}], init size [{3}].", name, poolPath, config
 				.toString(), pool.size()));
 		open();
@@ -96,6 +97,13 @@ public final class KafkaInput extends InputImpl<KafkaMessage> {
 		}
 		if (null == buf) return null;
 		return new KafkaMessage(buf);
+	}
+
+	@Override
+	public void open() {
+		for (Fetcher f : raws.values())
+			f.open();
+		super.open();
 	}
 
 	@Override
@@ -164,12 +172,12 @@ public final class KafkaInput extends InputImpl<KafkaMessage> {
 					}
 					Concurrents.waitSleep(1000); // kafka empty
 				} catch (Exception e) {} finally {
-					gc(pool);
+					gc();
 				}
 			logger().info("Fetcher finished and exited, pool [" + pool.size() + "].");
 		}
 
-		private void gc(IBigQueue pool) {
+		private void gc() {
 			try {
 				pool.gc();
 			} catch (IOException e) {

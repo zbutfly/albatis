@@ -43,8 +43,8 @@ public abstract class FailoverOutput<K, M extends Message<K, ?, M>> extends Outp
 	}
 
 	@Override
-	public void open(java.lang.Runnable run) {
-		super.open(run);
+	public void open() {
+		super.open();
 		failover.open();
 	}
 
