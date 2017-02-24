@@ -2,12 +2,9 @@ package net.butfly.albatis.hbase;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
-import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.hadoop.hbase.HConstants;
@@ -119,40 +116,22 @@ public final class HbaseInput extends InputImpl<HbaseResult> {
 		return Stream.empty();
 	}
 
-	private static Random random = new Random();
-
-	@Deprecated
-	public List<HbaseResult> get(List<Get> gets, long batchSize) {
-		int b = (int) (gets.size() / batchSize) + 1;
-		long now = System.currentTimeMillis();
-
-		List<HbaseResult> results;
-		if (b <= 1) results = get(gets);
-		else {
-			Collection<List<Get>> batchs = IO.collect(gets, Collectors.groupingByConcurrent(g -> random.nextInt(b))).values();
-			results = IO.list(Streams.of(batchs).map(this::get).flatMap(Streams::of));
-		}
-		logger().trace("Hbase batch get: " + (System.currentTimeMillis() - now) + " ms, total [" + gets.size() + " gets]/[" + Texts
-				.formatKilo(HbaseResult.sizes(results), " bytes") + "]/[" + HbaseResult.cells(results) + " cells], ");
-		return results;
-	}
-
 	public List<HbaseResult> get(List<Get> gets) {
 		List<HbaseResult> results;
 		try (Table t = hconn.getTable(TableName.valueOf(tname));) {
+			long now = System.currentTimeMillis();
 			try {
 				results = IO.list(Streams.of(t.get(gets)).map(r -> new HbaseResult(tname, r)));
 			} catch (Exception ex) {
 				results = IO.list(gets, this::get);
 			}
+			logger().trace("Hbase batch get: " + (System.currentTimeMillis() - now) + " ms, total [" + gets.size() + " gets]/[" + Texts
+					.formatKilo(HbaseResult.sizes(results), " bytes") + "]/[" + HbaseResult.cells(results) + " cells], ");
 		} catch (IOException e) {
 			results = new ArrayList<>();
+			logger().trace("Hbase get fail after split retry", e);
 		}
 		return results;
-	}
-
-	public Stream<HbaseResult> get(Stream<Get> gets) {
-		return gets.map(this::get);
 	}
 
 	public HbaseResult get(Get get) {

@@ -4,7 +4,6 @@ import static net.butfly.albacore.utils.Exceptions.unwrap;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -16,6 +15,8 @@ import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.transport.RemoteTransportException;
+
+import com.google.common.collect.Lists;
 
 import net.butfly.albacore.io.IO;
 import net.butfly.albacore.io.Streams;
@@ -49,7 +50,8 @@ public final class EsOutput extends FailoverOutput<String, ElasticMessage> {
 	}
 
 	@Override
-	protected int write(String type, Collection<ElasticMessage> values) throws FailoverException {
+	protected long write(String type, Iterable<ElasticMessage> msgs) throws FailoverException {
+		List<ElasticMessage> values = Lists.newArrayList(msgs);
 		if (values.isEmpty()) return 0;
 		Map<String, String> fails = new ConcurrentHashMap<>();
 		long reqSize = 0;

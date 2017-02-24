@@ -59,8 +59,21 @@ public final class KafkaInput extends InputImpl<KafkaMessage> {
 			else if (kp >= topicParts.get(t).length) allTopics.put(t, topicParts.get(t).length);
 			else allTopics.put(t, (int) Math.ceil(topicParts.get(t).length * 1.0 / kp));
 		}
-
 		logger().debug("parallelism of topics: " + allTopics.toString() + ".");
+		Stream<KafkaStream<byte[], byte[]>> r = connect();
+		try {
+			pool = new BigQueueImpl(IOs.mkdirs(poolPath + "/" + name), config.toString());
+		} catch (IOException e) {
+			throw new RuntimeException("Offheap pool init failure", e);
+		}
+		AtomicInteger findex = new AtomicInteger();
+		raws = IO.map(r, s -> s, s -> new Fetcher(name + "Fetcher", s, findex.incrementAndGet(), pool, config.getPoolSize()));
+		logger().info(MessageFormat.format("[{0}] local pool init: [{1}/{0}] with name [{2}], init size [{3}].", name, poolPath, config
+				.toString(), pool.size()));
+		open();
+	}
+
+	private Stream<KafkaStream<byte[], byte[]>> connect() throws ConfigException {
 		Map<String, List<KafkaStream<byte[], byte[]>>> temp = null;
 		do
 			try {
@@ -73,18 +86,8 @@ public final class KafkaInput extends InputImpl<KafkaMessage> {
 				if (!Concurrents.waitSleep(1000 * 10)) throw e;
 			}
 		while (temp == null);
-		Stream<KafkaStream<byte[], byte[]>> r = Streams.of(temp.values()).flatMap(t -> Streams.of(t));
 		logger().debug("connected.");
-		try {
-			pool = new BigQueueImpl(IOs.mkdirs(poolPath + "/" + name), config.toString());
-		} catch (IOException e) {
-			throw new RuntimeException("Offheap pool init failure", e);
-		}
-		AtomicInteger findex = new AtomicInteger();
-		raws = IO.map(r, s -> s, s -> new Fetcher(name + "Fetcher", s, findex.incrementAndGet(), pool, config.getPoolSize()));
-		logger().info(MessageFormat.format("[{0}] local pool init: [{1}/{0}] with name [{2}], init size [{3}].", name, poolPath, config
-				.toString(), pool.size()));
-		open();
+		return Streams.of(temp.values()).flatMap(t -> Streams.of(t));
 	}
 
 	@Override

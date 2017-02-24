@@ -3,7 +3,6 @@ package net.butfly.albatis.hbase;
 import static net.butfly.albacore.utils.Exceptions.unwrap;
 
 import java.io.IOException;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -60,7 +59,7 @@ public final class HbaseOutput extends FailoverOutput<String, HbaseResult> {
 	}
 
 	@Override
-	protected int write(String table, Collection<HbaseResult> values) throws FailoverException {
+	protected long write(String table, Iterable<HbaseResult> values) throws FailoverException {
 		List<Put> puts = IO.list(values, HbaseResult::forWrite);
 		try {
 			table(table).put(puts);

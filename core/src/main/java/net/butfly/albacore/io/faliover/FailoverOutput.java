@@ -1,17 +1,10 @@
 package net.butfly.albacore.io.faliover;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import com.google.common.util.concurrent.ListenableFuture;
 
 import net.butfly.albacore.io.IO;
 import net.butfly.albacore.io.Message;
@@ -48,24 +41,20 @@ public abstract class FailoverOutput<K, M extends Message<K, ?, M>> extends Outp
 		failover.open();
 	}
 
-	protected abstract int write(K key, Collection<M> values) throws FailoverException;
+	protected abstract long write(K key, Iterable<M> pkg) throws FailoverException;
 
 	protected void commit(K key) {}
 
 	@Override
 	public final long enqueue(Stream<M> els) {
-		Iterator<M> it = els.iterator();
-		List<ListenableFuture<Long>> fs = new ArrayList<>();
-		while (it.hasNext()) {
-			fs.add(IO.listen(() -> {
-				AtomicLong c = new AtomicLong(0);
-				Stream<M> batch = Streams.fetch(batchSize, () -> it.next(), () -> !it.hasNext(), null, false);
-				Map<K, List<M>> m = IO.collect(batch, Collectors.groupingByConcurrent(e -> e.partition()));
-				IO.each(m.entrySet(), e -> c.addAndGet(failover.output(e.getKey(), e.getValue())));
-				return c.get();
-			}));
-		}
-		return IO.sum(fs, logger());
+		return Streams.of(IO.collect(els, Collectors.groupingByConcurrent(e -> e.partition()))).parallel().mapToLong(e -> {
+			int size = e.getValue().size();
+			if (size <= batchSize) return failover.output(e.getKey(), e.getValue());
+			else {
+				Stream<Iterator<M>> s = Streams.batch((size + 1) / batchSize, e.getValue().iterator());
+				return s.parallel().mapToLong(it -> failover.output(e.getKey(), () -> it)).sum();
+			}
+		}).sum();
 	}
 
 	@Override

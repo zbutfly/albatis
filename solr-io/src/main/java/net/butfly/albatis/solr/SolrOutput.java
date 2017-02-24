@@ -3,7 +3,7 @@ package net.butfly.albatis.solr;
 import static net.butfly.albacore.utils.Exceptions.unwrap;
 
 import java.io.IOException;
-import java.util.Collection;
+import java.util.List;
 import java.util.stream.Collectors;
 
 import org.apache.solr.client.solrj.SolrServerException;
@@ -47,13 +47,14 @@ public final class SolrOutput extends FailoverOutput<String, SolrMessage<SolrInp
 	}
 
 	@Override
-	protected int write(String core, Collection<SolrMessage<SolrInputDocument>> docs) throws FailoverException {
+	protected long write(String core, Iterable<SolrMessage<SolrInputDocument>> docs) throws FailoverException {
 		try {
-			solr.client().add(core, IO.list(docs, SolrMessage<SolrInputDocument>::forWrite), DEFAULT_AUTO_COMMIT_MS);
+			List<SolrInputDocument> l = IO.list(docs, SolrMessage<SolrInputDocument>::forWrite);
+			solr.client().add(core, l, DEFAULT_AUTO_COMMIT_MS);
+			return l.size();
 		} catch (Exception e) {
 			throw new FailoverException(IO.collect(Streams.of(docs), Collectors.toConcurrentMap(r -> r, r -> unwrap(e).getMessage())));
 		}
-		return docs.size();
 	}
 
 	@Override

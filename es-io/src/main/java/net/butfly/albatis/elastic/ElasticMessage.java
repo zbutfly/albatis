@@ -47,7 +47,7 @@ public class ElasticMessage extends Message<String, ActionRequest<?>, ElasticMes
 		this.id = id;
 		this.script = script;
 		this.upsert = upsertDoc != null;
-		this.updating = false;
+		this.updating = true;
 		this.doc = upsertDoc;
 	}
 

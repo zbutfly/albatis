@@ -6,11 +6,9 @@ import java.util.function.Function;
 
 import com.google.common.base.Joiner;
 
-import net.butfly.albacore.io.IO;
 import net.butfly.albacore.io.Message;
 import net.butfly.albacore.io.OpenableThread;
 import net.butfly.albacore.io.stats.Statistical;
-import net.butfly.albacore.utils.Collections;
 import net.butfly.albacore.utils.logger.Logger;
 
 public abstract class Failover<K, V extends Message<K, ?, V>> extends OpenableThread implements Statistical<Failover<K, V>> {
@@ -28,23 +26,21 @@ public abstract class Failover<K, V extends Message<K, ?, V>> extends OpenableTh
 
 	public abstract long size();
 
-	protected abstract void fail(K key, Collection<V> values, Exception err);
+	protected abstract long fail(K key, Collection<V> values, Exception err);
 
 	@SuppressWarnings("unchecked")
-	protected final long output(K key, Collection<V> pkg) {
-		IO.each(Collections.chopped(pkg, output.batchSize), p -> {
-			try {
-				output.write(key, p);
-			} catch (FailoverException ex) {
-				fail(key, (Collection<V>) ex.fails.keySet(), ex);
-			}
-		});
+	protected final long output(K key, Iterable<V> pkg) {
 		try {
-			output.commit(key);
-		} catch (Exception e) {
-			logger().warn(output.name() + " commit failure", e);
+			return output.write(key, pkg);
+		} catch (FailoverException ex) {
+			return fail(key, (Collection<V>) ex.fails.keySet(), ex);
+		} finally {
+			try {
+				output.commit(key);
+			} catch (Exception e) {
+				logger().warn(output.name() + " commit failure", e);
+			}
 		}
-		return pkg.size();
 	}
 
 	@Override
