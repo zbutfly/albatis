@@ -85,7 +85,7 @@ public final class EsOutput extends FailoverOutput<String, ElasticMessage> {
 									.isAssignableFrom(c);
 						})//
 						, Collectors.toConcurrentMap(r -> r.getFailure().getId(), this::wrapErrorMessage));
-				Set<String> succs = IO.map(resps.get(Boolean.FALSE), r -> r.getId(), Collectors.toSet());
+				Set<String> succs = IO.collect(resps.get(Boolean.FALSE), r -> r.getId(), Collectors.toSet());
 				retries = IO.list(Streams.of(retries).filter(es -> !succs.contains(es.id) && !failing.containsKey(es.id)));
 				fails.putAll(failing);
 				sample = succs.isEmpty() ? null : succs.toArray(new String[succs.size()])[0];
