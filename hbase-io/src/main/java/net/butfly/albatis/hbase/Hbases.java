@@ -8,6 +8,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.Properties;
 import java.util.stream.Collectors;
 
@@ -30,6 +32,7 @@ import net.butfly.albacore.utils.logger.Logger;
 
 public final class Hbases extends Utils {
 	protected static final Logger logger = Logger.getLogger(Hbases.class);
+	final static ExecutorService ex = Executors.newCachedThreadPool();
 
 	private static Map<String, String> props() {
 		Properties p = new Properties();
@@ -50,7 +53,7 @@ public final class Hbases extends Utils {
 			hconf.set(c.getKey(), c.getValue());
 		if (null != conf && !conf.isEmpty()) for (Entry<String, String> c : conf.entrySet())
 			hconf.set(c.getKey(), c.getValue());
-		return ConnectionFactory.createConnection(hconf);
+		return ConnectionFactory.createConnection(hconf, ex);
 	}
 
 	public static String colFamily(Cell cell) {

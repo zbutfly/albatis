@@ -68,7 +68,7 @@ public final class EsOutput extends FailoverOutput<String, ElasticMessage> {
 			try {
 				resps = IO.collect(conn.client().bulk(req).actionGet(), Collectors.partitioningBy(r -> r.isFailed()));
 			} catch (Exception e) {
-				logger().warn("ES failure, request size [" + reqSize + "], retry...", unwrap(e));
+				logger().warn("ES failure,  retry#" + retry + "...", unwrap(e));
 			}
 			if (resps != null) {
 				if (resps.get(Boolean.TRUE).isEmpty()) {

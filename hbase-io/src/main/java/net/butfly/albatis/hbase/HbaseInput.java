@@ -1,7 +1,6 @@
 package net.butfly.albatis.hbase;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -29,6 +28,7 @@ public final class HbaseInput extends InputImpl<HbaseResult> {
 	private final Connection hconn;
 	private final String tname;
 	private final Table htable;
+	private final ReentrantReadWriteLock htableLock;
 	private final static int MAX_RETRIES = Integer.parseInt(Configs.MAIN_CONF.getOrDefault("albatis.io.hbase.retry", "5"));
 	protected final static int BATCH_SIZE = Integer.parseInt(Configs.MAIN_CONF.getOrDefault("albatis.io.hbase.batch.size", "500"));
 
@@ -40,7 +40,8 @@ public final class HbaseInput extends InputImpl<HbaseResult> {
 		super(name);
 		hconn = Hbases.connect(Maps.of(HConstants.HBASE_CLIENT_SCANNER_TIMEOUT_PERIOD, Integer.toString(Integer.MAX_VALUE)));
 		tname = table;
-		htable = hconn.getTable(TableName.valueOf(table));
+		htable = table(table);
+		htableLock = new ReentrantReadWriteLock();
 
 		Scan scan = new Scan(startRow, stopRow);
 		scaner = htable.getScanner(scan);
@@ -54,7 +55,8 @@ public final class HbaseInput extends InputImpl<HbaseResult> {
 		super(name);
 		hconn = Hbases.connect(Maps.of(HConstants.HBASE_CLIENT_SCANNER_TIMEOUT_PERIOD, Integer.toString(Integer.MAX_VALUE)));
 		tname = table;
-		htable = hconn.getTable(TableName.valueOf(table));
+		htable = table(table);
+		htableLock = new ReentrantReadWriteLock();
 
 		Scan scan = new Scan();
 		if (null != filters && filters.length > 0) {
@@ -118,32 +120,41 @@ public final class HbaseInput extends InputImpl<HbaseResult> {
 
 	public List<HbaseResult> get(List<Get> gets) {
 		List<HbaseResult> results;
-		try (Table t = hconn.getTable(TableName.valueOf(tname));) {
-			long now = System.currentTimeMillis();
-			try {
-				results = IO.list(Streams.of(t.get(gets)).map(r -> new HbaseResult(tname, r)));
-			} catch (Exception ex) {
-				results = IO.list(gets, this::get);
+		long now = System.currentTimeMillis();
+		do {
+			if (htableLock.writeLock().tryLock()) {
+				try {
+					results = IO.list(Streams.of(htable.get(gets)).map(r -> new HbaseResult(tname, r)));
+				} catch (Exception ex) {
+					results = IO.list(gets, this::get);
+				} finally {
+					htableLock.writeLock().unlock();
+				}
+				logger().trace("Hbase batch get: " + (System.currentTimeMillis() - now) + " ms, total [" + gets.size() + " gets]/[" + Texts
+						.formatKilo(HbaseResult.sizes(results), " bytes") + "]/[" + HbaseResult.cells(results) + " cells], ");
+				return results;
 			}
-			logger().trace("Hbase batch get: " + (System.currentTimeMillis() - now) + " ms, total [" + gets.size() + " gets]/[" + Texts
-					.formatKilo(HbaseResult.sizes(results), " bytes") + "]/[" + HbaseResult.cells(results) + " cells], ");
-		} catch (IOException e) {
-			results = new ArrayList<>();
-			logger().trace("Hbase get fail after split retry", e);
-		}
-		return results;
+		} while (true);
+	}
+
+	private Table table(String name) throws IOException {
+		return hconn.getTable(TableName.valueOf(name), Hbases.ex);
 	}
 
 	public HbaseResult get(Get get) {
-		try (Table t = hconn.getTable(TableName.valueOf(tname));) {
-			for (int i = 0; i < MAX_RETRIES; i++)
-				try {
-					return new HbaseResult(tname, t.get(get));
-				} catch (Exception ex) {
-					logger().warn("Hbase get failure to retry#" + (i + 1), ex);
+		for (int i = 0; i < MAX_RETRIES; i++) {
+			boolean attemp;
+			do {
+				if ((attemp = htableLock.writeLock().tryLock())) {
+					try {
+						return new HbaseResult(tname, htable.get(get));
+					} catch (Exception ex) {
+						logger().warn("Hbase get failure to retry#" + (i + 1), ex);
+					} finally {
+						htableLock.writeLock().unlock();
+					}
 				}
-		} catch (IOException e) {
-			logger().warn("Hbase get failure and ignore", e);
+			} while (!attemp);
 		}
 		return null;
 	}
