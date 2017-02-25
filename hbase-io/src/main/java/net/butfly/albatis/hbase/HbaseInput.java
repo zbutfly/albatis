@@ -108,19 +108,18 @@ public final class HbaseInput extends InputImpl<HbaseResult> {
 	}
 
 	@Override
-	public Stream<HbaseResult> dequeue(long batchSize) {
+	public void dequeue(Consumer<Stream<HbaseResult>> using, long batchSize) {
 		if (!ended.get() && scanerLock.writeLock().tryLock()) {
 			try {
 				Result[] rs = scaner.next((int) batchSize);
 				ended.set(rs == null || rs.length == 0);
-				return Stream.of(rs).map(r -> new HbaseResult(tname, r));
+				using.accept(Stream.of(rs).map(r -> new HbaseResult(tname, r)));
 			} catch (Exception ex) {
 				logger().warn("Hbase failure", ex);
 			} finally {
 				scanerLock.writeLock().unlock();
 			}
 		}
-		return Stream.empty();
 	}
 
 	public List<HbaseResult> get(List<Get> gets) {

@@ -4,6 +4,7 @@ import static net.butfly.albatis.mongodb.MongoConnection.dbobj;
 
 import java.io.IOException;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import com.google.common.base.Joiner;
@@ -103,7 +104,7 @@ public class MongoInput extends InputImpl<DBObject> {
 	}
 
 	@Override
-	public Stream<DBObject> dequeue(long batchSize) {
-		return Streams.fetch(batchSize, () -> cursor.hasNext() ? cursor.next() : null, () -> empty(), lock.writeLock(), true);
+	public void dequeue(Consumer<Stream<DBObject>> using, long batchSize) {
+		using.accept(Streams.fetch(batchSize, () -> cursor.hasNext() ? cursor.next() : null, () -> empty(), lock.writeLock(), true));
 	}
 }

@@ -9,6 +9,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import net.butfly.albacore.exception.ConfigException;
 
@@ -26,15 +27,16 @@ public class KafkaTest {
 		try (KafkaInput in = new KafkaInput("KafkaIn", args[0], "./cache");) {
 			do {
 				AtomicInteger count = new AtomicInteger(0);
-				long size = in.dequeue(batchSize).mapToInt(m -> {
+				AtomicLong size = new AtomicLong();
+				in.dequeue(s -> size.addAndGet(s.mapToInt(m -> {
 					count.incrementAndGet();
 					counts.compute(m.getTopic(), (k, v) -> v + 1);
 					return m.toBytes().length;
-				}).sum();
+				}).sum()), batchSize);
 				long curr = new Date().getTime();
-				total += (size / 1024.0 / 1024);
+				total += (size.get() / 1024.0 / 1024);
 				System.out.println(df.format(new Date()) + "<Count: " + count.get() + ">: <" + nf.format((curr - now) / 1000.0) + " secs>, "//
-						+ "size: <" + nf.format(size / 1024.0 / 1024) + " MByte>, "//
+						+ "size: <" + nf.format(size.get() / 1024.0 / 1024) + " MByte>, "//
 						+ "total: <" + nf.format(total / 1024) + " Gbytes>, "//
 						+ "avg: <" + nf.format(total / ((curr - begin) / 1000.0)) + " MBytes/sec>, " //
 						// + "pool: <" + in.poolStatus() + ">."//

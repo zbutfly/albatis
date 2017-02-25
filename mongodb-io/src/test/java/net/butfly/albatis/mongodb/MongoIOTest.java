@@ -31,16 +31,16 @@ public class MongoIOTest {
 					final DateFormat df = new SimpleDateFormat("MM-dd hh:mm:ss ");
 					long now = begin;
 					while (!in.empty()) {
-						AtomicInteger count = new AtomicInteger(0);
-						int size = in.dequeue(1000).mapToInt(m -> {
+						AtomicInteger count = new AtomicInteger(), size = new AtomicInteger();
+						in.dequeue(s -> size.addAndGet(s.mapToInt(m -> {
 							count.incrementAndGet();
 							return m.toString().length();
-						}).sum();
+						}).sum()), 1000);
 						long curr = new Date().getTime();
-						total.addAndGet(size / 1024.0 / 1024);
+						total.addAndGet(size.get() / 1024.0 / 1024);
 						System.out.println(df.format(new Date()) + ii //
 								+ "<count: " + count.get() + "> in <" + nf.format((curr - now) / 1000.0) + " secs>, "//
-								+ "size: <" + nf.format(size / 1024.0 / 1024) + " MByte>, "//
+								+ "size: <" + nf.format(size.get() / 1024.0 / 1024) + " MByte>, "//
 								+ "total: <" + nf.format(total.get() / 1024) + " Gbytes>, "//
 								+ "avg: <" + nf.format(total.get() / ((curr - begin) / 1000.0)) + " MBytes/sec>, " //
 						);
