@@ -8,8 +8,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
-import com.leansoft.bigqueue.BigQueueImpl;
-import com.leansoft.bigqueue.IBigQueue;
+import com.bluejeans.bigqueue.BigQueue;
 
 import kafka.common.ConsumerRebalanceFailedException;
 import kafka.common.MessageStreamsExistException;
@@ -32,7 +31,7 @@ public final class KafkaInput extends InputImpl<KafkaMessage> {
 	protected final Map<String, Integer> allTopics = new ConcurrentHashMap<>();
 	protected ConsumerConnector connect;
 	Map<KafkaStream<byte[], byte[]>, Fetcher> raws;
-	private IBigQueue pool;
+	private BigQueue pool;
 
 	public KafkaInput(String name, String kafkaURI, String poolPath, String... topics) throws ConfigException, IOException {
 		this(name, new URISpec(kafkaURI), poolPath, topics);
@@ -62,7 +61,7 @@ public final class KafkaInput extends InputImpl<KafkaMessage> {
 		logger().debug("parallelism of topics: " + allTopics.toString() + ".");
 		Stream<KafkaStream<byte[], byte[]>> r = connect();
 		try {
-			pool = new BigQueueImpl(IOs.mkdirs(poolPath + "/" + name), config.toString());
+			pool = new BigQueue(IOs.mkdirs(poolPath + "/" + name), config.toString());
 		} catch (IOException e) {
 			throw new RuntimeException("Offheap pool init failure", e);
 		}
@@ -93,11 +92,7 @@ public final class KafkaInput extends InputImpl<KafkaMessage> {
 	@Override
 	protected KafkaMessage dequeue() {
 		byte[] buf;
-		try {
-			buf = pool.dequeue();
-		} catch (IOException e) {
-			return null;
-		}
+		buf = pool.dequeue();
 		if (null == buf) return null;
 		return new KafkaMessage(buf);
 	}
@@ -131,11 +126,7 @@ public final class KafkaInput extends InputImpl<KafkaMessage> {
 		} catch (Exception e) {
 			logger().error("kafka shutdown fail", e);
 		}
-		try {
-			pool.gc();
-		} catch (IOException e) {
-			logger().error("local pool gc failure", e);
-		}
+		pool.gc();
 		try {
 			pool.close();
 		} catch (IOException e) {
@@ -149,10 +140,10 @@ public final class KafkaInput extends InputImpl<KafkaMessage> {
 
 	static class Fetcher extends OpenableThread {
 		private final KafkaStream<byte[], byte[]> stream;
-		private final IBigQueue pool;
+		private final BigQueue pool;
 		private final long poolSize;
 
-		public Fetcher(String inputName, KafkaStream<byte[], byte[]> stream, int i, IBigQueue pool, long poolSize) {
+		public Fetcher(String inputName, KafkaStream<byte[], byte[]> stream, int i, BigQueue pool, long poolSize) {
 			super(inputName + "#" + i);
 			this.stream = stream;
 			this.pool = pool;
@@ -181,11 +172,7 @@ public final class KafkaInput extends InputImpl<KafkaMessage> {
 		}
 
 		private void gc() {
-			try {
-				pool.gc();
-			} catch (IOException e) {
-				logger().warn("Local pool gc() failure", e);
-			}
+			pool.gc();
 		}
 	}
 }

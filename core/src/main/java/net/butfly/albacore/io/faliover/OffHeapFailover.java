@@ -11,8 +11,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.function.Function;
 
-import com.leansoft.bigqueue.BigQueueImpl;
-import com.leansoft.bigqueue.IBigQueue;
+import com.bluejeans.bigqueue.BigQueue;
 
 import net.butfly.albacore.io.IO;
 import net.butfly.albacore.io.Message;
@@ -21,13 +20,13 @@ import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.async.Concurrents;
 
 public class OffHeapFailover<K, V extends Message<K, ?, V>> extends Failover<K, V> {
-	private IBigQueue failover;
+	private BigQueue failover;
 
 	public OffHeapFailover(String parentName, FailoverOutput<K, V> output, Function<byte[], ? extends V> constructor, String path,
 			String poolName) throws IOException {
 		super(parentName, output, constructor);
 		if (poolName == null) poolName = "POOL";
-		failover = new BigQueueImpl(IOs.mkdirs(path + "/" + parentName), poolName);
+		failover = new BigQueue(IOs.mkdirs(path + "/" + parentName), poolName);
 		logger.info(MessageFormat.format("Failover [persist mode] init: [{0}/{1}] with name [{2}], init size [{3}].", //
 				path, parentName, poolName, size()));
 	}
@@ -111,11 +110,7 @@ public class OffHeapFailover<K, V extends Message<K, ?, V>> extends Failover<K, 
 	}
 
 	private void closePool() {
-		try {
-			failover.gc();
-		} catch (IOException e) {
-			logger.error("Failover cleanup failure", e);
-		}
+		failover.gc();
 		long size = size();
 		try {
 			failover.close();

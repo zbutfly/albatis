@@ -30,9 +30,9 @@
 			<scope>runtime</scope>
 		</dependency>
 		<dependency>
-			<groupId>com.leansoft</groupId>
+			<groupId>com.bluejeans</groupId>
 			<artifactId>bigqueue</artifactId>
-			<version>0.7.0</version>
+			<version>1.7.0.6</version>
 		</dependency>
 		<dependency>
 			<groupId>com.github.jsqlparser</groupId>
@@ -45,10 +45,10 @@
 			<version>2.0.2</version>
 		</dependency>
 	</dependencies>
-	<repositories>
-		<repository>
-			<id>github.release.repo</id><!-- for bigqueue snapshots -->
-			<url>https://raw.github.com/bulldog2011/bulldog-repo/master/repo/releases/</url>
-		</repository>
-	</repositories>
+	<!-- <repositories> -->
+	<!-- <repository> -->
+	<!-- <id>github.release.repo</id>for bigqueue snapshots -->
+	<!-- <url>https://raw.github.com/bulldog2011/bulldog-repo/master/repo/releases/</url> -->
+	<!-- </repository> -->
+	<!-- </repositories> -->
 </project>

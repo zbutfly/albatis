@@ -2,8 +2,7 @@ package net.butfly.albacore.io;
 
 import java.io.IOException;
 
-import com.leansoft.bigqueue.BigQueueImpl;
-import com.leansoft.bigqueue.IBigQueue;
+import com.bluejeans.bigqueue.BigQueue;
 
 import net.butfly.albacore.io.queue.QueueImpl;
 import net.butfly.albacore.lambda.Converter;
@@ -13,7 +12,7 @@ public class OffHeapQueue<I, O> extends QueueImpl<I, O> {
 	protected static final Logger logger = Logger.getLogger(OffHeapQueue.class);
 
 	protected final String dataFolder;
-	protected final IBigQueue queue;
+	protected final BigQueue queue;
 	protected final Converter<byte[], O> oconv;
 	protected final Converter<I, byte[]> iconv;
 
@@ -22,12 +21,8 @@ public class OffHeapQueue<I, O> extends QueueImpl<I, O> {
 		this.iconv = iconv;
 		this.oconv = oconv;
 		this.dataFolder = dataFolder;
-		try {
-			logger.info("Off heap queue (\"BigQueue\") creating as [" + name + "] at [" + dataFolder + "]");
-			queue = new BigQueueImpl(dataFolder, name);
-		} catch (IOException e) {
-			throw new RuntimeException("Queue create failure", e);
-		}
+		logger.info("Off heap queue (\"BigQueue\") creating as [" + name + "] at [" + dataFolder + "]");
+		queue = new BigQueue(dataFolder, name);
 	}
 
 	@Override
@@ -36,26 +31,18 @@ public class OffHeapQueue<I, O> extends QueueImpl<I, O> {
 	}
 
 	@Override
-	protected boolean enqueue(I e) { 
+	protected boolean enqueue(I e) {
 		if (null == e) return false;
-		try {
-			byte[] v = iconv.apply(e);
-			if (null == v) return true;
-			queue.enqueue(v);
-			return true;
-		} catch (IOException ex) {
-			logger.error("Enqueue failure", ex);
-			return false;
-		}
+		byte[] v = iconv.apply(e);
+		if (null == v) return true;
+		queue.enqueue(v);
+		return true;
 	}
 
 	@Override
 	protected O dequeue() {
 		try {
 			return oconv.apply(queue.dequeue());
-		} catch (IOException e) {
-			logger.error("Dequeue failure", e);
-			return null;
 		} finally {
 			if (queue.isEmpty()) gc();
 		}
@@ -76,10 +63,6 @@ public class OffHeapQueue<I, O> extends QueueImpl<I, O> {
 	}
 
 	public final void gc() {
-		try {
-			queue.gc();
-		} catch (IOException e) {
-			logger.error("Queue GC failure", e);
-		}
+		queue.gc();
 	}
 }
