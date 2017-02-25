@@ -29,10 +29,16 @@
 			<version>1.8.2</version>
 			<scope>runtime</scope>
 		</dependency>
+		<!-- TODO: Deprecate it -->
 		<dependency>
 			<groupId>com.bluejeans</groupId>
 			<artifactId>bigqueue</artifactId>
 			<version>1.7.0.6</version>
+		</dependency>
+		<dependency>
+			<groupId>org.mapdb</groupId>
+			<artifactId>mapdb</artifactId>
+			<version>3.0.3</version>
 		</dependency>
 		<dependency>
 			<groupId>com.github.jsqlparser</groupId>
