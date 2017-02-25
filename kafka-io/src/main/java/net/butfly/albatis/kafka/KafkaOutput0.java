@@ -34,7 +34,7 @@ public final class KafkaOutput0 extends OutputImpl<KafkaMessage> {
 	}
 
 	@Override
-	protected boolean enqueue(KafkaMessage m) { 
+	protected boolean enqueue(KafkaMessage m) {
 		if (null == m) return false;
 		try {
 			producer.send(m.toKeyedMessage());
@@ -47,7 +47,7 @@ public final class KafkaOutput0 extends OutputImpl<KafkaMessage> {
 
 	@Override
 	public long enqueue(Stream<KafkaMessage> messages) {
-		List<KeyedMessage<byte[], byte[]>> ms = IO.list(messages.map(m -> m.toKeyedMessage()));
+		List<KeyedMessage<byte[], byte[]>> ms = IO.list(messages.map(KafkaMessage::toKeyedMessage));
 		try {
 			producer.send(ms);
 			return ms.size();
