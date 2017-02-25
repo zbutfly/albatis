@@ -2,8 +2,11 @@ package net.butfly.albatis.hbase;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import org.apache.hadoop.hbase.HConstants;
@@ -28,7 +31,6 @@ public final class HbaseInput extends InputImpl<HbaseResult> {
 	private final Connection hconn;
 	private final String tname;
 	private final Table htable;
-	private final ReentrantReadWriteLock htableLock;
 	private final static int MAX_RETRIES = Integer.parseInt(Configs.MAIN_CONF.getOrDefault("albatis.io.hbase.retry", "5"));
 	protected final static int BATCH_SIZE = Integer.parseInt(Configs.MAIN_CONF.getOrDefault("albatis.io.hbase.batch.size", "500"));
 
@@ -40,8 +42,7 @@ public final class HbaseInput extends InputImpl<HbaseResult> {
 		super(name);
 		hconn = Hbases.connect(Maps.of(HConstants.HBASE_CLIENT_SCANNER_TIMEOUT_PERIOD, Integer.toString(Integer.MAX_VALUE)));
 		tname = table;
-		htable = table(table);
-		htableLock = new ReentrantReadWriteLock();
+		htable = hconn.getTable(TableName.valueOf(tname), Hbases.ex);
 
 		Scan scan = new Scan(startRow, stopRow);
 		scaner = htable.getScanner(scan);
@@ -55,8 +56,7 @@ public final class HbaseInput extends InputImpl<HbaseResult> {
 		super(name);
 		hconn = Hbases.connect(Maps.of(HConstants.HBASE_CLIENT_SCANNER_TIMEOUT_PERIOD, Integer.toString(Integer.MAX_VALUE)));
 		tname = table;
-		htable = table(table);
-		htableLock = new ReentrantReadWriteLock();
+		htable = hconn.getTable(TableName.valueOf(tname), Hbases.ex);
 
 		Scan scan = new Scan();
 		if (null != filters && filters.length > 0) {
@@ -86,6 +86,11 @@ public final class HbaseInput extends InputImpl<HbaseResult> {
 		try {
 			hconn.close();
 		} catch (Exception e) {}
+		Table t;
+		while ((t = tables.poll()) != null)
+			try {
+				t.close();
+			} catch (Exception e) {}
 	}
 
 	@Override
@@ -119,43 +124,53 @@ public final class HbaseInput extends InputImpl<HbaseResult> {
 	}
 
 	public List<HbaseResult> get(List<Get> gets) {
-		List<HbaseResult> results;
+		AtomicReference<List<HbaseResult>> ref = new AtomicReference<>();
 		long now = System.currentTimeMillis();
-		do {
-			if (htableLock.writeLock().tryLock()) {
-				try {
-					results = IO.list(Streams.of(htable.get(gets)).map(r -> new HbaseResult(tname, r)));
-				} catch (Exception ex) {
-					results = IO.list(gets, this::get);
-				} finally {
-					htableLock.writeLock().unlock();
-				}
-				logger().trace("Hbase batch get: " + (System.currentTimeMillis() - now) + " ms, total [" + gets.size() + " gets]/[" + Texts
-						.formatKilo(HbaseResult.sizes(results), " bytes") + "]/[" + HbaseResult.cells(results) + " cells], ");
-				return results;
+		table(tname, t -> {
+			try {
+				ref.set(IO.list(Streams.of(t.get(gets)).map(r -> new HbaseResult(tname, r))));
+			} catch (Exception ex) {
+				logger().warn("Hbase batch get fail, try slow single fetching.");
+				ref.set(IO.list(Streams.of(gets, true).map(this::get)));
 			}
-		} while (true);
-	}
-
-	private Table table(String name) throws IOException {
-		return hconn.getTable(TableName.valueOf(name), Hbases.ex);
+			logger().trace("Hbase batch get: " + (System.currentTimeMillis() - now) + " ms, total [" + gets.size() + " gets]/[" + Texts
+					.formatKilo(HbaseResult.sizes(ref.get()), " bytes") + "]/[" + HbaseResult.cells(ref.get()) + " cells], ");
+		});
+		return ref.get();
 	}
 
 	public HbaseResult get(Get get) {
+		AtomicReference<HbaseResult> ref = new AtomicReference<>();
 		for (int i = 0; i < MAX_RETRIES; i++) {
-			boolean attemp;
-			do {
-				if ((attemp = htableLock.writeLock().tryLock())) {
-					try {
-						return new HbaseResult(tname, htable.get(get));
-					} catch (Exception ex) {
-						logger().warn("Hbase get failure to retry#" + (i + 1), ex);
-					} finally {
-						htableLock.writeLock().unlock();
-					}
+			int ii = i;
+			table(tname, t -> {
+				try {
+					ref.set(new HbaseResult(tname, t.get(get)));
+				} catch (Exception ex) {
+					logger().warn("Hbase get failure to retry#" + (ii + 1), ex);
 				}
-			} while (!attemp);
+			});
 		}
-		return null;
+		return ref.get();
+	}
+
+	LinkedBlockingQueue<Table> tables = new LinkedBlockingQueue<>(100);
+
+	private void table(String name, Consumer<Table> using) {
+		Table t = tables.poll();
+		if (null == t) try {
+			t = hconn.getTable(TableName.valueOf(name), Hbases.ex);
+		} catch (IOException e1) {
+			return;
+		}
+		try {
+			using.accept(t);
+		} finally {
+			if (!tables.offer(t)) try {
+				t.close();
+			} catch (IOException e) {
+				logger().error("Hbase close fail", e);
+			}
+		}
 	}
 }
