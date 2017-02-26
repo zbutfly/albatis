@@ -1,7 +1,9 @@
 package net.butfly.albacore.io.faliover;
 
 import java.io.IOException;
-import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Spliterator;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -41,18 +43,19 @@ public abstract class FailoverOutput<K, M extends Message<K, ?, M>> extends Outp
 		failover.open();
 	}
 
-	protected abstract long write(K key, Iterable<M> pkg) throws FailoverException;
+	protected abstract long write(K key, Stream<M> pkg) throws FailoverException;
 
 	protected void commit(K key) {}
 
 	@Override
 	public final long enqueue(Stream<M> els) {
-		return Streams.of(IO.collect(els, Collectors.groupingByConcurrent(e -> e.partition()))).parallel().mapToLong(e -> {
+		Map<K, List<M>> items = IO.collect(els, Collectors.groupingByConcurrent(e -> e.partition()));
+		return Streams.of(items).parallel().mapToLong(e -> {
 			int size = e.getValue().size();
-			if (size <= batchSize) return failover.output(e.getKey(), e.getValue());
+			if (size <= batchSize) return failover.output(e.getKey(), Streams.of(e.getValue()));
 			else {
-				Stream<Iterator<M>> s = Streams.batch((size + 1) / batchSize, e.getValue().iterator());
-				return s.parallel().mapToLong(it -> failover.output(e.getKey(), () -> it)).sum();
+				Map<Integer, Spliterator<M>> s = Streams.spatial(e.getValue().spliterator(), Streams.calcParallelism(size, batchSize));
+				return s.values().parallelStream().mapToLong(it -> failover.output(e.getKey(), Streams.of(it))).sum();
 			}
 		}).sum();
 	}

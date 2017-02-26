@@ -15,6 +15,7 @@ import com.bluejeans.bigqueue.BigQueue;
 
 import net.butfly.albacore.io.IO;
 import net.butfly.albacore.io.Message;
+import net.butfly.albacore.io.Streams;
 import net.butfly.albacore.utils.IOs;
 import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.async.Concurrents;
@@ -43,7 +44,7 @@ public class OffHeapFailover<K, V extends Message<K, ?, V>> extends Failover<K, 
 				} catch (Exception e) {
 					continue;
 				}
-				IO.run(() -> output(results.v1(), results.v2()));
+				IO.run(() -> output(results.v1(), Streams.of(results.v2())));
 
 				stats(results.v2());
 			}

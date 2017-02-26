@@ -12,6 +12,7 @@ import java.util.function.Function;
 
 import net.butfly.albacore.io.IO;
 import net.butfly.albacore.io.Message;
+import net.butfly.albacore.io.Streams;
 
 public class HeapFailover<K, V extends Message<K, ?, V>> extends Failover<K, V> {
 	private static final int MAX_FAILOVER = 50000;
@@ -60,7 +61,7 @@ public class HeapFailover<K, V extends Message<K, ?, V>> extends Failover<K, V> 
 				LinkedBlockingQueue<V> fails = failover.get(key);
 				retries.clear();
 				fails.drainTo(retries, output.batchSize);
-				if (!retries.isEmpty()) IO.run(() -> output(key, retries));
+				if (!retries.isEmpty()) IO.run(() -> output(key, Streams.of(retries)));
 			}
 		}
 	}

@@ -3,6 +3,7 @@ package net.butfly.albacore.io.faliover;
 import java.util.Collection;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.stream.Stream;
 
 import com.google.common.base.Joiner;
 
@@ -29,7 +30,7 @@ public abstract class Failover<K, V extends Message<K, ?, V>> extends OpenableTh
 	protected abstract long fail(K key, Collection<V> values, Exception err);
 
 	@SuppressWarnings("unchecked")
-	protected final long output(K key, Iterable<V> pkg) {
+	protected final long output(K key, Stream<V> pkg) {
 		try {
 			return output.write(key, pkg);
 		} catch (FailoverException ex) {

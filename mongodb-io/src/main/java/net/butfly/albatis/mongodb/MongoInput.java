@@ -4,8 +4,6 @@ import static net.butfly.albatis.mongodb.MongoConnection.dbobj;
 
 import java.io.IOException;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.function.Consumer;
-import java.util.stream.Stream;
 
 import com.google.common.base.Joiner;
 import com.mongodb.BasicDBList;
@@ -15,7 +13,6 @@ import com.mongodb.DBObject;
 import com.mongodb.MongoException;
 
 import net.butfly.albacore.io.InputImpl;
-import net.butfly.albacore.io.Streams;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.logger.Logger;
 
@@ -92,19 +89,14 @@ public class MongoInput extends InputImpl<DBObject> {
 
 	@Override
 	protected DBObject dequeue() {
-		if (lock.writeLock().tryLock()) try {
-			return cursor.hasNext() ? cursor.next() : null;
-		} catch (MongoException ex) {
-			logger.warn("[" + name() + "] read failure but processing will continue", ex);
-			return null;
-		} finally {
-			lock.writeLock().unlock();
-		}
-		else return null;
-	}
-
-	@Override
-	public void dequeue(Consumer<Stream<DBObject>> using, long batchSize) {
-		using.accept(Streams.fetch(batchSize, () -> cursor.hasNext() ? cursor.next() : null, () -> empty(), lock.writeLock(), true));
+		do {
+			if (lock.writeLock().tryLock()) try {
+				return cursor.hasNext() ? cursor.next() : null;
+			} catch (MongoException ex) {
+				return null;
+			} finally {
+				lock.writeLock().unlock();
+			}
+		} while (true);
 	}
 }

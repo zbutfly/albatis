@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Connection;
@@ -59,8 +60,8 @@ public final class HbaseOutput extends FailoverOutput<String, HbaseResult> {
 	}
 
 	@Override
-	protected long write(String table, Iterable<HbaseResult> values) throws FailoverException {
-		List<Put> puts = IO.list(values, HbaseResult::forWrite);
+	protected long write(String table, Stream<HbaseResult> values) throws FailoverException {
+		List<Put> puts = IO.list(values.map(HbaseResult::forWrite));
 		try {
 			table(table).put(puts);
 		} catch (Exception e) {

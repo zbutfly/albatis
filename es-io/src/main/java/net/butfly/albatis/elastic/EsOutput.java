@@ -9,14 +9,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.transport.RemoteTransportException;
-
-import com.google.common.collect.Lists;
 
 import net.butfly.albacore.io.IO;
 import net.butfly.albacore.io.Streams;
@@ -50,8 +49,8 @@ public final class EsOutput extends FailoverOutput<String, ElasticMessage> {
 	}
 
 	@Override
-	protected long write(String type, Iterable<ElasticMessage> msgs) throws FailoverException {
-		List<ElasticMessage> values = Lists.newArrayList(msgs);
+	protected long write(String type, Stream<ElasticMessage> msgs) throws FailoverException {
+		List<ElasticMessage> values = IO.list(msgs);
 		if (values.isEmpty()) return 0;
 		Map<String, String> fails = new ConcurrentHashMap<>();
 		long reqSize = 0;
