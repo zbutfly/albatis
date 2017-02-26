@@ -81,8 +81,9 @@ public class HbaseResult extends Message<String, Put, HbaseResult> {
 
 	@Override
 	public Put forWrite() {
+		if (isEmpty()) return null;
 		Put put = new Put(row);
-		if (!isEmpty()) for (Cell c : result.rawCells())
+		for (Cell c : result.rawCells())
 			try {
 				put.add(c);
 			} catch (Exception e) {
