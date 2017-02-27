@@ -2,6 +2,7 @@ package net.butfly.albacore.io.faliover;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -47,8 +48,13 @@ public abstract class FailoverOutput<K, M extends Message<K, ?, M>> extends Outp
 
 	@Override
 	public final long enqueue(Stream<M> els) {
-		return eachs(IO.collect(els, Collectors.groupingByConcurrent(e -> e.partition())).entrySet(), e -> enqueue(e.getKey(), e
-				.getValue()), Streams.LONG_SUM);
+		Map<K, List<M>> parts = IO.collect(els, Collectors.groupingByConcurrent(e -> {
+			return e.partition();
+		}));
+		if (parts.isEmpty()) return 0;
+		return eachs(parts.entrySet(), e -> {
+			return e.getValue().isEmpty() ? 0 : enqueue(e.getKey(), e.getValue());
+		}, Streams.LONG_SUM);
 	}
 
 	private long enqueue(K key, List<M> items) {

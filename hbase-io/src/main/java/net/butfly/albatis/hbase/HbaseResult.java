@@ -37,6 +37,8 @@ public class HbaseResult extends Message<String, Put, HbaseResult> {
 
 	public HbaseResult(String table, byte[] row, List<Cell> cells) {
 		super();
+		if (null == row || row.length == 0) throw new IllegalArgumentException("Hbase row key empty");
+		result = Result.create(IO.list(Streams.of(cells)));
 		this.table = table;
 		this.row = row;
 		this.result = Result.create(IO.list(Streams.of(cells)));
@@ -82,6 +84,8 @@ public class HbaseResult extends Message<String, Put, HbaseResult> {
 	@Override
 	public Put forWrite() {
 		if (isEmpty()) return null;
+		if (row == null || row.length == 0) row = result.getRow();
+		if (row == null || row.length == 0) return null;
 		Put put = new Put(row);
 		for (Cell c : result.rawCells())
 			try {

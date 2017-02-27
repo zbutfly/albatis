@@ -133,7 +133,7 @@ public final class HbaseInput extends InputImpl<HbaseResult> {
 				ref.set(IO.list(Streams.of(gets, true).map(this::get)));
 			}
 			logger().trace("Hbase batch get: " + (System.currentTimeMillis() - now) + " ms, total [" + gets.size() + " gets]/[" + Texts
-					.formatKilo(HbaseResult.sizes(ref.get()), " bytes") + "]/[" + HbaseResult.cells(ref.get()) + " cells], ");
+					.formatKilo(HbaseResult.sizes(ref.get()), " bytes") + "]/[" + HbaseResult.cells(ref.get()) + " cells].");
 		});
 		return ref.get();
 	}
