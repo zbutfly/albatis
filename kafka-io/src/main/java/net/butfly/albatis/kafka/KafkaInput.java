@@ -23,7 +23,7 @@ import net.butfly.albacore.io.Streams;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.IOs;
 import net.butfly.albacore.utils.Texts;
-import net.butfly.albacore.utils.async.Concurrents;
+import net.butfly.albacore.utils.parallel.Concurrents;
 import net.butfly.albatis.kafka.config.KafkaInputConfig;
 
 public final class KafkaInput extends InputImpl<KafkaMessage> {

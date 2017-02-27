@@ -18,7 +18,7 @@ import net.butfly.albacore.io.Message;
 import net.butfly.albacore.io.Streams;
 import net.butfly.albacore.utils.IOs;
 import net.butfly.albacore.utils.Pair;
-import net.butfly.albacore.utils.async.Concurrents;
+import net.butfly.albacore.utils.parallel.Concurrents;
 
 public class OffHeapFailover<K, V extends Message<K, ?, V>> extends Failover<K, V> {
 	private BigQueue failover;
