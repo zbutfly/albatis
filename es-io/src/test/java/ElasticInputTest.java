@@ -7,6 +7,7 @@ import net.butfly.albatis.elastic.ElasticInput;
 /**
  * Created by hzcominfo67 on 2017/1/18.
  */
+@Deprecated
 public class ElasticInputTest {
 	@Test
 	public void ioInputTest() throws IOException {

@@ -3,37 +3,21 @@ package net.butfly.albatis.elastic;
 import java.io.IOException;
 import java.util.stream.Stream;
 
-import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkRequest;
-import org.elasticsearch.action.index.IndexRequest;
-import org.elasticsearch.action.update.UpdateRequest;
 
+import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.io.IO;
-import net.butfly.albacore.io.OutputImpl;
+import net.butfly.albacore.io.Output;
 import net.butfly.albacore.io.Streams;
 
 @Deprecated
-public final class ElasticOutput extends OutputImpl<ElasticMessage> {
+public final class ElasticOutput extends Namedly implements Output<ElasticMessage> {
 	private final ElasticConnection conn;
 
 	public ElasticOutput(ElasticConnection conn) throws IOException {
 		this.conn = conn;
 		open();
-	}
-
-	@Override
-	protected boolean enqueue(ElasticMessage s) { 
-		if (s == null) return false;
-		ActionFuture<?> f = s.updating ? conn.client().update((UpdateRequest) s.forWrite())
-				: conn.client().index((IndexRequest) s.forWrite());
-		try {
-			f.actionGet();
-			return true;
-		} catch (Exception e) {
-			logger().error("Failure", e);
-			return false;
-		}
 	}
 
 	@Override
@@ -47,6 +31,6 @@ public final class ElasticOutput extends OutputImpl<ElasticMessage> {
 
 	@Override
 	public void close() {
-		super.close(conn::close);
+		Output.super.close(conn::close);
 	}
 }

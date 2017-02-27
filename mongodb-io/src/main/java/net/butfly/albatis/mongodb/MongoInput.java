@@ -89,14 +89,16 @@ public class MongoInput extends InputImpl<DBObject> {
 
 	@Override
 	protected DBObject dequeue() {
+		DBObject r = null;
 		do {
 			if (lock.writeLock().tryLock()) try {
 				return cursor.hasNext() ? cursor.next() : null;
 			} catch (MongoException ex) {
-				return null;
+				logger.warn("Mongo fail fetch, ignore and continue retry...");
 			} finally {
 				lock.writeLock().unlock();
 			}
-		} while (true);
+		} while (r == null);
+		return r;
 	}
 }

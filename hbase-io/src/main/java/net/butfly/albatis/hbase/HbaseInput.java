@@ -20,14 +20,15 @@ import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterList;
 
+import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.io.IO;
-import net.butfly.albacore.io.InputImpl;
+import net.butfly.albacore.io.Input;
 import net.butfly.albacore.io.Streams;
 import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.Texts;
 import net.butfly.albacore.utils.collection.Maps;
 
-public final class HbaseInput extends InputImpl<HbaseResult> {
+public final class HbaseInput extends Namedly implements Input<HbaseResult> {
 	private final Connection hconn;
 	private final String tname;
 	private final Table htable;
@@ -73,7 +74,7 @@ public final class HbaseInput extends InputImpl<HbaseResult> {
 
 	@Override
 	public void close() {
-		super.close(this::closeHbase);
+		Input.super.close(this::closeHbase);
 	}
 
 	private void closeHbase() {
@@ -99,25 +100,19 @@ public final class HbaseInput extends InputImpl<HbaseResult> {
 	}
 
 	@Override
-	protected HbaseResult dequeue() {
-		try {
-			return new HbaseResult(tname, scaner.next());
-		} catch (IOException e) {
-			return null;
-		}
-	}
-
-	@Override
 	public void dequeue(Consumer<Stream<HbaseResult>> using, long batchSize) {
 		if (!ended.get() && scanerLock.writeLock().tryLock()) {
+			Result[] rs = null;
 			try {
-				Result[] rs = scaner.next((int) batchSize);
-				ended.set(rs == null || rs.length == 0);
-				using.accept(Stream.of(rs).map(r -> new HbaseResult(tname, r)));
+				rs = scaner.next((int) batchSize);
 			} catch (Exception ex) {
 				logger().warn("Hbase failure", ex);
 			} finally {
 				scanerLock.writeLock().unlock();
+			}
+			if (null != rs) {
+				ended.set(rs.length == 0);
+				if (rs.length > 0) using.accept(Stream.of(rs).map(r -> new HbaseResult(tname, r)));
 			}
 		}
 	}

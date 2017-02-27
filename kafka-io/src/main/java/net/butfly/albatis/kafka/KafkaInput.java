@@ -90,14 +90,6 @@ public final class KafkaInput extends InputImpl<KafkaMessage> {
 	}
 
 	@Override
-	protected KafkaMessage dequeue() {
-		byte[] buf;
-		buf = pool.dequeue();
-		if (null == buf) return null;
-		return new KafkaMessage(buf);
-	}
-
-	@Override
 	public void open() {
 		for (Fetcher f : raws.values())
 			f.open();
@@ -174,5 +166,13 @@ public final class KafkaInput extends InputImpl<KafkaMessage> {
 		private void gc() {
 			pool.gc();
 		}
+	}
+
+	@Override
+	protected KafkaMessage dequeue() {
+		byte[] buf;
+		buf = pool.dequeue();
+		if (null == buf) return null;
+		return new KafkaMessage(buf);
 	}
 }

@@ -7,9 +7,10 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.io.IO;
 import net.butfly.albacore.io.Message;
-import net.butfly.albacore.io.OutputImpl;
+import net.butfly.albacore.io.Output;
 import net.butfly.albacore.io.Streams;
 import net.butfly.albacore.io.faliover.Failover.FailoverException;
 
@@ -23,7 +24,7 @@ import net.butfly.albacore.io.faliover.Failover.FailoverException;
  *
  * @param <M>
  */
-public abstract class FailoverOutput<K, M extends Message<K, ?, M>> extends OutputImpl<M> {
+public abstract class FailoverOutput<K, M extends Message<K, ?, M>> extends Namedly implements Output<M> {
 	private final Failover<K, M> failover;
 	final int batchSize;
 
@@ -38,7 +39,7 @@ public abstract class FailoverOutput<K, M extends Message<K, ?, M>> extends Outp
 
 	@Override
 	public void open() {
-		super.open();
+		Output.super.open();
 		failover.open();
 	}
 
@@ -67,7 +68,7 @@ public abstract class FailoverOutput<K, M extends Message<K, ?, M>> extends Outp
 
 	@Override
 	public final void close() {
-		super.close();
+		Output.super.close();
 		failover.close();
 		closeInternal();
 	}
