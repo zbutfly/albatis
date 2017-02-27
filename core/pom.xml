@@ -11,7 +11,7 @@
 		<dependency>
 			<groupId>net.butfly.albacore</groupId>
 			<artifactId>albacore-core</artifactId>
-			<version>3.0.0-SNAPSHOT</version>			
+			<version>3.0.0-SNAPSHOT</version>
 		</dependency>
 		<dependency>
 			<groupId>org.mybatis</groupId>
@@ -36,6 +36,11 @@
 			<version>1.7.0.6</version>
 		</dependency>
 		<dependency>
+			<groupId>org.eclipse.collections</groupId>
+			<artifactId>eclipse-collections-forkjoin</artifactId>
+			<version>7.1.0</version>
+		</dependency>
+		<dependency>
 			<groupId>org.mapdb</groupId>
 			<artifactId>mapdb</artifactId>
 			<version>3.0.3</version>
@@ -43,6 +48,18 @@
 				<exclusion>
 					<groupId>com.google.guava</groupId>
 					<artifactId>guava</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.eclipse.collections</groupId>
+					<artifactId>eclipse-collections-forkjoin</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.eclipse.collections</groupId>
+					<artifactId>eclipse-collections</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.eclipse.collections</groupId>
+					<artifactId>eclipse-collections-api</artifactId>
 				</exclusion>
 			</exclusions>
 		</dependency>
