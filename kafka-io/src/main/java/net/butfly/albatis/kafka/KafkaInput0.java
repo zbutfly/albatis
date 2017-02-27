@@ -127,6 +127,7 @@ public final class KafkaInput0 extends Namedly implements Input<KafkaMessage> {
 		}, batchSize, () -> opened()));
 	}
 
+	@Deprecated
 	protected KafkaMessage dequeue() {
 		if (!opened()) return null;
 		do {

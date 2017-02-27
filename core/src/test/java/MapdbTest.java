@@ -10,7 +10,7 @@ public class MapdbTest {
 		DB db = DBMaker.newFileDB(new File("./mapdb.data")).mmapFileEnableIfSupported().deleteFilesAfterClose().make();
 		try {
 			BlockingQueue<String> q = db.createQueue("queue", Serializer.STRING, false);
-
+			q.add("!!!");
 		} finally {
 			db.close();
 		}

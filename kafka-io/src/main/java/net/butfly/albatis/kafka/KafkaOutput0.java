@@ -27,6 +27,7 @@ import net.butfly.albatis.kafka.config.KafkaOutputConfig;
  * @author zx
  * @deprecated memory leak!
  */
+@Deprecated
 public final class KafkaOutput0 extends Namedly implements Output<KafkaMessage> {
 	private final URISpec uri;
 	private final KafkaOutputConfig config;
