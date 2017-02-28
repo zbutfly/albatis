@@ -35,11 +35,11 @@
 			<artifactId>bigqueue</artifactId>
 			<version>1.7.0.6</version>
 		</dependency>
-		<dependency>
-			<groupId>org.eclipse.collections</groupId>
-			<artifactId>eclipse-collections-forkjoin</artifactId>
-			<version>7.1.0</version>
-		</dependency>
+<!-- 		<dependency> -->
+<!-- 			<groupId>org.eclipse.collections</groupId> -->
+<!-- 			<artifactId>eclipse-collections-forkjoin</artifactId> -->
+<!-- 			<version>7.1.0</version> -->
+<!-- 		</dependency> -->
 		<dependency>
 			<groupId>org.mapdb</groupId>
 			<artifactId>mapdb</artifactId>

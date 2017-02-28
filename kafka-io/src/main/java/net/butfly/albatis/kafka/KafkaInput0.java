@@ -9,8 +9,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 import kafka.common.ConsumerRebalanceFailedException;
@@ -32,7 +33,7 @@ import net.butfly.albatis.kafka.config.KafkaInputConfig;
 public final class KafkaInput0 extends Namedly implements Input<KafkaMessage> {
 	private KafkaInputConfig config;
 	private final Map<String, Integer> allTopics = new ConcurrentHashMap<>();
-	private final Map<ConsumerIterator<byte[], byte[]>, ReentrantReadWriteLock> locks = new ConcurrentHashMap<>();
+	private final Map<ConsumerIterator<byte[], byte[]>, ReentrantLock> locks = new ConcurrentHashMap<>();
 	private ConsumerConnector connect;
 	private final List<ConsumerIterator<byte[], byte[]>> raws;
 
@@ -109,22 +110,34 @@ public final class KafkaInput0 extends Namedly implements Input<KafkaMessage> {
 		List<ConsumerIterator<byte[], byte[]>> l = new ArrayList<>(raws);
 		Collections.shuffle(l);
 		Iterator<ConsumerIterator<byte[], byte[]>> sit = Its.loop(l);
-		ConsumerIterator<byte[], byte[]> first = sit.next();
-		AtomicReference<ConsumerIterator<byte[], byte[]>> curr = new AtomicReference<>(first);
+		AtomicReference<ConsumerIterator<byte[], byte[]>> curr = new AtomicReference<>(sit.next());
 		using.accept(Streams.of(() -> {
-			ConsumerIterator<byte[], byte[]> it = curr.get();
-			while (opened()) {
-				do {} while (!it.hasNext() && !(it = sit.next()).hasNext());
-				curr.set(it);
-				ReentrantReadWriteLock lock = locks.computeIfAbsent(it, i -> new ReentrantReadWriteLock());
-				if (lock.writeLock().tryLock()) try {
-					if (it.hasNext()) return new KafkaMessage(it.next());
-				} finally {
-					lock.writeLock().unlock();
-				}
+			ConsumerIterator<byte[], byte[]> begin = curr.get(), it = begin;
+			KafkaMessage km = null;
+			while (opened() && null == km) {
+				while (!hasNext(it) && sit.hasNext())
+					// one whole loop, return for waiting next;
+					if (begin == (it = sit.next())) return tryNext(it, i -> new KafkaMessage(i.next()));
+				km = tryNext(it, i -> new KafkaMessage(i.next()));
 			}
-			return null;
+			curr.lazySet(it);
+			return km;
 		}, batchSize, () -> opened()));
+	}
+
+	private boolean hasNext(ConsumerIterator<byte[], byte[]> it) {
+		Boolean b = tryNext(it, i -> i.hasNext());
+		return null == b ? false : b.booleanValue();
+	}
+
+	private <V> V tryNext(ConsumerIterator<byte[], byte[]> it, Function<ConsumerIterator<byte[], byte[]>, V> using) {
+		ReentrantLock lock = locks.computeIfAbsent(it, i -> new ReentrantLock());
+		if (lock.tryLock()) try {
+			if (it.hasNext()) return using.apply(it);
+		} finally {
+			lock.unlock();
+		}
+		return null;
 	}
 
 	@Deprecated
@@ -132,11 +145,11 @@ public final class KafkaInput0 extends Namedly implements Input<KafkaMessage> {
 		if (!opened()) return null;
 		do {
 			for (ConsumerIterator<byte[], byte[]> it : raws) {
-				ReentrantReadWriteLock lock = locks.computeIfAbsent(it, i -> new ReentrantReadWriteLock());
-				if (lock.writeLock().tryLock()) try {
+				ReentrantLock lock = locks.computeIfAbsent(it, i -> new ReentrantLock());
+				if (lock.tryLock()) try {
 					if (it.hasNext()) return new KafkaMessage(it.next());
 				} finally {
-					lock.writeLock().unlock();
+					lock.unlock();
 				}
 			}
 		} while (opened() && Concurrents.waitSleep());
