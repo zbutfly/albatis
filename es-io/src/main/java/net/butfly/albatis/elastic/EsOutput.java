@@ -134,7 +134,7 @@ public final class EsOutput extends FailoverOutput<String, ElasticMessage> {
 		try {
 			return f.actionGet();
 		} catch (Exception e) {
-			logger().warn("ES failure,  retry#" + retry + "...", unwrap(e));
+			logger().warn("ES failure, retry#" + retry + "...", unwrap(e));
 		} finally {
 			logger().trace("\t==> es bulk response got in [" + (System.currentTimeMillis() - now0) + "] ms.");
 		}
