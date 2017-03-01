@@ -23,6 +23,8 @@ import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.transport.RemoteTransportException;
 
+import com.hzcominfo.albatis.nosql.Connection;
+
 import net.butfly.albacore.io.IO;
 import net.butfly.albacore.io.Streams;
 import net.butfly.albacore.io.URISpec;
@@ -39,7 +41,7 @@ public final class EsOutput extends FailoverOutput<String, ElasticMessage> {
 	}
 
 	public EsOutput(String name, URISpec uri, String failoverPath) throws IOException {
-		super(name, b -> new ElasticMessage(b), failoverPath, Integer.parseInt(uri.getParameter("batch", "200")));
+		super(name, b -> new ElasticMessage(b), failoverPath, Integer.parseInt(uri.getParameter(Connection.PARAM_KEY_BATCH, "200")));
 		conn = new ElasticConnection(uri);
 		maxRetry = Integer.parseInt(uri.getParameter("retry", "5"));
 		open();

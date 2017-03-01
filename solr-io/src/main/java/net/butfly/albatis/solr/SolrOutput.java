@@ -10,6 +10,8 @@ import java.util.stream.Stream;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.common.SolrInputDocument;
 
+import com.hzcominfo.albatis.nosql.Connection;
+
 import net.butfly.albacore.io.IO;
 import net.butfly.albacore.io.Message;
 import net.butfly.albacore.io.Streams;
@@ -26,7 +28,8 @@ public final class SolrOutput extends FailoverOutput<String, SolrMessage<SolrInp
 	}
 
 	public SolrOutput(String name, URISpec uri, String failoverPath) throws IOException {
-		super(name, b -> Message.<SolrMessage<SolrInputDocument>> fromBytes(b), failoverPath, Integer.parseInt(uri.getParameter("batch",
+		super(name, b -> Message.<SolrMessage<SolrInputDocument>> fromBytes(b), failoverPath, Integer.parseInt(uri.getParameter(
+				Connection.PARAM_KEY_BATCH,
 				"200")));
 		solr = new SolrConnection(uri);
 		open();

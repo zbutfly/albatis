@@ -3,6 +3,8 @@ package net.butfly.albatis.kafka.config;
 import java.util.Map;
 import java.util.Properties;
 
+import com.hzcominfo.albatis.nosql.Connection;
+
 import kafka.producer.ProducerConfig;
 import net.butfly.albacore.exception.ConfigException;
 import net.butfly.albacore.io.URISpec;
@@ -24,7 +26,7 @@ public class KafkaOutputConfig extends KafkaConfigBase {
 		requestRequiredAcks = props.getOrDefault("acks", "all");
 		compressionCodec = props.getOrDefault("compression", "snappy");
 		retries = Integer.parseInt(props.getOrDefault("retries", "0"));
-		batchSize = Integer.parseInt(props.getOrDefault("batch", "2000"));
+		batchSize = Integer.parseInt(props.getOrDefault(Connection.PARAM_KEY_BATCH, "5000"));
 		batchBlock = Boolean.parseBoolean(props.getOrDefault("block", "true"));
 		bufferBytes = Long.parseLong(props.getOrDefault("buffer", Long.toString(128 * 1024 * 1024)));
 	}

@@ -19,13 +19,14 @@ import net.butfly.albacore.io.Streams;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.io.faliover.Failover.FailoverException;
 import net.butfly.albacore.io.faliover.FailoverOutput;
+import static com.hzcominfo.albatis.nosql.Connection.PARAM_KEY_BATCH;
 
 public final class HbaseOutput extends FailoverOutput<String, HbaseResult> {
 	private final Connection connect;
 	private final Map<String, Table> tables;
 
 	public HbaseOutput(String name, URISpec uri, String failoverPath) throws IOException {
-		super(name, b -> new HbaseResult(b), failoverPath, null == uri ? 200 : Integer.parseInt(uri.getParameter("batch", "200")));
+		super(name, b -> new HbaseResult(b), failoverPath, null == uri ? 200 : Integer.parseInt(uri.getParameter(PARAM_KEY_BATCH, "200")));
 		connect = Hbases.connect(null == uri ? null : uri.getParameters());
 		tables = new ConcurrentHashMap<>();
 		open();
