@@ -5,8 +5,13 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
+import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
+import org.elasticsearch.action.admin.indices.mapping.put.PutMappingResponse;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
@@ -47,6 +52,20 @@ public final class Elastics extends Utils {
 			return new Script(script, st, lang, (Map<String, ? extends Object>) oos.readObject());
 		} catch (ClassNotFoundException e) {
 			throw new IOException(e);
+		}
+	}
+
+	public static void mapping(ElasticConnection connect, Map<String, ?> mapping, String... indeces) {
+		logger.info("Mapping constructing: " + mapping);
+		PutMappingRequest req = new PutMappingRequest(connect.getDefaultIndex());
+		req.source(mapping);
+		Set<String> idxs = new HashSet<>(Arrays.asList(indeces));
+		idxs.add(connect.getDefaultIndex());
+		for (String idx : idxs) {
+			req.type(idx);
+			req.updateAllTypes(true);
+			PutMappingResponse resp = connect.client().admin().indices().putMapping(req).actionGet();
+			if (!resp.isAcknowledged()) logger.error("Mapping failed" + req.toString());
 		}
 	}
 }
