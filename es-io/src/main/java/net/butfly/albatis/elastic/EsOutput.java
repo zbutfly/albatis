@@ -73,7 +73,7 @@ public final class EsOutput extends FailoverOutput<String, ElasticMessage> {
 		if (values.isEmpty()) return 0;
 		if (values.size() == 1) return write(type, values.get(0));
 		Map<String, String> fails = new ConcurrentHashMap<>();
-		long reqSize = 0;
+		long totalReqBytes = 0;
 		String sample = "";
 		int succCount = 0;
 
@@ -82,16 +82,15 @@ public final class EsOutput extends FailoverOutput<String, ElasticMessage> {
 		long now = System.currentTimeMillis();
 		for (; !retries.isEmpty() && retry < maxRetry; retry++) {
 			BulkRequest req = new BulkRequest().add(IO.list(retries, ElasticMessage::forWrite));
-			if (logger().isTraceEnabled() && retry == 0) reqSize = req.estimatedSizeInBytes();
+			if (logger().isTraceEnabled() && retry == 0) totalReqBytes = req.estimatedSizeInBytes();
 			ActionFuture<BulkResponse> future = conn.client().bulk(req);
-			logger().trace("\t==> es bulk request [" + req.requests().size() + "] send and wait... ");
 			BulkResponse rg = get(future, retry);
 			if (rg != null) {
 				Map<Boolean, List<BulkItemResponse>> resps = IO.collect(rg, Collectors.partitioningBy(r -> r.isFailed()));
 				if (resps.get(Boolean.TRUE).isEmpty()) {
 					List<BulkItemResponse> s = resps.get(Boolean.FALSE);
 					if (logger().isTraceEnabled()) logger().debug("Try#" + retry + " finished, total:[" + values.size() + "/" + Texts
-							.formatKilo(reqSize, " bytes") + "] in [" + (System.currentTimeMillis() - now) + "] ms, sample id: [" + (s
+							.formatKilo(totalReqBytes, " bytes") + "] in [" + (System.currentTimeMillis() - now) + "] ms, sample id: [" + (s
 									.isEmpty() ? "NONE" : s.get(0).getId()) + "].");
 					return s.size();
 				}
@@ -112,7 +111,7 @@ public final class EsOutput extends FailoverOutput<String, ElasticMessage> {
 			}
 		}
 		if (logger().isTraceEnabled()) {
-			logger().debug("Try#" + retry + " finished, total:[" + values.size() + "/" + Texts.formatKilo(reqSize, " bytes") + "] in ["
+			logger().debug("Try#" + retry + " finished, total:[" + values.size() + "/" + Texts.formatKilo(totalReqBytes, " bytes") + "] in ["
 					+ (System.currentTimeMillis() - now) + "] ms, successed:[" + succCount + "], remained:[" + retries.size()
 					+ "], failed:[" + fails.size() + "], sample id: [" + sample + "].");
 		}
@@ -132,13 +131,11 @@ public final class EsOutput extends FailoverOutput<String, ElasticMessage> {
 	}
 
 	private <T> T get(ActionFuture<T> f, int retry) {
-		long now0 = System.currentTimeMillis();
 		try {
 			return f.actionGet();
 		} catch (Exception e) {
 			logger().warn("ES failure, retry#" + retry + "...", unwrap(e));
 		} finally {
-			logger().trace("\t==> es bulk response got in [" + (System.currentTimeMillis() - now0) + "] ms.");
 		}
 		return null;
 	}

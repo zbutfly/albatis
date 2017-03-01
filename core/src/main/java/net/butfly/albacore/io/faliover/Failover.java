@@ -2,6 +2,7 @@ package net.butfly.albacore.io.faliover;
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -29,13 +30,18 @@ public abstract class Failover<K, V extends Message<K, ?, V>> extends OpenableTh
 
 	protected abstract long fail(K key, Collection<V> values, Exception err);
 
+	private final AtomicInteger parallelism = new AtomicInteger();
+
 	@SuppressWarnings("unchecked")
 	protected final long output(K key, Stream<V> pkg) {
+		parallelism.incrementAndGet();
 		try {
 			return output.write(key, pkg);
 		} catch (FailoverException ex) {
 			return fail(key, (Collection<V>) ex.fails.keySet(), ex);
 		} finally {
+			if (logger().isTraceEnabled()) logger.debug("Parallelism of [" + output.getClass().getSimpleName() + "]: " + parallelism
+					.decrementAndGet());
 			try {
 				output.commit(key);
 			} catch (Exception e) {
