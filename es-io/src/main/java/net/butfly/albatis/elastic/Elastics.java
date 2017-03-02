@@ -56,7 +56,7 @@ public final class Elastics extends Utils {
 	}
 
 	public static void mapping(ElasticConnection connect, Map<String, ?> mapping, String... types) {
-		logger.info("Mapping constructing: " + mapping);
+		logger.debug("Mapping constructing: " + mapping);
 		PutMappingRequest req = new PutMappingRequest(connect.getDefaultIndex());
 		req.source(mapping);
 		Set<String> tps = new HashSet<>(Arrays.asList(types));
