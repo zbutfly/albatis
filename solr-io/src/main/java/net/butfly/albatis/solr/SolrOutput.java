@@ -10,6 +10,8 @@ import java.util.stream.Stream;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.common.SolrInputDocument;
 
+import com.hzcominfo.albatis.nosql.Connection;
+
 import net.butfly.albacore.io.IO;
 import net.butfly.albacore.io.Message;
 import net.butfly.albacore.io.Streams;
@@ -26,7 +28,8 @@ public final class SolrOutput extends FailoverOutput<String, SolrMessage<SolrInp
 	}
 
 	public SolrOutput(String name, URISpec uri, String failoverPath) throws IOException {
-		super(name, b -> Message.<SolrMessage<SolrInputDocument>> fromBytes(b), failoverPath, Integer.parseInt(uri.getParameter("batch",
+		super(name, b -> Message.<SolrMessage<SolrInputDocument>> fromBytes(b), failoverPath, Integer.parseInt(uri.getParameter(
+				Connection.PARAM_KEY_BATCH,
 				"200")));
 		solr = new SolrConnection(uri);
 		open();
@@ -49,12 +52,13 @@ public final class SolrOutput extends FailoverOutput<String, SolrMessage<SolrInp
 
 	@Override
 	protected long write(String core, Stream<SolrMessage<SolrInputDocument>> docs) throws FailoverException {
+		List<SolrMessage<SolrInputDocument>> ds = IO.list(docs);
 		try {
-			List<SolrInputDocument> l = IO.list(docs.map(SolrMessage<SolrInputDocument>::forWrite));
+			List<SolrInputDocument> l = IO.list(ds, SolrMessage<SolrInputDocument>::forWrite);
 			solr.client().add(core, l, DEFAULT_AUTO_COMMIT_MS);
 			return l.size();
 		} catch (Exception e) {
-			throw new FailoverException(IO.collect(Streams.of(docs), Collectors.toConcurrentMap(r -> r, r -> unwrap(e).getMessage())));
+			throw new FailoverException(IO.collect(Streams.of(ds), Collectors.toConcurrentMap(r -> r, r -> unwrap(e).getMessage())));
 		}
 	}
 

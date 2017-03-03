@@ -11,11 +11,19 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.elasticsearch.action.ActionFuture;
+import org.elasticsearch.action.ActionRequest;
+import org.elasticsearch.action.ActionWriteResponse;
 import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkRequest;
+import org.elasticsearch.action.bulk.BulkResponse;
+import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.transport.RemoteTransportException;
+
+import com.hzcominfo.albatis.nosql.Connection;
 
 import net.butfly.albacore.io.IO;
 import net.butfly.albacore.io.Streams;
@@ -33,7 +41,7 @@ public final class EsOutput extends FailoverOutput<String, ElasticMessage> {
 	}
 
 	public EsOutput(String name, URISpec uri, String failoverPath) throws IOException {
-		super(name, b -> new ElasticMessage(b), failoverPath, Integer.parseInt(uri.getParameter("batch", "200")));
+		super(name, b -> new ElasticMessage(b), failoverPath, Integer.parseInt(uri.getParameter(Connection.PARAM_KEY_BATCH, "200")));
 		conn = new ElasticConnection(uri);
 		maxRetry = Integer.parseInt(uri.getParameter("retry", "5"));
 		open();
@@ -48,12 +56,24 @@ public final class EsOutput extends FailoverOutput<String, ElasticMessage> {
 		conn.close();
 	}
 
+	private long write(String type, ElasticMessage es) {
+		ActionRequest<?> req = es.forWrite();
+		ActionFuture<? extends ActionWriteResponse> f = null;
+		if (req instanceof IndexRequest) f = conn.client().index((IndexRequest) req);
+		else if (req instanceof UpdateRequest) f = conn.client().update((UpdateRequest) req);
+		if (null == f) return 0;
+		@SuppressWarnings("unused")
+		ActionWriteResponse r = get(f, 0);
+		return 1;
+	}
+
 	@Override
 	protected long write(String type, Stream<ElasticMessage> msgs) throws FailoverException {
 		List<ElasticMessage> values = IO.list(msgs);
 		if (values.isEmpty()) return 0;
+		if (values.size() == 1) return write(type, values.get(0));
 		Map<String, String> fails = new ConcurrentHashMap<>();
-		long reqSize = 0;
+		long totalReqBytes = 0;
 		String sample = "";
 		int succCount = 0;
 
@@ -62,18 +82,15 @@ public final class EsOutput extends FailoverOutput<String, ElasticMessage> {
 		long now = System.currentTimeMillis();
 		for (; !retries.isEmpty() && retry < maxRetry; retry++) {
 			BulkRequest req = new BulkRequest().add(IO.list(retries, ElasticMessage::forWrite));
-			if (logger().isTraceEnabled() && retry == 0) reqSize = req.estimatedSizeInBytes();
-			Map<Boolean, List<BulkItemResponse>> resps = null;
-			try {
-				resps = IO.collect(conn.client().bulk(req).actionGet(), Collectors.partitioningBy(r -> r.isFailed()));
-			} catch (Exception e) {
-				logger().warn("ES failure,  retry#" + retry + "...", unwrap(e));
-			}
-			if (resps != null) {
+			if (logger().isTraceEnabled() && retry == 0) totalReqBytes = req.estimatedSizeInBytes();
+			ActionFuture<BulkResponse> future = conn.client().bulk(req);
+			BulkResponse rg = get(future, retry);
+			if (rg != null) {
+				Map<Boolean, List<BulkItemResponse>> resps = IO.collect(rg, Collectors.partitioningBy(r -> r.isFailed()));
 				if (resps.get(Boolean.TRUE).isEmpty()) {
 					List<BulkItemResponse> s = resps.get(Boolean.FALSE);
-					if (logger().isTraceEnabled()) logger().trace("Try#" + retry + " finished, total:[" + values.size() + "/" + Texts
-							.formatKilo(reqSize, " bytes") + "] in [" + (System.currentTimeMillis() - now) + "] ms, sample id: [" + (s
+					if (logger().isTraceEnabled()) logger().debug("Try#" + retry + " finished, total:[" + values.size() + "/" + Texts
+							.formatKilo(totalReqBytes, " bytes") + "] in [" + (System.currentTimeMillis() - now) + "] ms, sample id: [" + (s
 									.isEmpty() ? "NONE" : s.get(0).getId()) + "].");
 					return s.size();
 				}
@@ -94,7 +111,7 @@ public final class EsOutput extends FailoverOutput<String, ElasticMessage> {
 			}
 		}
 		if (logger().isTraceEnabled()) {
-			logger().trace("Try#" + retry + " finished, total:[" + values.size() + "/" + Texts.formatKilo(reqSize, " bytes") + "] in ["
+			logger().debug("Try#" + retry + " finished, total:[" + values.size() + "/" + Texts.formatKilo(totalReqBytes, " bytes") + "] in ["
 					+ (System.currentTimeMillis() - now) + "] ms, successed:[" + succCount + "], remained:[" + retries.size()
 					+ "], failed:[" + fails.size() + "], sample id: [" + sample + "].");
 		}
@@ -111,5 +128,15 @@ public final class EsOutput extends FailoverOutput<String, ElasticMessage> {
 
 	static {
 		unwrap(RemoteTransportException.class, "getCause");
+	}
+
+	private <T> T get(ActionFuture<T> f, int retry) {
+		try {
+			return f.actionGet();
+		} catch (Exception e) {
+			logger().warn("ES failure, retry#" + retry + "...", unwrap(e));
+		} finally {
+		}
+		return null;
 	}
 }

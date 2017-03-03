@@ -11,6 +11,7 @@ import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.io.IO;
 import net.butfly.albacore.io.Message;
 import net.butfly.albacore.io.Output;
+import net.butfly.albacore.io.Parals;
 import net.butfly.albacore.io.Streams;
 import net.butfly.albacore.io.faliover.Failover.FailoverException;
 
@@ -61,7 +62,7 @@ public abstract class FailoverOutput<K, M extends Message<K, ?, M>> extends Name
 	private long enqueue(K key, List<M> items) {
 		int size = items.size();
 		return size <= batchSize ? failover.output(key, Streams.of(items))
-				: eachs(Streams.spatial(items.spliterator(), Streams.calcParallelism(size, batchSize)).values(), it -> failover.output(key,
+				: eachs(Streams.spatial(items.spliterator(), Parals.calcParallelism(size, batchSize)).values(), it -> failover.output(key,
 						Streams.of(it)), Streams.LONG_SUM);
 
 	}

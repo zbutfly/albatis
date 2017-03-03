@@ -55,15 +55,14 @@ public final class Elastics extends Utils {
 		}
 	}
 
-	public static void mapping(ElasticConnection connect, Map<String, ?> mapping, String... indeces) {
-		logger.info("Mapping constructing: " + mapping);
+	public static void mapping(ElasticConnection connect, Map<String, ?> mapping, String... types) {
+		logger.debug("Mapping constructing: " + mapping);
 		PutMappingRequest req = new PutMappingRequest(connect.getDefaultIndex());
 		req.source(mapping);
-		Set<String> idxs = new HashSet<>(Arrays.asList(indeces));
-		idxs.add(connect.getDefaultIndex());
-		for (String idx : idxs) {
-			req.type(idx);
-			req.updateAllTypes(true);
+		Set<String> tps = new HashSet<>(Arrays.asList(types));
+		tps.add(connect.getDefaultType());
+		for (String t : tps) {
+			req.type(t);
 			PutMappingResponse resp = connect.client().admin().indices().putMapping(req).actionGet();
 			if (!resp.isAcknowledged()) logger.error("Mapping failed" + req.toString());
 		}

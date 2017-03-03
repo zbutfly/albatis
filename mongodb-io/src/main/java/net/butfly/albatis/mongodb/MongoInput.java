@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import com.google.common.base.Joiner;
+import com.hzcominfo.albatis.nosql.Connection;
 import com.mongodb.BasicDBList;
 import com.mongodb.Bytes;
 import com.mongodb.DBCursor;
@@ -22,17 +23,22 @@ public class MongoInput extends InputImpl<DBObject> {
 	private DBCursor cursor;
 	private final ReentrantReadWriteLock lock;
 
-	public MongoInput(final String name, String uri, final String table, int inputBatchSize, final DBObject... filter) throws IOException {
+	public MongoInput(final String name, URISpec uri, final String table, final DBObject... filter) throws IOException {
 		super(name);
 		lock = new ReentrantReadWriteLock();
 		logger.info("[" + name + "] from [" + uri + "], core [" + table + "]");
-		URISpec spec = new URISpec(uri);
-		conn = new MongoConnection(spec);
+		conn = new MongoConnection(uri);
 		logger.debug("[" + name + "] find begin...");
 		open(() -> {
-			cursor = open(spec, table, filter);
-			cursor = cursor.batchSize(inputBatchSize).addOption(Bytes.QUERYOPTION_NOTIMEOUT);
+			cursor = open(uri, table, filter);
+			String bstr;
+			if (null != (bstr = uri.getParameter(Connection.PARAM_KEY_BATCH))) cursor = cursor.batchSize(Integer.parseInt(bstr));
+			cursor = cursor.addOption(Bytes.QUERYOPTION_NOTIMEOUT);
 		});
+	}
+
+	public MongoInput(final String name, String uri, final String table, final DBObject... filter) throws IOException {
+		this(name, new URISpec(uri), table, filter);
 	}
 
 	private DBCursor open(URISpec spec, String table, DBObject[] filter) {
@@ -100,5 +106,10 @@ public class MongoInput extends InputImpl<DBObject> {
 			}
 		} while (r == null);
 		return r;
+	}
+
+	public MongoInput batch(int batching) {
+		cursor = cursor.batchSize(batching);
+		return this;
 	}
 }
