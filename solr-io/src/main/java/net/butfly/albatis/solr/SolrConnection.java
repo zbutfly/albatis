@@ -23,6 +23,7 @@ import org.apache.solr.client.solrj.impl.CloudSolrClient;
 import org.apache.solr.client.solrj.impl.HttpClientUtil;
 import org.apache.solr.client.solrj.impl.HttpSolrClient;
 import org.apache.solr.client.solrj.impl.HttpSolrClient.Builder;
+import org.apache.solr.client.solrj.impl.HttpSolrClient.RemoteSolrException;
 import org.apache.solr.client.solrj.impl.XMLResponseParser;
 import org.apache.solr.client.solrj.request.CoreAdminRequest;
 import org.apache.solr.client.solrj.response.CoreAdminResponse;
@@ -87,6 +88,7 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 	}
 
 	private static SolrClient create(URISpec uri, Class<? extends ResponseParser> parserClass) {
+		if (null == parserClass) parserClass = XMLResponseParser.class;
 		ResponseParser p = PARSER_POOL.computeIfAbsent(parserClass, clz -> Reflections.construct(clz));
 		switch (uri.getScheme()) {
 		case "http":
@@ -133,10 +135,10 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 				getCores()[i] = resp.getCoreStatus().getName(i);
 			baseUri = url;
 			defaultCore = null;
-		} catch (SolrServerException e) { // XXX IOException?
-			defaultCore = uri.getPathAt(0);
+		} catch (SolrServerException | RemoteSolrException e) { // XXX IOException?
+			defaultCore = uri.getPathAtLast(0);
 			if (defaultCore == null) throw new IOException("Solr uri invalid: " + uri);
-			baseUri = url.replaceAll("/?" + defaultCore + "/?$", "");
+			baseUri = url.replaceAll("/?" + defaultCore + "([/\\?#][^/]*)?", "");
 			try (SolrConnection conn = new SolrConnection(baseUri, parserClass)) {
 				cores = conn.getCores();
 			} catch (Exception e1) {
