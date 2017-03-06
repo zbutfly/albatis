@@ -24,16 +24,14 @@ import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.io.IO;
 import net.butfly.albacore.io.Input;
 import net.butfly.albacore.io.Streams;
-import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.Texts;
 import net.butfly.albacore.utils.collection.Maps;
+import net.butfly.albacore.utils.logger.Logger;
 
 public final class HbaseInput extends Namedly implements Input<HbaseResult> {
 	private final Connection hconn;
 	private final String tname;
 	private final Table htable;
-	private final static int MAX_RETRIES = Integer.parseInt(Configs.MAIN_CONF.getOrDefault("albatis.io.hbase.retry", "5"));
-	protected final static int BATCH_SIZE = Integer.parseInt(Configs.MAIN_CONF.getOrDefault("albatis.io.hbase.batch.size", "500"));
 
 	private ResultScanner scaner = null;
 	private ReentrantReadWriteLock scanerLock;
@@ -117,35 +115,46 @@ public final class HbaseInput extends Namedly implements Input<HbaseResult> {
 		}
 	}
 
+//	AtomicInteger parallelism = new AtomicInteger();
+
 	public List<HbaseResult> get(List<Get> gets) {
-		AtomicReference<List<HbaseResult>> ref = new AtomicReference<>();
-		long now = System.currentTimeMillis();
-		table(tname, t -> {
-			try {
-				ref.set(IO.list(Streams.of(t.get(gets)).map(r -> new HbaseResult(tname, r))));
-			} catch (Exception ex) {
-				logger().warn("Hbase batch get fail, try slow single fetching.");
-				ref.set(IO.list(Streams.of(gets, true).map(this::get)));
-			}
-			logger().trace("Hbase batch get: " + (System.currentTimeMillis() - now) + " ms, total [" + gets.size() + " gets]/[" + Texts
-					.formatKilo(HbaseResult.sizes(ref.get()), " bytes") + "]/[" + HbaseResult.cells(ref.get()) + " cells].");
-		});
-		return ref.get();
+//		logger().debug("[Hbase get parallelism: " + parallelism.incrementAndGet() + "]");
+//		try {
+			AtomicReference<List<HbaseResult>> ref = new AtomicReference<>();
+			long now = System.currentTimeMillis();
+			table(tname, t -> {
+				try {
+					ref.set(IO.list(Streams.of(t.get(gets)).map(r -> new HbaseResult(tname, r))));
+				} catch (Exception ex) {
+					logger().warn("Hbase batch get fail, try slow single fetching.");
+					ref.set(IO.list(Streams.of(gets, true).map(this::get)));
+				}
+				logger().trace("Hbase batch get: " + (System.currentTimeMillis() - now) + " ms, total [" + gets.size() + " gets]/[" + Texts
+						.formatKilo(HbaseResult.sizes(ref.get()), " bytes") + "]/[" + HbaseResult.cells(ref.get()) + " cells].");
+			});
+			return ref.get();
+//		} finally {
+//			parallelism.getAndDecrement();
+//		}
 	}
 
 	public HbaseResult get(Get get) {
-		AtomicReference<HbaseResult> ref = new AtomicReference<>();
-		for (int i = 0; i < MAX_RETRIES; i++) {
-			int ii = i;
+//		logger().debug("[Hbase get parallelism: " + parallelism.incrementAndGet() + "]");
+//		try {
+			AtomicReference<HbaseResult> ref = new AtomicReference<>();
 			table(tname, t -> {
 				try {
 					ref.set(new HbaseResult(tname, t.get(get)));
 				} catch (Exception ex) {
-					logger().warn("Hbase get failure to retry#" + (ii + 1), ex);
+					Logger l = logger();
+					if (l.isTraceEnabled()) l.error("Hbase get failed on: " + get.toString(), ex);
+					else l.error("Hbase get failed on: " + get.toString() + "\n\t[" + ex.getMessage() + "]");
 				}
 			});
-		}
-		return ref.get();
+			return ref.get();
+//		} finally {
+//			parallelism.getAndDecrement();
+//		}
 	}
 
 	LinkedBlockingQueue<Table> tables = new LinkedBlockingQueue<>(100);

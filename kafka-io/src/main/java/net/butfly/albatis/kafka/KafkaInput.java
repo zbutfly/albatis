@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
 
 import com.bluejeans.bigqueue.BigQueue;
@@ -27,11 +28,13 @@ import net.butfly.albacore.utils.parallel.Concurrents;
 import net.butfly.albatis.kafka.config.KafkaInputConfig;
 
 public final class KafkaInput extends InputImpl<KafkaMessage> {
-	protected KafkaInputConfig config;
-	protected final Map<String, Integer> allTopics = new ConcurrentHashMap<>();
-	protected ConsumerConnector connect;
-	Map<KafkaStream<byte[], byte[]>, Fetcher> raws;
-	private BigQueue pool;
+	private final KafkaInputConfig config;
+	private final Map<String, Integer> allTopics = new ConcurrentHashMap<>();
+	private final ConsumerConnector connect;
+	private final Map<KafkaStream<byte[], byte[]>, Fetcher> raws;
+	private final BigQueue pool;
+	// for debug
+	private final AtomicLong skip;
 
 	public KafkaInput(String name, String kafkaURI, String poolPath, String... topics) throws ConfigException, IOException {
 		this(name, new URISpec(kafkaURI), poolPath, topics);
@@ -44,6 +47,9 @@ public final class KafkaInput extends InputImpl<KafkaMessage> {
 	public KafkaInput(String name, URISpec uri, String poolPath, String... topics) throws ConfigException, IOException {
 		super(name);
 		config = new KafkaInputConfig(name(), uri);
+		skip = new AtomicLong(Long.parseLong(uri.getParameter("skip", "0")));
+		if (skip.get() > 0) logger().error("Skip [" + skip.get()
+				+ "] for testing, the skip is estimated, especially in multiple topic subscribing.");
 		int kp = config.getPartitionParallelism();
 		logger().info("connecting with config [" + config.toString() + "].");
 		if (topics == null || topics.length == 0) topics = config.topics().toArray(new String[0]);
@@ -59,34 +65,34 @@ public final class KafkaInput extends InputImpl<KafkaMessage> {
 			else allTopics.put(t, (int) Math.ceil(topicParts.get(t).length * 1.0 / kp));
 		}
 		logger().debug("parallelism of topics: " + allTopics.toString() + ".");
-		Stream<KafkaStream<byte[], byte[]>> r = connect();
+		// connect
+		Map<String, List<KafkaStream<byte[], byte[]>>> temp = null;
+		ConsumerConnector c = null;
+		do
+			try {
+				c = kafka.consumer.Consumer.createJavaConsumerConnector(config.getConfig());
+				temp = c.createMessageStreams(allTopics);
+			} catch (ConsumerRebalanceFailedException | MessageStreamsExistException e) {
+				logger().warn("Kafka reopen too quickly, wait 10 seconds and retry");
+				if (c != null) c.shutdown();
+				temp = null;
+				if (!Concurrents.waitSleep(1000 * 10)) throw e;
+			}
+		while (temp == null);
+		connect = c;
+		logger().debug("connected.");
+		Stream<KafkaStream<byte[], byte[]>> r = Streams.of(temp.values()).flatMap(t -> Streams.of(t));
+		// connect ent
 		try {
 			pool = new BigQueue(IOs.mkdirs(poolPath + "/" + name), config.toString());
 		} catch (IOException e) {
 			throw new RuntimeException("Offheap pool init failure", e);
 		}
 		AtomicInteger findex = new AtomicInteger();
-		raws = IO.map(r, s -> s, s -> new Fetcher(name + "Fetcher", s, findex.incrementAndGet(), pool, config.getPoolSize()));
+		raws = IO.map(r, s -> s, s -> new Fetcher(name + "Fetcher", s, findex.incrementAndGet(), pool, config.getPoolSize(), skip));
 		logger().info(MessageFormat.format("[{0}] local pool init: [{1}/{0}] with name [{2}], init size [{3}].", name, poolPath, config
 				.toString(), pool.size()));
 		open();
-	}
-
-	private Stream<KafkaStream<byte[], byte[]>> connect() throws ConfigException {
-		Map<String, List<KafkaStream<byte[], byte[]>>> temp = null;
-		do
-			try {
-				connect = kafka.consumer.Consumer.createJavaConsumerConnector(config.getConfig());
-				temp = connect.createMessageStreams(allTopics);
-			} catch (ConsumerRebalanceFailedException | MessageStreamsExistException e) {
-				logger().warn("Kafka reopen too quickly, wait 10 seconds and retry");
-				connect.shutdown();
-				temp = null;
-				if (!Concurrents.waitSleep(1000 * 10)) throw e;
-			}
-		while (temp == null);
-		logger().debug("connected.");
-		return Streams.of(temp.values()).flatMap(t -> Streams.of(t));
 	}
 
 	@Override
@@ -131,23 +137,23 @@ public final class KafkaInput extends InputImpl<KafkaMessage> {
 	}
 
 	static class Fetcher extends OpenableThread {
-		private final KafkaStream<byte[], byte[]> stream;
 		private final BigQueue pool;
 		private final long poolSize;
+		private final ConsumerIterator<byte[], byte[]> it;
+		private final AtomicLong skip;
 
-		public Fetcher(String inputName, KafkaStream<byte[], byte[]> stream, int i, BigQueue pool, long poolSize) {
+		public Fetcher(String inputName, KafkaStream<byte[], byte[]> stream, int i, BigQueue pool, long poolSize, AtomicLong skip) {
 			super(inputName + "#" + i);
-			this.stream = stream;
+			this.skip = skip;
+			this.it = stream.iterator();
 			this.pool = pool;
 			this.poolSize = poolSize;
-			this.setUncaughtExceptionHandler((t, e) -> {
-				logger().error("[" + getName() + "] async error, pool [" + pool.size() + "]", e);
-			});
+			this.setUncaughtExceptionHandler((t, e) -> logger().error("[" + getName() + "] async error, pool [" + pool.size() + "]", e));
 		}
 
 		@Override
 		protected void exec() {
-			ConsumerIterator<byte[], byte[]> it = stream.iterator();
+			skip(skip, 100000);
 			while (opened())
 				try {
 					while (opened() && it.hasNext()) {
@@ -165,6 +171,17 @@ public final class KafkaInput extends InputImpl<KafkaMessage> {
 
 		private void gc() {
 			pool.gc();
+		}
+
+		private long skip(AtomicLong skip, long logStep) {
+			if (skip.get() <= 0) return 0;
+			int skiped = 0;
+			while (opened() && skip.decrementAndGet() > 0 && it.hasNext()) {
+				it.next();
+				if ((++skiped) % logStep == 0) logger().error("Skip " + logStep + " messages on stream");
+			}
+			logger().error("Skip " + skiped % logStep + " messages on stream");
+			return skiped;
 		}
 	}
 
