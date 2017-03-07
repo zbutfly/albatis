@@ -14,6 +14,7 @@ import com.bluejeans.bigqueue.BigQueue;
 import kafka.common.ConsumerRebalanceFailedException;
 import kafka.common.MessageStreamsExistException;
 import kafka.consumer.ConsumerIterator;
+import kafka.consumer.ConsumerTimeoutException;
 import kafka.consumer.KafkaStream;
 import kafka.javaapi.consumer.ConsumerConnector;
 import net.butfly.albacore.exception.ConfigException;
@@ -28,11 +29,13 @@ import net.butfly.albacore.utils.parallel.Concurrents;
 import net.butfly.albatis.kafka.config.KafkaInputConfig;
 
 public final class KafkaInput extends InputImpl<KafkaMessage> {
+	private static final long POOL_LOCK_WAITING = -1;
 	private final KafkaInputConfig config;
 	private final Map<String, Integer> allTopics = new ConcurrentHashMap<>();
 	private final ConsumerConnector connect;
 	private final Map<KafkaStream<byte[], byte[]>, Fetcher> raws;
 	private final BigQueue pool;
+	private final long poolSize;
 	// for debug
 	private final AtomicLong skip;
 
@@ -83,13 +86,14 @@ public final class KafkaInput extends InputImpl<KafkaMessage> {
 		logger().debug("connected.");
 		Stream<KafkaStream<byte[], byte[]>> r = Streams.of(temp.values()).flatMap(t -> Streams.of(t));
 		// connect ent
+		poolSize = config.getPoolSize();
 		try {
 			pool = new BigQueue(IOs.mkdirs(poolPath + "/" + name), config.toString());
 		} catch (IOException e) {
 			throw new RuntimeException("Offheap pool init failure", e);
 		}
 		AtomicInteger findex = new AtomicInteger();
-		raws = IO.map(r, s -> s, s -> new Fetcher(name + "Fetcher", s, findex.incrementAndGet(), pool, config.getPoolSize(), skip));
+		raws = IO.map(r, s -> s, s -> new Fetcher(name + "Fetcher", s, findex.incrementAndGet()));
 		logger().info(MessageFormat.format("[{0}] local pool init: [{1}/{0}] with name [{2}], init size [{3}].", name, poolPath, config
 				.toString(), pool.size()));
 		open();
@@ -124,8 +128,9 @@ public final class KafkaInput extends InputImpl<KafkaMessage> {
 		} catch (Exception e) {
 			logger().error("kafka shutdown fail", e);
 		}
-		pool.gc();
+
 		try {
+			pool.gc();
 			pool.close();
 		} catch (IOException e) {
 			logger().error("local pool close failure", e);
@@ -136,19 +141,22 @@ public final class KafkaInput extends InputImpl<KafkaMessage> {
 		return pool.size();
 	}
 
-	static class Fetcher extends OpenableThread {
-		private final BigQueue pool;
-		private final long poolSize;
+	class Fetcher extends OpenableThread {
 		private final ConsumerIterator<byte[], byte[]> it;
-		private final AtomicLong skip;
 
-		public Fetcher(String inputName, KafkaStream<byte[], byte[]> stream, int i, BigQueue pool, long poolSize, AtomicLong skip) {
+		public Fetcher(String inputName, KafkaStream<byte[], byte[]> stream, int i) {
 			super(inputName + "#" + i);
-			this.skip = skip;
 			this.it = stream.iterator();
-			this.pool = pool;
-			this.poolSize = poolSize;
 			this.setUncaughtExceptionHandler((t, e) -> logger().error("[" + getName() + "] async error, pool [" + pool.size() + "]", e));
+		}
+
+		private boolean hasNext() {
+			while (true)
+				try {
+					return it.hasNext();
+				} catch (ConsumerTimeoutException ex) {
+					Concurrents.waitSleep(POOL_LOCK_WAITING);
+				}
 		}
 
 		@Override
@@ -156,26 +164,25 @@ public final class KafkaInput extends InputImpl<KafkaMessage> {
 			skip(skip, 100000);
 			while (opened())
 				try {
-					while (opened() && it.hasNext()) {
+					while (opened() && hasNext()) {
 						while (opened() && pool.size() > poolSize)
 							Concurrents.waitSleep();
-						pool.enqueue(new KafkaMessage(it.next()).toBytes());
+						byte[] b = new KafkaMessage(it.next()).toBytes();
+						pool.enqueue(b);
 					}
 					Concurrents.waitSleep(1000); // kafka empty
-				} catch (Exception e) {} finally {
-					gc();
+				} catch (Exception e) {
+					logger().warn("Kafka reading failed and ignore...", e);
+				} finally {
+					pool.gc();
 				}
 			logger().info("Fetcher finished and exited, pool [" + pool.size() + "].");
-		}
-
-		private void gc() {
-			pool.gc();
 		}
 
 		private long skip(AtomicLong skip, long logStep) {
 			if (skip.get() <= 0) return 0;
 			int skiped = 0;
-			while (opened() && skip.decrementAndGet() > 0 && it.hasNext()) {
+			while (opened() && skip.decrementAndGet() > 0 && hasNext()) {
 				it.next();
 				if ((++skiped) % logStep == 0) logger().error("Skip " + logStep + " messages on stream");
 			}
@@ -186,7 +193,7 @@ public final class KafkaInput extends InputImpl<KafkaMessage> {
 
 	@Override
 	protected KafkaMessage dequeue() {
-		byte[] buf;
+		byte[] buf = null;
 		buf = pool.dequeue();
 		if (null == buf) return null;
 		return new KafkaMessage(buf);
