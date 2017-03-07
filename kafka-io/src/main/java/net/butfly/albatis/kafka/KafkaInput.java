@@ -157,10 +157,9 @@ public final class KafkaInput extends InputImpl<KafkaMessage> {
 			while (opened())
 				try {
 					while (opened() && it.hasNext()) {
-						byte[] km = new KafkaMessage(it.next()).toBytes();
 						while (opened() && pool.size() > poolSize)
 							Concurrents.waitSleep();
-						pool.enqueue(km);
+						pool.enqueue(new KafkaMessage(it.next()).toBytes());
 					}
 					Concurrents.waitSleep(1000); // kafka empty
 				} catch (Exception e) {} finally {
