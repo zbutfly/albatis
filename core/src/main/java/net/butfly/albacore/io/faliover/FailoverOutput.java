@@ -50,13 +50,9 @@ public abstract class FailoverOutput<K, M extends Message<K, ?, M>> extends Name
 
 	@Override
 	public final long enqueue(Stream<M> els) {
-		Map<K, List<M>> parts = IO.collect(els, Collectors.groupingByConcurrent(e -> {
-			return e.partition();
-		}));
-		if (parts.isEmpty()) return 0;
-		return eachs(parts.entrySet(), e -> {
-			return e.getValue().isEmpty() ? 0 : enqueue(e.getKey(), e.getValue());
-		}, Streams.LONG_SUM);
+		Map<K, List<M>> parts = IO.collect(els, Collectors.groupingByConcurrent(M::partition));
+		return parts.isEmpty() ? 0
+				: eachs(parts.entrySet(), e -> e.getValue().isEmpty() ? 0 : enqueue(e.getKey(), e.getValue()), Streams.LONG_SUM);
 	}
 
 	private long enqueue(K key, List<M> items) {
@@ -69,14 +65,20 @@ public abstract class FailoverOutput<K, M extends Message<K, ?, M>> extends Name
 
 	@Override
 	public final void close() {
-		Output.super.close();
-		failover.close();
-		closeInternal();
+		Output.super.close(() -> {
+			failover.close();
+			closeInternal();
+		});
 	}
 
 	protected abstract void closeInternal();
 
 	public final long fails() {
 		return failover.size();
+	}
+
+	@Override
+	public boolean opened() {
+		return Output.super.opened() && failover.opened();
 	}
 }

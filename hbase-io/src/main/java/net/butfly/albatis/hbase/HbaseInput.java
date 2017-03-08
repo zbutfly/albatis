@@ -126,11 +126,15 @@ public final class HbaseInput extends Namedly implements Input<HbaseResult> {
 				ref.set(IO.list(Streams.of(t.get(gets)).map(r -> new HbaseResult(tname, r))));
 			} catch (Exception ex) {
 				long now1 = System.currentTimeMillis();
-				ref.set(IO.list(Streams.of(gets, true).map(this::get)));
-				logger().debug("Hbase batch not ready, fetch items each by each in [" + (System.currentTimeMillis() - now1) + "] ms");
+				try {
+					ref.set(IO.list(Streams.of(gets, true).map(this::get)));
+				} finally {
+					logger().debug("Hbase batch not ready, fetch items each by each in [" + (System.currentTimeMillis() - now1) + "] ms");
+				}
+			} finally {
+				logger().trace(() -> "Hbase batch get: " + (System.currentTimeMillis() - now) + " ms, total [" + gets.size() + " gets]/["
+						+ Texts.formatKilo(HbaseResult.sizes(ref.get()), " bytes") + "]/[" + HbaseResult.cells(ref.get()) + " cells].");
 			}
-			logger().trace(() -> "Hbase batch get: " + (System.currentTimeMillis() - now) + " ms, total [" + gets.size() + " gets]/["
-					+ Texts.formatKilo(HbaseResult.sizes(ref.get()), " bytes") + "]/[" + HbaseResult.cells(ref.get()) + " cells].");
 		});
 		return ref.get();
 	}

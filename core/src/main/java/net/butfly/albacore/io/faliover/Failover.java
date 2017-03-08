@@ -50,16 +50,6 @@ public abstract class Failover<K, V extends Message<K, ?, V>> extends OpenableTh
 		}
 	}
 
-	@Override
-	public void open(Runnable opening) {
-		super.open(opening);
-	}
-
-	@Override
-	public void close(Runnable run) {
-		super.close(run);
-	}
-
 	public static class FailoverException extends Exception {
 		private static final long serialVersionUID = 4322435055829139356L;
 		protected final Map<?, String> fails;
@@ -74,4 +64,9 @@ public abstract class Failover<K, V extends Message<K, ?, V>> extends OpenableTh
 	protected interface Writing<K, V> {
 		int write(K partition, Collection<V> pkg) throws FailoverException;
 	}
+
+//	@Override
+//	public boolean opened() {
+//		return super.opened() && output.opened();
+//	}
 }

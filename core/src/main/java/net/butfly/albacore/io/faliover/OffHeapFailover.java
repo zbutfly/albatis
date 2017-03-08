@@ -105,7 +105,7 @@ public class OffHeapFailover<K, V extends Message<K, ?, V>> extends Failover<K, 
 	}
 
 	@Override
-	public void close(Runnable run) {
+	public void close() {
 		super.close(this::closePool);
 	}
 
