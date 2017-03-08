@@ -20,6 +20,7 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterList;
+import org.apache.hadoop.hbase.ipc.RemoteWithExtrasException;
 
 import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.io.IO;
@@ -27,9 +28,9 @@ import net.butfly.albacore.io.Input;
 import net.butfly.albacore.io.Streams;
 import net.butfly.albacore.utils.Texts;
 import net.butfly.albacore.utils.collection.Maps;
-import net.butfly.albacore.utils.logger.Logger;
 
 public final class HbaseInput extends Namedly implements Input<HbaseResult> {
+	private static final int MAX_RETRIES = Integer.MAX_VALUE;
 	private final Connection hconn;
 	private final String tname;
 	private final Table htable;
@@ -119,32 +120,46 @@ public final class HbaseInput extends Namedly implements Input<HbaseResult> {
 	public List<HbaseResult> get(List<Get> gets) {
 		if (gets == null || !gets.iterator().hasNext()) return new ArrayList<>();
 		AtomicReference<List<HbaseResult>> ref = new AtomicReference<>();
-		long now = System.currentTimeMillis();
 		table(tname, t -> {
+			long now = System.currentTimeMillis();
 			try {
 				ref.set(IO.list(Streams.of(t.get(gets)).map(r -> new HbaseResult(tname, r))));
 			} catch (Exception ex) {
-				logger().warn("Hbase batch get fail, try slow single fetching.");
+				logger().debug("Hbase batch not ready, fetch item each by each...");
 				ref.set(IO.list(Streams.of(gets, true).map(this::get)));
 			}
-			logger().trace("Hbase batch get: " + (System.currentTimeMillis() - now) + " ms, total [" + gets.size() + " gets]/[" + Texts
-					.formatKilo(HbaseResult.sizes(ref.get()), " bytes") + "]/[" + HbaseResult.cells(ref.get()) + " cells].");
+			logger().trace(() -> "Hbase batch get: " + (System.currentTimeMillis() - now) + " ms, total [" + gets.size() + " gets]/["
+					+ Texts.formatKilo(HbaseResult.sizes(ref.get()), " bytes") + "]/[" + HbaseResult.cells(ref.get()) + " cells].");
 		});
 		return ref.get();
 	}
 
 	public HbaseResult get(Get get) {
 		AtomicReference<HbaseResult> ref = new AtomicReference<>();
+		long now = System.currentTimeMillis();
 		table(tname, t -> {
-			try {
-				ref.set(new HbaseResult(tname, t.get(get)));
-			} catch (Exception ex) {
-				Logger l = logger();
-				if (l.isTraceEnabled()) l.error("Hbase get failed on: " + get.toString(), ex);
-				else l.error("Hbase get failed on: " + get.toString() + "\n\t[" + ex.getMessage() + "]");
-			}
+			Result rr = null;
+			int retry = 0;
+			boolean doNotRetry = false;
+			do {
+				try {
+					rr = t.get(get);
+				} catch (Exception ex) {
+					doNotRetry = isDoNotRetry(ex);
+					if (doNotRetry) logger().error("Hbase get failed on retry #" + (retry - 1) + ": [" + get.toString() + "], spent ["
+							+ (System.currentTimeMillis() - now) + " ms]==>\n\t" + ex.getMessage());
+				}
+			} while (!doNotRetry && retry++ < MAX_RETRIES);
+			if (null != rr) ref.set(new HbaseResult(tname, rr));
 		});
 		return ref.get();
+	}
+
+	private boolean isDoNotRetry(Throwable th) {
+		while (!(th instanceof RemoteWithExtrasException) && th.getCause() != null && th.getCause() != th)
+			th = th.getCause();
+		if (th instanceof RemoteWithExtrasException) return ((RemoteWithExtrasException) th).isDoNotRetry();
+		else return true;
 	}
 
 	LinkedBlockingQueue<Table> tables = new LinkedBlockingQueue<>(100);
