@@ -47,12 +47,6 @@ public abstract class FailoverOutput<K, M extends Message<K, ?, M>> extends Name
 		failover.close();
 	}
 
-	@Override
-	public void open() {
-		Output.super.open();
-		failover.open();
-	}
-
 	protected abstract long write(K key, Stream<M> pkg) throws FailoverException;
 
 	protected void commit(K key) {}
