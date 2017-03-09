@@ -2,9 +2,11 @@ package net.butfly.albatis.hbase;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
@@ -116,43 +118,83 @@ public final class HbaseInput extends Namedly implements Input<HbaseResult> {
 
 	public List<HbaseResult> get(List<Get> gets) {
 		if (gets == null || !gets.iterator().hasNext()) return new ArrayList<>();
-		AtomicReference<List<HbaseResult>> ref = new AtomicReference<>();
-		table(tname, t -> {
-			long now = System.currentTimeMillis();
-			try {
-				ref.set(IO.list(Streams.of(t.get(gets)).map(r -> new HbaseResult(tname, r))));
-			} catch (Exception ex) {
-				long now1 = System.currentTimeMillis();
-				try {
-					ref.set(IO.list(Streams.of(gets, true).map(this::get)));
-				} finally {
-					logger().debug("Hbase batch not ready, fetch items each by each in [" + (System.currentTimeMillis() - now1) + "] ms");
-				}
-			} finally {
-				logger().trace(() -> "Hbase batch get: " + (System.currentTimeMillis() - now) + " ms, total [" + gets.size() + " gets]/["
-						+ Texts.formatKilo(HbaseResult.sizes(ref.get()), " bytes") + "]/[" + HbaseResult.cells(ref.get()) + " cells].");
-			}
-		});
-		return ref.get();
-	}
-
-	public HbaseResult get(Get get) {
-		AtomicReference<HbaseResult> ref = new AtomicReference<>();
+		AtomicReference<List<Result>> ref = new AtomicReference<>();
 		long now = System.currentTimeMillis();
 		table(tname, t -> {
-			Result rr = null;
-			int retry = 0;
-			boolean doNotRetry = false;
-			do {
+			try {
+				ref.set(Arrays.asList(t.get(gets)));
+			} catch (Exception ex) {
+				long now1 = System.currentTimeMillis();
+				List<Result> l = null;
+				AtomicInteger retries = new AtomicInteger();
 				try {
-					rr = t.get(get);
-				} catch (Exception ex) {
-					doNotRetry = isDoNotRetry(ex);
-					if (doNotRetry) logger().error("Hbase get failed on retry #" + (retry - 1) + ": [" + get.toString() + "], spent ["
-							+ (System.currentTimeMillis() - now) + " ms]==>\n\t" + ex.getMessage());
+					l = IO.list(Streams.of(gets, true).map(g -> get(g, retries)));
+				} finally {
+					logger().debug("Hbase batch not ready, fetch [" + (null == l ? "UNKNOWN" : l.size()) + "] items each by each in ["
+							+ (System.currentTimeMillis() - now1) + "] ms in [" + retries.get() + "] retries");
 				}
-			} while (!doNotRetry && retry++ < MAX_RETRIES && opened());
-			if (null != rr) ref.set(new HbaseResult(tname, rr));
+				ref.set(l);
+			}
+		});
+		List<HbaseResult> rs = IO.list(ref.get(), r -> new HbaseResult(tname, r));
+		logger().trace(() -> "Hbase batch get: " + (System.currentTimeMillis() - now) + " ms, total [" + gets.size() + " gets]/[" + Texts
+				.formatKilo(HbaseResult.sizes(rs), " bytes") + "]/[" + HbaseResult.cells(rs) + " cells].");
+		return rs;
+	}
+
+	private Result getByScan(Get get, AtomicInteger retries) {
+		AtomicReference<Result> ref = new AtomicReference<>();
+		long now = System.currentTimeMillis();
+		table(tname, t -> {
+			Result r;
+			boolean doNotRetry;
+			int retry = 0;
+			do {
+				doNotRetry = true;
+				Scan s = new Scan().setRowPrefixFilter(get.getRow());
+				if (get.hasFamilies()) for (byte[] cf : get.familySet())
+					s.addFamily(cf);
+				Filter f = get.getFilter();
+				if (null != f) s.setFilter(f);
+				ResultScanner sc;
+				try {
+					sc = t.getScanner(s);
+				} catch (IOException ex) {
+					logger().error("Hbase get failed on retry #" + retry + ": [" + get.toString() + "], spent [" + (System
+							.currentTimeMillis() - now) + " ms]==>\n\t" + ex.getMessage());
+					return;
+				}
+				try {
+					r = sc.next();
+				} catch (IOException ex) {
+					r = null;
+					doNotRetry = isDoNotRetry(ex);
+					if (doNotRetry) {
+						logger().error("Hbase get failed on retry #" + retry + ": [" + get.toString() + "], spent [" + (System
+								.currentTimeMillis() - now) + " ms]==>\n\t" + ex.getMessage());
+						return;
+					}
+				} finally {
+					sc.close();
+				}
+			} while (null == r && !doNotRetry && retry++ < MAX_RETRIES && opened());
+			if (null != retries) retries.addAndGet(retry);
+			ref.set(r);
+		});
+		Result r = ref.get();
+		return null == r ? null : r;
+	}
+
+	public Result get(Get get, AtomicInteger retries) {
+		AtomicReference<Result> ref = new AtomicReference<>();
+		table(tname, t -> {
+			Result r;
+			try {
+				r = t.get(get);
+			} catch (Exception ex) {
+				r = getByScan(get, retries);
+			}
+			ref.set(r);
 		});
 		return ref.get();
 	}
