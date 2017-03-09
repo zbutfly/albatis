@@ -23,6 +23,8 @@ public class BigqQueue<V> extends QueueImpl<V> {
 		this.dataFolder = dataFolder;
 		logger.info("Off heap queue (\"BigQueue\") creating as [" + name + "] at [" + dataFolder + "]");
 		queue = new BigQueue(dataFolder, name);
+		closing(this::closeLocal);
+		open();
 	}
 
 	@Override
@@ -52,11 +54,6 @@ public class BigqQueue<V> extends QueueImpl<V> {
 			if (queue.isEmpty()) gc();
 		}
 		return v;
-	}
-
-	@Override
-	public void close() {
-		super.close(this::closeLocal);
 	}
 
 	private void closeLocal() {

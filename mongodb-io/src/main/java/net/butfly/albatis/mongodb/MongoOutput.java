@@ -25,12 +25,8 @@ public final class MongoOutput extends Namedly implements Output<DBObject> {
 		this.upsert = upsert;
 		this.conn = new MongoConnection(uri);
 		this.collection = conn.db().getCollection(collection);
+		closing(conn::close);
 		open();
-	}
-
-	@Override
-	public void close() {
-		Output.super.close(conn::close);
 	}
 
 	protected boolean enqueue(DBObject dbo) {

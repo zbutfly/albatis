@@ -26,12 +26,8 @@ public final class KafkaOutput extends Namedly implements Output<KafkaMessage> {
 		uri = new URISpec(kafkaURI);
 		config = new KafkaOutputConfig(uri);
 		producer = new Producer<byte[], byte[]>(config.getConfig());
+		closing(producer::close);
 		open();
-	}
-
-	@Override
-	public void close() {
-		Output.super.close(producer::close);
 	}
 
 	@Override

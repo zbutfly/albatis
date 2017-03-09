@@ -50,6 +50,7 @@ public final class HbaseInput extends Namedly implements Input<HbaseResult> {
 		scanerLock = new ReentrantReadWriteLock();
 		ended = new AtomicBoolean(false);
 
+		closing(this::closeHbase);
 		open();
 	}
 
@@ -69,12 +70,8 @@ public final class HbaseInput extends Namedly implements Input<HbaseResult> {
 		scanerLock = new ReentrantReadWriteLock();
 		ended = new AtomicBoolean(false);
 
+		closing(this::closeHbase);
 		open();
-	}
-
-	@Override
-	public void close() {
-		Input.super.close(this::closeHbase);
 	}
 
 	private void closeHbase() {

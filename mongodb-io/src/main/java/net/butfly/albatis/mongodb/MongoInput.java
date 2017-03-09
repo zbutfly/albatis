@@ -9,6 +9,7 @@ import com.google.common.base.Joiner;
 import com.hzcominfo.albatis.nosql.Connection;
 import com.mongodb.BasicDBList;
 import com.mongodb.Bytes;
+import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.mongodb.MongoException;
@@ -29,12 +30,14 @@ public class MongoInput extends InputImpl<DBObject> {
 		logger.info("[" + name + "] from [" + uri + "], core [" + table + "]");
 		conn = new MongoConnection(uri);
 		logger.debug("[" + name + "] find begin...");
-		open(() -> {
+		opening(() -> {
 			cursor = open(uri, table, filter);
 			String bstr;
 			if (null != (bstr = uri.getParameter(Connection.PARAM_KEY_BATCH))) cursor = cursor.batchSize(Integer.parseInt(bstr));
 			cursor = cursor.addOption(Bytes.QUERYOPTION_NOTIMEOUT);
 		});
+		closing(this::closeMongo);
+		open();
 	}
 
 	public MongoInput(final String name, String uri, final String table, final DBObject... filter) throws IOException {
@@ -43,21 +46,23 @@ public class MongoInput extends InputImpl<DBObject> {
 
 	private DBCursor open(URISpec spec, String table, DBObject[] filter) {
 		DBCursor cursor;
+		if (!conn.collectionExists(table)) throw new IllegalArgumentException("Collection [" + table + "] not existed for input");
+		DBCollection col = conn.collection(table);
 		long now;
 		if (null == filter || filter.length == 0) {
 			now = System.nanoTime();
-			cursor = conn.collection(table).find();
+			cursor = col.find();
 		} else {
 			logger.info("[" + name + "] filters: \n\t" + Joiner.on("\n\t").join(filter) + "\nnow count:");
 			if (filter.length == 1) {
 				now = System.nanoTime();
-				cursor = conn.collection(table).find(filter[0]);
+				cursor = col.find(filter[0]);
 			} else {
 				BasicDBList filters = new BasicDBList();
 				for (DBObject f : filter)
 					filters.add(f);
 				now = System.nanoTime();
-				cursor = conn.collection(table).find(dbobj("$and", filters));
+				cursor = col.find(dbobj("$and", filters));
 			}
 		}
 		String p = spec.getParameter("limit");
@@ -68,11 +73,6 @@ public class MongoInput extends InputImpl<DBObject> {
 		logger.debug(() -> "[" + name + "] find [" + count + " records], end in [" + (System.nanoTime() - now) / 1000 + " ms].");
 		logger.trace(() -> "[" + name + "] find [" + cursor.size() + " records].");
 		return cursor;
-	}
-
-	@Override
-	public void close() {
-		super.close(this::closeMongo);
 	}
 
 	private void closeMongo() {

@@ -36,6 +36,15 @@ public abstract class FailoverOutput<K, M extends Message<K, ?, M>> extends Name
 		failover = failoverPath == null ? new HeapFailover<K, M>(name(), this, constructor)
 				: new OffHeapFailover<K, M>(name(), this, constructor, failoverPath, null);
 		failover.trace(batchSize, () -> "failover: " + size());
+		closing(() -> {
+			closeInternal();
+		});
+	}
+
+	@Override
+	public void close() {
+		Output.super.close();
+		failover.close();
 	}
 
 	@Override
@@ -61,14 +70,6 @@ public abstract class FailoverOutput<K, M extends Message<K, ?, M>> extends Name
 				: eachs(Streams.spatial(items.spliterator(), Parals.calcParallelism(size, batchSize)).values(), it -> failover.output(key,
 						Streams.of(it)), Streams.LONG_SUM);
 
-	}
-
-	@Override
-	public final void close() {
-		Output.super.close(() -> {
-			failover.close();
-			closeInternal();
-		});
 	}
 
 	protected abstract void closeInternal();

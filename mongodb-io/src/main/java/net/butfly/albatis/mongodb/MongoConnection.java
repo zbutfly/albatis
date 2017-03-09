@@ -59,6 +59,10 @@ public class MongoConnection extends NoSqlConnection<MongoClient> {
 		return db().getCollection(collection);
 	}
 
+	public boolean collectionExists(String collectionName) {
+		return db().collectionExists(collectionName);
+	}
+
 	public DBCollection collection(String dbname, String collection) {
 		return db(dbname).getCollection(collection);
 	}

@@ -30,6 +30,8 @@ public class OffHeapFailover<K, V extends Message<K, ?, V>> extends Failover<K, 
 		failover = new BigQueue(IOs.mkdirs(path + "/" + parentName), poolName);
 		logger.info(MessageFormat.format("Failover [persist mode] init: [{0}/{1}] with name [{2}], init size [{3}].", //
 				path, parentName, poolName, size()));
+		closing(this::closePool);
+		open();
 	}
 
 	@Override
@@ -102,11 +104,6 @@ public class OffHeapFailover<K, V extends Message<K, ?, V>> extends Failover<K, 
 			else logger.error(MessageFormat.format("Failover failed, [{0}] docs lost on [{1}]", values.size(), key), e);
 			return 0;
 		}
-	}
-
-	@Override
-	public void close() {
-		super.close(this::closePool);
 	}
 
 	private void closePool() {

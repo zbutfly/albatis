@@ -25,6 +25,8 @@ public abstract class MapdbQueueImpl<V0> extends QueueImpl<V0> {
 		} else {
 			db = DBMaker.newFileDB(regularFile(filename)).mmapFileEnableIfSupported().closeOnJvmShutdown().make();
 		}
+		closing(() -> db.close());
+		open();
 	}
 
 	private File regularFile(String filename) {
@@ -33,10 +35,5 @@ public abstract class MapdbQueueImpl<V0> extends QueueImpl<V0> {
 		if (!fname.startsWith(FILENAME_PREFIX)) fname = FILENAME_PREFIX + "-" + fname;
 		if (!fname.endsWith(FILENAME_EXT)) fname = fname + FILENAME_EXT;
 		return new File(f.getPath() + File.pathSeparator + fname);
-	}
-
-	@Override
-	public void close() {
-		super.close(() -> db.close());
 	}
 }

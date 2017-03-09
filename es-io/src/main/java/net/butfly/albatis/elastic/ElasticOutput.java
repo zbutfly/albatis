@@ -17,6 +17,7 @@ public final class ElasticOutput extends Namedly implements Output<ElasticMessag
 
 	public ElasticOutput(ElasticConnection conn) throws IOException {
 		this.conn = conn;
+		closing(conn::close);
 		open();
 	}
 
@@ -27,10 +28,5 @@ public final class ElasticOutput extends Namedly implements Output<ElasticMessag
 				.actionGet())
 			if (!r.isFailed()) s++;
 		return s;
-	}
-
-	@Override
-	public void close() {
-		Output.super.close(conn::close);
 	}
 }

@@ -28,6 +28,7 @@ public final class ElasticInput extends InputImpl<SearchResponse> {
 		elastic = new ElasticConnection(connection);
 		index = elastic.getDefaultIndex();
 		type = elastic.getDefaultType();
+		closing(elastic::close);
 		open();
 	}
 
@@ -37,11 +38,6 @@ public final class ElasticInput extends InputImpl<SearchResponse> {
 		index = elastic.getDefaultIndex();
 		type = elastic.getDefaultType();
 		open();
-	}
-
-	@Override
-	public void close() {
-		super.close(elastic::close);
 	}
 
 	public int getScrolltime() {

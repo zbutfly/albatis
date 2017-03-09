@@ -38,16 +38,12 @@ public final class KafkaOutput0 extends Namedly implements Output<KafkaMessage> 
 		uri = new URISpec(kafkaURI);
 		config = new KafkaOutputConfig(uri);
 		producer = new KafkaProducer<byte[], byte[]>(config.props());
+		closing(producer::close);
 		open();
 	}
 
 	public KafkaOutput0(final String name, final String kafkaURI) throws ConfigException {
 		this(name, kafkaURI, false);
-	}
-
-	@Override
-	public void close() {
-		Output.super.close(producer::close);
 	}
 
 	@Override

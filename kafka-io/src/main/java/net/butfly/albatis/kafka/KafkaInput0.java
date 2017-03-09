@@ -66,6 +66,7 @@ public final class KafkaInput0 extends Namedly implements Input<KafkaMessage> {
 		Stream<ConsumerIterator<byte[], byte[]>> r = connect();
 		raws = IO.list(r);
 		logger().info(MessageFormat.format("[{0}] local pool init: [{1}/{0}] with name [{2}], init size [{3}].", name, config.toString()));
+		closing(this::closeKafka);
 		open();
 	}
 
@@ -84,11 +85,6 @@ public final class KafkaInput0 extends Namedly implements Input<KafkaMessage> {
 		while (temp == null);
 		logger().debug("connected.");
 		return Streams.of(temp.values()).flatMap(t -> Streams.of(t).map(s -> s.iterator()));
-	}
-
-	@Override
-	public void close() {
-		Input.super.close(this::closeKafka);
 	}
 
 	private void closeKafka() {

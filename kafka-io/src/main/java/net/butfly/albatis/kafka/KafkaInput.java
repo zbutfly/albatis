@@ -96,6 +96,7 @@ public final class KafkaInput extends InputImpl<KafkaMessage> {
 		raws = IO.map(r, s -> s, s -> new Fetcher(name + "Fetcher", s, findex.incrementAndGet()));
 		logger().info(MessageFormat.format("[{0}] local pool init: [{1}/{0}] with name [{2}], init size [{3}].", name, poolPath, config
 				.toString(), pool.size()));
+		closing(this::closeKafka);
 		open();
 	}
 
@@ -104,11 +105,6 @@ public final class KafkaInput extends InputImpl<KafkaMessage> {
 		for (Fetcher f : raws.values())
 			f.open();
 		super.open();
-	}
-
-	@Override
-	public void close() {
-		super.close(this::closeKafka);
 	}
 
 	private void closeKafka() {
