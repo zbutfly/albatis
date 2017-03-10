@@ -6,10 +6,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 import org.apache.hadoop.hbase.HConstants;
@@ -23,16 +22,16 @@ import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterList;
 import org.apache.hadoop.hbase.ipc.RemoteWithExtrasException;
+import org.apache.hadoop.hbase.util.Bytes;
 
 import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.io.IO;
 import net.butfly.albacore.io.Input;
 import net.butfly.albacore.io.Streams;
-import net.butfly.albacore.utils.Texts;
 import net.butfly.albacore.utils.collection.Maps;
 
 public final class HbaseInput extends Namedly implements Input<HbaseResult> {
-	private static final int MAX_RETRIES = Integer.MAX_VALUE;
+	private static final int MAX_RETRIES = 5;
 	private final Connection hconn;
 	private final String tname;
 	private final Table htable;
@@ -117,40 +116,33 @@ public final class HbaseInput extends Namedly implements Input<HbaseResult> {
 	}
 
 	public List<HbaseResult> get(List<Get> gets) {
-		if (gets == null || !gets.iterator().hasNext()) return new ArrayList<>();
-		AtomicReference<List<Result>> ref = new AtomicReference<>();
-		long now = System.currentTimeMillis();
-		table(tname, t -> {
+		if (gets == null || gets.isEmpty()) return new ArrayList<>();
+		return gets.size() == 1 ? Arrays.asList(get(gets.get(0))) : table(tname, t -> {
 			try {
-				ref.set(Arrays.asList(t.get(gets)));
+				return IO.list(Arrays.asList(t.get(gets)), r -> new HbaseResult(tname, r));
 			} catch (Exception ex) {
-				long now1 = System.currentTimeMillis();
-				List<Result> l = null;
-				AtomicInteger retries = new AtomicInteger();
-				try {
-					l = IO.list(Streams.of(gets, true).map(g -> get(g, retries)));
-				} finally {
-					logger().debug("Hbase batch not ready, fetch [" + (null == l ? "UNKNOWN" : l.size()) + "] items each by each in ["
-							+ (System.currentTimeMillis() - now1) + "] ms in [" + retries.get() + "] retries");
-				}
-				ref.set(l);
+				return IO.list(Streams.of(gets, false).map(this::get));
 			}
 		});
-		List<HbaseResult> rs = IO.list(ref.get(), r -> new HbaseResult(tname, r));
-		logger().trace(() -> "Hbase batch get: " + (System.currentTimeMillis() - now) + " ms, total [" + gets.size() + " gets]/[" + Texts
-				.formatKilo(HbaseResult.sizes(rs), " bytes") + "]/[" + HbaseResult.cells(rs) + " cells].");
-		return rs;
 	}
 
-	private Result getByScan(Get get, AtomicInteger retries) {
-		AtomicReference<Result> ref = new AtomicReference<>();
-		long now = System.currentTimeMillis();
-		table(tname, t -> {
+	public HbaseResult get(Get get) {
+		return table(tname, t -> {
+			try {
+				return new HbaseResult(tname, t.get(get));
+			} catch (Exception ex) {
+				return new HbaseResult(tname, getByScan(get));
+			}
+		});
+	}
+
+	private Result getByScan(Get get) {
+		String row = Bytes.toString(get.getRow());
+		return table(tname, t -> {
 			Result r;
-			boolean doNotRetry;
 			int retry = 0;
+			long now = System.currentTimeMillis();
 			do {
-				doNotRetry = true;
 				Scan s = new Scan().setRowPrefixFilter(get.getRow());
 				if (get.hasFamilies()) for (byte[] cf : get.familySet())
 					s.addFamily(cf);
@@ -160,46 +152,28 @@ public final class HbaseInput extends Namedly implements Input<HbaseResult> {
 				try {
 					sc = t.getScanner(s);
 				} catch (IOException ex) {
-					logger().error("Hbase get failed on retry #" + retry + ": [" + get.toString() + "], spent [" + (System
-							.currentTimeMillis() - now) + " ms]==>\n\t" + ex.getMessage());
-					return;
+					logger().error("Hbase get(scan) failed on retry #" + retry + ": [" + row + "] in [" + (System.currentTimeMillis() - now)
+							+ " ms], error:\n\t" + ex.getMessage());
+					return null;
 				}
 				try {
 					r = sc.next();
 				} catch (IOException ex) {
-					r = null;
-					doNotRetry = isDoNotRetry(ex);
-					if (doNotRetry) {
-						logger().error("Hbase get failed on retry #" + retry + ": [" + get.toString() + "], spent [" + (System
-								.currentTimeMillis() - now) + " ms]==>\n\t" + ex.getMessage());
-						return;
-					}
+					if (doNotRetry(ex)) {
+						logger().error("Hbase get(scan) failed on retry #" + retry + ": [" + row + "] in [" + (System.currentTimeMillis()
+								- now) + " ms], error:\n\t" + ex.getMessage());
+						return null;
+					} else r = null;
 				} finally {
 					sc.close();
 				}
-			} while (null == r && !doNotRetry && retry++ < MAX_RETRIES && opened());
-			if (null != retries) retries.addAndGet(retry);
-			ref.set(r);
+			} while (null == r && retry++ < MAX_RETRIES && opened());
+			logger().debug("Hbase get(scan) on [" + row + "] with [" + retry + "] retries");
+			return r;
 		});
-		Result r = ref.get();
-		return null == r ? null : r;
 	}
 
-	public Result get(Get get, AtomicInteger retries) {
-		AtomicReference<Result> ref = new AtomicReference<>();
-		table(tname, t -> {
-			Result r;
-			try {
-				r = t.get(get);
-			} catch (Exception ex) {
-				r = getByScan(get, retries);
-			}
-			ref.set(r);
-		});
-		return ref.get();
-	}
-
-	private boolean isDoNotRetry(Throwable th) {
+	private boolean doNotRetry(Throwable th) {
 		while (!(th instanceof RemoteWithExtrasException) && th.getCause() != null && th.getCause() != th)
 			th = th.getCause();
 		if (th instanceof RemoteWithExtrasException) return ((RemoteWithExtrasException) th).isDoNotRetry();
@@ -208,15 +182,15 @@ public final class HbaseInput extends Namedly implements Input<HbaseResult> {
 
 	LinkedBlockingQueue<Table> tables = new LinkedBlockingQueue<>(100);
 
-	private void table(String name, Consumer<Table> using) {
+	private <T> T table(String name, Function<Table, T> using) {
 		Table t = tables.poll();
 		if (null == t) try {
 			t = hconn.getTable(TableName.valueOf(name), Hbases.ex);
 		} catch (IOException e1) {
-			return;
+			return null;
 		}
 		try {
-			using.accept(t);
+			return using.apply(t);
 		} finally {
 			if (!tables.offer(t)) try {
 				t.close();
