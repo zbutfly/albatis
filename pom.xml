@@ -13,7 +13,7 @@
 	<packaging>pom</packaging>
 	<modules>
 		<module>core</module>
-		<module>jdbc-io</module>
+		<!--<module>jdbc-io</module>-->
 		<module>jdbc</module>
 		<module>mongodb-io</module>
 		<module>mongodb</module>

@@ -1,6 +1,7 @@
 package net.butfly.albatis.solr;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -32,7 +33,6 @@ import com.google.common.util.concurrent.MoreExecutors;
 
 import net.butfly.albacore.utils.Utils;
 import net.butfly.albacore.utils.logger.Logger;
-import scala.Tuple3;
 
 @Deprecated
 public final class Solrs extends Utils {
@@ -235,6 +235,20 @@ public final class Solrs extends Utils {
 		}
 	}
 
+	public final static class SolrMeta implements Serializable {
+		private static final long serialVersionUID = 306397699133380778L;
+		final String baseUrl;
+		final String defCore;
+		final String[] allCores;
+
+		public SolrMeta(String baseUrl, String defCore, String... allCores) {
+			super();
+			this.baseUrl = baseUrl;
+			this.defCore = defCore;
+			this.allCores = allCores;
+		}
+	}
+
 	/**
 	 * @param uri
 	 * @return Tuple3: <baseURL, defaultCore[maybe null], allCores>, or null for
@@ -243,7 +257,7 @@ public final class Solrs extends Utils {
 	 * @throws SolrServerException
 	 * @throws URISyntaxException
 	 */
-	public static Tuple3<String, String, String[]> parseSolrURL(String url) throws IOException, SolrServerException, URISyntaxException {
+	public static SolrMeta parseSolrURL(String url) throws IOException, SolrServerException, URISyntaxException {
 		url = new URI(url).toASCIIString();
 		CoreAdminRequest req = new CoreAdminRequest();
 		req.setAction(CoreAdminAction.STATUS);
@@ -252,7 +266,7 @@ public final class Solrs extends Utils {
 			String[] cores = new String[resp.getCoreStatus().size()];
 			for (int i = 0; i < resp.getCoreStatus().size(); i++)
 				cores[i] = resp.getCoreStatus().getName(i);
-			return new Tuple3<>(url, null, cores);
+			return new SolrMeta(url, null, cores);
 		} catch (RemoteSolrException e) {
 			String path;
 			try {
@@ -271,7 +285,7 @@ public final class Solrs extends Utils {
 				String[] cores = new String[resp.getCoreStatus().size()];
 				for (int i = 0; i < resp.getCoreStatus().size(); i++)
 					cores[i] = resp.getCoreStatus().getName(i);
-				return new Tuple3<>(base, core, cores);
+				return new SolrMeta(base, core, cores);
 			} catch (RemoteSolrException ee) {
 				throw new SolrServerException("Solr uri base parsing failure: " + url);
 			}
