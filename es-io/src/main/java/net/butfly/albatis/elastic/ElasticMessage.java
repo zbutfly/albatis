@@ -14,7 +14,7 @@ import org.elasticsearch.script.Script;
 
 import net.butfly.albacore.io.Message;
 
-public class ElasticMessage extends Message<String, ActionRequest<?>, ElasticMessage> {
+public class ElasticMessage extends Message<String, ActionRequest, ElasticMessage> {
 	private static final long serialVersionUID = -125189207796104302L;
 
 	final boolean updating;
@@ -56,7 +56,7 @@ public class ElasticMessage extends Message<String, ActionRequest<?>, ElasticMes
 	}
 
 	@Override
-	public ActionRequest<?> forWrite() {
+	public ActionRequest forWrite() {
 		if (updating) {
 			UpdateRequest req = new UpdateRequest(index, type, id);
 			if (script == null) req.doc(doc).docAsUpsert(upsert);

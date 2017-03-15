@@ -13,7 +13,7 @@ import java.util.stream.Stream;
 
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.ActionRequest;
-import org.elasticsearch.action.ActionWriteResponse;
+import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
@@ -57,13 +57,13 @@ public final class EsOutput extends FailoverOutput<String, ElasticMessage> {
 	}
 
 	private long write(String type, ElasticMessage es) {
-		ActionRequest<?> req = es.forWrite();
-		ActionFuture<? extends ActionWriteResponse> f = null;
+		ActionRequest req = es.forWrite();
+		ActionFuture<? extends ActionResponse> f = null;
 		if (req instanceof IndexRequest) f = conn.client().index((IndexRequest) req);
 		else if (req instanceof UpdateRequest) f = conn.client().update((UpdateRequest) req);
 		if (null == f) return 0;
 		@SuppressWarnings("unused")
-		ActionWriteResponse r = get(f, 0);
+		ActionResponse r = get(f, 0);
 		return 1;
 	}
 
@@ -111,8 +111,8 @@ public final class EsOutput extends FailoverOutput<String, ElasticMessage> {
 			}
 		}
 		if (logger().isTraceEnabled()) {
-			logger().debug("Try#" + retry + " finished, total:[" + values.size() + "/" + Texts.formatKilo(totalReqBytes, " bytes") + "] in ["
-					+ (System.currentTimeMillis() - now) + "] ms, successed:[" + succCount + "], remained:[" + retries.size()
+			logger().debug("Try#" + retry + " finished, total:[" + values.size() + "/" + Texts.formatKilo(totalReqBytes, " bytes")
+					+ "] in [" + (System.currentTimeMillis() - now) + "] ms, successed:[" + succCount + "], remained:[" + retries.size()
 					+ "], failed:[" + fails.size() + "], sample id: [" + sample + "].");
 		}
 		if (!retries.isEmpty()) fails.putAll(IO.collect(retries, Collectors.toConcurrentMap(m -> m.id,
@@ -135,8 +135,7 @@ public final class EsOutput extends FailoverOutput<String, ElasticMessage> {
 			return f.actionGet();
 		} catch (Exception e) {
 			logger().warn("ES failure, retry#" + retry + "...", unwrap(e));
-		} finally {
-		}
+		} finally {}
 		return null;
 	}
 }

@@ -16,7 +16,7 @@ import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.script.Script;
-import org.elasticsearch.script.ScriptService.ScriptType;
+import org.elasticsearch.script.ScriptType;
 
 import net.butfly.albacore.utils.Utils;
 import net.butfly.albacore.utils.logger.Logger;
@@ -37,7 +37,7 @@ public final class Elastics extends Utils {
 	}
 
 	public static void writeScript(ObjectOutputStream oos, Script script) throws IOException {
-		oos.writeUTF(script.getScript());
+		oos.writeUTF(script.getIdOrCode());
 		oos.writeUTF(script.getType().name());
 		oos.writeUTF(script.getLang());
 		oos.writeObject(script.getParams());
@@ -49,7 +49,7 @@ public final class Elastics extends Utils {
 		ScriptType st = ScriptType.valueOf(oos.readUTF());
 		String lang = oos.readUTF();
 		try {
-			return new Script(script, st, lang, (Map<String, ? extends Object>) oos.readObject());
+			return new Script(st, lang, script, (Map<String, Object>) oos.readObject());
 		} catch (ClassNotFoundException e) {
 			throw new IOException(e);
 		}

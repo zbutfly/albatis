@@ -6,7 +6,7 @@ import java.io.InputStreamReader;
 import java.text.MessageFormat;
 
 import org.elasticsearch.script.Script;
-import org.elasticsearch.script.ScriptService.ScriptType;
+import org.elasticsearch.script.ScriptType;
 
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
@@ -46,6 +46,6 @@ public enum ScriptLang {
 	}
 
 	public Script construct(Object scriptParams, String template, Object... templateArgs) {
-		return new Script(MessageFormat.format(template, templateArgs), ScriptType.INLINE, lang, Maps.of("__scriptParams", scriptParams));
+		return new Script(ScriptType.INLINE, lang, MessageFormat.format(template, templateArgs), Maps.of("__scriptParams", scriptParams));
 	}
 }
