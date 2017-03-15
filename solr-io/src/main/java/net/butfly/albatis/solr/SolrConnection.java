@@ -1,6 +1,7 @@
 package net.butfly.albatis.solr;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.Map;
@@ -41,6 +42,7 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 	private static final Logger logger = Logger.getLogger(SolrConnection.class);
 	private static final CloseableHttpClient HTTP_CLIENT = SolrHttpContext.createDefaultHttpclient();
 	private static final Map<Class<? extends ResponseParser>, ResponseParser> PARSER_POOL = new ConcurrentHashMap<>();
+	private final SolrMeta meta;
 
 	public enum ResponseFormat {
 		XML(XMLResponseParser.class), JSON(JsonMapResponseParser.class), BINARY(BinaryResponseParser.class);
@@ -64,11 +66,6 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 		}
 	}
 
-	private String baseUri;
-	private String defaultCore;
-	private String[] cores;
-	private final Class<? extends ResponseParser> parserClass;
-
 	public SolrConnection(String connection) throws IOException {
 		this(new URISpec(connection));
 	}
@@ -83,8 +80,8 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 
 	public SolrConnection(URISpec uri, Class<? extends ResponseParser> parserClass) throws IOException {
 		super(uri, u -> create(u, parserClass), "solr", "zookeeper", "zk", "http");
-		this.parserClass = parserClass;
-		parse();
+		meta = parse();
+		// parse();
 	}
 
 	private static SolrClient create(URISpec uri, Class<? extends ResponseParser> parserClass) {
@@ -113,38 +110,7 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 	}
 
 	public String getDefaultCore() {
-		return defaultCore;
-	}
-
-	/**
-	 * @param uri
-	 * @return Tuple3: <baseURL, defaultCore[maybe null], allCores>, or null for
-	 *         invalid uri
-	 * @throws IOException
-	 * @throws SolrServerException
-	 * @throws URISyntaxException
-	 */
-	private void parse() throws IOException {
-		String url = uri.toString();
-		CoreAdminRequest req = new CoreAdminRequest();
-		req.setAction(CoreAdminAction.STATUS);
-		try {
-			CoreAdminResponse resp = req.process(client());
-			cores = new String[resp.getCoreStatus().size()];
-			for (int i = 0; i < resp.getCoreStatus().size(); i++)
-				getCores()[i] = resp.getCoreStatus().getName(i);
-			baseUri = url;
-			defaultCore = null;
-		} catch (SolrServerException | RemoteSolrException e) { // XXX IOException?
-			defaultCore = uri.getPathAtLast(0);
-			if (defaultCore == null) throw new IOException("Solr uri invalid: " + uri);
-			baseUri = url.replaceAll("/?" + defaultCore + "([/\\?#][^/]*)?", "");
-			try (SolrConnection conn = new SolrConnection(baseUri, parserClass)) {
-				cores = conn.getCores();
-			} catch (Exception e1) {
-				throw new IOException(e1);
-			}
-		}
+		return meta.defCore;
 	}
 
 	interface SolrHttpContext {
@@ -207,10 +173,61 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 	}
 
 	public String[] getCores() {
-		return cores;
+		return meta.allCores;
 	}
 
 	public String getBase() {
-		return baseUri;
+		return meta.baseUrl;
+	}
+
+	public static class SolrMeta implements Serializable {
+		private static final long serialVersionUID = 306397699133380778L;
+		final String baseUrl;
+		final String defCore;
+		final String[] allCores;
+
+		public SolrMeta(String baseUrl, String defCore, String... allCores) {
+			super();
+			this.baseUrl = baseUrl;
+			this.defCore = defCore;
+			this.allCores = allCores;
+		}
+	}
+
+	/**
+	 * @param uri
+	 * @return Tuple3: <baseURL, defaultCore[maybe null], allCores>, or null for
+	 *         invalid uri
+	 * @throws IOException
+	 * @throws SolrServerException
+	 * @throws URISyntaxException
+	 */
+	public SolrMeta parse() throws IOException {
+		String url = uri.toString();
+		CoreAdminRequest req = new CoreAdminRequest();
+		req.setAction(CoreAdminAction.STATUS);
+		try {
+			CoreAdminResponse resp = req.process(client());
+			String[] cores = new String[resp.getCoreStatus().size()];
+			for (int i = 0; i < resp.getCoreStatus().size(); i++)
+				cores[i] = resp.getCoreStatus().getName(i);
+			return new SolrMeta(url, null, cores);
+		} catch (SolrServerException | RemoteSolrException e) {
+			String path = uri.getPath();
+			if (null == path) throw new IOException("Solr uri invalid: " + uri);
+			String[] segs = uri.getPaths();
+			if (segs.length == 0) throw new IOException("Solr uri invalid: " + uri);
+			String core = uri.getPathAtLast(0);
+			String base = url.replaceAll("/?" + core + "([/\\?#][^/]*)?", "");
+			try (SolrConnection solr = new SolrConnection(base);) {
+				CoreAdminResponse resp = req.process(solr.client());
+				String[] cores = new String[resp.getCoreStatus().size()];
+				for (int i = 0; i < resp.getCoreStatus().size(); i++)
+					cores[i] = resp.getCoreStatus().getName(i);
+				return new SolrMeta(base, core, cores);
+			} catch (RemoteSolrException | SolrServerException ee) {
+				throw new IOException("Solr uri base parsing failure: " + url);
+			}
+		}
 	}
 }

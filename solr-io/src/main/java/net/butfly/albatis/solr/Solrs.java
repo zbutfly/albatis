@@ -1,11 +1,7 @@
 package net.butfly.albatis.solr;
 
 import java.io.IOException;
-import java.io.Serializable;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -18,9 +14,7 @@ import org.apache.solr.client.solrj.ResponseParser;
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServerException;
-import org.apache.solr.client.solrj.impl.HttpSolrClient.RemoteSolrException;
 import org.apache.solr.client.solrj.request.CoreAdminRequest;
-import org.apache.solr.client.solrj.response.CoreAdminResponse;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.common.SolrDocumentList;
 import org.apache.solr.common.params.CoreAdminParams.CoreAdminAction;
@@ -232,63 +226,6 @@ public final class Solrs extends Utils {
 			return new QueryResponse[0];
 		} finally {
 			ex.shutdown();
-		}
-	}
-
-	public final static class SolrMeta implements Serializable {
-		private static final long serialVersionUID = 306397699133380778L;
-		final String baseUrl;
-		final String defCore;
-		final String[] allCores;
-
-		public SolrMeta(String baseUrl, String defCore, String... allCores) {
-			super();
-			this.baseUrl = baseUrl;
-			this.defCore = defCore;
-			this.allCores = allCores;
-		}
-	}
-
-	/**
-	 * @param uri
-	 * @return Tuple3: <baseURL, defaultCore[maybe null], allCores>, or null for
-	 *         invalid uri
-	 * @throws IOException
-	 * @throws SolrServerException
-	 * @throws URISyntaxException
-	 */
-	public static SolrMeta parseSolrURL(String url) throws IOException, SolrServerException, URISyntaxException {
-		url = new URI(url).toASCIIString();
-		CoreAdminRequest req = new CoreAdminRequest();
-		req.setAction(CoreAdminAction.STATUS);
-		try {
-			CoreAdminResponse resp = req.process(Solrs.open(url));
-			String[] cores = new String[resp.getCoreStatus().size()];
-			for (int i = 0; i < resp.getCoreStatus().size(); i++)
-				cores[i] = resp.getCoreStatus().getName(i);
-			return new SolrMeta(url, null, cores);
-		} catch (RemoteSolrException e) {
-			String path;
-			try {
-				path = new URI(url).getPath();
-			} catch (URISyntaxException e1) {
-				throw new SolrServerException("Solr uri invalid: " + url);
-			}
-			if (null == path) throw new SolrServerException("Solr uri invalid: " + url);
-			List<String> segs = new ArrayList<>(Arrays.asList(path.split("/+")));
-			if (segs.isEmpty()) throw new SolrServerException("Solr uri invalid: " + url);
-			String core = segs.remove(segs.size() - 1);
-
-			String base = url.replaceAll("/?" + core + "/?$", "");
-			try {
-				CoreAdminResponse resp = req.process(Solrs.open(base));
-				String[] cores = new String[resp.getCoreStatus().size()];
-				for (int i = 0; i < resp.getCoreStatus().size(); i++)
-					cores[i] = resp.getCoreStatus().getName(i);
-				return new SolrMeta(base, core, cores);
-			} catch (RemoteSolrException ee) {
-				throw new SolrServerException("Solr uri base parsing failure: " + url);
-			}
 		}
 	}
 }

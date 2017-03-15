@@ -11,6 +11,7 @@ import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.script.Script;
+import org.elasticsearch.script.ScriptType;
 
 import net.butfly.albacore.io.Message;
 
@@ -98,7 +99,7 @@ public class ElasticMessage extends Message<String, ActionRequest, ElasticMessag
 			oos.writeObject(doc);
 			boolean scrpiting = null != script;
 			oos.writeBoolean(scrpiting);
-			if (scrpiting) Elastics.writeScript(oos, script);
+			if (scrpiting) writeScript(oos, script);
 			return baos.toByteArray();
 		} catch (IOException e) {
 			return null;
@@ -116,9 +117,27 @@ public class ElasticMessage extends Message<String, ActionRequest, ElasticMessag
 			updating = oos.readBoolean();
 			doc = (Map<String, Object>) oos.readObject();
 			boolean scrpiting = oos.readBoolean();
-			script = scrpiting ? Elastics.readScript(oos) : null;
+			script = scrpiting ? readScript(oos) : null;
 		} catch (IOException | ClassNotFoundException e) {
 			throw new IllegalArgumentException(e);
+		}
+	}
+
+	static void writeScript(ObjectOutputStream oos, Script script) throws IOException {
+		oos.writeUTF(script.getType().name());
+		oos.writeUTF(script.getLang());
+		oos.writeObject(script.getParams());
+	}
+
+	@SuppressWarnings("unchecked")
+	static Script readScript(ObjectInputStream oos) throws IOException {
+		// String script = oos.readUTF();
+		ScriptType st = ScriptType.valueOf(oos.readUTF());
+		String lang = oos.readUTF();
+		try {
+			return new Script(st, lang, ScriptType.INLINE.toString(), (Map<String, Object>) oos.readObject());
+		} catch (ClassNotFoundException e) {
+			throw new IOException(e);
 		}
 	}
 }

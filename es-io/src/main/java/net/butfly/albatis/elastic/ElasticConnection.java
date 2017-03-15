@@ -3,8 +3,13 @@ package net.butfly.albatis.elastic;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
+import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
+import org.elasticsearch.action.admin.indices.mapping.put.PutMappingResponse;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
@@ -27,7 +32,6 @@ import net.butfly.albacore.utils.logger.Logger;
  */
 
 public class ElasticConnection extends NoSqlConnection<TransportClient> {
-
 	private static final Logger logger = Logger.getLogger(ElasticConnection.class);
 
 	protected ElasticConnection(URISpec esUri, Map<String, String> props) throws IOException {
@@ -35,8 +39,7 @@ public class ElasticConnection extends NoSqlConnection<TransportClient> {
 
 			Settings.Builder settings = Settings.builder();
 			settings.put(uri.getParameters());
-			if (null != props && !props.isEmpty())
-				settings.put(props);
+			if (null != props && !props.isEmpty()) settings.put(props);
 			settings.put("client.transport.ignore_cluster_name", true);
 			settings.remove("batch");
 			settings.remove("script");
@@ -83,5 +86,18 @@ public class ElasticConnection extends NoSqlConnection<TransportClient> {
 			logger.error("Close failure", e);
 		}
 		client().close();
+	}
+
+	public void mapping(Map<String, ?> mapping, String... types) {
+		logger.debug("Mapping constructing: " + mapping);
+		PutMappingRequest req = new PutMappingRequest(getDefaultIndex());
+		req.source(mapping);
+		Set<String> tps = new HashSet<>(Arrays.asList(types));
+		tps.add(getDefaultType());
+		for (String t : tps) {
+			req.type(t);
+			PutMappingResponse resp = client().admin().indices().putMapping(req).actionGet();
+			if (!resp.isAcknowledged()) logger.error("Mapping failed" + req.toString());
+		}
 	}
 }
