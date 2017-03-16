@@ -87,6 +87,8 @@ public class MongoInput extends InputImpl<DBObject> {
 		} catch (MongoException ex) {
 			logger.warn("[" + name() + "] check failure but processing will continue", ex);
 			return false;
+		} catch (IllegalStateException ex) {
+			return true;
 		} finally {
 			lock.writeLock().unlock();
 		}
@@ -101,6 +103,8 @@ public class MongoInput extends InputImpl<DBObject> {
 				return cursor.hasNext() ? cursor.next() : null;
 			} catch (MongoException ex) {
 				logger.warn("Mongo fail fetch, ignore and continue retry...");
+			} catch (IllegalStateException ex) {
+				break;
 			} finally {
 				lock.writeLock().unlock();
 			}

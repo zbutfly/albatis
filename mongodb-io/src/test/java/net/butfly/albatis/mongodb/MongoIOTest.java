@@ -6,7 +6,7 @@ import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import com.google.common.util.concurrent.AtomicDouble;
 
@@ -31,8 +31,8 @@ public class MongoIOTest {
 					final DateFormat df = new SimpleDateFormat("MM-dd hh:mm:ss ");
 					long now = begin;
 					while (!in.empty()) {
-						AtomicInteger count = new AtomicInteger(), size = new AtomicInteger();
-						in.dequeue(s -> size.addAndGet(s.mapToInt(m -> {
+						AtomicLong count = new AtomicLong(), size = new AtomicLong();
+						in.dequeue(s -> size.addAndGet(s.mapToLong(m -> {
 							count.incrementAndGet();
 							return m.toString().length();
 						}).sum()), 1000);

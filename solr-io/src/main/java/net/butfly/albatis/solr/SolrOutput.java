@@ -29,8 +29,7 @@ public final class SolrOutput extends FailoverOutput<String, SolrMessage<SolrInp
 
 	public SolrOutput(String name, URISpec uri, String failoverPath) throws IOException {
 		super(name, b -> Message.<SolrMessage<SolrInputDocument>> fromBytes(b), failoverPath, Integer.parseInt(uri.getParameter(
-				Connection.PARAM_KEY_BATCH,
-				"200")));
+				Connection.PARAM_KEY_BATCH, "200")));
 		solr = new SolrConnection(uri);
 		open();
 	}
@@ -52,11 +51,11 @@ public final class SolrOutput extends FailoverOutput<String, SolrMessage<SolrInp
 
 	@Override
 	protected long write(String core, Stream<SolrMessage<SolrInputDocument>> docs) throws FailoverException {
-		List<SolrMessage<SolrInputDocument>> ds = IO.list(docs);
+		List<SolrInputDocument> ds = IO.list(docs, SolrMessage<SolrInputDocument>::forWrite);
+		if (ds.isEmpty()) return 0;
 		try {
-			List<SolrInputDocument> l = IO.list(ds, SolrMessage<SolrInputDocument>::forWrite);
-			solr.client().add(core, l, DEFAULT_AUTO_COMMIT_MS);
-			return l.size();
+			solr.client().add(core, ds, DEFAULT_AUTO_COMMIT_MS);
+			return ds.size();
 		} catch (Exception e) {
 			throw new FailoverException(IO.collect(Streams.of(ds), Collectors.toConcurrentMap(r -> r, r -> unwrap(e).getMessage())));
 		}

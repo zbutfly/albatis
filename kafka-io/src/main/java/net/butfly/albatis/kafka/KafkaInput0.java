@@ -10,7 +10,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -101,13 +100,13 @@ public final class KafkaInput0 extends Namedly implements Input<KafkaMessage> {
 	}
 
 	@Override
-	public final void dequeue(Consumer<Stream<KafkaMessage>> using, long batchSize) {
-		if (!opened() || raws.isEmpty()) return;
+	public final long dequeue(Function<Stream<KafkaMessage>, Long> using, long batchSize) {
+		if (!opened() || raws.isEmpty()) return 0;
 		List<ConsumerIterator<byte[], byte[]>> l = new ArrayList<>(raws);
 		Collections.shuffle(l);
 		Iterator<ConsumerIterator<byte[], byte[]>> sit = Its.loop(l);
 		AtomicReference<ConsumerIterator<byte[], byte[]>> curr = new AtomicReference<>(sit.next());
-		using.accept(Streams.of(() -> {
+		return using.apply(Streams.of(() -> {
 			ConsumerIterator<byte[], byte[]> begin = curr.get(), it = begin;
 			KafkaMessage km = null;
 			while (opened() && null == km) {

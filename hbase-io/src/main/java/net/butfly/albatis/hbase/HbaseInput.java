@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -98,7 +97,7 @@ public final class HbaseInput extends Namedly implements Input<HbaseResult> {
 	}
 
 	@Override
-	public void dequeue(Consumer<Stream<HbaseResult>> using, long batchSize) {
+	public long dequeue(Function<Stream<HbaseResult>, Long> using, long batchSize) {
 		if (!ended.get() && scanerLock.writeLock().tryLock()) {
 			Result[] rs = null;
 			try {
@@ -110,9 +109,10 @@ public final class HbaseInput extends Namedly implements Input<HbaseResult> {
 			}
 			if (null != rs) {
 				ended.set(rs.length == 0);
-				if (rs.length > 0) using.accept(Stream.of(rs).map(r -> new HbaseResult(tname, r)));
+				if (rs.length > 0) return using.apply(Stream.of(rs).map(r -> new HbaseResult(tname, r)));
 			}
 		}
+		return 0;
 	}
 
 	public List<HbaseResult> get(List<Get> gets) {
