@@ -15,9 +15,9 @@ import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Table;
 
 import net.butfly.albacore.io.IO;
-import net.butfly.albacore.io.Streams;
-import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.io.faliover.Failover.FailoverException;
+import net.butfly.albacore.io.utils.Streams;
+import net.butfly.albacore.io.utils.URISpec;
 import net.butfly.albacore.io.faliover.FailoverOutput;
 import static com.hzcominfo.albatis.nosql.Connection.PARAM_KEY_BATCH;
 

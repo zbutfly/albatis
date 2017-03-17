@@ -15,7 +15,7 @@ import com.mongodb.DBObject;
 import com.mongodb.MongoException;
 
 import net.butfly.albacore.io.InputImpl;
-import net.butfly.albacore.io.URISpec;
+import net.butfly.albacore.io.utils.URISpec;
 import net.butfly.albacore.utils.logger.Logger;
 
 public class MongoInput extends InputImpl<DBObject> {

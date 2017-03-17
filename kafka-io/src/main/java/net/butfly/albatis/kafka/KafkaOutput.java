@@ -9,7 +9,7 @@ import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.exception.ConfigException;
 import net.butfly.albacore.io.IO;
 import net.butfly.albacore.io.Output;
-import net.butfly.albacore.io.URISpec;
+import net.butfly.albacore.io.utils.URISpec;
 import net.butfly.albacore.utils.Exceptions;
 import net.butfly.albatis.kafka.config.KafkaOutputConfig;
 

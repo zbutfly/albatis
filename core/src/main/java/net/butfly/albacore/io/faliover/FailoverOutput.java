@@ -11,9 +11,9 @@ import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.io.IO;
 import net.butfly.albacore.io.Message;
 import net.butfly.albacore.io.Output;
-import net.butfly.albacore.io.Parals;
-import net.butfly.albacore.io.Streams;
 import net.butfly.albacore.io.faliover.Failover.FailoverException;
+import net.butfly.albacore.io.queue.Parals;
+import net.butfly.albacore.io.utils.Streams;
 
 /**
  * Output with buffer and failover supporting.<br>

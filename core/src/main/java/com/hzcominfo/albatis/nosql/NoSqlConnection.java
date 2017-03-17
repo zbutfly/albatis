@@ -11,7 +11,7 @@ import java.util.stream.Stream;
 import com.google.common.base.Joiner;
 import com.hzcominfo.albatis.search.exception.SearchAPIError;
 
-import net.butfly.albacore.io.URISpec;
+import net.butfly.albacore.io.utils.URISpec;
 
 public abstract class NoSqlConnection<C> implements Connection {
 	protected final String[] supportedSchemas;

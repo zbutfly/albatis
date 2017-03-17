@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
 
+import net.butfly.albacore.io.utils.URISpec;
 import net.butfly.albacore.lambda.ConverterPair;
 import net.butfly.albacore.utils.IOs;
 

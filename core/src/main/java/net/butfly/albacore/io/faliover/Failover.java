@@ -9,7 +9,7 @@ import java.util.stream.Stream;
 import com.google.common.base.Joiner;
 
 import net.butfly.albacore.io.Message;
-import net.butfly.albacore.io.OpenableThread;
+import net.butfly.albacore.io.ext.OpenableThread;
 import net.butfly.albacore.io.stats.Statistical;
 import net.butfly.albacore.utils.logger.Logger;
 

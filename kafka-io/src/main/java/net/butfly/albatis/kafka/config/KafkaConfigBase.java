@@ -10,7 +10,7 @@ import org.apache.kafka.common.serialization.ByteArraySerializer;
 
 import com.google.common.base.Joiner;
 
-import net.butfly.albacore.io.URISpec;
+import net.butfly.albacore.io.utils.URISpec;
 import net.butfly.albacore.utils.Texts;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.kafka.ZKConn;

@@ -17,7 +17,7 @@ import org.elasticsearch.transport.client.PreBuiltTransportClient;
 
 import com.hzcominfo.albatis.nosql.NoSqlConnection;
 
-import net.butfly.albacore.io.URISpec;
+import net.butfly.albacore.io.utils.URISpec;
 import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.logger.Logger;
 

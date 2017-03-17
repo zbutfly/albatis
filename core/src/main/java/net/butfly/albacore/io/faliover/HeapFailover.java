@@ -12,7 +12,7 @@ import java.util.function.Function;
 
 import net.butfly.albacore.io.IO;
 import net.butfly.albacore.io.Message;
-import net.butfly.albacore.io.Streams;
+import net.butfly.albacore.io.utils.Streams;
 
 public class HeapFailover<K, V extends Message<K, ?, V>> extends Failover<K, V> {
 	private static final int MAX_FAILOVER = 50000;

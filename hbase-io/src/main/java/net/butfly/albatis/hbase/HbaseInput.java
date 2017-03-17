@@ -26,7 +26,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.io.IO;
 import net.butfly.albacore.io.Input;
-import net.butfly.albacore.io.Streams;
+import net.butfly.albacore.io.utils.Streams;
 import net.butfly.albacore.utils.collection.Maps;
 
 public final class HbaseInput extends Namedly implements Input<HbaseResult> {

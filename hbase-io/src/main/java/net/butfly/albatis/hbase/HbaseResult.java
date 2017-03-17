@@ -17,7 +17,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 
 import net.butfly.albacore.io.IO;
 import net.butfly.albacore.io.Message;
-import net.butfly.albacore.io.Streams;
+import net.butfly.albacore.io.utils.Streams;
 import net.butfly.albacore.utils.IOs;
 import net.butfly.albacore.utils.logger.Logger;
 

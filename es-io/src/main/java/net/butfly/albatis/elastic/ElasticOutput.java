@@ -9,7 +9,7 @@ import org.elasticsearch.action.bulk.BulkRequest;
 import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.io.IO;
 import net.butfly.albacore.io.Output;
-import net.butfly.albacore.io.Streams;
+import net.butfly.albacore.io.utils.Streams;
 
 @Deprecated
 public final class ElasticOutput extends Namedly implements Output<ElasticMessage> {

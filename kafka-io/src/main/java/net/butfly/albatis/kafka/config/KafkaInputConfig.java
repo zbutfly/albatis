@@ -5,7 +5,7 @@ import java.util.Properties;
 
 import kafka.consumer.ConsumerConfig;
 import net.butfly.albacore.exception.ConfigException;
-import net.butfly.albacore.io.URISpec;
+import net.butfly.albacore.io.utils.URISpec;
 import net.butfly.albacore.utils.Systems;
 import net.butfly.albacore.utils.logger.Logger;
 
