@@ -13,3 +13,7 @@ logs
 *.iml
 .idea
 .settings
+.classpath
+.project
+kudu-io/.classpath
+kudu-io/.project
