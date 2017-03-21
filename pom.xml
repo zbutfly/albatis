@@ -26,6 +26,7 @@
 		<!--<module>neo4j</module>-->
 		<module>demo</module>
 		<module>util</module>
+		<module>kudu-io</module>
 	</modules>
 	<dependencies>
 		<dependency>
