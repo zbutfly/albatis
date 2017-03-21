@@ -27,9 +27,9 @@ import com.hzcominfo.albatis.nosql.Connection;
 
 import net.butfly.albacore.io.IO;
 import net.butfly.albacore.io.faliover.Failover.FailoverException;
+import net.butfly.albacore.io.faliover.FailoverOutput;
 import net.butfly.albacore.io.utils.Streams;
 import net.butfly.albacore.io.utils.URISpec;
-import net.butfly.albacore.io.faliover.FailoverOutput;
 import net.butfly.albacore.utils.Texts;
 
 public final class EsOutput extends FailoverOutput<String, ElasticMessage> {
