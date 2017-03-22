@@ -1,13 +1,13 @@
 package net.butfly.albatis.kudu;
 
+import java.util.Map;
+
 import org.apache.kudu.client.KuduTable;
 import org.apache.kudu.client.PartialRow;
 import org.apache.kudu.client.Upsert;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonObject;
-
 import net.butfly.albacore.io.Message;
+import net.butfly.albacore.serder.JsonSerder;
 
 /**
  * @Author Naturn
@@ -20,46 +20,37 @@ import net.butfly.albacore.io.Message;
  */
 
 public class KuduResult extends Message<String, Upsert, KuduResult> {
-
-	private KuduTable kuduTable;
-
 	private static final long serialVersionUID = -5843704512434056538L;
+	private KuduTable kuduTable;
+	private final Map<String, Object> result;
 
-	private JsonObject result;
-
-	private Gson gson = new Gson();
-
-	public KuduResult(JsonObject jsonObject, KuduTable kuduTable) {
-		
-		this(jsonObject.toString().getBytes());
+	public KuduResult(Map<String, Object> result, KuduTable kuduTable) {
+		this.result = result;
 		this.kuduTable = kuduTable;
-
 	}
 
+	@SuppressWarnings("unchecked")
 	public KuduResult(byte[] b) {
-		// TODO Auto-generated constructor stub
-		this.result = gson.fromJson(new String(b), JsonObject.class);
+		this.result = JsonSerder.JSON_MAPPER.fromBytes(b, Map.class);
 	}
 
 	@Override
 	public String partition() {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
 	public String toString() {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public Upsert forWrite() {		
+	public Upsert forWrite() {
 		Upsert upsert = kuduTable.newUpsert();
 		PartialRow row = upsert.getRow();
-		kuduTable.getSchema().getColumns().stream().forEach(p->{
+		kuduTable.getSchema().getColumns().stream().forEach(p -> {
 			KuduCommon.generateColumnData(p.getType(), row, p.getName(), result.get(p.getName()));
-		});		
+		});
 		return upsert;
 	}
 

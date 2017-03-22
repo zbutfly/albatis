@@ -22,15 +22,9 @@
 			<version>1.2.0</version>
 		</dependency>
 		<dependency>
-			<groupId>com.google.code.gson</groupId>
-			<artifactId>gson</artifactId>
-			<version>2.7</version>
-		</dependency>
-		<dependency>
-			<groupId>com.google.errorprone</groupId>
-			<artifactId>error_prone_annotations</artifactId>
-			<version>2.0.19</version>
+			<groupId>net.butfly.albacore</groupId>
+			<artifactId>albacore-serder-json</artifactId>
+			<version>1.0.0-SNAPSHOT</version>
 		</dependency>
 	</dependencies>
-
 </project>
