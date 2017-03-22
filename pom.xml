@@ -11,9 +11,6 @@
 	<artifactId>albatis</artifactId>
 	<version>1.0.0-SNAPSHOT</version>
 	<packaging>pom</packaging>
-	<properties>
-		<version.netty>4.1.7.Final</version.netty>
-	</properties>
 	<modules>
 		<module>core</module>
 		<!--<module>jdbc-io</module>-->
@@ -39,15 +36,6 @@
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
-	<dependencyManagement>
-		<dependencies>
-			<dependency>
-				<groupId>io.netty</groupId>
-				<artifactId>netty-all</artifactId>
-				<version>${version.netty}</version>
-			</dependency>
-		</dependencies>
-	</dependencyManagement>
 	<scm>
 		<connection>https://bitbucket.org/butfly/albatis.git</connection>
 		<developerConnection>https://butfly@bitbucket.org/butfly/albatis.git</developerConnection>
