@@ -39,7 +39,8 @@ public class ElasticConnection extends NoSqlConnection<TransportClient> {
 			Settings.Builder settings = Settings.builder();
 			settings.put(uri.getParameters());
 			if (null != props && !props.isEmpty()) settings.put(props);
-			settings.put("client.transport.ignore_cluster_name", true);
+			if (null != uri.getUsername()) settings.put("cluster.name", uri.getUsername());
+			else settings.put("client.transport.ignore_cluster_name", true);
 			settings.remove("batch");
 			settings.remove("script");
 			@SuppressWarnings("resource")

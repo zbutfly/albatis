@@ -17,9 +17,8 @@ public class EsConnTest {
 				sb.append(l);
 		}
 		Map<String, Object> mapping = JsonSerder.JSON_MAPPER.der(sb);
-		try (ElasticConnection conn = new ElasticConnection("es://hzwacluster@hzwa130:39200/person_test/person");) {
+		try (ElasticConnection conn = new ElasticConnection("es://cominfo@hzga152:39200/person_test/person");) {
 			conn.mapping(mapping, "person");
 		}
 	}
-
 }
