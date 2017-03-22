@@ -8,6 +8,7 @@ import java.text.MessageFormat;
 import org.elasticsearch.script.Script;
 import org.elasticsearch.script.ScriptType;
 
+import net.butfly.albacore.utils.Reflections;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
 
@@ -26,7 +27,7 @@ public enum ScriptLang {
 
 	public String readTemplate(Class<?> loadClass, String templateName) {
 		String content = read(loadClass, new StringBuilder().append("/").append(templateName).append(".").append(ext).toString());
-		if (null == content) content = new StringBuilder().append("/").append(loadClass.getPackage().getName().replaceAll("\\.", "/"))
+		if (null == content) content = new StringBuilder().append("/").append(Reflections.packageName(loadClass).replaceAll("\\.", "/"))
 				.append("/").append(templateName).append(".").append(ext).toString();
 		return content;
 	}

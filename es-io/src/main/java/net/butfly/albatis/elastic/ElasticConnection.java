@@ -36,7 +36,6 @@ public class ElasticConnection extends NoSqlConnection<TransportClient> {
 
 	protected ElasticConnection(URISpec esUri, Map<String, String> props) throws IOException {
 		super(esUri, uri -> {
-
 			Settings.Builder settings = Settings.builder();
 			settings.put(uri.getParameters());
 			if (null != props && !props.isEmpty()) settings.put(props);
@@ -55,7 +54,6 @@ public class ElasticConnection extends NoSqlConnection<TransportClient> {
 			}
 			return tc;
 		}, "es", "elasticsearch");
-		// TODO Auto-generated constructor stub
 	}
 
 	public ElasticConnection(String connection, Map<String, String> props) throws IOException {

@@ -1,0 +1,1643 @@
+{
+	"dynamic": "true",
+	"dynamic_templates": [
+		{
+			"integers": {
+				"mapping": {
+					"type": "integer"
+				},
+				"match_mapping_type": "string",
+				"match": "*_i"
+			}
+		},
+		{
+			"longs": {
+				"mapping": {
+					"type": "long"
+				},
+				"match_mapping_type": "string",
+				"match": "*_l"
+			}
+		},
+		{
+			"dates": {
+				"mapping": {
+					"type": "date"
+				},
+				"match_mapping_type": "date"
+			}
+		},
+		{
+			"strings": {
+				"mapping": {
+					"type": "string"
+				},
+				"match": "*_s"
+			}
+		}
+	],
+	"properties": {
+		"fullText": {
+			"type": "string"
+		},
+		"SFZH_s": {
+			"type": "string"
+		},
+		"XM_s": {
+			"type": "string"
+		},
+		"WB": {
+			"type": "nested",
+			"properties": {
+				"OFFLINE_TIME_day_s": {
+					"type": "string"
+				},
+				"NET_ENDING_NAME_s": {
+					"type": "string"
+				},
+				"PCSBM_s": {
+					"type": "string"
+				},
+				"COMPUTER_NO_s": {
+					"type": "string"
+				},
+				"REGIONALISM_FORMAT_s": {
+					"type": "string"
+				},
+				"ZHUNQUEDU_s": {
+					"type": "string"
+				},
+				"ONLINE_TIME_s": {
+					"type": "string"
+				},
+				"ONLINE_TIME_t": {
+					"type": "date"
+				},
+				"ONLINE_TIME_day_s": {
+					"type": "string"
+				},
+				"PCSBM_FORMAT_s": {
+					"type": "string"
+				},
+				"OFFLINE_TIME_s": {
+					"type": "string"
+				},
+				"REGIONALISM_SF_s": {
+					"type": "string"
+				},
+				"OFFLINE_TIME_t": {
+					"type": "date"
+				},
+				"ROWKEY_s": {
+					"type": "string"
+				},
+				"REGIONALISM_SS_s": {
+					"type": "string"
+				},
+				"REGIONALISM_s": {
+					"type": "string"
+				},
+				"WJRKSJ_s": {
+					"type": "string"
+				},
+				"WBDZ_s": {
+					"type": "string"
+				},
+				"LY_s": {
+					"type": "string"
+				},
+				"LX_s": {
+					"type": "string"
+				},
+				"OFFLINE_TIME_year_s": {
+					"type": "string"
+				},
+				"SERVICE_NAME_s": {
+					"type": "string"
+				},
+				"ONLINE_TIME_year_s": {
+					"type": "string"
+				},
+				"NET_ENDING_IP_s": {
+					"type": "string"
+				},
+				"PCSBM_CODE6_s": {
+					"type": "string"
+				},
+				"RKSJ_s": {
+					"type": "string"
+				},
+				"ONLINE_TIME_month_s": {
+					"type": "string"
+				},
+				"SERVICE_CODE_s": {
+					"type": "string"
+				},
+				"LYLX_s": {
+					"type": "string"
+				},
+				"BOSOM_CODE_s": {
+					"type": "string"
+				},
+				"OFFLINE_TIME_month_s": {
+					"type": "string"
+				},
+				"ETL_TIMESTAMP": {
+					"type": "date"
+				},
+				"SUBJECT_TIMESTAMP": {
+					"type": "date"
+				}
+			}
+		},
+		"MH": {
+			"type": "nested",
+			"properties": {
+				"FLT_DATE_day_s": {
+					"type": "string"
+				},
+				"FLT_NUM_s": {
+					"type": "string"
+				},
+				"STA_DEPTTM_t": {
+					"type": "date"
+				},
+				"PSR_CKITIME_s": {
+					"type": "string"
+				},
+				"STA_DEPTTM_s": {
+					"type": "string"
+				},
+				"PDT_BIRTHDAY_year_s": {
+					"type": "string"
+				},
+				"PSR_CKITIME_t": {
+					"type": "date"
+				},
+				"PSR_GROUP_s": {
+					"type": "string"
+				},
+				"PSR_GENDER_s": {
+					"type": "string"
+				},
+				"PDT_EXPRIRYDATE_s": {
+					"type": "string"
+				},
+				"PSR_BAGWGT_s": {
+					"type": "string"
+				},
+				"PDT_EXPRIRYDATE_t": {
+					"type": "date"
+				},
+				"STA_DEPTTM_day_s": {
+					"type": "string"
+				},
+				"PSR_GENDER_FORMAT_s": {
+					"type": "string"
+				},
+				"PSR_CKITIME_day_s": {
+					"type": "string"
+				},
+				"PSR_STATUS_s": {
+					"type": "string"
+				},
+				"PDT_DEST_s": {
+					"type": "string"
+				},
+				"PSR_BAGS_s": {
+					"type": "string"
+				},
+				"FLT_AIRL_s": {
+					"type": "string"
+				},
+				"SN_ID_s": {
+					"type": "string"
+				},
+				"SEG_DEPT_NAME_s": {
+					"type": "string"
+				},
+				"FLT_AIRLCODE_s": {
+					"type": "string"
+				},
+				"PSR_FFFR_s": {
+					"type": "string"
+				},
+				"PSR_BRDNO_s": {
+					"type": "string"
+				},
+				"PSR_SEATNBR_s": {
+					"type": "string"
+				},
+				"PDT_EXPRIRYDATE_year_s": {
+					"type": "string"
+				},
+				"PSR_CHNNAME_s": {
+					"type": "string"
+				},
+				"PSR_CRS_s": {
+					"type": "string"
+				},
+				"FLT_DATE_year_s": {
+					"type": "string"
+				},
+				"HDEDITTIME_month_s": {
+					"type": "string"
+				},
+				"HDADDTIME_month_s": {
+					"type": "string"
+				},
+				"FLT_DATE_t": {
+					"type": "date"
+				},
+				"FLT_DATE_month_s": {
+					"type": "string"
+				},
+				"PSR_NAME_s": {
+					"type": "string"
+				},
+				"STA_ARVETM_year_s": {
+					"type": "string"
+				},
+				"FLT_DATE_s": {
+					"type": "string"
+				},
+				"HDPRESERVE1_s": {
+					"type": "string"
+				},
+				"PSR_CLASS_s": {
+					"type": "string"
+				},
+				"PDT_DEPT_s": {
+					"type": "string"
+				},
+				"STA_DEPTTM_year_s": {
+					"type": "string"
+				},
+				"PDT_DEST_NAME_s": {
+					"type": "string"
+				},
+				"PDT_EXPRIRYDATE_day_s": {
+					"type": "string"
+				},
+				"SEG_DEST_CODE_s": {
+					"type": "string"
+				},
+				"PDT_BIRTHDAY_day_s": {
+					"type": "string"
+				},
+				"BORDER_TYPE_s": {
+					"type": "string"
+				},
+				"PDT_EXPRIRYDATE_month_s": {
+					"type": "string"
+				},
+				"STA_ARVETM_month_s": {
+					"type": "string"
+				},
+				"STA_ARVETM_s": {
+					"type": "string"
+				},
+				"STA_ARVETM_t": {
+					"type": "date"
+				},
+				"HDEDITTIME_day_s": {
+					"type": "string"
+				},
+				"BORDER_TYPE_FORMAT_s": {
+					"type": "string"
+				},
+				"PSR_PSPT_s": {
+					"type": "string"
+				},
+				"HDADDTIME_day_s": {
+					"type": "string"
+				},
+				"STA_ARVETM_day_s": {
+					"type": "string"
+				},
+				"STA_DEPTTM_month_s": {
+					"type": "string"
+				},
+				"HDADDTIME_s": {
+					"type": "string"
+				},
+				"HDADDTIME_t": {
+					"type": "date"
+				},
+				"PDT_BIRTHDAY_month_s": {
+					"type": "string"
+				},
+				"SEG_DEPT_CODE_s": {
+					"type": "string"
+				},
+				"PDT_DEPT_NAME_s": {
+					"type": "string"
+				},
+				"ID_s": {
+					"type": "string"
+				},
+				"PSR_SIP_s": {
+					"type": "string"
+				},
+				"TELNO_s": {
+					"type": "string"
+				},
+				"PDT_BIRTHDAY_s": {
+					"type": "string"
+				},
+				"PDT_COUNTRY_s": {
+					"type": "string"
+				},
+				"PDT_BIRTHDAY_t": {
+					"type": "date"
+				},
+				"SEG_FLTID_s": {
+					"type": "string"
+				},
+				"PSR_HOSTNBR_s": {
+					"type": "string"
+				},
+				"PSR_EFMN_s": {
+					"type": "string"
+				},
+				"HDEDITTIME_s": {
+					"type": "string"
+				},
+				"HDEDITTIME_t": {
+					"type": "date"
+				},
+				"HDADDTIME_year_s": {
+					"type": "string"
+				},
+				"PSR_ICS_s": {
+					"type": "string"
+				},
+				"PSR_CKITIME_month_s": {
+					"type": "string"
+				},
+				"PSR_CKITIME_year_s": {
+					"type": "string"
+				},
+				"HDEDITTIME_year_s": {
+					"type": "string"
+				},
+				"SEG_DEST_NAME_s": {
+					"type": "string"
+				}
+			}
+		},
+		"CK": {
+			"type": "nested",
+			"properties": {
+				"BYZK_FORMAT_s": {
+					"type": "string"
+				},
+				"JLBZ_FORMAT_s": {
+					"type": "string"
+				},
+				"RYNBID_s": {
+					"type": "string"
+				},
+				"YWNR_FORMAT_s": {
+					"type": "string"
+				},
+				"HSSSQLBZ_FORMAT_s": {
+					"type": "string"
+				},
+				"XXJB_s": {
+					"type": "string"
+				},
+				"HYQL_s": {
+					"type": "string"
+				},
+				"JCWH_FORMAT_s": {
+					"type": "string"
+				},
+				"BYZK_s": {
+					"type": "string"
+				},
+				"HYQL_FORMAT_s": {
+					"type": "string"
+				},
+				"CXBZ_s": {
+					"type": "string"
+				},
+				"CYM_s": {
+					"type": "string"
+				},
+				"JHREJHGX_s": {
+					"type": "string"
+				},
+				"NBSFZID_s": {
+					"type": "string"
+				},
+				"CSDGJDQ_s": {
+					"type": "string"
+				},
+				"JHREGMSFHM_s": {
+					"type": "string"
+				},
+				"YWNR_s": {
+					"type": "string"
+				},
+				"MLPID_s": {
+					"type": "string"
+				},
+				"JLBZ_s": {
+					"type": "string"
+				},
+				"YXQXJZRQ_s": {
+					"type": "string"
+				},
+				"HYZK_FORMAT_s": {
+					"type": "string"
+				},
+				"JGSSXQ_FORMAT_s": {
+					"type": "string"
+				},
+				"DHHM_s": {
+					"type": "string"
+				},
+				"QYSJ_month_s": {
+					"type": "string"
+				},
+				"XXJB_FORMAT_s": {
+					"type": "string"
+				},
+				"JCWH_s": {
+					"type": "string"
+				},
+				"XZJD_FORMAT_s": {
+					"type": "string"
+				},
+				"MLXZ_s": {
+					"type": "string"
+				},
+				"JHRYJHGX_s": {
+					"type": "string"
+				},
+				"CSRQ_day_s": {
+					"type": "string"
+				},
+				"POXM_s": {
+					"type": "string"
+				},
+				"ZJLB_FORMAT_s": {
+					"type": "string"
+				},
+				"PCS_s": {
+					"type": "string"
+				},
+				"RYSDZT_s": {
+					"type": "string"
+				},
+				"ZYLB_s": {
+					"type": "string"
+				},
+				"ZJXY_s": {
+					"type": "string"
+				},
+				"XB_FORMAT_s": {
+					"type": "string"
+				},
+				"JLX_FORMAT_s": {
+					"type": "string"
+				},
+				"PCS_CODE6_s": {
+					"type": "string"
+				},
+				"SSXQ_SF_s": {
+					"type": "string"
+				},
+				"SWZXLB_s": {
+					"type": "string"
+				},
+				"SWRQ_s": {
+					"type": "string"
+				},
+				"MZ_s": {
+					"type": "string"
+				},
+				"HSSXQQL_FORMAT_s": {
+					"type": "string"
+				},
+				"RYLB_s": {
+					"type": "string"
+				},
+				"ZWEZCJG_s": {
+					"type": "string"
+				},
+				"HYLBZ_FORMAT_s": {
+					"type": "string"
+				},
+				"HSQL_s": {
+					"type": "string"
+				},
+				"MQXM_s": {
+					"type": "string"
+				},
+				"HB_s": {
+					"type": "string"
+				},
+				"SSXQ_s": {
+					"type": "string"
+				},
+				"ZWYZCJG_s": {
+					"type": "string"
+				},
+				"HLX_FORMAT_s": {
+					"type": "string"
+				},
+				"BZ_s": {
+					"type": "string"
+				},
+				"CYMPY_s": {
+					"type": "string"
+				},
+				"HSSSQLBZ_s": {
+					"type": "string"
+				},
+				"CSZMBH_s": {
+					"type": "string"
+				},
+				"ZY_s": {
+					"type": "string"
+				},
+				"HB_FORMAT_s": {
+					"type": "string"
+				},
+				"XXQYSJ_year_s": {
+					"type": "string"
+				},
+				"QWDXZ_s": {
+					"type": "string"
+				},
+				"DHHM2_s": {
+					"type": "string"
+				},
+				"XXQYSJ_s": {
+					"type": "string"
+				},
+				"QYSJ_year_s": {
+					"type": "string"
+				},
+				"QTSSXQ_FORMAT_s": {
+					"type": "string"
+				},
+				"RYSDZT_FORMAT_s": {
+					"type": "string"
+				},
+				"XXQYSJ_t": {
+					"type": "date"
+				},
+				"CSZQFRQ_s": {
+					"type": "string"
+				},
+				"SSXQ_FORMAT_s": {
+					"type": "string"
+				},
+				"JGGJDQ_s": {
+					"type": "string"
+				},
+				"RYZT_FORMAT_s": {
+					"type": "string"
+				},
+				"SG_s": {
+					"type": "string"
+				},
+				"XXQYSJ_month_s": {
+					"type": "string"
+				},
+				"XB_s": {
+					"type": "string"
+				},
+				"JGSSXQ_SF_s": {
+					"type": "string"
+				},
+				"ZWCJJGDM_s": {
+					"type": "string"
+				},
+				"XM_s": {
+					"type": "string"
+				},
+				"CSDXZ_s": {
+					"type": "string"
+				},
+				"CCHJYWID_s": {
+					"type": "string"
+				},
+				"CSDSSXQ_FORMAT_s": {
+					"type": "string"
+				},
+				"RYZT_s": {
+					"type": "string"
+				},
+				"SSXQ_SS_s": {
+					"type": "string"
+				},
+				"QCRQ_s": {
+					"type": "string"
+				},
+				"CSDSSXQ_s": {
+					"type": "string"
+				},
+				"YXQXQSRQ_day_s": {
+					"type": "string"
+				},
+				"JHRYJHGX_FORAMT_s": {
+					"type": "string"
+				},
+				"POGMSFHM_s": {
+					"type": "string"
+				},
+				"BDFW_FORMAT_s": {
+					"type": "string"
+				},
+				"JHREJHGX_FORMAT_s": {
+					"type": "string"
+				},
+				"MZ_FORMAT_s": {
+					"type": "string"
+				},
+				"ZPID_s": {
+					"type": "string"
+				},
+				"MQGMSFHM_s": {
+					"type": "string"
+				},
+				"HYZK_s": {
+					"type": "string"
+				},
+				"HXZQL_s": {
+					"type": "string"
+				},
+				"HYLB_s": {
+					"type": "string"
+				},
+				"HYLB_FORMAT_s": {
+					"type": "string"
+				},
+				"JHREXM_s": {
+					"type": "string"
+				},
+				"HGJDQQL_s": {
+					"type": "string"
+				},
+				"XX_FORMAT_s": {
+					"type": "string"
+				},
+				"GMSFHM_s": {
+					"type": "string"
+				},
+				"PXH_s": {
+					"type": "string"
+				},
+				"QCZXLB_s": {
+					"type": "string"
+				},
+				"JSSJ_s": {
+					"type": "string"
+				},
+				"YHZGX_s": {
+					"type": "string"
+				},
+				"FQGMSFHM_s": {
+					"type": "string"
+				},
+				"PCS_FORMAT_s": {
+					"type": "string"
+				},
+				"QYSJ_day_s": {
+					"type": "string"
+				},
+				"QWDGJDQ_s": {
+					"type": "string"
+				},
+				"MLPH_s": {
+					"type": "string"
+				},
+				"QFJG_s": {
+					"type": "string"
+				},
+				"JGSSXQ_SS_s": {
+					"type": "string"
+				},
+				"BDFW_s": {
+					"type": "string"
+				},
+				"JHRYGMSFHM_s": {
+					"type": "string"
+				},
+				"HHID_s": {
+					"type": "string"
+				},
+				"MLPNBID_FORMAT_s": {
+					"type": "string"
+				},
+				"YXQXQSRQ_month_s": {
+					"type": "string"
+				},
+				"QCZXLB_FORMAT_s": {
+					"type": "string"
+				},
+				"XMPY_s": {
+					"type": "string"
+				},
+				"YXQXQSRQ_year_s": {
+					"type": "string"
+				},
+				"ZYLB_FORMAT_s": {
+					"type": "string"
+				},
+				"JGSSXQ_s": {
+					"type": "string"
+				},
+				"ZWEZW_s": {
+					"type": "string"
+				},
+				"SWZXRQ_s": {
+					"type": "string"
+				},
+				"HGJDQLBZ_s": {
+					"type": "string"
+				},
+				"HYLBZ_s": {
+					"type": "string"
+				},
+				"YHZGX_FORMAT_s": {
+					"type": "string"
+				},
+				"ZJLB_s": {
+					"type": "string"
+				},
+				"HLX_s": {
+					"type": "string"
+				},
+				"HH_s": {
+					"type": "string"
+				},
+				"SSXQ_NEWDM_s": {
+					"type": "string"
+				},
+				"QTZZ_s": {
+					"type": "string"
+				},
+				"HXZLBZ_s": {
+					"type": "string"
+				},
+				"QTSSXQ_s": {
+					"type": "string"
+				},
+				"ZRQ_s": {
+					"type": "string"
+				},
+				"ZJXY_FORAMT_s": {
+					"type": "string"
+				},
+				"QWDSSXQ_s": {
+					"type": "string"
+				},
+				"HSSXQQL_s": {
+					"type": "string"
+				},
+				"ZWYZW_s": {
+					"type": "string"
+				},
+				"HSLBZ_s": {
+					"type": "string"
+				},
+				"XX_s": {
+					"type": "string"
+				},
+				"XXQYSJ_day_s": {
+					"type": "string"
+				},
+				"JGSSXQ_NEWDM_s": {
+					"type": "string"
+				},
+				"SZYCZKDM_s": {
+					"type": "string"
+				},
+				"RYID_s": {
+					"type": "string"
+				},
+				"FQXM_s": {
+					"type": "string"
+				},
+				"CSRQ_t": {
+					"type": "date"
+				},
+				"FWCS_s": {
+					"type": "string"
+				},
+				"MLPNBID_s": {
+					"type": "string"
+				},
+				"WHCD_s": {
+					"type": "string"
+				},
+				"CSRQ_s": {
+					"type": "string"
+				},
+				"QWDSSXQ_FORMAT_s": {
+					"type": "string"
+				},
+				"HHNBID_s": {
+					"type": "string"
+				},
+				"QYSJ_t": {
+					"type": "date"
+				},
+				"XZJD_s": {
+					"type": "string"
+				},
+				"CSRQ_month_s": {
+					"type": "string"
+				},
+				"QYSJ_s": {
+					"type": "string"
+				},
+				"CSSJ_s": {
+					"type": "string"
+				},
+				"RYLB_FORMAT_s": {
+					"type": "string"
+				},
+				"YXQXQSRQ_s": {
+					"type": "string"
+				},
+				"JHRYXM_s": {
+					"type": "string"
+				},
+				"CJHJYWID_s": {
+					"type": "string"
+				},
+				"JLX_s": {
+					"type": "string"
+				},
+				"CSRQ_year_s": {
+					"type": "string"
+				},
+				"YXQXQSRQ_t": {
+					"type": "date"
+				},
+				"XZDCJZT_s": {
+					"type": "string"
+				},
+				"WHCD_FORMAT_s": {
+					"type": "string"
+				}
+			}
+		},
+		"ZK": {
+			"type": "nested",
+			"properties": {
+				"ZXBZ_s": {
+					"type": "string"
+				},
+				"GIRLCOUNT_s": {
+					"type": "string"
+				},
+				"ZXBZ_FORMAT_s": {
+					"type": "string"
+				},
+				"HDQK_FORMAT_s": {
+					"type": "string"
+				},
+				"JXDM_FORMAT_s": {
+					"type": "string"
+				},
+				"YQQX_s": {
+					"type": "string"
+				},
+				"ZZCS_s": {
+					"type": "string"
+				},
+				"HCYBZ_s": {
+					"type": "string"
+				},
+				"ZXLX_FORMAT_s": {
+					"type": "string"
+				},
+				"HYZM_s": {
+					"type": "string"
+				},
+				"DJRQ_day_s": {
+					"type": "string"
+				},
+				"YHKLB_FORMAT_s": {
+					"type": "string"
+				},
+				"M3PY_s": {
+					"type": "string"
+				},
+				"HYZK_FORMAT_s": {
+					"type": "string"
+				},
+				"CFBZ_FORMAT_s": {
+					"type": "string"
+				},
+				"XPY2_s": {
+					"type": "string"
+				},
+				"LBDRQ_year_s": {
+					"type": "string"
+				},
+				"FZRQ_month_s": {
+					"type": "string"
+				},
+				"DQRQ_s": {
+					"type": "string"
+				},
+				"RKCCBZ_FORMAT_s": {
+					"type": "string"
+				},
+				"YXQX_s": {
+					"type": "string"
+				},
+				"YHKLB_s": {
+					"type": "string"
+				},
+				"CSRQ_day_s": {
+					"type": "string"
+				},
+				"POXM_s": {
+					"type": "string"
+				},
+				"ZXLX_s": {
+					"type": "string"
+				},
+				"PCS_s": {
+					"type": "string"
+				},
+				"HCYBZ_FORMAT_s": {
+					"type": "string"
+				},
+				"XB_FORMAT_s": {
+					"type": "string"
+				},
+				"YXBZ_s": {
+					"type": "string"
+				},
+				"PCS_CODE6_s": {
+					"type": "string"
+				},
+				"GZDZ_s": {
+					"type": "string"
+				},
+				"YXQX_FORMAT_s": {
+					"type": "string"
+				},
+				"MZ_s": {
+					"type": "string"
+				},
+				"JWH_FORMAT_s": {
+					"type": "string"
+				},
+				"HDQK_s": {
+					"type": "string"
+				},
+				"ZZZH_s": {
+					"type": "string"
+				},
+				"KKBZ_FORMAT_s": {
+					"type": "string"
+				},
+				"BZ_s": {
+					"type": "string"
+				},
+				"ZZDJSZM_s": {
+					"type": "string"
+				},
+				"JYZBH_s": {
+					"type": "string"
+				},
+				"YZY_s": {
+					"type": "string"
+				},
+				"JSCS_FORMAT_s": {
+					"type": "string"
+				},
+				"XPY1_s": {
+					"type": "string"
+				},
+				"FZSFZH_s": {
+					"type": "string"
+				},
+				"BM_s": {
+					"type": "string"
+				},
+				"XHCSRQ_day_s": {
+					"type": "string"
+				},
+				"HYZM_FORMAT_s": {
+					"type": "string"
+				},
+				"CFBZ_s": {
+					"type": "string"
+				},
+				"YZJG_s": {
+					"type": "string"
+				},
+				"ZZSJ_s": {
+					"type": "string"
+				},
+				"LBDRQ_month_s": {
+					"type": "string"
+				},
+				"DQFL_FORMAT_s": {
+					"type": "string"
+				},
+				"HKSX_FORMAT_s": {
+					"type": "string"
+				},
+				"XB_s": {
+					"type": "string"
+				},
+				"GWRQ_s": {
+					"type": "string"
+				},
+				"M1PY_s": {
+					"type": "string"
+				},
+				"QX_s": {
+					"type": "string"
+				},
+				"JYCS_s": {
+					"type": "string"
+				},
+				"YFZGX_s": {
+					"type": "string"
+				},
+				"M2PY_s": {
+					"type": "string"
+				},
+				"FZRQ_day_s": {
+					"type": "string"
+				},
+				"HKSX_NEWDM_s": {
+					"type": "string"
+				},
+				"RKCCBZ_s": {
+					"type": "string"
+				},
+				"ZRR_s": {
+					"type": "string"
+				},
+				"MZ_FORMAT_s": {
+					"type": "string"
+				},
+				"KKBZ_s": {
+					"type": "string"
+				},
+				"HYZK_s": {
+					"type": "string"
+				},
+				"XY_s": {
+					"type": "string"
+				},
+				"ZZCS_FORMAT_s": {
+					"type": "string"
+				},
+				"M4PY_s": {
+					"type": "string"
+				},
+				"CSZY_FORMAT_s": {
+					"type": "string"
+				},
+				"QX_FORMAT_s": {
+					"type": "string"
+				},
+				"LXDH_s": {
+					"type": "string"
+				},
+				"PCS_FORMAT_s": {
+					"type": "string"
+				},
+				"FZRQ_year_s": {
+					"type": "string"
+				},
+				"ZZZHNEW_s": {
+					"type": "string"
+				},
+				"JXDM_s": {
+					"type": "string"
+				},
+				"ZZSY_s": {
+					"type": "string"
+				},
+				"DJRQ_t": {
+					"type": "date"
+				},
+				"HKSX_s": {
+					"type": "string"
+				},
+				"GWRQ_FORMAT_s": {
+					"type": "string"
+				},
+				"DJRQ_s": {
+					"type": "string"
+				},
+				"FSBZ_s": {
+					"type": "string"
+				},
+				"SRR_s": {
+					"type": "string"
+				},
+				"FSBZ_FORMAT_s": {
+					"type": "string"
+				},
+				"DJRQ_month_s": {
+					"type": "string"
+				},
+				"FZRQ_t": {
+					"type": "date"
+				},
+				"FZRQ_s": {
+					"type": "string"
+				},
+				"BOYCOUNT_s": {
+					"type": "string"
+				},
+				"ZLFWDAH_s": {
+					"type": "string"
+				},
+				"HKSX_SF_s": {
+					"type": "string"
+				},
+				"LBDRQ_day_s": {
+					"type": "string"
+				},
+				"DQFL_s": {
+					"type": "string"
+				},
+				"JSCS_s": {
+					"type": "string"
+				},
+				"ZZSY_FORMAT_s": {
+					"type": "string"
+				},
+				"XY_FORMAT_s": {
+					"type": "string"
+				},
+				"LBDRQ_t": {
+					"type": "date"
+				},
+				"HKXZ_s": {
+					"type": "string"
+				},
+				"LBDRQ_s": {
+					"type": "string"
+				},
+				"XHCSRQ_t": {
+					"type": "date"
+				},
+				"ZZSJ_FORMAT_s": {
+					"type": "string"
+				},
+				"ZZDZ_s": {
+					"type": "string"
+				},
+				"HKSX_SS_s": {
+					"type": "string"
+				},
+				"DJRQ_year_s": {
+					"type": "string"
+				},
+				"XHCSRQ_s": {
+					"type": "string"
+				},
+				"CSRQ_t": {
+					"type": "date"
+				},
+				"GZCS_s": {
+					"type": "string"
+				},
+				"XHCSRQ_year_s": {
+					"type": "string"
+				},
+				"WHCD_s": {
+					"type": "string"
+				},
+				"FZXM_s": {
+					"type": "string"
+				},
+				"YZRQ_s": {
+					"type": "string"
+				},
+				"CSRQ_s": {
+					"type": "string"
+				},
+				"YQRQ_s": {
+					"type": "string"
+				},
+				"CSRQ_month_s": {
+					"type": "string"
+				},
+				"JYCS_FORMAT_s": {
+					"type": "string"
+				},
+				"FZLXDH_s": {
+					"type": "string"
+				},
+				"CSZY_s": {
+					"type": "string"
+				},
+				"JWH_s": {
+					"type": "string"
+				},
+				"XHCSRQ_month_s": {
+					"type": "string"
+				},
+				"CSRQ_year_s": {
+					"type": "string"
+				},
+				"WHCD_FORMAT_s": {
+					"type": "string"
+				}
+			}
+		},
+		"TL": {
+			"type": "nested",
+			"properties": {
+				"TICKET_RESIGN_TIME_year_s": {
+					"type": "string"
+				},
+				"TICKET_RETURN_TIME_s": {
+					"type": "string"
+				},
+				"BOARD_TRAIN_CODE_s": {
+					"type": "string"
+				},
+				"TICKET_RESIGN_TIME_month_s": {
+					"type": "string"
+				},
+				"TICKET_RETURN_TIME_t": {
+					"type": "date"
+				},
+				"TICKET_SALE_WINDOWS_s": {
+					"type": "string"
+				},
+				"TICKET_CANCEL_TIME_year_s": {
+					"type": "string"
+				},
+				"TICKET_RESIGN_TIME_t": {
+					"type": "date"
+				},
+				"TICKET_RESIGN_TIME_s": {
+					"type": "string"
+				},
+				"TICKET_STATUS_s": {
+					"type": "string"
+				},
+				"LOADTIME_year_s": {
+					"type": "string"
+				},
+				"TICKET_SALE_TIME_year_s": {
+					"type": "string"
+				},
+				"TICKET_SALE_TIME_month_s": {
+					"type": "string"
+				},
+				"TICKET_RETURN_TIME_month_s": {
+					"type": "string"
+				},
+				"LOADTIME_day_s": {
+					"type": "string"
+				},
+				"LOADTIME_t": {
+					"type": "date"
+				},
+				"LOADTIME_s": {
+					"type": "string"
+				},
+				"LOADTIME_month_s": {
+					"type": "string"
+				},
+				"TRAIN_DATE_day_s": {
+					"type": "string"
+				},
+				"TICKET_RESIGN_TIME_day_s": {
+					"type": "string"
+				},
+				"TRAIN_DATE_s": {
+					"type": "string"
+				},
+				"TICKET_SALE_TIME_day_s": {
+					"type": "string"
+				},
+				"TRAIN_DATE_t": {
+					"type": "date"
+				},
+				"TICKET_SALE_TYPE_s": {
+					"type": "string"
+				},
+				"TO_STATION_NAME_s": {
+					"type": "string"
+				},
+				"TXR_GUID_s": {
+					"type": "string"
+				},
+				"TICKET_NO_s": {
+					"type": "string"
+				},
+				"ID_s": {
+					"type": "string"
+				},
+				"TICKET_RETURN_TIME_year_s": {
+					"type": "string"
+				},
+				"TICKET_CANCEL_TIME_day_s": {
+					"type": "string"
+				},
+				"KEY_s": {
+					"type": "string"
+				},
+				"TICKET_CANCEL_TIME_t": {
+					"type": "date"
+				},
+				"TICKET_CANCEL_TIME_s": {
+					"type": "string"
+				},
+				"TICKET_SALE_TIME_t": {
+					"type": "date"
+				},
+				"TICKET_SALE_TIME_s": {
+					"type": "string"
+				},
+				"TICKET_SALE_STATION_s": {
+					"type": "string"
+				},
+				"TRAIN_DATE_month_s": {
+					"type": "string"
+				},
+				"NOTE_s": {
+					"type": "string"
+				},
+				"FROM_STATION_NAME_s": {
+					"type": "string"
+				},
+				"TICKET_CANCEL_TIME_month_s": {
+					"type": "string"
+				},
+				"TRAIN_DATE_year_s": {
+					"type": "string"
+				},
+				"TICKET_RETURN_TIME_day_s": {
+					"type": "string"
+				}
+			}
+		},
+		"LG": {
+			"type": "nested",
+			"properties": {
+				"JG_SS_s": {
+					"type": "string"
+				},
+				"LGDM_s": {
+					"type": "string"
+				},
+				"ZKLSH_s": {
+					"type": "string"
+				},
+				"CJRIP_s": {
+					"type": "string"
+				},
+				"XGR_s": {
+					"type": "string"
+				},
+				"LKZT_FORMAT_s": {
+					"type": "string"
+				},
+				"RZSJ_year_s": {
+					"type": "string"
+				},
+				"LDSJ_t": {
+					"type": "date"
+				},
+				"HCL_FORMAT_s": {
+					"type": "string"
+				},
+				"SSXQ_CODE6_s": {
+					"type": "string"
+				},
+				"MZ_FORMAT_s": {
+					"type": "string"
+				},
+				"CLBZ_s": {
+					"type": "string"
+				},
+				"FH_s": {
+					"type": "string"
+				},
+				"LDSJ_s": {
+					"type": "string"
+				},
+				"ZY_FORMAT_s": {
+					"type": "string"
+				},
+				"ROWKEY_s": {
+					"type": "string"
+				},
+				"LGDM_LXDH_FORMAT_s": {
+					"type": "string"
+				},
+				"ZZ_s": {
+					"type": "string"
+				},
+				"RZSJ_day_s": {
+					"type": "string"
+				},
+				"LGDM_LGCYM_FORMAT_s": {
+					"type": "string"
+				},
+				"LGMC_SSXQ_FORMAT_s": {
+					"type": "string"
+				},
+				"LX_s": {
+					"type": "string"
+				},
+				"JG_FORMAT_s": {
+					"type": "string"
+				},
+				"CJR_s": {
+					"type": "string"
+				},
+				"CSRQ_day_s": {
+					"type": "string"
+				},
+				"LDSJ_year_s": {
+					"type": "string"
+				},
+				"LYLX_s": {
+					"type": "string"
+				},
+				"XB_FORMAT_s": {
+					"type": "string"
+				},
+				"HCQ_s": {
+					"type": "string"
+				},
+				"FSBZ_s": {
+					"type": "string"
+				},
+				"XGSJ_s": {
+					"type": "string"
+				},
+				"FSBZ_FORMAT_s": {
+					"type": "string"
+				},
+				"MZ_s": {
+					"type": "string"
+				},
+				"XH_s": {
+					"type": "string"
+				},
+				"HCQ_FORMAT_s": {
+					"type": "string"
+				},
+				"SSXQ_s": {
+					"type": "string"
+				},
+				"LCSY_FORMAT_s": {
+					"type": "string"
+				},
+				"JG_s": {
+					"type": "string"
+				},
+				"BZ_s": {
+					"type": "string"
+				},
+				"LCSY_s": {
+					"type": "string"
+				},
+				"LKZT_s": {
+					"type": "string"
+				},
+				"ZY_s": {
+					"type": "string"
+				},
+				"RZSJ_s": {
+					"type": "string"
+				},
+				"RZSJ_t": {
+					"type": "date"
+				},
+				"LDSJ_month_s": {
+					"type": "string"
+				},
+				"JG_SF_s": {
+					"type": "string"
+				},
+				"DJR_s": {
+					"type": "string"
+				},
+				"LY_s": {
+					"type": "string"
+				},
+				"CSRQ_t": {
+					"type": "date"
+				},
+				"SSXQ_FORMAT_s": {
+					"type": "string"
+				},
+				"LKCL_s": {
+					"type": "string"
+				},
+				"XGRIP_s": {
+					"type": "string"
+				},
+				"CSRQ_s": {
+					"type": "string"
+				},
+				"LGDM_LGMC_FORMAT_s": {
+					"type": "string"
+				},
+				"GLM_s": {
+					"type": "string"
+				},
+				"CSRQ_month_s": {
+					"type": "string"
+				},
+				"HCL_s": {
+					"type": "string"
+				},
+				"LDSJ_day_s": {
+					"type": "string"
+				},
+				"CSSJ_s": {
+					"type": "string"
+				},
+				"LGDM_DZ_FORMAT_s": {
+					"type": "string"
+				},
+				"CJSJ_s": {
+					"type": "string"
+				},
+				"CSRQ_year_s": {
+					"type": "string"
+				},
+				"RZSJ_month_s": {
+					"type": "string"
+				}
+			}
+		},
+		"MZ_FORMAT_s": {
+			"type": "string"
+		},
+		"JGD_FORMAT_s": {
+			"type": "string"
+		},
+		"GXDW_s": {
+			"type": "string"
+		},
+		"MZ_s": {
+			"type": "string"
+		},
+		"HYZK_s": {
+			"type": "string"
+		},
+		"HYZK_FORMAT_s": {
+			"type": "string"
+		},
+		"UPDATE_DATE_s": {
+			"type": "string"
+		},
+		"MODEL_NAME_s": {
+			"type": "string"
+		},
+		"PCSCODE_s": {
+			"type": "string"
+		},
+		"HJD_FORMAT_s": {
+			"type": "string"
+		},
+		"UPDATE_DATE_2_s": {
+			"type": "string"
+		},
+		"CSRQ_s": {
+			"type": "string"
+		},
+		"HJD_s": {
+			"type": "string"
+		},
+		"JGD_s": {
+			"type": "string"
+		},
+		"CSRQ_month_s": {
+			"type": "string"
+		},
+		"XB_s": {
+			"type": "string"
+		},
+		"PCSNAME_s": {
+			"type": "string"
+		},
+		"XB_FORMAT_s": {
+			"type": "string"
+		},
+		"CSRQ_year_s": {
+			"type": "string"
+		}
+	}
+}
