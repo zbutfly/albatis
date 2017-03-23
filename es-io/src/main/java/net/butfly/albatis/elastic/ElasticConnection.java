@@ -1,15 +1,12 @@
 package net.butfly.albatis.elastic;
 
 import java.io.IOException;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
-import org.elasticsearch.action.admin.indices.mapping.put.PutMappingResponse;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
@@ -18,7 +15,6 @@ import org.elasticsearch.transport.client.PreBuiltTransportClient;
 import com.hzcominfo.albatis.nosql.NoSqlConnection;
 
 import net.butfly.albacore.io.utils.URISpec;
-import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.logger.Logger;
 
 /**
@@ -43,18 +39,11 @@ public class ElasticConnection extends NoSqlConnection<TransportClient> {
 			else settings.put("client.transport.ignore_cluster_name", true);
 			settings.remove("batch");
 			settings.remove("script");
-			@SuppressWarnings("resource")
 			TransportClient tc = new PreBuiltTransportClient(settings.build());
-			for (Pair<String, Integer> h : uri.getHosts()) {
-				int port = h.v2() == null ? 39300 : h.v2();
-				try {
-					tc.addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName(h.v1()), port));
-				} catch (UnknownHostException e) {
-					throw new RuntimeException(e);
-				}
-			}
+			tc.addTransportAddresses(Arrays.stream(uri.getInetAddrs()).map(a -> new InetSocketTransportAddress(a)).toArray(
+					i -> new InetSocketTransportAddress[i]));
 			return tc;
-		}, "es", "elasticsearch");
+		}, 39300, "es", "elasticsearch");
 	}
 
 	public ElasticConnection(String connection, Map<String, String> props) throws IOException {
@@ -74,7 +63,7 @@ public class ElasticConnection extends NoSqlConnection<TransportClient> {
 	}
 
 	public String getDefaultType() {
-		return uri.getPathAt(1);
+		return uri.getFile();
 	}
 
 	@Override
@@ -92,11 +81,9 @@ public class ElasticConnection extends NoSqlConnection<TransportClient> {
 		PutMappingRequest req = new PutMappingRequest(getDefaultIndex());
 		req.source(mapping);
 		Set<String> tps = new HashSet<>(Arrays.asList(types));
-		tps.add(getDefaultType());
-		for (String t : tps) {
-			req.type(t);
-			PutMappingResponse resp = client().admin().indices().putMapping(req).actionGet();
-			if (!resp.isAcknowledged()) logger.error("Mapping failed" + req.toString());
-		}
+		if (null != getDefaultType()) tps.add(getDefaultType());
+		for (String t : tps)
+			if (!client().admin().indices().putMapping(req.type(t)).actionGet().isAcknowledged()) logger.error("Mapping failed" + req
+					.toString());
 	}
 }

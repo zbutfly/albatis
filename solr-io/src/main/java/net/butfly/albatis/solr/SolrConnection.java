@@ -81,7 +81,6 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 	public SolrConnection(URISpec uri, Class<? extends ResponseParser> parserClass) throws IOException {
 		super(uri, u -> create(u, parserClass), "solr", "zookeeper", "zk", "http");
 		meta = parse();
-		// parse();
 	}
 
 	private static SolrClient create(URISpec uri, Class<? extends ResponseParser> parserClass) {
@@ -206,25 +205,23 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 		String url = uri.toString();
 		CoreAdminRequest req = new CoreAdminRequest();
 		req.setAction(CoreAdminAction.STATUS);
-		try {
+		try { // no core segment in uri
 			CoreAdminResponse resp = req.process(client());
 			String[] cores = new String[resp.getCoreStatus().size()];
 			for (int i = 0; i < resp.getCoreStatus().size(); i++)
 				cores[i] = resp.getCoreStatus().getName(i);
 			return new SolrMeta(url, null, cores);
 		} catch (SolrServerException | RemoteSolrException e) {
-			String path = uri.getPath();
-			if (null == path) throw new IOException("Solr uri invalid: " + uri);
-			String[] segs = uri.getPaths();
-			if (segs.length == 0) throw new IOException("Solr uri invalid: " + uri);
-			String core = uri.getPathAtLast(0);
-			String base = url.replaceAll("/?" + core + "([/\\?#][^/]*)?", "");
+			// has core segment in uri
+			String core = uri.getFile();
+			if (null == core) throw new IOException("Solr uri invalid: " + uri);
+			URISpec base = uri.resolve("..");
 			try (SolrConnection solr = new SolrConnection(base);) {
 				CoreAdminResponse resp = req.process(solr.client());
 				String[] cores = new String[resp.getCoreStatus().size()];
 				for (int i = 0; i < resp.getCoreStatus().size(); i++)
 					cores[i] = resp.getCoreStatus().getName(i);
-				return new SolrMeta(base, core, cores);
+				return new SolrMeta(base.toString(), core, cores);
 			} catch (RemoteSolrException | SolrServerException ee) {
 				throw new IOException("Solr uri base parsing failure: " + url);
 			}

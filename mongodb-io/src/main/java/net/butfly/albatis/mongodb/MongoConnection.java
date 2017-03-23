@@ -35,7 +35,7 @@ public class MongoConnection extends NoSqlConnection<MongoClient> {
 			}
 		}, "mongodb");
 		defaultDB = uri.getPathAt(0);
-		defaultCollection = uri.getPathAt(1);
+		defaultCollection = uri.getFile();
 		dbs = new ConcurrentHashMap<>();
 	}
 

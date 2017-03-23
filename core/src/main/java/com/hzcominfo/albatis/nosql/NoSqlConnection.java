@@ -19,10 +19,11 @@ public abstract class NoSqlConnection<C> implements Connection {
 	protected final URISpec uri;
 	protected final Properties parameters;
 
-	protected NoSqlConnection(URISpec uri, Function<URISpec, C> client, String... supportedSchema) throws IOException {
+	protected NoSqlConnection(URISpec uri, Function<URISpec, C> client, int defaultPort, String... supportedSchema) throws IOException {
 		super();
 		supportedSchemas = null != supportedSchema ? supportedSchema : new String[0];
 		this.uri = uri;
+		if (this.uri.getDefaultPort() < 0) this.uri.setDefaultPort(defaultPort);
 		String schema = supportedSchema(uri.getScheme());
 		if (null == schema) throw new ProtocolException(uri.getScheme() + " is not supported, "//
 				+ "supported list: [" + Joiner.on(',').join(supportedSchemas) + "]");
@@ -38,6 +39,10 @@ public abstract class NoSqlConnection<C> implements Connection {
 				parameters.put(keyValue[0], keyValue[1]);
 			});
 		}
+	}
+
+	protected NoSqlConnection(URISpec uri, Function<URISpec, C> client, String... supportedSchema) throws IOException {
+		this(uri, client, -1, supportedSchema);
 	}
 
 	public final Properties getParameters() {
