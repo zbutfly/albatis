@@ -1,12 +1,19 @@
 package net.butfly.albatis.elastic;
 
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import org.apache.http.HttpHost;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
+import org.elasticsearch.client.Response;
+import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
@@ -15,6 +22,7 @@ import org.elasticsearch.transport.client.PreBuiltTransportClient;
 import com.hzcominfo.albatis.nosql.NoSqlConnection;
 
 import net.butfly.albacore.io.utils.URISpec;
+import net.butfly.albacore.serder.JsonSerder;
 import net.butfly.albacore.utils.logger.Logger;
 
 /**
@@ -40,10 +48,48 @@ public class ElasticConnection extends NoSqlConnection<TransportClient> {
 			settings.remove("batch");
 			settings.remove("script");
 			TransportClient tc = new PreBuiltTransportClient(settings.build());
-			tc.addTransportAddresses(Arrays.stream(uri.getInetAddrs()).map(InetSocketTransportAddress::new).toArray(
-					i -> new InetSocketTransportAddress[i]));
+			tc.addTransportAddresses(parseNodes(esUri));
 			return tc;
-		}, 39300, "es", "elasticsearch");
+		}, 39300, "es", "elasticsearch", "http", "https");
+	}
+
+	private static final Pattern NODE_TRANSPORT_ADDRESS = Pattern.compile("inet\\[/([^:]*):([0-9]+)\\]");
+
+	@SuppressWarnings("unchecked")
+	private static InetSocketTransportAddress[] parseNodes(URISpec uri) {
+		RestClient rest = RestClient.builder(Arrays.stream(uri.getInetAddrs()).map(a -> new HttpHost(a.getHostName(), a.getPort())).toArray(
+				i -> new HttpHost[i])).build();
+		Response rep;
+		try {
+			rep = rest.performRequest("GET", "_nodes");
+		} catch (IOException e) {
+			logger.warn("Elastic transport meta parsing failed, connect directly", e);
+			return uriAddrs(uri);
+		}
+		if (rep.getStatusLine().getStatusCode() != 200) {
+			logger.warn("Elastic transport meta parsing failed, connect directly\n\t" + rep.getStatusLine().getReasonPhrase());
+			return uriAddrs(uri);
+		}
+		Map<String, Object> info;
+		try {
+			info = JsonSerder.JSON_MAPPER.der(new InputStreamReader(rep.getEntity().getContent()), Map.class);
+		} catch (UnsupportedOperationException | IOException e) {
+			logger.warn("Elastic transport meta parsing failed, connect directly", e);
+			return uriAddrs(uri);
+		}
+		return ((Map<String, Object>) info.get("nodes")).entrySet().stream().map(n -> {
+			Map<String, Object> node = (Map<String, Object>) n.getValue();
+			// "transport_address" : "inet[/172.18.58.139:9303]"
+			String transport = (String) node.get("transport_address");
+			logger.debug("Elastic ntransport node [" + (String) node.get("name") + "]: " + transport + "");
+			Matcher m = NODE_TRANSPORT_ADDRESS.matcher(transport);
+			InetSocketAddress addr = new InetSocketAddress(m.group(1), Integer.parseInt(m.group(2)));
+			return new InetSocketTransportAddress(addr);
+		}).toArray(i -> new InetSocketTransportAddress[i]);
+	}
+
+	private static InetSocketTransportAddress[] uriAddrs(URISpec uri) {
+		return Arrays.stream(uri.getInetAddrs()).map(InetSocketTransportAddress::new).toArray(i -> new InetSocketTransportAddress[i]);
 	}
 
 	public ElasticConnection(String connection, Map<String, String> props) throws IOException {

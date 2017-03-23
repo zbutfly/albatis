@@ -13,32 +13,6 @@
 			<artifactId>albatis-core</artifactId>
 			<version>1.0.0-SNAPSHOT</version>
 		</dependency>
-		<dependency>
-			<groupId>org.elasticsearch.client</groupId>
-			<artifactId>transport</artifactId>
-			<version>5.2.2</version>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.logging.log4j</groupId>
-			<artifactId>log4j-api</artifactId>
-			<scope>runtime</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.logging.log4j</groupId>
-			<artifactId>log4j-to-slf4j</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>net.butfly.albacore</groupId>
-			<artifactId>albacore-serder-json</artifactId>
-			<version>1.0.0-SNAPSHOT</version>
-			<scope>test</scope>
-			<exclusions>
-				<exclusion>
-					<groupId>com.fasterxml.jackson.core</groupId>
-					<artifactId>jackson-core</artifactId>
-				</exclusion>
-			</exclusions>
-		</dependency>
 		<!-- adjust dependencies version -->
 		<dependency>
 			<groupId>io.netty</groupId>
@@ -94,6 +68,63 @@
 			<groupId>com.fasterxml.jackson.dataformat</groupId>
 			<artifactId>jackson-dataformat-smile</artifactId>
 			<version>${version.jackson}</version>
+		</dependency>
+<!-- 		<dependency> -->
+<!-- 			<groupId>org.apache.httpcomponents</groupId> -->
+<!-- 			<artifactId>httpcore</artifactId> -->
+<!-- 			<version>4.4.6</version> -->
+<!-- 		</dependency> -->
+<!-- 		<dependency> -->
+<!-- 			<groupId>org.apache.httpcomponents</groupId> -->
+<!-- 			<artifactId>httpcore-nio</artifactId> -->
+<!-- 			<version>4.4.6</version> -->
+<!-- 		</dependency> -->
+<!-- 		<dependency> -->
+<!-- 			<groupId>org.apache.httpcomponents</groupId> -->
+<!-- 			<artifactId>httpclient</artifactId> -->
+<!-- 			<version>4.5.3</version> -->
+<!-- 		</dependency> -->
+		<dependency>
+			<groupId>org.apache.httpcomponents</groupId>
+			<artifactId>httpasyncclient</artifactId>
+			<version>4.1.3</version>
+		</dependency>
+		<!-- adjust dependencies version end -->
+		<dependency>
+			<groupId>org.elasticsearch.client</groupId>
+			<artifactId>transport</artifactId>
+			<version>5.2.2</version>
+		</dependency>
+		<dependency>
+			<groupId>org.elasticsearch.client</groupId>
+			<artifactId>rest</artifactId>
+			<version>5.2.2</version>
+		</dependency>
+		<dependency>
+			<groupId>org.elasticsearch.client</groupId>
+			<artifactId>sniffer</artifactId>
+			<version>5.2.2</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.logging.log4j</groupId>
+			<artifactId>log4j-api</artifactId>
+			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.logging.log4j</groupId>
+			<artifactId>log4j-to-slf4j</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>net.butfly.albacore</groupId>
+			<artifactId>albacore-serder-json</artifactId>
+			<version>1.0.0-SNAPSHOT</version>
+			<scope>test</scope>
+			<exclusions>
+				<exclusion>
+					<groupId>com.fasterxml.jackson.core</groupId>
+					<artifactId>jackson-core</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 	</dependencies>
 </project>
