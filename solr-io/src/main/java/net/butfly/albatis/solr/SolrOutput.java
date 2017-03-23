@@ -15,9 +15,9 @@ import com.hzcominfo.albatis.nosql.Connection;
 import net.butfly.albacore.io.IO;
 import net.butfly.albacore.io.Message;
 import net.butfly.albacore.io.faliover.Failover.FailoverException;
+import net.butfly.albacore.io.faliover.FailoverOutput;
 import net.butfly.albacore.io.utils.Streams;
 import net.butfly.albacore.io.utils.URISpec;
-import net.butfly.albacore.io.faliover.FailoverOutput;
 
 public final class SolrOutput extends FailoverOutput<String, SolrMessage<SolrInputDocument>> {
 	static final int DEFAULT_AUTO_COMMIT_MS = 30000;

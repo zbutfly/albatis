@@ -40,7 +40,7 @@ public class ElasticConnection extends NoSqlConnection<TransportClient> {
 			settings.remove("batch");
 			settings.remove("script");
 			TransportClient tc = new PreBuiltTransportClient(settings.build());
-			tc.addTransportAddresses(Arrays.stream(uri.getInetAddrs()).map(a -> new InetSocketTransportAddress(a)).toArray(
+			tc.addTransportAddresses(Arrays.stream(uri.getInetAddrs()).map(InetSocketTransportAddress::new).toArray(
 					i -> new InetSocketTransportAddress[i]));
 			return tc;
 		}, 39300, "es", "elasticsearch");

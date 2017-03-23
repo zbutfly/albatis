@@ -54,11 +54,12 @@ public abstract class FailoverOutput<K, M extends Message<K, ?, M>> extends Name
 	@Override
 	public final long enqueue(Stream<M> els) {
 		Map<K, List<M>> parts = IO.collect(els, Collectors.groupingByConcurrent(M::partition));
-		return parts.isEmpty() ? 0
-				: eachs(parts.entrySet(), e -> e.getValue().isEmpty() ? 0 : enqueue(e.getKey(), e.getValue()), Streams.LONG_SUM);
+		if (parts.isEmpty()) return 0;
+		return eachs(parts.entrySet(), e -> enqueue(e.getKey(), e.getValue()), Streams.LONG_SUM);
 	}
 
 	private long enqueue(K key, List<M> items) {
+		if (null == items || items.isEmpty()) return 0;
 		int size = items.size();
 		return size <= batchSize ? failover.output(key, Streams.of(items))
 				: eachs(Streams.spatial(items.spliterator(), Parals.calcParallelism(size, batchSize)).values(), it -> failover.output(key,
