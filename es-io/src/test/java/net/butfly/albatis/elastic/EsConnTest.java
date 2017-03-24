@@ -1,3 +1,5 @@
+package net.butfly.albatis.elastic;
+
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -15,24 +17,30 @@ import org.elasticsearch.transport.client.PreBuiltTransportClient;
 
 import net.butfly.albacore.serder.JsonSerder;
 import net.butfly.albacore.utils.logger.Logger;
-import net.butfly.albatis.elastic.ElasticConnection;
 
 public class EsConnTest {
 	public static final Logger logger = Logger.getLogger(EsConnTest.class);
 	private static final String MAPPING_FILE = "C:\\Workspaces\\dataggr\\dataggr\\pumps\\subject\\src\\test\\scripts\\es-mapping.json";
 
-	public static void main(String[] args) throws IOException {}
+	public static void main(String[] args) throws IOException {
+		InetSocketAddress addr = new InetSocketAddress("hzwa130", 39200);
+		Map<String, Object> meta = ElasticConnect.Parser.fetchMetadata(addr);
+		System.err.println("Cluster name: " + ElasticConnect.Parser.getClusterName(meta));
+		for (ElasticConnect.Node r : ElasticConnect.Parser.getNodes(meta))
+			System.err.println(r.toString());
+	}
 
 	public static RestClient rest() {
-		return RestClient.builder(HttpHost.create("http://localhost:39300")).build();
+		return RestClient.builder(HttpHost.create("http://hzwa130:39200")).build();
 	}
 
 	public static Client transport() {
 		Settings.Builder settings = Settings.builder();
 		settings.put("cluster.name", "cominfo");
 		// settings.put("client.transport.ignore_cluster_name", true);
-		TransportClient tc = new PreBuiltTransportClient(settings.build());
-		return tc.addTransportAddresses(new InetSocketTransportAddress(new InetSocketAddress("localhost", 39300)));
+		try (TransportClient tc = new PreBuiltTransportClient(settings.build());) {
+			return tc.addTransportAddresses(new InetSocketTransportAddress(new InetSocketAddress("localhost", 39300)));
+		}
 	}
 
 	public static void testConn() throws IOException {

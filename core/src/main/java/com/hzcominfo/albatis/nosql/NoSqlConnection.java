@@ -12,8 +12,9 @@ import com.google.common.base.Joiner;
 import com.hzcominfo.albatis.search.exception.SearchAPIError;
 
 import net.butfly.albacore.io.utils.URISpec;
+import net.butfly.albacore.utils.logger.Loggable;
 
-public abstract class NoSqlConnection<C> implements Connection {
+public abstract class NoSqlConnection<C> implements Connection, Loggable {
 	protected final String[] supportedSchemas;
 	private final C client;
 	protected final URISpec uri;

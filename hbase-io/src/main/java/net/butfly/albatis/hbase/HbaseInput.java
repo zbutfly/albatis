@@ -96,6 +96,7 @@ public final class HbaseInput extends Namedly implements Input<HbaseResult> {
 		return ended == null || ended.get();
 	}
 
+	@Override
 	public long dequeue(Function<Stream<HbaseResult>, Long> using, long batchSize) {
 		if (!ended.get() && scanerLock.writeLock().tryLock()) {
 			Result[] rs = null;
@@ -199,23 +200,25 @@ public final class HbaseInput extends Namedly implements Input<HbaseResult> {
 		}
 	}
 
-//	@Override
-//	public void dequeue(Consumer<Stream<HbaseResult>> using, long batchSize) {
-//		// TODO Auto-generated method stub
-//		if (!ended.get() && scanerLock.writeLock().tryLock()) {
-//			Result[] rs = null;
-//			try {
-//				rs = scaner.next((int) batchSize);
-//			} catch (Exception ex) {
-//				logger().warn("Hbase failure", ex);
-//			} finally {
-//				scanerLock.writeLock().unlock();
-//			}
-//			if (null != rs) {
-//				ended.set(rs.length == 0);
-//				if (rs.length > 0) return using.apply(Stream.of(rs).map(r -> new HbaseResult(tname, r)));
-//			}
-//		}
-//		
-//	}
+	// @Override
+	// public void dequeue(Consumer<Stream<HbaseResult>> using, long batchSize)
+	// {
+	// // TODO Auto-generated method stub
+	// if (!ended.get() && scanerLock.writeLock().tryLock()) {
+	// Result[] rs = null;
+	// try {
+	// rs = scaner.next((int) batchSize);
+	// } catch (Exception ex) {
+	// logger().warn("Hbase failure", ex);
+	// } finally {
+	// scanerLock.writeLock().unlock();
+	// }
+	// if (null != rs) {
+	// ended.set(rs.length == 0);
+	// if (rs.length > 0) return using.apply(Stream.of(rs).map(r -> new
+	// HbaseResult(tname, r)));
+	// }
+	// }
+	//
+	// }
 }

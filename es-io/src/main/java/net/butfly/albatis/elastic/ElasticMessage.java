@@ -21,7 +21,7 @@ public class ElasticMessage extends Message<String, ActionRequest, ElasticMessag
 	final boolean updating;
 	private final boolean upsert;
 	final String index;
-	final String type;
+	String type;
 	final String id;
 	private transient Script script;
 	private final Map<String, Object> doc;
