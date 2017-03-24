@@ -19,7 +19,7 @@ import net.butfly.albacore.serder.JsonSerder;
 
 public class ElasticRestConnection extends NoSqlConnection<RestClient> implements ElasticConnect {
 	public ElasticRestConnection(URISpec uri, Map<String, String> props) throws IOException {
-		super(uri, u -> ElasticConnect.Builder.buildRestClient(u, props), 39300, "http", "https");
+		super(uri, u -> ElasticConnect.Builder.buildRestClient(u), 39200, "http", "https");
 	}
 
 	public ElasticRestConnection(URISpec uri) throws IOException {

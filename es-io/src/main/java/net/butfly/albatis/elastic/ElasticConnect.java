@@ -53,7 +53,7 @@ public interface ElasticConnect extends Connection {
 		private Parser() {}
 
 		@SuppressWarnings("unchecked")
-		static Map<String, Object> fetchMetadata(InetSocketAddress... rest) throws IOException {
+		static Map<String, Object> fetchMetadata(InetSocketAddress... rest) {
 			if (_logger.isDebugEnabled()) _logger.debug("Fetch transport nodes meta from: " + Arrays.stream(rest).map(a -> a.toString())
 					.collect(Collectors.joining(",")));
 			try (RestClient client = RestClient.builder(Arrays.stream(rest).map(a -> new HttpHost(a.getHostName(), a.getPort())).toArray(
@@ -62,13 +62,10 @@ public interface ElasticConnect extends Connection {
 				rep = client.performRequest("GET", "_nodes");
 				if (rep.getStatusLine().getStatusCode() != 200) throw new IOException(
 						"Elastic transport meta parsing failed, connect directly\n\t" + rep.getStatusLine().getReasonPhrase());
-				Map<String, Object> info;
-				try {
-					info = JsonSerder.JSON_MAPPER.der(new InputStreamReader(rep.getEntity().getContent()), Map.class);
-				} catch (UnsupportedOperationException e) {
-					throw new IOException("Elastic transport meta parsing failed, connect directly", e);
-				}
-				return info;
+				return JsonSerder.JSON_MAPPER.der(new InputStreamReader(rep.getEntity().getContent()), Map.class);
+			} catch (UnsupportedOperationException | IOException e) {
+				_logger.warn("Elastic transport meta parsing failed, connect directly", e);
+				return null;
 			}
 		}
 
@@ -85,7 +82,7 @@ public interface ElasticConnect extends Connection {
 				int rest = Integer.parseInt((String) ((Map<String, Object>) settings.get("http")).get("port"));
 				int trans = Integer.parseInt((String) ((Map<String, Object>) ((Map<String, Object>) settings.get("transport")).get("tcp"))
 						.get("port"));
-				_logger.debug("Elastic node found: [" + host + ":" + rest + ":" + trans + "]");
+				_logger.trace("Elastic node detected: [" + host + ":" + rest + ":" + trans + "]");
 				return new Node(host, rest, trans);
 			}).toArray(i -> new Node[i]);
 		}
@@ -94,66 +91,51 @@ public interface ElasticConnect extends Connection {
 	static final class Builder extends Utils {
 		private Builder() {}
 
-		static TransportClient buildTransportClient(URISpec u, Map<String, String> props, boolean detect) {
+		static TransportClient buildTransportClient(URISpec uri, Map<String, String> props) {
 			Settings.Builder settings = Settings.builder();
-			settings.put(u.getParameters());
+			String rest = uri.getParameter("rest");
+			settings.put(uri.getParameters());
 			if (null != props && !props.isEmpty()) settings.put(props);
-			Map<String, Object> meta = null;
-			String cn = null;
-			try {
-				meta = Parser.fetchMetadata(u.getInetAddrs());
-				cn = Parser.getClusterName(meta);
-			} catch (IOException e) {
-				_logger.warn("Elastic transport nodes parsing failed, connect directly", e);
+
+			Map<String, Object> meta;
+			if (null == rest) meta = null;
+			else {
+				String[] hp = rest.split(":", 2);
+				if (hp.length == 2) meta = Parser.fetchMetadata(new InetSocketAddress(hp[0], Integer.parseInt(hp[1])));
+				else meta = Parser.fetchMetadata(new InetSocketAddress(hp[0], 39200));
 			}
-			if (null != u.getUsername()) {
-				if (null != cn && !cn.equals(u.getUsername())) _logger.warn("Elastic cluster name setting in uri [" + u.getUsername()
-						+ "] conflicts to detected [" + cn + "].");
-				settings.put("cluster.name", u.getUsername());
-			} else if (null != cn) {
-				_logger.warn("Elastic cluster name not setting, use detected [" + cn + "].");
-				settings.put("cluster.name", cn);
-			} else {
-				_logger.warn("Elastic cluster name not setting and detected, ignored.");
-				settings.put("client.transport.ignore_cluster_name", true);
+			if (meta != null) {
+				String cn = Parser.getClusterName(meta);
+				if (null != uri.getUsername()) {
+					if (null != cn && !cn.equals(uri.getUsername())) _logger.warn("Elastic cluster name setting in uri [" + uri
+							.getUsername() + "] conflicts to detected [" + cn + "].");
+					settings.put("cluster.name", uri.getUsername());
+				} else if (null != cn) {
+					_logger.warn("Elastic cluster name not setting, use detected [" + cn + "].");
+					settings.put("cluster.name", cn);
+				} else {
+					_logger.warn("Elastic cluster name not setting and detected, ignored.");
+					settings.put("client.transport.ignore_cluster_name", true);
+				}
 			}
 			settings.remove("batch");
 			settings.remove("script");
+			settings.remove("rest");
 			TransportClient tc = new PreBuiltTransportClient(settings.build());
+
 			InetSocketTransportAddress[] addrs;
-			if (meta == null) addrs = Arrays.stream(u.getInetAddrs()).map(InetSocketTransportAddress::new).toArray(
+			if (meta == null) addrs = Arrays.stream(uri.getInetAddrs()).map(InetSocketTransportAddress::new).toArray(
 					i -> new InetSocketTransportAddress[i]);
 			else addrs = Arrays.stream(Parser.getNodes(meta)).map(n -> n.transport).toArray(i -> new InetSocketTransportAddress[i]);
+			_logger.debug(() -> "Elastic transport client consrtuct: \n\t" + Arrays.stream(addrs).map(a -> a.toString()).collect(Collectors
+					.joining(",")));
+
 			tc.addTransportAddresses(addrs);
 			return tc;
 		}
 
-		static RestClient buildRestClient(URISpec u, Map<String, String> props) {
-			Settings.Builder settings = Settings.builder();
-			settings.put(u.getParameters());
-			if (null != props && !props.isEmpty()) settings.put(props);
-			Map<String, Object> meta = null;
-			String cn = null;
-			try {
-				meta = Parser.fetchMetadata(u.getInetAddrs());
-				cn = Parser.getClusterName(meta);
-			} catch (IOException e) {
-				_logger.warn("Elastic transport nodes parsing failed, connect directly", e);
-			}
-			if (null != u.getUsername()) {
-				if (null != cn && !cn.equals(u.getUsername())) _logger.warn("Elastic cluster name setting in uri [" + u.getUsername()
-						+ "] conflicts to detected [" + cn + "].");
-				settings.put("cluster.name", u.getUsername());
-			} else if (null != cn) {
-				_logger.warn("Elastic cluster name not setting, use detected [" + cn + "].");
-				settings.put("cluster.name", cn);
-			} else {
-				_logger.warn("Elastic cluster name not setting and detected, ignored.");
-				settings.put("client.transport.ignore_cluster_name", true);
-			}
-			settings.remove("batch");
-			settings.remove("script");
-
+		static RestClient buildRestClient(URISpec u) {
+			Map<String, Object> meta = Parser.fetchMetadata(u.getInetAddrs());
 			HttpHost[] addrs;
 			if (meta == null) addrs = Arrays.stream(u.getInetAddrs()).map(a -> new HttpHost(a.getHostName(), a.getPort())).toArray(
 					i -> new HttpHost[i]);

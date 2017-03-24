@@ -36,13 +36,9 @@ import net.butfly.albacore.utils.Texts;
 public class ElasticConnection extends NoSqlConnection<TransportClient> implements ElasticConnect {
 	private final int maxRetry;
 
-	public ElasticConnection(URISpec uri, Map<String, String> props, boolean detect) throws IOException {
-		super(uri, u -> ElasticConnect.Builder.buildTransportClient(u, props, detect), 39300, "es", "elasticsearch");
-		this.maxRetry = Integer.parseInt(uri.getParameter("retry", "5"));
-	}
-
 	public ElasticConnection(URISpec uri, Map<String, String> props) throws IOException {
-		this(uri, props, false);
+		super(uri, u -> ElasticConnect.Builder.buildTransportClient(u, props), 39300, "es", "elasticsearch");
+		this.maxRetry = Integer.parseInt(uri.getParameter("retry", "5"));
 	}
 
 	public ElasticConnection(URISpec uri) throws IOException {
