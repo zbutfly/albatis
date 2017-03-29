@@ -35,7 +35,7 @@ public class OffHeapFailover<K, V extends Message<K, ?, V>> extends Failover<K, 
 	}
 
 	@Override
-	protected void exec() {
+	protected final void exec() {
 		while (opened()) {
 			while (opened() && failover.isEmpty())
 				Concurrents.waitSleep(1000);
@@ -91,17 +91,12 @@ public class OffHeapFailover<K, V extends Message<K, ?, V>> extends Failover<K, 
 	}
 
 	@Override
-	public long fail(K key, Collection<V> values, Exception err) {
+	public long fail(K key, Collection<V> values) {
 		try {
 			failover.enqueue(toBytes(key, values));
-			if (null != err) logger.warn(MessageFormat.format(
-					"Failure added on [{0}] with [{1}] docs, now [{2}] failover on [{0}], caused by [{3}]", //
-					key, values.size(), size(), err.getMessage()));
 			return values.size();
 		} catch (IOException e) {
-			if (null != err) logger.error(MessageFormat.format("Failover failed, [{0}] docs lost on [{1}], original caused by [{2}]", //
-					values.size(), key, err.getMessage()), e);
-			else logger.error(MessageFormat.format("Failover failed, [{0}] docs lost on [{1}]", values.size(), key), e);
+			logger.error(MessageFormat.format("Failover failed, [{0}] docs lost on [{1}]", values.size(), key), e);
 			return 0;
 		}
 	}

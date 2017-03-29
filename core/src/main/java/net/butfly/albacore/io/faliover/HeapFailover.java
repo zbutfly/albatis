@@ -38,17 +38,12 @@ public class HeapFailover<K, V extends Message<K, ?, V>> extends Failover<K, V> 
 	}
 
 	@Override
-	public long fail(K core, Collection<V> docs, Exception err) {
+	public long fail(K core, Collection<V> docs) {
 		try {
 			failover.computeIfAbsent(core, k -> new LinkedBlockingQueue<>(MAX_FAILOVER)).addAll(docs);
-			if (null != err) logger.warn(MessageFormat.format(
-					"Failure added on [{0}] with [{1}] docs, now [{2}] failover on [{0}], caused by [{3}]", //
-					core, docs.size(), size(), err.getMessage()));
 			return docs.size();
 		} catch (IllegalStateException ee) {
-			if (null != err) logger.error(MessageFormat.format("Failover failed, [{0}] docs lost on [{1}], original caused by [{2}]", //
-					docs.size(), core, err.getMessage()));
-			else logger.error(MessageFormat.format("Failover failed, [{0}] docs lost on [{1}]", docs.size(), core));
+			logger.error(MessageFormat.format("Failover failed, [{0}] docs lost on [{1}]", docs.size(), core));
 			return 0;
 		}
 	}

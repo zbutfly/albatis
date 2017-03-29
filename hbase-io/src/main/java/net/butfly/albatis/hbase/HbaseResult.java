@@ -31,17 +31,28 @@ public class HbaseResult extends Message<String, Put, HbaseResult> {
 	private byte[] row;
 	private Result result;
 
+	public HbaseResult(String table, Put put) {
+		this.table = table;
+		this.row = put.getRow();
+		result = Result.create(put.getFamilyCellMap().values().parallelStream().flatMap(l -> l.parallelStream()).collect(Collectors
+				.toList()));
+	}
+
 	public HbaseResult(String table, byte[] row, Cell... cells) {
 		this(table, row, Arrays.asList(cells));
 	}
 
-	public HbaseResult(String table, byte[] row, List<Cell> cells) {
+	public HbaseResult(String table, Cell row, Cell... cells) {
+		this(table, CellUtil.cloneRow(row), Arrays.asList(cells));
+	}
+
+	private HbaseResult(String table, byte[] row, List<Cell> cells) {
 		super();
-		if (null == row || row.length == 0) throw new IllegalArgumentException("Hbase row key empty");
-		result = Result.create(IO.list(Streams.of(cells)));
 		this.table = table;
 		this.row = row;
-		this.result = Result.create(IO.list(Streams.of(cells)));
+		List<Cell> l = IO.list(Streams.of(cells));
+		result = Result.create(l);
+
 	}
 
 	public HbaseResult(String table, Result result) {
@@ -156,4 +167,5 @@ public class HbaseResult extends Message<String, Put, HbaseResult> {
 			throw new IllegalArgumentException(e);
 		}
 	}
+
 }

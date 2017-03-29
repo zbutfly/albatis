@@ -1,13 +1,11 @@
 package net.butfly.albacore.io.faliover;
 
 import java.util.Collection;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Set;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Stream;
-
-import com.google.common.base.Joiner;
 
 import net.butfly.albacore.io.Message;
 import net.butfly.albacore.io.ext.OpenableThread;
@@ -29,12 +27,12 @@ public abstract class Failover<K, V extends Message<K, ?, V>> extends OpenableTh
 
 	public abstract long size();
 
-	protected abstract long fail(K key, Collection<V> values, Exception err);
+	protected abstract long fail(K key, Collection<V> values);
 
 	private final AtomicInteger paralling = new AtomicInteger();
 
 	protected final long output(K key, Stream<V> pkg) {
-		Map<V, String> fails = new ConcurrentHashMap<>();
+		Set<V> fails = new ConcurrentSkipListSet<>();
 		paralling.incrementAndGet();
 		long success = 0;
 		try {
@@ -48,29 +46,7 @@ public abstract class Failover<K, V extends Message<K, ?, V>> extends OpenableTh
 				logger().warn(output.name() + " commit failure", e);
 			}
 		}
-		if (!fails.isEmpty()) {
-			fail(key, (Collection<V>) fails.keySet(), new FailoverException("Output fail:\n\t" + Joiner.on("\n\t").join(fails.values())));
-		}
+		if (!fails.isEmpty()) fail(key, fails);
 		return success;
 	}
-
-	public static class FailoverException extends RuntimeException {
-		private static final long serialVersionUID = 4322435055829139356L;
-		// protected final Map<?, String> fails;
-
-		public <V> FailoverException(String message) {
-			super(message);
-			// this.fails = fails;
-		}
-	}
-
-	@FunctionalInterface
-	protected interface Writing<K, V> {
-		int write(K partition, Collection<V> pkg) throws FailoverException;
-	}
-
-	// @Override
-	// public boolean opened() {
-	// return super.opened() && output.opened();
-	// }
 }

@@ -2,8 +2,7 @@ package net.butfly.albatis.solr;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.Set;
 import java.util.stream.Stream;
 
 import org.apache.solr.client.solrj.SolrServerException;
@@ -26,7 +25,7 @@ public final class SolrOutput extends FailoverOutput<String, SolrMessage<SolrInp
 	}
 
 	public SolrOutput(String name, URISpec uri, String failoverPath) throws IOException {
-		super(name, b -> Message.<SolrMessage<SolrInputDocument>> fromBytes(b), failoverPath, Integer.parseInt(uri.getParameter(
+		super(name, Message::<SolrMessage<SolrInputDocument>> fromBytes, failoverPath, Integer.parseInt(uri.getParameter(
 				Connection.PARAM_KEY_BATCH, "200")));
 		solr = new SolrConnection(uri);
 		open();
@@ -48,16 +47,15 @@ public final class SolrOutput extends FailoverOutput<String, SolrMessage<SolrInp
 	}
 
 	@Override
-	protected long write(String core, Stream<SolrMessage<SolrInputDocument>> docs, Map<SolrMessage<SolrInputDocument>, String> fails) {
+	protected long write(String core, Stream<SolrMessage<SolrInputDocument>> docs, Set<SolrMessage<SolrInputDocument>> fails) {
 		List<SolrInputDocument> ds = IO.list(docs, SolrMessage<SolrInputDocument>::forWrite);
 		if (ds.isEmpty()) return 0;
 		try {
 			solr.client().add(core, ds, DEFAULT_AUTO_COMMIT_MS);
 			return ds.size();
 		} catch (Exception e) {
-			String m = Exceptions.unwrap(e).getMessage();
-			// XXX
-			fails.putAll(IO.collect(docs, Collectors.toConcurrentMap(r -> r, r -> m)));
+			logger().warn("Write fail" + Exceptions.unwrap(e));
+			fails.addAll(IO.list(ds, sid -> new SolrMessage<>(core, sid)));
 			return 0;
 		}
 	}

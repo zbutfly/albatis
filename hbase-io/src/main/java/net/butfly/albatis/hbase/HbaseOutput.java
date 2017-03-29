@@ -5,8 +5,8 @@ import static com.hzcominfo.albatis.nosql.Connection.PARAM_KEY_BATCH;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.hadoop.hbase.TableName;
@@ -24,7 +24,7 @@ public final class HbaseOutput extends FailoverOutput<String, HbaseResult> {
 	private final Map<String, Table> tables;
 
 	public HbaseOutput(String name, URISpec uri, String failoverPath) throws IOException {
-		super(name, b -> new HbaseResult(b), failoverPath, null == uri ? 200 : Integer.parseInt(uri.getParameter(PARAM_KEY_BATCH, "200")));
+		super(name, HbaseResult::new, failoverPath, null == uri ? 200 : Integer.parseInt(uri.getParameter(PARAM_KEY_BATCH, "200")));
 		connect = Hbases.connect(null == uri ? null : uri.getParameters());
 		tables = new ConcurrentHashMap<>();
 		open();
@@ -59,15 +59,14 @@ public final class HbaseOutput extends FailoverOutput<String, HbaseResult> {
 	}
 
 	@Override
-	protected long write(String table, Stream<HbaseResult> values, Map<HbaseResult, String> fails) {
+	protected long write(String table, Stream<HbaseResult> values, Set<HbaseResult> fails) {
 		List<Put> puts = IO.list(values, HbaseResult::forWrite);
 		try {
 			table(table).put(puts);
 			return puts.size();
 		} catch (Exception e) {
-			String m = Exceptions.unwrap(e).getMessage();
-			// XXX
-			fails.putAll(IO.collect(values, Collectors.toConcurrentMap(r -> r, r -> m)));
+			logger().warn("Write fail" + Exceptions.unwrap(e));
+			fails.addAll(IO.list(puts, p -> new HbaseResult(table, p)));
 			return 0;
 		}
 	}

@@ -5,6 +5,7 @@ import java.io.InputStreamReader;
 import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -177,5 +178,5 @@ public interface ElasticConnect extends Connection {
 
 	boolean update(String type, ElasticMessage es);
 
-	long update(String type, Stream<ElasticMessage> msgs, Map<ElasticMessage, String> fails);
+	long update(String type, Stream<ElasticMessage> msgs, Set<ElasticMessage> fails);
 }

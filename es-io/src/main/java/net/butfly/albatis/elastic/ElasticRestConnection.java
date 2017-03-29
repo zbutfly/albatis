@@ -87,7 +87,7 @@ public class ElasticRestConnection extends NoSqlConnection<RestClient> implement
 	}
 
 	@Override
-	public long update(String type, Stream<ElasticMessage> msgs, Map<ElasticMessage, String> fails) {
+	public long update(String type, Stream<ElasticMessage> msgs, Set<ElasticMessage> fails) {
 		// TODO Auto-generated method stub
 		return 0;
 	}

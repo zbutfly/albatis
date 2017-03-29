@@ -3,6 +3,7 @@ package net.butfly.albacore.io.faliover;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -46,7 +47,7 @@ public abstract class FailoverOutput<K, M extends Message<K, ?, M>> extends Name
 		failover.close();
 	}
 
-	protected abstract long write(K key, Stream<M> pkg, Map<M, String> fails);
+	protected abstract long write(K key, Stream<M> pkg, Set<M> fails);
 
 	protected void commit(K key) {}
 

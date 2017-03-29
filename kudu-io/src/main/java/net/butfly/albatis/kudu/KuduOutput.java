@@ -4,6 +4,7 @@ import static com.hzcominfo.albatis.nosql.Connection.PARAM_KEY_BATCH;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
@@ -33,15 +34,17 @@ public class KuduOutput extends FailoverOutput<String, KuduResult> {
 	}
 
 	@Override
-	protected long write(String table, Stream<KuduResult> pkg, Map<KuduResult, String> fails) {
+	protected long write(String table, Stream<KuduResult> pkg, Set<KuduResult> fails) {
 		AtomicLong c = new AtomicLong();
 		pkg.parallel().forEach(r -> {
 			try {
 				OperationResponse rr = session.apply(r.forWrite());
-				if (rr.hasRowError()) fails.put(r, rr.getRowError().toString());
+				logger().warn("Write fail: " + rr.getRowError().toString());
+				if (rr.hasRowError()) fails.add(r);
 				else c.incrementAndGet();
 			} catch (KuduException e) {
-				fails.put(r, e.getMessage());
+				logger().warn("Write fail", e);
+				fails.add(r);
 			}
 		});
 		return c.get();

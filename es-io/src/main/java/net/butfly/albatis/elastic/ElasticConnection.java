@@ -9,7 +9,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -104,19 +103,18 @@ public class ElasticConnection extends NoSqlConnection<TransportClient> implemen
 	}
 
 	@Override
-	public long update(String type, Stream<ElasticMessage> msgs, Map<ElasticMessage, String> fails) {
+	public long update(String type, Stream<ElasticMessage> msgs, Set<ElasticMessage> fails) {
 		List<ElasticMessage> values = IO.list(msgs);
 		if (values.isEmpty()) return 0;
 		if (values.size() == 1) return update(type, values.get(0)) ? 1 : 0;
-		Map<String, String> failIds = new ConcurrentHashMap<>();
 		long totalReqBytes = 0;
 		String sample = "";
 		int succCount = 0;
 
 		int retry = 0;
 		List<ElasticMessage> retries = new ArrayList<>(values);
-		long now = System.currentTimeMillis();
 		for (; !retries.isEmpty() && retry < maxRetry; retry++) {
+			long now = System.currentTimeMillis();
 			BulkRequest req = new BulkRequest().add(IO.list(retries, ElasticMessage::forWrite));
 			if (logger().isTraceEnabled() && retry == 0) totalReqBytes = req.estimatedSizeInBytes();
 			ActionFuture<BulkResponse> future = client().bulk(req);
@@ -130,7 +128,10 @@ public class ElasticConnection extends NoSqlConnection<TransportClient> implemen
 									.isEmpty() ? "NONE" : s.get(0).getId()) + "].");
 					return s.size();
 				}
-				Stream<BulkItemResponse> ss = Streams.of(resps.get(Boolean.TRUE)) //
+				Set<String> succs = IO.collect(resps.get(Boolean.FALSE), r -> r.getId(), Collectors.toSet());
+
+				// process fails and retry...
+				Stream<BulkItemResponse> sresp = Streams.of(resps.get(Boolean.TRUE)) //
 						// XXX: disable retry, damn slowly!
 						.filter(r -> {
 							@SuppressWarnings("unchecked")
@@ -138,22 +139,28 @@ public class ElasticConnection extends NoSqlConnection<TransportClient> implemen
 							return EsRejectedExecutionException.class.isAssignableFrom(c) || VersionConflictEngineException.class
 									.isAssignableFrom(c);
 						});
-				Map<String, String> failing = IO.collect(ss, Collectors.toConcurrentMap(r -> r.getFailure().getId(),
-						r -> "Writing failed id [" + r.getId() + "] for: " + unwrap(r.getFailure().getCause()).getMessage()));
-				Set<String> succs = IO.collect(resps.get(Boolean.FALSE), r -> r.getId(), Collectors.toSet());
-				retries = IO.list(Streams.of(retries).filter(e -> !succs.contains(e.id) && !failing.containsKey(e.id)));
-				failIds.putAll(failing);
+				if (logger().isDebugEnabled()) sresp = sresp.peek(r -> logger().warn("Writing failed id [" + r.getId() + "] for: " + unwrap(
+						r.getFailure().getCause()).getMessage()));
+				Set<String> failingIds = IO.collect(sresp.map(r -> r.getFailure().getId()), Collectors.toSet());
+				// remove from retries: successed or marked fail.
+				retries = IO.list(Streams.of(retries).filter(e -> !succs.contains(e.id) && !failingIds.contains(e.id)));
+				// move fail marked into fails
+				fails.addAll(IO.list(failingIds, id -> {
+					for (ElasticMessage v : values)
+						if (id.equals(v.id)) return v;
+					return null;
+				}));
+
+				// process and stats success...
 				sample = succs.isEmpty() ? null : succs.toArray(new String[succs.size()])[0];
 				succCount += succs.size();
+				if (logger().isTraceEnabled()) logger().debug("Try#" + retry + " finished, total:[" + succs.size() + "/" + Texts.formatKilo(
+						totalReqBytes, " bytes") + "] in [" + (System.currentTimeMillis() - now) + "] ms, total successed:[" + succCount
+						+ "], remained:[" + retries.size() + "], failed:[" + failingIds.size() + "], sample id: [" + sample + "].");
 			}
 		}
-		if (logger().isTraceEnabled()) logger().debug("Try#" + retry + " finished, total:[" + values.size() + "/" + Texts.formatKilo(
-				totalReqBytes, " bytes") + "] in [" + (System.currentTimeMillis() - now) + "] ms, successed:[" + succCount + "], remained:["
-				+ retries.size() + "], failed:[" + failIds.size() + "], sample id: [" + sample + "].");
-		if (!retries.isEmpty()) failIds.putAll(IO.collect(retries, Collectors.toConcurrentMap(m -> m.id,
-				m -> "VersionConfliction or EsRejected")));
-		if (!failIds.isEmpty()) fails.putAll(IO.map(Streams.of(values).filter(e -> failIds.containsKey(e.id)), e -> e, e -> failIds.get(
-				e.id)));
-		return values.size() - failIds.size();
+
+		if (!retries.isEmpty()) fails.addAll(retries);
+		return succCount;
 	}
 }
