@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import org.apache.http.nio.entity.NStringEntity;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
@@ -86,7 +87,7 @@ public class ElasticRestConnection extends NoSqlConnection<RestClient> implement
 	}
 
 	@Override
-	public long update(String type, ElasticMessage... es) {
+	public long update(String type, Stream<ElasticMessage> msgs, Map<ElasticMessage, String> fails) {
 		// TODO Auto-generated method stub
 		return 0;
 	}

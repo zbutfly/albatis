@@ -28,7 +28,6 @@ import org.elasticsearch.index.engine.VersionConflictEngineException;
 import com.hzcominfo.albatis.nosql.NoSqlConnection;
 
 import net.butfly.albacore.io.IO;
-import net.butfly.albacore.io.faliover.Failover.FailoverException;
 import net.butfly.albacore.io.utils.Streams;
 import net.butfly.albacore.io.utils.URISpec;
 import net.butfly.albacore.utils.Texts;
@@ -105,11 +104,11 @@ public class ElasticConnection extends NoSqlConnection<TransportClient> implemen
 	}
 
 	@Override
-	public long update(String type, ElasticMessage... es) {
-		List<ElasticMessage> values = Arrays.asList(es);
+	public long update(String type, Stream<ElasticMessage> msgs, Map<ElasticMessage, String> fails) {
+		List<ElasticMessage> values = IO.list(msgs);
 		if (values.isEmpty()) return 0;
 		if (values.size() == 1) return update(type, values.get(0)) ? 1 : 0;
-		Map<String, String> fails = new ConcurrentHashMap<>();
+		Map<String, String> failIds = new ConcurrentHashMap<>();
 		long totalReqBytes = 0;
 		String sample = "";
 		int succCount = 0;
@@ -143,22 +142,18 @@ public class ElasticConnection extends NoSqlConnection<TransportClient> implemen
 						r -> "Writing failed id [" + r.getId() + "] for: " + unwrap(r.getFailure().getCause()).getMessage()));
 				Set<String> succs = IO.collect(resps.get(Boolean.FALSE), r -> r.getId(), Collectors.toSet());
 				retries = IO.list(Streams.of(retries).filter(e -> !succs.contains(e.id) && !failing.containsKey(e.id)));
-				fails.putAll(failing);
+				failIds.putAll(failing);
 				sample = succs.isEmpty() ? null : succs.toArray(new String[succs.size()])[0];
 				succCount += succs.size();
 			}
 		}
-		if (logger().isTraceEnabled()) {
-			logger().debug("Try#" + retry + " finished, total:[" + values.size() + "/" + Texts.formatKilo(totalReqBytes, " bytes")
-					+ "] in [" + (System.currentTimeMillis() - now) + "] ms, successed:[" + succCount + "], remained:[" + retries.size()
-					+ "], failed:[" + fails.size() + "], sample id: [" + sample + "].");
-		}
-		if (!retries.isEmpty()) fails.putAll(IO.collect(retries, Collectors.toConcurrentMap(m -> m.id,
+		if (logger().isTraceEnabled()) logger().debug("Try#" + retry + " finished, total:[" + values.size() + "/" + Texts.formatKilo(
+				totalReqBytes, " bytes") + "] in [" + (System.currentTimeMillis() - now) + "] ms, successed:[" + succCount + "], remained:["
+				+ retries.size() + "], failed:[" + failIds.size() + "], sample id: [" + sample + "].");
+		if (!retries.isEmpty()) failIds.putAll(IO.collect(retries, Collectors.toConcurrentMap(m -> m.id,
 				m -> "VersionConfliction or EsRejected")));
-		if (fails.isEmpty()) return values.size();
-		else {
-			Map<ElasticMessage, String> fs = IO.map(Streams.of(values).filter(e -> fails.containsKey(e.id)), e -> e, e -> fails.get(e.id));
-			throw new FailoverException(fs);
-		}
+		if (!failIds.isEmpty()) fails.putAll(IO.map(Streams.of(values).filter(e -> failIds.containsKey(e.id)), e -> e, e -> failIds.get(
+				e.id)));
+		return values.size() - failIds.size();
 	}
 }

@@ -1,15 +1,14 @@
 package net.butfly.albacore.io.faliover;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
 import com.google.common.base.Joiner;
 
-import net.butfly.albacore.io.IO;
 import net.butfly.albacore.io.Message;
 import net.butfly.albacore.io.ext.OpenableThread;
 import net.butfly.albacore.io.stats.Statistical;
@@ -34,16 +33,12 @@ public abstract class Failover<K, V extends Message<K, ?, V>> extends OpenableTh
 
 	private final AtomicInteger paralling = new AtomicInteger();
 
-	@SuppressWarnings("unchecked")
 	protected final long output(K key, Stream<V> pkg) {
+		Map<V, String> fails = new ConcurrentHashMap<>();
 		paralling.incrementAndGet();
-		List<V> pkgs = IO.list(pkg);
+		long success = 0;
 		try {
-			return output.write(key, pkgs);
-		} catch (FailoverException ex) {
-			return fail(key, (Collection<V>) ex.fails.keySet(), ex);
-		} catch (Exception ex) {
-			return fail(key, pkgs, ex);
+			success = output.write(key, pkg, fails);
 		} finally {
 			if (logger().isTraceEnabled()) logger.debug("Pending parallelism of [" + output.getClass().getSimpleName() + "]: " + paralling
 					.decrementAndGet());
@@ -53,15 +48,19 @@ public abstract class Failover<K, V extends Message<K, ?, V>> extends OpenableTh
 				logger().warn(output.name() + " commit failure", e);
 			}
 		}
+		if (!fails.isEmpty()) {
+			fail(key, (Collection<V>) fails.keySet(), new FailoverException("Output fail:\n\t" + Joiner.on("\n\t").join(fails.values())));
+		}
+		return success;
 	}
 
 	public static class FailoverException extends RuntimeException {
 		private static final long serialVersionUID = 4322435055829139356L;
-		protected final Map<?, String> fails;
+		// protected final Map<?, String> fails;
 
-		public <V> FailoverException(Map<V, String> fails) {
-			super("Output fail:\n\t" + Joiner.on("\n\t").join(fails.values()));
-			this.fails = fails;
+		public <V> FailoverException(String message) {
+			super(message);
+			// this.fails = fails;
 		}
 	}
 

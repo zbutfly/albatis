@@ -1,11 +1,10 @@
 package net.butfly.albatis.solr;
 
-import static net.butfly.albacore.utils.Exceptions.unwrap;
-
 import java.io.IOException;
-import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.common.SolrInputDocument;
@@ -14,10 +13,9 @@ import com.hzcominfo.albatis.nosql.Connection;
 
 import net.butfly.albacore.io.IO;
 import net.butfly.albacore.io.Message;
-import net.butfly.albacore.io.faliover.Failover.FailoverException;
 import net.butfly.albacore.io.faliover.FailoverOutput;
-import net.butfly.albacore.io.utils.Streams;
 import net.butfly.albacore.io.utils.URISpec;
+import net.butfly.albacore.utils.Exceptions;
 
 public final class SolrOutput extends FailoverOutput<String, SolrMessage<SolrInputDocument>> {
 	static final int DEFAULT_AUTO_COMMIT_MS = 30000;
@@ -50,14 +48,17 @@ public final class SolrOutput extends FailoverOutput<String, SolrMessage<SolrInp
 	}
 
 	@Override
-	protected long write(String core, Collection<SolrMessage<SolrInputDocument>> docs) throws FailoverException {
+	protected long write(String core, Stream<SolrMessage<SolrInputDocument>> docs, Map<SolrMessage<SolrInputDocument>, String> fails) {
 		List<SolrInputDocument> ds = IO.list(docs, SolrMessage<SolrInputDocument>::forWrite);
 		if (ds.isEmpty()) return 0;
 		try {
 			solr.client().add(core, ds, DEFAULT_AUTO_COMMIT_MS);
 			return ds.size();
 		} catch (Exception e) {
-			throw new FailoverException(IO.collect(Streams.of(ds), Collectors.toConcurrentMap(r -> r, r -> unwrap(e).getMessage())));
+			String m = Exceptions.unwrap(e).getMessage();
+			// XXX
+			fails.putAll(IO.collect(docs, Collectors.toConcurrentMap(r -> r, r -> m)));
+			return 0;
 		}
 	}
 

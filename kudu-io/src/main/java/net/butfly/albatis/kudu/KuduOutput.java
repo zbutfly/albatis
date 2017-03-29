@@ -3,18 +3,16 @@ package net.butfly.albatis.kudu;
 import static com.hzcominfo.albatis.nosql.Connection.PARAM_KEY_BATCH;
 
 import java.io.IOException;
-import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Stream;
 
 import org.apache.kudu.client.KuduException;
 import org.apache.kudu.client.KuduSession;
 import org.apache.kudu.client.KuduTable;
-import org.apache.kudu.client.Upsert;
+import org.apache.kudu.client.OperationResponse;
 
-import net.butfly.albacore.io.IO;
-import net.butfly.albacore.io.faliover.Failover.FailoverException;
 import net.butfly.albacore.io.faliover.FailoverOutput;
 import net.butfly.albacore.io.utils.URISpec;
 
@@ -35,17 +33,18 @@ public class KuduOutput extends FailoverOutput<String, KuduResult> {
 	}
 
 	@Override
-	protected long write(String table, Collection<KuduResult> pkg) throws FailoverException {
-		List<Upsert> rows = IO.list(pkg, KuduResult::forWrite);
-		rows.stream().forEach(r -> {
+	protected long write(String table, Stream<KuduResult> pkg, Map<KuduResult, String> fails) {
+		AtomicLong c = new AtomicLong();
+		pkg.parallel().forEach(r -> {
 			try {
-				session.apply(r);
+				OperationResponse rr = session.apply(r.forWrite());
+				if (rr.hasRowError()) fails.put(r, rr.getRowError().toString());
+				else c.incrementAndGet();
 			} catch (KuduException e) {
-				logger().error("%s table upsert records faile.", table);
+				fails.put(r, e.getMessage());
 			}
 		});
-
-		return 0;
+		return c.get();
 	}
 
 	@Override

@@ -6,6 +6,7 @@ import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.http.HttpHost;
 import org.elasticsearch.client.Response;
@@ -176,5 +177,5 @@ public interface ElasticConnect extends Connection {
 
 	boolean update(String type, ElasticMessage es);
 
-	long update(String type, ElasticMessage... es);
+	long update(String type, Stream<ElasticMessage> msgs, Map<ElasticMessage, String> fails);
 }

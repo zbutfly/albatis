@@ -3,13 +3,13 @@ package net.butfly.albatis.elastic;
 import static net.butfly.albacore.utils.Exceptions.unwrap;
 
 import java.io.IOException;
-import java.util.Collection;
+import java.util.Map;
+import java.util.stream.Stream;
 
 import org.elasticsearch.transport.RemoteTransportException;
 
 import com.hzcominfo.albatis.nosql.Connection;
 
-import net.butfly.albacore.io.faliover.Failover.FailoverException;
 import net.butfly.albacore.io.faliover.FailoverOutput;
 import net.butfly.albacore.io.utils.URISpec;
 
@@ -38,8 +38,8 @@ public final class EsOutput extends FailoverOutput<String, ElasticMessage> {
 	}
 
 	@Override
-	protected long write(String type, Collection<ElasticMessage> msgs) throws FailoverException {
-		return conn.update(type, msgs.toArray(new ElasticMessage[msgs.size()]));
+	protected long write(String type, Stream<ElasticMessage> msgs, Map<ElasticMessage, String> fails) {
+		return conn.update(type, msgs, fails);
 	}
 
 	static {
