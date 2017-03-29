@@ -1,13 +1,13 @@
 package net.butfly.albatis.hbase;
 
-import static net.butfly.albacore.utils.Exceptions.unwrap;
+import static com.hzcominfo.albatis.nosql.Connection.PARAM_KEY_BATCH;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Connection;
@@ -19,8 +19,7 @@ import net.butfly.albacore.io.faliover.Failover.FailoverException;
 import net.butfly.albacore.io.faliover.FailoverOutput;
 import net.butfly.albacore.io.utils.Streams;
 import net.butfly.albacore.io.utils.URISpec;
-
-import static com.hzcominfo.albatis.nosql.Connection.PARAM_KEY_BATCH;
+import net.butfly.albacore.utils.Exceptions;
 
 public final class HbaseOutput extends FailoverOutput<String, HbaseResult> {
 	private final Connection connect;
@@ -62,14 +61,14 @@ public final class HbaseOutput extends FailoverOutput<String, HbaseResult> {
 	}
 
 	@Override
-	protected long write(String table, Stream<HbaseResult> values) throws FailoverException {
-		List<Put> puts = IO.list(values.map(HbaseResult::forWrite));
+	protected long write(String table, Collection<HbaseResult> values) throws FailoverException {
+		List<Put> puts = IO.list(values, HbaseResult::forWrite);
 		try {
 			table(table).put(puts);
 		} catch (Exception e) {
 			throw new FailoverException(IO.collect(Streams.of(values), Collectors.toConcurrentMap(r -> r, r -> {
-				String m = unwrap(e).getMessage();
-				if (null == m) m = "Unknown message";
+				String m = Exceptions.unwrap(e).getMessage();
+				if (null == m) m = "Unknown";
 				return m;
 			})));
 		}

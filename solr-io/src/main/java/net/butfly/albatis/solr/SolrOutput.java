@@ -3,9 +3,9 @@ package net.butfly.albatis.solr;
 import static net.butfly.albacore.utils.Exceptions.unwrap;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.common.SolrInputDocument;
@@ -50,7 +50,7 @@ public final class SolrOutput extends FailoverOutput<String, SolrMessage<SolrInp
 	}
 
 	@Override
-	protected long write(String core, Stream<SolrMessage<SolrInputDocument>> docs) throws FailoverException {
+	protected long write(String core, Collection<SolrMessage<SolrInputDocument>> docs) throws FailoverException {
 		List<SolrInputDocument> ds = IO.list(docs, SolrMessage<SolrInputDocument>::forWrite);
 		if (ds.isEmpty()) return 0;
 		try {

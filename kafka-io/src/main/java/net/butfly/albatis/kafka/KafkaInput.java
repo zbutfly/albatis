@@ -54,7 +54,6 @@ public final class KafkaInput extends InputImpl<KafkaMessage> {
 		if (skip.get() > 0) logger().error("Skip [" + skip.get()
 				+ "] for testing, the skip is estimated, especially in multiple topic subscribing.");
 		int kp = config.getPartitionParallelism();
-		logger().info("connecting with config [" + config.toString() + "].");
 		if (topics == null || topics.length == 0) topics = config.topics().toArray(new String[0]);
 		Map<String, int[]> topicParts;
 		try (ZKConn zk = new ZKConn(config.getZookeeperConnect())) {
@@ -87,15 +86,16 @@ public final class KafkaInput extends InputImpl<KafkaMessage> {
 		Stream<KafkaStream<byte[], byte[]>> r = Streams.of(temp.values()).flatMap(t -> Streams.of(t));
 		// connect ent
 		poolSize = config.getPoolSize();
+		String poolId = config.toString();
 		try {
-			pool = new BigQueue(IOs.mkdirs(poolPath + "/" + name), config.toString());
+			pool = new BigQueue(IOs.mkdirs(poolPath + "/" + name), poolId);
 		} catch (IOException e) {
 			throw new RuntimeException("Offheap pool init failure", e);
 		}
 		AtomicInteger findex = new AtomicInteger();
 		raws = IO.map(r, s -> s, s -> new Fetcher(name + "Fetcher", s, findex.incrementAndGet()));
-		logger().info(MessageFormat.format("[{0}] local pool init: [{1}/{0}] with name [{2}], init size [{3}].", name, poolPath, config
-				.toString(), pool.size()));
+		logger().debug(MessageFormat.format("[{0}] local pool init [size: {3}]: \n\tpath: [{1}/{0}/{2}].", name, poolPath, poolId, pool
+				.size()));
 		closing(this::closeKafka);
 		open();
 	}

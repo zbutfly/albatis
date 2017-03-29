@@ -69,8 +69,18 @@ public interface ElasticConnect extends Connection {
 			}
 		}
 
-		static String getClusterName(Map<String, Object> meta) {
-			return (String) meta.get("cluster_name");
+		private static String checkClusterName(String clusterFromUri, String clusterFromMeta) {
+			if (null != clusterFromUri) {
+				if (null != clusterFromMeta && !clusterFromMeta.equals(clusterFromUri)) _logger.warn("Elastic cluster name setting in uri ["
+						+ clusterFromUri + "] conflicts to detected [" + clusterFromMeta + "], use set value [" + clusterFromUri + "].");
+				return clusterFromUri;
+			} else if (null != clusterFromMeta) {
+				_logger.warn("Elastic cluster name not setting, use detected [" + clusterFromMeta + "].");
+				return clusterFromMeta;
+			} else {
+				_logger.warn("Elastic cluster name not setting and detected, ignored.");
+				return null;
+			}
 		}
 
 		@SuppressWarnings("unchecked")
@@ -92,46 +102,42 @@ public interface ElasticConnect extends Connection {
 		private Builder() {}
 
 		static TransportClient buildTransportClient(URISpec uri, Map<String, String> props) {
+			String rest = uri.fetchParameter("rest");
 			Settings.Builder settings = Settings.builder();
-			String rest = uri.getParameter("rest");
-			settings.put(uri.getParameters());
+			settings.put(uri.getParameters("script", "batch"));
 			if (null != props && !props.isEmpty()) settings.put(props);
 
-			Map<String, Object> meta;
-			if (null == rest) meta = null;
-			else {
-				String[] hp = rest.split(":", 2);
-				if (hp.length == 2) meta = Parser.fetchMetadata(new InetSocketAddress(hp[0], Integer.parseInt(hp[1])));
-				else meta = Parser.fetchMetadata(new InetSocketAddress(hp[0], 39200));
-			}
-			if (meta != null) {
-				String cn = Parser.getClusterName(meta);
-				if (null != uri.getUsername()) {
-					if (null != cn && !cn.equals(uri.getUsername())) _logger.warn("Elastic cluster name setting in uri [" + uri
-							.getUsername() + "] conflicts to detected [" + cn + "].");
-					settings.put("cluster.name", uri.getUsername());
-				} else if (null != cn) {
-					_logger.warn("Elastic cluster name not setting, use detected [" + cn + "].");
-					settings.put("cluster.name", cn);
-				} else {
-					_logger.warn("Elastic cluster name not setting and detected, ignored.");
-					settings.put("client.transport.ignore_cluster_name", true);
-				}
-			}
-			settings.remove("batch");
-			settings.remove("script");
-			settings.remove("rest");
+			Map<String, Object> meta = null == rest ? null : Parser.fetchMetadata(parseRestAddrs(rest, uri.getInetAddrs()));
+			String cn = Parser.checkClusterName(uri.getUsername(), null == meta ? null : (String) meta.get("cluster_name"));
+			if (null == cn) settings.put("client.transport.ignore_cluster_name", true);
+			else settings.put("cluster.name", cn);
+
 			TransportClient tc = new PreBuiltTransportClient(settings.build());
 
-			InetSocketTransportAddress[] addrs;
-			if (meta == null) addrs = Arrays.stream(uri.getInetAddrs()).map(InetSocketTransportAddress::new).toArray(
-					i -> new InetSocketTransportAddress[i]);
-			else addrs = Arrays.stream(Parser.getNodes(meta)).map(n -> n.transport).toArray(i -> new InetSocketTransportAddress[i]);
-			_logger.debug(() -> "Elastic transport client consrtuct: \n\t" + Arrays.stream(addrs).map(a -> a.toString()).collect(Collectors
-					.joining(",")));
+			InetSocketTransportAddress[] addrs = meta == null ? Arrays.stream(uri.getInetAddrs()).map(InetSocketTransportAddress::new)
+					.toArray(i -> new InetSocketTransportAddress[i])
+					: Arrays.stream(Parser.getNodes(meta)).map(n -> n.transport).toArray(i -> new InetSocketTransportAddress[i]);
+			_logger.debug(() -> "Elastic transport client consrtuct, cluster: [" + cn + "]\n\t" + Arrays.stream(addrs)
+					.map(a -> a.toString()).collect(Collectors.joining(",")));
 
 			tc.addTransportAddresses(addrs);
 			return tc;
+		}
+
+		private static InetSocketAddress[] parseRestAddrs(String rest, InetSocketAddress... inetSocketAddresses) {
+			String[] hp = rest.split(":", 2);
+			if (hp.length == 2) return new InetSocketAddress[] { new InetSocketAddress(hp[0], Integer.parseInt(hp[1])) };
+			int port = 39200;
+			try {
+				port = Integer.parseInt(hp[0]);
+				int p = port;
+				hp = Arrays.stream(inetSocketAddresses).map(a -> new InetSocketAddress(a.getAddress(), p).toString()).toArray(
+						i -> new String[i]);
+			} catch (NumberFormatException e) {
+				hp = Arrays.copyOfRange(hp, 0, 1);
+			}
+			int p = port;
+			return Arrays.stream(hp).map(h -> new InetSocketAddress(h, p)).toArray(i -> new InetSocketAddress[i]);
 		}
 
 		static RestClient buildRestClient(URISpec u) {

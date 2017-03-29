@@ -25,7 +25,7 @@ public class EsConnTest {
 	public static void main(String[] args) throws IOException {
 		InetSocketAddress addr = new InetSocketAddress("hzwa130", 39200);
 		Map<String, Object> meta = ElasticConnect.Parser.fetchMetadata(addr);
-		System.err.println("Cluster name: " + ElasticConnect.Parser.getClusterName(meta));
+		System.err.println("Cluster name: " + (String) meta.get("cluster_name"));
 		for (ElasticConnect.Node r : ElasticConnect.Parser.getNodes(meta))
 			System.err.println(r.toString());
 	}

@@ -2,6 +2,7 @@ package net.butfly.albatis.kudu;
 
 import java.util.Map;
 
+import org.apache.kudu.ColumnSchema;
 import org.apache.kudu.client.KuduTable;
 import org.apache.kudu.client.PartialRow;
 import org.apache.kudu.client.Upsert;
@@ -48,9 +49,8 @@ public class KuduResult extends Message<String, Upsert, KuduResult> {
 	public Upsert forWrite() {
 		Upsert upsert = kuduTable.newUpsert();
 		PartialRow row = upsert.getRow();
-		kuduTable.getSchema().getColumns().stream().forEach(p -> {
-			KuduCommon.generateColumnData(p.getType(), row, p.getName(), result.get(p.getName()));
-		});
+		for (ColumnSchema c : kuduTable.getSchema().getColumns())
+			KuduCommon.generateColumnData(c.getType(), row, c.getName(), result.get(c.getName()));
 		return upsert;
 	}
 

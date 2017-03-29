@@ -3,7 +3,7 @@ package net.butfly.albatis.elastic;
 import static net.butfly.albacore.utils.Exceptions.unwrap;
 
 import java.io.IOException;
-import java.util.stream.Stream;
+import java.util.Collection;
 
 import org.elasticsearch.transport.RemoteTransportException;
 
@@ -38,8 +38,8 @@ public final class EsOutput extends FailoverOutput<String, ElasticMessage> {
 	}
 
 	@Override
-	protected long write(String type, Stream<ElasticMessage> msgs) throws FailoverException {
-		return conn.update(type, msgs.toArray(i -> new ElasticMessage[i]));
+	protected long write(String type, Collection<ElasticMessage> msgs) throws FailoverException {
+		return conn.update(type, msgs.toArray(new ElasticMessage[msgs.size()]));
 	}
 
 	static {
