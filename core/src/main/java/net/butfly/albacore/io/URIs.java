@@ -3,9 +3,9 @@ package net.butfly.albacore.io;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
+import java.util.function.BiFunction;
 
 import net.butfly.albacore.io.utils.URISpec;
-import net.butfly.albacore.lambda.ConverterPair;
 import net.butfly.albacore.utils.IOs;
 
 public class URIs {
@@ -13,7 +13,7 @@ public class URIs {
 		FILE, CLASSPATH, HTTP, HTTPS, JDBC, ZOOKEEPER, MONGODB
 	}
 
-	public static <T> T parse(String uriString, ConverterPair<Schema, URISpec, T> constr) {
+	public static <T> T parse(String uriString, BiFunction<Schema, URISpec, T> constr) {
 		URISpec uri = parse(uriString);
 		return constr.apply(schema(uri), uri);
 	}
