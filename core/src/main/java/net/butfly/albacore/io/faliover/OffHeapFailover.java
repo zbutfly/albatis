@@ -46,8 +46,9 @@ public class OffHeapFailover<K, V extends Message<K, ?, V>> extends Failover<K, 
 				} catch (Exception e) {
 					continue;
 				}
-				if (results != null && results.v2() != null && !results.v2().isEmpty()) IO.run(() -> output(results.v1(), stats(Streams.of(
-						results.v2()))));
+				if (results != null && results.v2() != null && !results.v2().isEmpty()) {
+					IO.run(() -> output(results.v1(), stats(Streams.of(results.v2()))));
+				}
 			}
 		}
 	}
@@ -92,13 +93,18 @@ public class OffHeapFailover<K, V extends Message<K, ?, V>> extends Failover<K, 
 
 	@Override
 	public long fail(K key, Collection<V> values) {
-		try {
+		if (opened()) try {
 			failover.enqueue(toBytes(key, values));
 			return values.size();
 		} catch (IOException e) {
 			logger.error(MessageFormat.format("Failover failed, [{0}] docs lost on [{1}]", values.size(), key), e);
 			return 0;
 		}
+		else {
+			logger().error("Failover closed, data lost: " + values.size() + ".");
+			return 0;
+		}
+
 	}
 
 	private void closePool() {

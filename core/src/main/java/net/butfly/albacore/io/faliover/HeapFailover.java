@@ -39,11 +39,15 @@ public class HeapFailover<K, V extends Message<K, ?, V>> extends Failover<K, V> 
 
 	@Override
 	public long fail(K core, Collection<V> docs) {
-		try {
+		if (opened()) try {
 			failover.computeIfAbsent(core, k -> new LinkedBlockingQueue<>(MAX_FAILOVER)).addAll(docs);
 			return docs.size();
 		} catch (IllegalStateException ee) {
 			logger.error(MessageFormat.format("Failover failed, [{0}] docs lost on [{1}]", docs.size(), core));
+			return 0;
+		}
+		else {
+			logger().error("Failover closed, data lost: " + docs.size() + ".");
 			return 0;
 		}
 	}
@@ -59,5 +63,6 @@ public class HeapFailover<K, V extends Message<K, ?, V>> extends Failover<K, V> 
 				if (!retries.isEmpty()) IO.run(() -> output(key, Streams.of(retries)));
 			}
 		}
+		if (!failover.isEmpty()) logger().error("Failover closed, data lost: " + failover.size() + ".");
 	}
 }
