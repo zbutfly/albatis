@@ -37,16 +37,13 @@ public abstract class Failover<K, V extends Message<K, ?, V>> extends OpenableTh
 		long success = 0;
 		try {
 			success = output.write(key, pkg, fails);
-		} catch (Exception ex) {
-			logger().warn(output.name() + " failover write failure", ex);
-			fail(key, fails);
 		} finally {
 			if (logger().isTraceEnabled()) logger.debug("Pending parallelism of [" + output.getClass().getSimpleName() + "]: " + paralling
 					.decrementAndGet());
 			try {
 				output.commit(key);
 			} catch (Exception e) {
-				logger().warn(output.name() + " commit failure", e);
+				logger().warn(output.name() + " commit failure [" + e.getMessage() + "]");
 			}
 		}
 		if (!fails.isEmpty()) fail(key, fails);

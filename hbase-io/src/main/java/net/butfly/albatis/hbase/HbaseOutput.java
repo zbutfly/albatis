@@ -65,8 +65,8 @@ public final class HbaseOutput extends FailoverOutput<String, HbaseResult> {
 		try {
 			table(table).put(puts);
 			return puts.size();
-		} catch (Exception e) {
-			logger().warn("Write fail" + Exceptions.unwrap(e));
+		} catch (Exception ex) {
+			logger().warn(name() + " write failed [" + Exceptions.unwrap(ex).getMessage() + "], [" + puts.size() + "] into failover.");
 			fails.addAll(IO.list(puts, p -> new HbaseResult(table, p)));
 			return 0;
 		}

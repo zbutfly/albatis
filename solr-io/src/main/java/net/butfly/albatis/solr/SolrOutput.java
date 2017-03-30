@@ -54,8 +54,8 @@ public final class SolrOutput extends FailoverOutput<String, SolrMessage<SolrInp
 		try {
 			solr.client().add(core, ds, DEFAULT_AUTO_COMMIT_MS);
 			return ds.size();
-		} catch (Exception e) {
-			logger().warn("Write fail" + Exceptions.unwrap(e));
+		} catch (Exception ex) {
+			logger().warn(name() + " write failed [" + Exceptions.unwrap(ex).getMessage() + "], [" + ds.size() + "] into failover.");
 			fails.addAll(IO.list(ds, sid -> new SolrMessage<>(core, sid)));
 			return 0;
 		}

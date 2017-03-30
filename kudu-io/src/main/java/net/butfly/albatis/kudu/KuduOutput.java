@@ -16,6 +16,7 @@ import org.apache.kudu.client.OperationResponse;
 
 import net.butfly.albacore.io.faliover.FailoverOutput;
 import net.butfly.albacore.io.utils.URISpec;
+import net.butfly.albacore.utils.Exceptions;
 
 public class KuduOutput extends FailoverOutput<String, KuduResult> {
 	private final KuduConnection connect;
@@ -39,8 +40,9 @@ public class KuduOutput extends FailoverOutput<String, KuduResult> {
 				logger().warn("Write fail: " + rr.getRowError().toString());
 				if (rr.hasRowError()) fails.add(r);
 				else c.incrementAndGet();
-			} catch (KuduException e) {
-				logger().warn("Write fail", e);
+			} catch (KuduException ex) {
+				logger().warn(name() + " write failed [" + Exceptions.unwrap(ex).getMessage() + "], \n\t[" + r.toString()
+						+ "] into failover.");
 				fails.add(r);
 			}
 		});
