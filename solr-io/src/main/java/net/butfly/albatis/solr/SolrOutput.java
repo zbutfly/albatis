@@ -33,6 +33,7 @@ public final class SolrOutput extends FailoverOutput<String, SolrMessage<SolrInp
 
 	@Override
 	protected void closeInternal() {
+		super.closeInternal();
 		try {
 			for (String core : solr.getCores())
 				solr.client().commit(core, false, false);

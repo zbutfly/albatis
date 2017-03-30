@@ -18,11 +18,8 @@ import net.butfly.albacore.io.faliover.FailoverOutput;
 import net.butfly.albacore.io.utils.URISpec;
 
 public class KuduOutput extends FailoverOutput<String, KuduResult> {
-
 	private final KuduConnection connect;
-
 	private final Map<String, KuduTable> tables;
-
 	private final KuduSession session;
 
 	public KuduOutput(String name, URISpec uri, String failoverPath) throws IOException {
@@ -52,6 +49,7 @@ public class KuduOutput extends FailoverOutput<String, KuduResult> {
 
 	@Override
 	protected void closeInternal() {
+		super.closeInternal();
 		for (String k : tables.keySet()) {
 			tables.remove(k);
 			synchronized (connect) {

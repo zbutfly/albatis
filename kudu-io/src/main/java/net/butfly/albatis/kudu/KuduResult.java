@@ -22,12 +22,12 @@ import net.butfly.albacore.serder.JsonSerder;
 
 public class KuduResult extends Message<String, Upsert, KuduResult> {
 	private static final long serialVersionUID = -5843704512434056538L;
-	private KuduTable kuduTable;
+	private KuduTable table;
 	private final Map<String, Object> result;
 
 	public KuduResult(Map<String, Object> result, KuduTable kuduTable) {
 		this.result = result;
-		this.kuduTable = kuduTable;
+		this.table = kuduTable;
 	}
 
 	@SuppressWarnings("unchecked")
@@ -37,19 +37,19 @@ public class KuduResult extends Message<String, Upsert, KuduResult> {
 
 	@Override
 	public String partition() {
-		return null;
+		return table.getName();
 	}
 
 	@Override
 	public String toString() {
-		return null;
+		return table.toString() + "\n\t" + result.toString();
 	}
 
 	@Override
 	public Upsert forWrite() {
-		Upsert upsert = kuduTable.newUpsert();
+		Upsert upsert = table.newUpsert();
 		PartialRow row = upsert.getRow();
-		for (ColumnSchema c : kuduTable.getSchema().getColumns())
+		for (ColumnSchema c : table.getSchema().getColumns())
 			KuduCommon.generateColumnData(c.getType(), row, c.getName(), result.get(c.getName()));
 		return upsert;
 	}
