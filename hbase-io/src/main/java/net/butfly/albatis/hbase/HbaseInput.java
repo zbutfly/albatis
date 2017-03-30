@@ -168,7 +168,7 @@ public final class HbaseInput extends Namedly implements Input<HbaseResult> {
 					sc.close();
 				}
 			} while (null == r && retry++ < MAX_RETRIES && opened());
-			logger().debug("Hbase get(scan) on [" + row + "] with [" + retry + "] retries");
+			logger().trace("Hbase get(scan) on [" + row + "] with [" + retry + "] retries");
 			return r;
 		});
 	}
