@@ -56,7 +56,6 @@ public final class EsOutput extends FailoverOutput<String, ElasticMessage> {
 
 	@Override
 	protected void closeInternal() {
-		super.closeInternal();
 		try {
 			conn.close();
 		} catch (Exception e) {}

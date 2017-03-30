@@ -57,7 +57,6 @@ public class KuduOutput extends FailoverOutput<String, KuduResult> {
 
 	@Override
 	protected void closeInternal() {
-		super.closeInternal();
 		for (String k : tables.keySet()) {
 			tables.remove(k);
 			synchronized (connect) {
