@@ -102,7 +102,7 @@ public class ZKConn implements AutoCloseable {
 			else {
 				@SuppressWarnings("unchecked")
 				Map<String, List<Integer>> counts = (Map<String, List<Integer>>) info.get("partitions");
-				logger.debug(() -> "Kafka topic [" + t + "] info fetch from zk [" + zk + "]: " + counts.toString());
+				logger.debug(() -> "Kafka topic [" + t + "] info fetch from zk \n\t[" + zk + "]: \n\t" + counts.toString());
 				new ArrayList<>(counts.keySet()).get(0);
 				return counts.keySet().stream().mapToInt(i -> {
 					return Integer.parseInt(i);

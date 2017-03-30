@@ -93,20 +93,18 @@ public class OffHeapFailover<K, V extends Message<K, ?, V>> extends Failover<K, 
 
 	@Override
 	protected long fail(K key, Collection<V> values) {
-		if (opened()) try {
+		try {
 			failover.enqueue(toBytes(key, values));
 			return values.size();
 		} catch (IOException e) {
 			logger.error(MessageFormat.format("Failover failed, [{0}] docs lost on [{1}]", values.size(), key), e);
 			return 0;
 		}
-		else {
-			logger().error("Failover closed, data lost: " + values.size() + ".");
-			return 0;
-		}
 	}
 
 	private void closePool() {
+		while (!output.closed()) // confirm!! NO lost!!
+			Concurrents.waitSleep(100, logger(), "output not closed, waiting!");
 		failover.gc();
 		long size = size();
 		try {

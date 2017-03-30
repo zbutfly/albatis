@@ -59,7 +59,11 @@ public abstract class FailoverOutput<K, M extends Message<K, ?, M>> extends Name
 
 	}
 
-	protected void closeInternal() {
+	protected abstract void closeInternal();
+
+	@Override
+	public void close() {
+		Output.super.close();
 		failover.close();
 	}
 

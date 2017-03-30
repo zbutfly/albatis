@@ -42,7 +42,6 @@ public final class HbaseOutput extends FailoverOutput<String, HbaseResult> {
 
 	@Override
 	protected void closeInternal() {
-		super.closeInternal();
 		for (String k : tables.keySet())
 			try {
 				Table t = tables.remove(k);
