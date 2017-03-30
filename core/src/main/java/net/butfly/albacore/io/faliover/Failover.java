@@ -34,12 +34,13 @@ public abstract class Failover<K, V extends Message<K, ?, V>> extends OpenableTh
 	protected final long output(K key, Stream<V> pkg) {
 		Set<V> fails = new ConcurrentSkipListSet<>();
 		paralling.incrementAndGet();
+		long now = System.currentTimeMillis();
 		long success = 0;
 		try {
 			success = output.write(key, pkg, fails);
 		} finally {
-			if (logger().isTraceEnabled()) logger.debug("Pending parallelism of [" + output.getClass().getSimpleName() + "]: " + paralling
-					.decrementAndGet());
+			if (logger().isTraceEnabled()) logger.debug(output.name() + " write [" + success + " records], spent [" + (System
+					.currentTimeMillis() - now) + " ms], pending parallelism: " + paralling.decrementAndGet());
 			try {
 				output.commit(key);
 			} catch (Exception e) {

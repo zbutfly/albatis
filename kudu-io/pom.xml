@@ -7,9 +7,6 @@
 		<version>1.0.0-SNAPSHOT</version>
 	</parent>
 	<artifactId>kudu-io</artifactId>
-	<name>kudu's io</name>
-	<description>The project is kudu's io.</description>
-
 	<dependencies>
 		<dependency>
 			<groupId>net.butfly.albatis</groupId>
