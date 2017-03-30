@@ -92,7 +92,7 @@ public class OffHeapFailover<K, V extends Message<K, ?, V>> extends Failover<K, 
 	}
 
 	@Override
-	public long fail(K key, Collection<V> values) {
+	protected long fail(K key, Collection<V> values) {
 		if (opened()) try {
 			failover.enqueue(toBytes(key, values));
 			return values.size();
@@ -104,7 +104,6 @@ public class OffHeapFailover<K, V extends Message<K, ?, V>> extends Failover<K, 
 			logger().error("Failover closed, data lost: " + values.size() + ".");
 			return 0;
 		}
-
 	}
 
 	private void closePool() {

@@ -27,8 +27,8 @@ public class HeapFailover<K, V extends Message<K, ?, V>> extends Failover<K, V> 
 	@Override
 	public long size() {
 		long c = 0;
-		for (K core : failover.keySet())
-			c += failover.get(core).size();
+		for (K key : failover.keySet())
+			c += failover.get(key).size();
 		return c;
 	}
 
@@ -38,16 +38,16 @@ public class HeapFailover<K, V extends Message<K, ?, V>> extends Failover<K, V> 
 	}
 
 	@Override
-	public long fail(K core, Collection<V> docs) {
+	protected long fail(K key, Collection<V> values) {
 		if (opened()) try {
-			failover.computeIfAbsent(core, k -> new LinkedBlockingQueue<>(MAX_FAILOVER)).addAll(docs);
-			return docs.size();
+			failover.computeIfAbsent(key, k -> new LinkedBlockingQueue<>(MAX_FAILOVER)).addAll(values);
+			return values.size();
 		} catch (IllegalStateException ee) {
-			logger.error(MessageFormat.format("Failover failed, [{0}] docs lost on [{1}]", docs.size(), core));
+			logger.error(MessageFormat.format("Failover failed, [{0}] docs lost on [{1}]", values.size(), key));
 			return 0;
 		}
 		else {
-			logger().error("Failover closed, data lost: " + docs.size() + ".");
+			logger().error("Failover closed, data lost: " + values.size() + ".");
 			return 0;
 		}
 	}
