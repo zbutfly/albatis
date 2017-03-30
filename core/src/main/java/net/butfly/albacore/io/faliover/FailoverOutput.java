@@ -1,9 +1,10 @@
 package net.butfly.albacore.io.faliover;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -39,7 +40,7 @@ public abstract class FailoverOutput<K, M extends Message<K, ?, M>> extends Name
 		closing(this::closeInternal);
 	}
 
-	protected abstract long write(K key, Stream<M> pkg, Set<M> fails);
+	protected abstract long write(K key, Stream<M> pkg, Consumer<Collection<M>> failing, Consumer<Long> committing, int retry);
 
 	protected void commit(K key) {}
 

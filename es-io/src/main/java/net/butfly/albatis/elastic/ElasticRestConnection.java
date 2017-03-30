@@ -6,7 +6,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Stream;
 
 import org.apache.http.nio.entity.NStringEntity;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
@@ -78,17 +77,5 @@ public class ElasticRestConnection extends NoSqlConnection<RestClient> implement
 		} catch (IOException e) {
 			logger().error("Close failure", e);
 		}
-	}
-
-	@Override
-	public boolean update(String type, ElasticMessage es) {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	@Override
-	public long update(String type, Stream<ElasticMessage> msgs, Set<ElasticMessage> fails) {
-		// TODO Auto-generated method stub
-		return 0;
 	}
 }

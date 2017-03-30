@@ -1,8 +1,9 @@
 package net.butfly.albatis.solr;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
-import java.util.Set;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import org.apache.solr.client.solrj.SolrServerException;
@@ -48,17 +49,21 @@ public final class SolrOutput extends FailoverOutput<String, SolrMessage<SolrInp
 	}
 
 	@Override
-	protected long write(String core, Stream<SolrMessage<SolrInputDocument>> docs, Set<SolrMessage<SolrInputDocument>> fails) {
+	protected long write(String core, Stream<SolrMessage<SolrInputDocument>> docs,
+			Consumer<Collection<SolrMessage<SolrInputDocument>>> failing, Consumer<Long> committing, int retry) {
 		List<SolrInputDocument> ds = IO.list(docs, SolrMessage<SolrInputDocument>::forWrite);
 		if (ds.isEmpty()) return 0;
+		long rr = 0;
 		try {
 			solr.client().add(core, ds, DEFAULT_AUTO_COMMIT_MS);
-			return ds.size();
+			rr = ds.size();
 		} catch (Exception ex) {
 			logger().warn(name() + " write failed [" + Exceptions.unwrap(ex).getMessage() + "], [" + ds.size() + "] into failover.");
-			fails.addAll(IO.list(ds, sid -> new SolrMessage<>(core, sid)));
-			return 0;
+			failing.accept(IO.list(ds, sid -> new SolrMessage<>(core, sid)));
+		} finally {
+			committing.accept(rr);
 		}
+		return rr;
 	}
 
 	@Override

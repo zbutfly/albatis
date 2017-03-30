@@ -3,10 +3,11 @@ package net.butfly.albatis.hbase;
 import static com.hzcominfo.albatis.nosql.Connection.PARAM_KEY_BATCH;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import org.apache.hadoop.hbase.TableName;
@@ -60,15 +61,20 @@ public final class HbaseOutput extends FailoverOutput<String, HbaseResult> {
 	}
 
 	@Override
-	protected long write(String table, Stream<HbaseResult> values, Set<HbaseResult> fails) {
+	protected long write(String table, Stream<HbaseResult> values, Consumer<Collection<HbaseResult>> failing, Consumer<Long> committing,
+			int retry) {
 		List<Put> puts = IO.list(values, HbaseResult::forWrite);
+		if (puts.isEmpty()) return 0;
+		long rr = 0;
 		try {
 			table(table).put(puts);
-			return puts.size();
+			rr = puts.size();
 		} catch (Exception ex) {
 			logger().warn(name() + " write failed [" + Exceptions.unwrap(ex).getMessage() + "], [" + puts.size() + "] into failover.");
-			fails.addAll(IO.list(puts, p -> new HbaseResult(table, p)));
-			return 0;
+			failing.accept(IO.list(puts, p -> new HbaseResult(table, p)));
+		} finally {
+			committing.accept(rr);
 		}
+		return rr;
 	}
 }

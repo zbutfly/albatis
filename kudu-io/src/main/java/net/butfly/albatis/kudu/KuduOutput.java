@@ -3,10 +3,12 @@ package net.butfly.albatis.kudu;
 import static com.hzcominfo.albatis.nosql.Connection.PARAM_KEY_BATCH;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import org.apache.kudu.client.KuduException;
@@ -32,20 +34,24 @@ public class KuduOutput extends FailoverOutput<String, KuduResult> {
 	}
 
 	@Override
-	protected long write(String table, Stream<KuduResult> pkg, Set<KuduResult> fails) {
+	protected long write(String table, Stream<KuduResult> pkg, Consumer<Collection<KuduResult>> failing, Consumer<Long> committing,
+			int retry) {
 		AtomicLong c = new AtomicLong();
+		LinkedBlockingQueue<KuduResult> fails = new LinkedBlockingQueue<>();
 		pkg.parallel().forEach(r -> {
 			try {
 				OperationResponse rr = session.apply(r.forWrite());
 				logger().warn("Write fail: " + rr.getRowError().toString());
-				if (rr.hasRowError()) fails.add(r);
+				if (rr.hasRowError()) fails.offer(r);
 				else c.incrementAndGet();
 			} catch (KuduException ex) {
 				logger().warn(name() + " write failed [" + Exceptions.unwrap(ex).getMessage() + "], \n\t[" + r.toString()
 						+ "] into failover.");
-				fails.add(r);
+				fails.offer(r);
 			}
 		});
+		committing.accept(c.get());
+		if (!fails.isEmpty()) failing.accept(fails);
 		return c.get();
 	}
 
