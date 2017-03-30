@@ -9,6 +9,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -104,63 +105,89 @@ public class ElasticConnection extends NoSqlConnection<TransportClient> implemen
 
 	@Override
 	public long update(String type, Stream<ElasticMessage> msgs, Set<ElasticMessage> fails) {
-		List<ElasticMessage> values = IO.list(msgs);
-		if (values.isEmpty()) return 0;
-		if (values.size() == 1) return update(type, values.get(0)) ? 1 : 0;
+		Map<String, ElasticMessage> origin = new ConcurrentHashMap<>();
+		msgs.forEach(m -> origin.put(m.id, m));
+		if (origin.isEmpty()) return 0;
+		if (origin.size() == 1) for (ElasticMessage m : origin.values())
+			return update(type, m) ? 1 : 0;
 		long totalReqBytes = 0;
-		String sample = "";
-		int succCount = 0;
+		int succs = 0;
 
 		int retry = 0;
-		List<ElasticMessage> retries = new ArrayList<>(values);
+		List<ElasticMessage> retries = new ArrayList<>(origin.values());
 		for (; !retries.isEmpty() && retry < maxRetry; retry++) {
 			long now = System.currentTimeMillis();
 			BulkRequest req = new BulkRequest().add(IO.list(retries, ElasticMessage::forWrite));
 			if (logger().isTraceEnabled() && retry == 0) totalReqBytes = req.estimatedSizeInBytes();
-			ActionFuture<BulkResponse> future = client().bulk(req);
-			BulkResponse rg = get(future, retry);
-			if (rg != null) {
-				Map<Boolean, List<BulkItemResponse>> resps = IO.collect(rg, Collectors.partitioningBy(r -> r.isFailed()));
-				if (resps.get(Boolean.TRUE).isEmpty()) {
-					List<BulkItemResponse> s = resps.get(Boolean.FALSE);
-					if (logger().isTraceEnabled()) logger().debug("Try#" + retry + " finished, total:[" + values.size() + "/" + Texts
-							.formatKilo(totalReqBytes, " bytes") + "] in [" + (System.currentTimeMillis() - now) + "] ms, sample id: [" + (s
-									.isEmpty() ? "NONE" : s.get(0).getId()) + "].");
-					return s.size();
-				}
-				Set<String> succs = IO.collect(resps.get(Boolean.FALSE), r -> r.getId(), Collectors.toSet());
-
-				// process fails and retry...
-				Stream<BulkItemResponse> sresp = Streams.of(resps.get(Boolean.TRUE)) //
-						// XXX: disable retry, damn slowly!
-						.filter(r -> {
-							@SuppressWarnings("unchecked")
-							Class<Throwable> c = (Class<Throwable>) r.getFailure().getCause().getClass();
-							return EsRejectedExecutionException.class.isAssignableFrom(c) || VersionConflictEngineException.class
-									.isAssignableFrom(c);
-						});
-				if (logger().isDebugEnabled()) sresp = sresp.peek(r -> logger().warn("Writing failed id [" + r.getId() + "] for: " + unwrap(
-						r.getFailure().getCause()).getMessage()));
-				Set<String> failingIds = IO.collect(sresp.map(r -> r.getFailure().getId()), Collectors.toSet());
-				// remove from retries: successed or marked fail.
-				retries = IO.list(Streams.of(retries).filter(e -> !succs.contains(e.id) && !failingIds.contains(e.id)));
-				// move fail marked into fails
-				fails.addAll(IO.list(failingIds, id -> {
-					for (ElasticMessage v : values)
-						if (id.equals(v.id)) return v;
-					return null;
-				}));
-
-				// process and stats success...
-				sample = succs.isEmpty() ? null : succs.toArray(new String[succs.size()])[0];
-				succCount += succs.size();
-				if (logger().isTraceEnabled()) logger().debug("Try#" + retry + " finished, total:[" + succs.size() + "/" + Texts.formatKilo(
-						totalReqBytes, " bytes") + "] in [" + (System.currentTimeMillis() - now) + "] ms, total successed:[" + succCount
-						+ "], remained:[" + retries.size() + "], failed:[" + failingIds.size() + "], sample id: [" + sample + "].");
+			ActionFuture<BulkResponse> future;
+			try {
+				future = client().bulk(req);
+			} catch (IllegalStateException ex) {
+				logger().warn("Elastic connection op failed", ex);
+				break;
 			}
+			Result r = process(get(future, retry), retry, origin, retries, fails);
+			succs += r.succs;
+			if (logger().isTraceEnabled()) r.trace(origin.size(), totalReqBytes, retry, retries.size(), System.currentTimeMillis() - now);
+		}
+		if (!retries.isEmpty()) fails.addAll(retries);
+		return succs;
+	}
+
+	private final class Result {
+		final long succs;
+		final long fails;
+		final String sample;
+
+		Result(long succs, long fails, String sample) {
+			super();
+			this.succs = succs;
+			this.fails = fails;
+			this.sample = sample;
 		}
 
-		if (!retries.isEmpty()) fails.addAll(retries);
-		return succCount;
+		void trace(long total, long bytes, int retry, int remains, long ms) {
+			StringBuilder sb = new StringBuilder()//
+					.append("Try#").append(retry).append(" finished, total:[").append(total).append("/")//
+					.append(Texts.formatKilo(bytes, " bytes")).append("] in [").append(ms)//
+					.append("] ms, step successed:[" + succs + "], ");
+			if (remains > 0) sb.append("remained:[").append(remains).append("], ");
+			if (fails > 0) sb.append("failed:[").append(fails).append("], ");
+			logger().debug(sb.append("sample id: [").append(sample).append("]."));
+		}
+	}
+
+	private Result process(BulkResponse rg, int retry, Map<String, ElasticMessage> origin, List<ElasticMessage> retries,
+			Set<ElasticMessage> fails) {
+		Map<Boolean, List<BulkItemResponse>> resps = IO.collect(rg, Collectors.partitioningBy(r -> r.isFailed()));
+		List<BulkItemResponse> succResps = resps.get(Boolean.FALSE);
+		List<BulkItemResponse> failResps = resps.get(Boolean.TRUE);
+		String sample = succResps.isEmpty() ? null : succResps.get(0).getId();
+		if (failResps.isEmpty()) {//
+			retries.clear();
+			return new Result(succResps.size(), 0, sample);
+		}
+		Set<String> succIds = IO.collect(succResps, r -> r.getId(), Collectors.toSet());
+
+		// process fails and retry...
+		Stream<BulkItemResponse> sresp = Streams.of(failResps) //
+				// XXX: disable retry, damn slowly!
+				.filter(r -> {
+					@SuppressWarnings("unchecked")
+					Class<Throwable> c = (Class<Throwable>) r.getFailure().getCause().getClass();
+					return EsRejectedExecutionException.class.isAssignableFrom(c) || VersionConflictEngineException.class.isAssignableFrom(
+							c);
+				});
+		if (logger().isDebugEnabled()) sresp = sresp.peek(r -> logger().warn("Writing failed id [" + r.getId() + "] for: " + unwrap(r
+				.getFailure().getCause()).getMessage()));
+		Set<String> failIds = IO.collect(sresp.map(r -> r.getFailure().getId()), Collectors.toSet());
+		// remove from retries: successed or marked fail.
+		for (ElasticMessage m : retries)
+			if (succIds.contains(m.id) || failIds.contains(m.id)) retries.remove(m);
+		// move fail marked into fails
+		fails.addAll(IO.list(failIds, origin::get));
+
+		// process and stats success...
+		return new Result(succIds.size(), failIds.size(), sample);
 	}
 }
