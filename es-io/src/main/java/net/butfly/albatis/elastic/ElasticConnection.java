@@ -10,10 +10,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.elasticsearch.action.ActionFuture;
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.elasticsearch.action.bulk.BulkItemResponse;
@@ -28,16 +30,28 @@ import org.elasticsearch.index.engine.VersionConflictEngineException;
 import com.hzcominfo.albatis.nosql.NoSqlConnection;
 
 import net.butfly.albacore.io.IO;
+import net.butfly.albacore.io.ext.OpenableThread;
 import net.butfly.albacore.io.utils.Streams;
 import net.butfly.albacore.io.utils.URISpec;
 import net.butfly.albacore.utils.Texts;
 
 public class ElasticConnection extends NoSqlConnection<TransportClient> implements ElasticConnect {
 	private final int maxRetry;
+	private final LinkedBlockingQueue<Result> results;
+	private final OpenableThread processing;
 
 	public ElasticConnection(URISpec uri, Map<String, String> props) throws IOException {
 		super(uri, u -> ElasticConnect.Builder.buildTransportClient(u, props), 39300, "es", "elasticsearch");
 		this.maxRetry = Integer.parseInt(uri.getParameter("retry", "5"));
+		results = new LinkedBlockingQueue<>();
+		processing = new OpenableThread(() -> {
+			while (opened()) {
+				Result r = results.poll();
+			}
+
+		}, "ElasticResultProcessing");
+		processing.setDaemon(true);
+		processing.open();
 	}
 
 	public ElasticConnection(URISpec uri) throws IOException {
@@ -76,6 +90,7 @@ public class ElasticConnection extends NoSqlConnection<TransportClient> implemen
 
 	@Override
 	public void close() {
+		processing.close();
 		try {
 			super.close();
 		} catch (IOException e) {
@@ -87,9 +102,7 @@ public class ElasticConnection extends NoSqlConnection<TransportClient> implemen
 	private <T> T get(ActionFuture<T> f, int retry) {
 		try {
 			return f.actionGet();
-		} catch (Exception e) {
-			logger().warn("ES failure, retry#" + retry + "...", unwrap(e));
-		} finally {}
+		} catch (Exception e) {} finally {}
 		return null;
 	}
 
@@ -119,14 +132,11 @@ public class ElasticConnection extends NoSqlConnection<TransportClient> implemen
 			long now = System.currentTimeMillis();
 			BulkRequest req = new BulkRequest().add(IO.list(retries, ElasticMessage::forWrite));
 			if (logger().isTraceEnabled() && retry == 0) totalReqBytes = req.estimatedSizeInBytes();
-			ActionFuture<BulkResponse> future;
 			try {
-				future = client().bulk(req);
+				client().bulk(req, new Listener());
 			} catch (IllegalStateException ex) {
-				logger().warn("Elastic connection op failed", ex);
 				break;
 			}
-			Result r = process(get(future, retry), retry, origin, retries, fails);
 			succs += r.succs;
 			if (logger().isTraceEnabled()) r.trace(origin.size(), totalReqBytes, retry, retries.size(), System.currentTimeMillis() - now);
 		}
@@ -157,8 +167,19 @@ public class ElasticConnection extends NoSqlConnection<TransportClient> implemen
 		}
 	}
 
-	private Result process(BulkResponse rg, int retry, Map<String, ElasticMessage> origin, List<ElasticMessage> retries,
-			Set<ElasticMessage> fails) {
+	private class Listener implements ActionListener<BulkResponse> {
+		@Override
+		public void onResponse(BulkResponse response) {
+			results.put(process(response, origin, retries, fails));
+		}
+
+		@Override
+		public void onFailure(Exception ex) {
+			logger().warn("Elastic connection op failed", ex);
+		}
+	}
+
+	private Result process(BulkResponse rg, Map<String, ElasticMessage> origin, List<ElasticMessage> retries, Set<ElasticMessage> fails) {
 		Map<Boolean, List<BulkItemResponse>> resps = IO.collect(rg, Collectors.partitioningBy(r -> r.isFailed()));
 		List<BulkItemResponse> succResps = resps.get(Boolean.FALSE);
 		List<BulkItemResponse> failResps = resps.get(Boolean.TRUE);
