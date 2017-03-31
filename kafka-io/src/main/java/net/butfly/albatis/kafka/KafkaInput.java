@@ -95,7 +95,7 @@ public final class KafkaInput extends InputImpl<KafkaMessage> {
 		AtomicInteger findex = new AtomicInteger();
 		raws = IO.map(r, s -> s, s -> new Fetcher(name + "Fetcher", s, findex.incrementAndGet()));
 		logger().trace(() -> MessageFormat.format("[{0}] local pool init [size: {3}]: \n\tpath: [{1}/{0}/{2}].", name, poolPath, poolId,
-				pool.size()));
+				poolSize()));
 		closing(this::closeKafka);
 		open();
 	}
@@ -143,8 +143,8 @@ public final class KafkaInput extends InputImpl<KafkaMessage> {
 		public Fetcher(String inputName, KafkaStream<byte[], byte[]> stream, int i) {
 			super(inputName + "#" + i);
 			this.it = stream.iterator();
-			this.setUncaughtExceptionHandler((t, e) -> logger().error("[Fetcher: " + getName() + "] async error, pool [" + pool.size()
-					+ "]", e));
+			this.setUncaughtExceptionHandler((t, e) -> logger().error("[Fetcher: " + getName() + "] async error, pool [" + poolSize() + "]",
+					e));
 		}
 
 		private boolean hasNext() {
@@ -162,7 +162,7 @@ public final class KafkaInput extends InputImpl<KafkaMessage> {
 			while (opened())
 				try {
 					while (opened() && hasNext()) {
-						while (opened() && pool.size() > poolSize)
+						while (opened() && poolSize() > poolSize)
 							Concurrents.waitSleep();
 						byte[] b = new KafkaMessage(it.next()).toBytes();
 						pool.enqueue(b);
@@ -173,7 +173,7 @@ public final class KafkaInput extends InputImpl<KafkaMessage> {
 				} finally {
 					pool.gc();
 				}
-			logger().info("[Fetcher: " + name() + "] finished and exited, pool [" + pool.size() + "].");
+			logger().info("[Fetcher: " + name() + "] finished and exited, pool [" + poolSize() + "].");
 		}
 
 		private long skip(AtomicLong skip, long logStep) {
