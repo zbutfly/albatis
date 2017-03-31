@@ -51,22 +51,22 @@ public final class KafkaInput extends InputImpl<KafkaMessage> {
 		super(name);
 		config = new KafkaInputConfig(name(), uri);
 		skip = new AtomicLong(Long.parseLong(uri.getParameter("skip", "0")));
-		if (skip.get() > 0) logger().error("Skip [" + skip.get()
+		if (skip.get() > 0) logger().error("[" + name() + "] skip [" + skip.get()
 				+ "] for testing, the skip is estimated, especially in multiple topic subscribing.");
 		int kp = config.getPartitionParallelism();
 		if (topics == null || topics.length == 0) topics = config.topics().toArray(new String[0]);
 		Map<String, int[]> topicParts;
 		try (ZKConn zk = new ZKConn(config.getZookeeperConnect())) {
 			topicParts = zk.getTopicPartitions(topics);
-			for (String t : topics)
-				logger().debug(() -> "Lag of " + config.getGroupId() + "@" + t + ": " + zk.getLag(t, config.getGroupId()));
+			if (logger().isTraceEnabled()) for (String t : topics)
+				logger().debug(() -> "[" + name() + "] lag of " + config.getGroupId() + "@" + t + ": " + zk.getLag(t, config.getGroupId()));
 		}
 		for (String t : topicParts.keySet()) {
 			if (kp <= 0) allTopics.put(t, 1);
 			else if (kp >= topicParts.get(t).length) allTopics.put(t, topicParts.get(t).length);
 			else allTopics.put(t, (int) Math.ceil(topicParts.get(t).length * 1.0 / kp));
 		}
-		logger().debug("parallelism of topics: " + allTopics.toString() + ".");
+		logger().trace("[" + name() + "] parallelism of topics: " + allTopics.toString() + ".");
 		// connect
 		Map<String, List<KafkaStream<byte[], byte[]>>> temp = null;
 		ConsumerConnector c = null;
@@ -75,14 +75,14 @@ public final class KafkaInput extends InputImpl<KafkaMessage> {
 				c = kafka.consumer.Consumer.createJavaConsumerConnector(config.getConfig());
 				temp = c.createMessageStreams(allTopics);
 			} catch (ConsumerRebalanceFailedException | MessageStreamsExistException e) {
-				logger().warn("Kafka reopen too quickly, wait 10 seconds and retry");
+				logger().warn("[" + name() + "] reopen too quickly, wait 10 seconds and retry");
 				if (c != null) c.shutdown();
 				temp = null;
 				if (!Concurrents.waitSleep(1000 * 10)) throw e;
 			}
 		while (temp == null);
 		connect = c;
-		logger().debug("connected.");
+		logger().info("[" + name() + "] connected.");
 		Stream<KafkaStream<byte[], byte[]>> r = Streams.of(temp.values()).flatMap(t -> Streams.of(t));
 		// connect ent
 		poolSize = config.getPoolSize();
@@ -94,8 +94,8 @@ public final class KafkaInput extends InputImpl<KafkaMessage> {
 		}
 		AtomicInteger findex = new AtomicInteger();
 		raws = IO.map(r, s -> s, s -> new Fetcher(name + "Fetcher", s, findex.incrementAndGet()));
-		logger().debug(MessageFormat.format("[{0}] local pool init [size: {3}]: \n\tpath: [{1}/{0}/{2}].", name, poolPath, poolId, pool
-				.size()));
+		logger().trace(() -> MessageFormat.format("[{0}] local pool init [size: {3}]: \n\tpath: [{1}/{0}/{2}].", name, poolPath, poolId,
+				poolSize()));
 		closing(this::closeKafka);
 		open();
 	}
@@ -112,24 +112,24 @@ public final class KafkaInput extends InputImpl<KafkaMessage> {
 			if (f instanceof AutoCloseable) try {
 				((AutoCloseable) f).close();
 			} catch (Exception e) {
-				logger().error("internal fetcher close failure", e);
+				logger().error("[" + name() + "] internal fetcher close failure", e);
 			}
 		try {
 			connect.commitOffsets(true);
 		} catch (Exception e) {
-			logger().error("kafka commit fail", e);
+			logger().error("[" + name() + "] commit fail", e);
 		}
 		try {
 			connect.shutdown();
 		} catch (Exception e) {
-			logger().error("kafka shutdown fail", e);
+			logger().error("[" + name() + "] shutdown fail", e);
 		}
 
 		try {
 			pool.gc();
 			pool.close();
 		} catch (IOException e) {
-			logger().error("local pool close failure", e);
+			logger().error("[" + name() + "] local pool close failure", e);
 		}
 	}
 
@@ -143,7 +143,8 @@ public final class KafkaInput extends InputImpl<KafkaMessage> {
 		public Fetcher(String inputName, KafkaStream<byte[], byte[]> stream, int i) {
 			super(inputName + "#" + i);
 			this.it = stream.iterator();
-			this.setUncaughtExceptionHandler((t, e) -> logger().error("[" + getName() + "] async error, pool [" + pool.size() + "]", e));
+			this.setUncaughtExceptionHandler((t, e) -> logger().error("[Fetcher: " + getName() + "] async error, pool [" + poolSize() + "]",
+					e));
 		}
 
 		private boolean hasNext() {
@@ -161,18 +162,18 @@ public final class KafkaInput extends InputImpl<KafkaMessage> {
 			while (opened())
 				try {
 					while (opened() && hasNext()) {
-						while (opened() && pool.size() > poolSize)
+						while (opened() && poolSize() > poolSize)
 							Concurrents.waitSleep();
 						byte[] b = new KafkaMessage(it.next()).toBytes();
 						pool.enqueue(b);
 					}
 					Concurrents.waitSleep(1000); // kafka empty
 				} catch (Exception e) {
-					logger().warn("Kafka reading failed and ignore...", e);
+					logger().warn("[Fetcher: " + getName() + "] reading failed and ignore...", e);
 				} finally {
 					pool.gc();
 				}
-			logger().info("Fetcher finished and exited, pool [" + pool.size() + "].");
+			logger().info("[Fetcher: " + name() + "] finished and exited, pool [" + poolSize() + "].");
 		}
 
 		private long skip(AtomicLong skip, long logStep) {

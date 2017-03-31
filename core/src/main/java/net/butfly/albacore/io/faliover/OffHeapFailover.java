@@ -28,7 +28,7 @@ public class OffHeapFailover<K, V extends Message<K, ?, V>> extends Failover<K, 
 		super(parentName, output, constructor);
 		if (poolName == null) poolName = "POOL";
 		failover = new BigQueue(IOs.mkdirs(path + "/" + parentName), poolName);
-		logger.info(MessageFormat.format("Failover [persist mode] init: [{0}/{1}] with name [{2}], init size [{3}].", //
+		logger.debug(MessageFormat.format("Failover [persist mode] init: [{0}/{1}] with name [{2}], init size [{3}].", //
 				path, parentName, poolName, size()));
 		closing(this::closePool);
 		open();

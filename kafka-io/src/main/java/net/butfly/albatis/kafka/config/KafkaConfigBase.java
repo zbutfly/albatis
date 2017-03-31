@@ -47,7 +47,7 @@ public abstract class KafkaConfigBase implements Serializable {
 					+ "bootstrap.servers] is not used (current value: [" + bootstrapServers + "])");
 			try (ZKConn zk = new ZKConn(zookeeperConnect)) {
 				bootstrapServers = Joiner.on(",").join(zk.getBorkers());
-				logger.info("Zookeeper detect broken list automatically: [" + bootstrapServers + "])");
+				logger.trace("Zookeeper detect broken list automatically: [" + bootstrapServers + "])");
 			} catch (Exception e) {
 				bootstrapServers = null;
 				logger.warn("Zookeeper detect broken list failure", e);
@@ -74,7 +74,7 @@ public abstract class KafkaConfigBase implements Serializable {
 			zookeeperConnect = uri.getHost() + uri.getPath();
 			try (ZKConn zk = new ZKConn(zookeeperConnect)) {
 				bootstrapServers = Joiner.on(",").join(zk.getBorkers());
-				logger.debug("Zookeeper detect broken list automatically: [" + bootstrapServers + "])");
+				logger.trace("Zookeeper detect broken list automatically: [" + bootstrapServers + "])");
 			} catch (Exception e) {
 				bootstrapServers = null;
 				logger.warn("Zookeeper detect broken list failure", e);
