@@ -5,6 +5,8 @@ import java.util.Map;
 
 import org.apache.kudu.client.KuduClient;
 import org.apache.kudu.client.KuduException;
+import org.apache.kudu.client.KuduSession;
+import org.apache.kudu.client.KuduTable;
 
 import com.hzcominfo.albatis.nosql.NoSqlConnection;
 
@@ -37,5 +39,15 @@ public class KuduConnection extends NoSqlConnection<KuduClient> {
 		} catch (IOException e) {
 			logger.error("Close failure", e);
 		}
+	}
+	
+	public KuduTable kuduTable(String table) throws KuduException{
+		
+		return super.client().openTable(table);
+	}
+	
+	public KuduSession newSession(){
+		
+		return super.client().newSession();
 	}
 }

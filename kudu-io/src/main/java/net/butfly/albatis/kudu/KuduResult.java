@@ -2,11 +2,6 @@ package net.butfly.albatis.kudu;
 
 import java.util.Map;
 
-import org.apache.kudu.ColumnSchema;
-import org.apache.kudu.client.KuduTable;
-import org.apache.kudu.client.PartialRow;
-import org.apache.kudu.client.Upsert;
-
 import net.butfly.albacore.io.Message;
 import net.butfly.albacore.serder.JsonSerder;
 
@@ -20,14 +15,14 @@ import net.butfly.albacore.serder.JsonSerder;
  * @Email juddersky@gmail.com
  */
 
-public class KuduResult extends Message<String, Upsert, KuduResult> {
+public class KuduResult extends Message<String, Map<String,Object>, KuduResult> {
 	private static final long serialVersionUID = -5843704512434056538L;
-	private KuduTable table;
+	private String table;
 	private final Map<String, Object> result;
 
-	public KuduResult(Map<String, Object> result, KuduTable kuduTable) {
+	public KuduResult(Map<String, Object> result, String table) {
 		this.result = result;
-		this.table = kuduTable;
+		this.table = table;
 	}
 
 	@SuppressWarnings("unchecked")
@@ -37,7 +32,7 @@ public class KuduResult extends Message<String, Upsert, KuduResult> {
 
 	@Override
 	public String partition() {
-		return table.getName();
+		return table;
 	}
 
 	@Override
@@ -46,12 +41,8 @@ public class KuduResult extends Message<String, Upsert, KuduResult> {
 	}
 
 	@Override
-	public Upsert forWrite() {
-		Upsert upsert = table.newUpsert();
-		PartialRow row = upsert.getRow();
-		for (ColumnSchema c : table.getSchema().getColumns())
-			KuduCommon.generateColumnData(c.getType(), row, c.getName(), result.get(c.getName()));
-		return upsert;
+	public Map<String,Object> forWrite() {
+		return result;
 	}
 
 }
