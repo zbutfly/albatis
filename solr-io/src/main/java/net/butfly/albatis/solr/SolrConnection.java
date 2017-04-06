@@ -79,8 +79,16 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 	}
 
 	public SolrConnection(URISpec uri, Class<? extends ResponseParser> parserClass) throws IOException {
+		this(uri, parserClass, true);
+	}
+
+	private SolrConnection(URISpec uri, boolean parsing) throws IOException {
+		this(uri, ResponseFormat.parse(uri.getParameter("parser", "XML")), parsing);
+	}
+
+	private SolrConnection(URISpec uri, Class<? extends ResponseParser> parserClass, boolean parsing) throws IOException {
 		super(uri, u -> create(u, parserClass), "solr", "zookeeper", "zk", "http");
-		meta = parse();
+		meta = parsing ? parse() : null;
 	}
 
 	private static SolrClient create(URISpec uri, Class<? extends ResponseParser> parserClass) {
@@ -216,7 +224,7 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 			String core = uri.getFile();
 			if (null == core) throw new IOException("Solr uri invalid: " + uri);
 			URISpec base = uri.resolve("..");
-			try (SolrConnection solr = new SolrConnection(base);) {
+			try (SolrConnection solr = new SolrConnection(base, false);) {
 				CoreAdminResponse resp = req.process(solr.client());
 				String[] cores = new String[resp.getCoreStatus().size()];
 				for (int i = 0; i < resp.getCoreStatus().size(); i++)
