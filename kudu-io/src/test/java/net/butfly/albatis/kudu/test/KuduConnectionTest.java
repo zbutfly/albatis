@@ -33,7 +33,7 @@ public class KuduConnectionTest {
 			Map<String, Object> o = new HashMap<>();
 			o.put("id", 123456789);
 			o.put("name", "123456789");
-			KuduResult result = new KuduResult(o, connection.client().openTable("my_first_table"));
+			KuduResult result = new KuduResult(o, "my_first_table");
 			Assert.assertNotNull(result.forWrite());
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
