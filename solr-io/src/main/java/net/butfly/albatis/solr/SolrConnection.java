@@ -82,11 +82,11 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 		this(uri, parserClass, true);
 	}
 
-	private SolrConnection(URISpec uri, boolean parsing) throws IOException {
+	public SolrConnection(URISpec uri, boolean parsing) throws IOException {
 		this(uri, ResponseFormat.parse(uri.getParameter("parser", "XML")), parsing);
 	}
 
-	private SolrConnection(URISpec uri, Class<? extends ResponseParser> parserClass, boolean parsing) throws IOException {
+	public SolrConnection(URISpec uri, Class<? extends ResponseParser> parserClass, boolean parsing) throws IOException {
 		super(uri, u -> create(u, parserClass), "solr", "zookeeper", "zk", "http");
 		meta = parsing ? parse() : null;
 	}

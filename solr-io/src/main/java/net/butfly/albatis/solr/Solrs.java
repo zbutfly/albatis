@@ -25,6 +25,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 
+import net.butfly.albacore.io.utils.URISpec;
 import net.butfly.albacore.utils.Utils;
 import net.butfly.albacore.utils.logger.Logger;
 
@@ -38,7 +39,7 @@ public final class Solrs extends Utils {
 	@SuppressWarnings("resource")
 	public static SolrClient open(String solrURL, Class<? extends ResponseParser> parserClass) {
 		try {
-			return new SolrConnection(solrURL, parserClass).client();
+			return new SolrConnection(new URISpec(solrURL), parserClass, false).client();
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
