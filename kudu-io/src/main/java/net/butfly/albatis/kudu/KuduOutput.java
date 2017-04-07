@@ -11,6 +11,7 @@ import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import org.apache.kudu.Schema;
+import org.apache.kudu.client.KuduClient;
 import org.apache.kudu.client.KuduException;
 import org.apache.kudu.client.KuduSession;
 import org.apache.kudu.client.KuduTable;
@@ -24,14 +25,14 @@ public class KuduOutput extends FailoverOutput<String, KuduResult> {
 
 	private final KuduConnection connect;
 	private final KuduSession session;
-	private final KuduTable kuduTable;
+	private KuduTable kuduTable;
 
 	public KuduOutput(String name, URISpec uri, String failoverPath) throws IOException {
 
 		super(name, b -> new KuduResult(b), failoverPath, null == uri ? 200 : Integer.parseInt(uri.getParameter(PARAM_KEY_BATCH, "200")));
 		this.connect = new KuduConnection(uri, null);
 		this.session = connect.newSession();
-		this.kuduTable = connect.kuduTable(name);
+		
 	}
 
 	@Override
@@ -42,6 +43,12 @@ public class KuduOutput extends FailoverOutput<String, KuduResult> {
 	@Override
 	protected long write(String table, Stream<KuduResult> pkg, Consumer<Collection<KuduResult>> failing, Consumer<Long> committing,
 			int retry) {
+		try {
+			this.kuduTable = connect.kuduTable(name);
+		} catch (KuduException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		AtomicLong c = new AtomicLong(0);
 		Schema schema = kuduTable.getSchema();
 		pkg.parallel().forEach(r -> {
@@ -63,5 +70,9 @@ public class KuduOutput extends FailoverOutput<String, KuduResult> {
 
 		});
 		return c.get();
+	}
+	
+	public KuduClient client(){		
+		return connect.client();
 	}
 }

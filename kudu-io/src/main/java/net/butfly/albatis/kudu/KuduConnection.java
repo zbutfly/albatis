@@ -18,12 +18,7 @@ public class KuduConnection extends NoSqlConnection<KuduClient> {
 
 	protected KuduConnection(URISpec kuduUri, Map<String, String> props) throws IOException {
 		super(kuduUri, r -> {
-			try (KuduClient client = new KuduClient.KuduClientBuilder(kuduUri.getHost()).build()) {
-				return client;
-			} catch (KuduException ex) {
-				logger.error("Kudu client ini faile.");
-			}
-			return null;
+				return new KuduClient.KuduClientBuilder(kuduUri.getHost()).build();			
 		}, "kudu", "kudu");
 	}
 
@@ -40,14 +35,13 @@ public class KuduConnection extends NoSqlConnection<KuduClient> {
 			logger.error("Close failure", e);
 		}
 	}
-	
-	public KuduTable kuduTable(String table) throws KuduException{
-		
+
+	public KuduTable kuduTable(String table) throws KuduException {
+
 		return super.client().openTable(table);
 	}
-	
-	public KuduSession newSession(){
-		
+
+	public KuduSession newSession() {
 		return super.client().newSession();
 	}
 }
