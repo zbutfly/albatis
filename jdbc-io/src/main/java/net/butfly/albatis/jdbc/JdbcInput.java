@@ -9,6 +9,7 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.locks.ReentrantLock;
 
 import net.butfly.albacore.io.InputImpl;
 
@@ -87,27 +88,33 @@ public class JdbcInput extends InputImpl<Map<String, Object>> {
 		return !next;
 	}
 
+	private final ReentrantLock lock = new ReentrantLock();
+
 	@Override
 	protected Map<String, Object> dequeue() {
-		if (!next) return null;
-		Map<String, Object> r = new HashMap<>();
+		if (!next || !lock.tryLock()) return null;
 		try {
-			for (int i = 0; i < colCount; i++) {
-				Object v;
-				try {
-					v = rs.getObject(i + 1);
-				} catch (SQLException e) {
-					v = null;
-				}
-				r.put(colNames[i], v);
-			}
-			return r;
-		} finally {
+			Map<String, Object> r = new HashMap<>();
 			try {
-				next = rs.next();
-			} catch (SQLException e) {
-				next = false;
+				for (int i = 0; i < colCount; i++) {
+					Object v;
+					try {
+						v = rs.getObject(i + 1);
+					} catch (SQLException e) {
+						v = null;
+					}
+					r.put(colNames[i], v);
+				}
+				return r;
+			} finally {
+				try {
+					next = rs.next();
+				} catch (SQLException e) {
+					next = false;
+				}
 			}
+		} finally {
+			lock.unlock();
 		}
 	}
 
