@@ -60,10 +60,9 @@ public class ZKConn implements AutoCloseable {
 		}
 	}
 
-	@SuppressWarnings("unchecked")
-	private <T> T fetchValue(String path) {
+	private <T> T fetchValue(String path, Class<T> cl) {
 		String text = fetchText(path);
-		return null == text ? null : (T) JsonSerder.JSON_OBJECT.der(text);
+		return null == text ? null : JsonSerder.SERDER(cl).der(text, cl);
 	}
 
 	private Map<String, Object> fetchMap(String path) {
@@ -134,15 +133,15 @@ public class ZKConn implements AutoCloseable {
 
 	@SuppressWarnings("unchecked")
 	@Deprecated
-	protected <T> T fetchTree(String path) {
+	protected <T> T fetchTree(String path, Class<T> cl) {
 		List<String> nodes = fetchChildren(path);
 		if (null == nodes || nodes.isEmpty()) {
 			Map<String, Object> map = fetchMap(path);
-			return null == map ? fetchValue(path) : (T) map;
+			return null == map ? fetchValue(path, cl) : (T) map;
 		} else return (T) IO.mapping(nodes, s -> s.map(node -> {
 			String subpath = "/".equals(path) ? "/" + node : path + "/" + node;
 			System.err.println("Scan zk: " + subpath);
-			Object sub = fetchTree(subpath);
+			Object sub = fetchTree(subpath, cl);
 			return new Pair<String, Object>(node, sub);
 		}).filter(p -> p.v2() != null), Collectors.toMap(p -> p.v1(), p -> p.v2()));
 	}

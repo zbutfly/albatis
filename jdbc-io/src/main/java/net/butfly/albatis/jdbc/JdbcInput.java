@@ -31,7 +31,7 @@ public class JdbcInput extends InputImpl<Map<String, Object>> {
 
 	public JdbcInput(final String name, Connection conn, final String sql, final Object... params) throws IOException, SQLException {
 		super(name);
-		logger().info("[" + name + "] from [" + conn.getClientInfo() + "], sql: \n\t" + sql + "]");
+		logger().debug("[" + name + "] from [" + conn.getClientInfo() + "], sql: \n\t" + sql);
 		this.conn = conn;
 		// this.conn.setAutoCommit(true);
 		this.conn.setTransactionIsolation(Connection.TRANSACTION_READ_UNCOMMITTED);
