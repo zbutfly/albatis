@@ -44,6 +44,7 @@ public class JdbcInput extends InputImpl<Map<String, Object>> {
 			stat.setObject(i++, p);
 		opening(this::openJdbc);
 		closing(this::closeJdbc);
+		open();
 	}
 
 	private void parseMeta() throws SQLException {
