@@ -6,6 +6,8 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.bson.BSONObject;
+
 import com.hzcominfo.albatis.nosql.NoSqlConnection;
 import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;
@@ -17,6 +19,10 @@ import com.mongodb.MongoClientURI;
 import net.butfly.albacore.io.utils.URISpec;
 import net.butfly.albacore.utils.logger.Logger;
 
+/**
+ * @author butfly
+ *
+ */
 public class MongoConnection extends NoSqlConnection<MongoClient> {
 	private static final Logger logger = Logger.getLogger(MongoConnection.class);
 	private final Map<String, DB> dbs;
@@ -83,6 +89,40 @@ public class MongoConnection extends NoSqlConnection<MongoClient> {
 
 	public static BasicDBObject dbobj() {
 		return new BasicDBObject();
+	}
+
+	/**
+	 * Deeply clone
+	 * 
+	 * @param origin
+	 * @return
+	 */
+	public static BasicDBObject dbobj(BSONObject origin) {
+		BasicDBObject dbo = new BasicDBObject();
+		for (String k : origin.keySet())
+			putDeeply(dbo, k, origin.get(k));
+		return dbo;
+	}
+
+	/**
+	 * Deeply clone
+	 * 
+	 * @param map
+	 * @return
+	 */
+	public static BasicDBObject dbobj(Map<String, ?> map) {
+		BasicDBObject dbo = new BasicDBObject();
+		for (String k : map.keySet())
+			putDeeply(dbo, k, map.get(k));
+		return dbo;
+	}
+
+	@SuppressWarnings("unchecked")
+	private static void putDeeply(BasicDBObject dbo, String k, Object v) {
+		if (null == v) dbo.put(k, v);
+		else if (v instanceof BSONObject) dbo.put(k, dbobj((BSONObject) v));
+		else if (v instanceof Map) dbo.put(k, dbobj((Map<String, ?>) v));
+		else dbo.put(k, v);
 	}
 
 	public static BasicDBObject dbobj(String key, Object... valueAndKeys) {
