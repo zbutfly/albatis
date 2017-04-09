@@ -14,16 +14,40 @@ public final class MongoUpdateOutput extends OutputImpl<Pair<DBObject, DBObject>
 	private final MongoConnection conn;
 	private final DBCollection collection;
 
+	public MongoUpdateOutput(String name, String uri) throws IOException {
+		this(name, new MongoConnection(uri));
+	}
+
+	public MongoUpdateOutput(String name, MongoConnection conn) throws IOException {
+		this(name, conn, conn.defaultCollection());
+	}
+
 	public MongoUpdateOutput(String name, String uri, String collection) throws IOException {
 		this(name, uri, collection, true);
 	}
 
+	public MongoUpdateOutput(String name, MongoConnection conn, String collection) throws IOException {
+		this(name, conn, collection, true);
+	}
+
+	public MongoUpdateOutput(String name, String uri, boolean upsert) throws IOException {
+		this(name, new MongoConnection(uri), upsert);
+	}
+
+	public MongoUpdateOutput(String name, MongoConnection conn, boolean upsert) throws IOException {
+		this(name, conn, conn.defaultCollection(), upsert);
+	}
+
 	public MongoUpdateOutput(String name, String uri, String collection, boolean upsert) throws IOException {
+		this(name, new MongoConnection(uri), collection, upsert);
+	}
+
+	public MongoUpdateOutput(String name, MongoConnection conn, String collection, boolean upsert) throws IOException {
 		super(name);
 		this.upsert = upsert;
-		this.conn = new MongoConnection(uri);
-		this.collection = conn.db().getCollection(collection);
-		closing(conn::close);
+		this.conn = conn;
+		this.collection = this.conn.db().getCollection(collection);
+		closing(this.conn::close);
 		open();
 	}
 

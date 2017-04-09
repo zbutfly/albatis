@@ -16,16 +16,40 @@ public final class MongoOutput extends Namedly implements Output<DBObject> {
 	private final MongoConnection conn;
 	private final DBCollection collection;
 
+	public MongoOutput(String name, String uri) throws IOException {
+		this(name, new MongoConnection(uri));
+	}
+
+	public MongoOutput(String name, MongoConnection conn) throws IOException {
+		this(name, conn, conn.defaultCollection());
+	}
+
 	public MongoOutput(String name, String uri, String collection) throws IOException {
 		this(name, uri, collection, true);
 	}
 
+	public MongoOutput(String name, MongoConnection conn, String collection) throws IOException {
+		this(name, conn, collection, true);
+	}
+
+	public MongoOutput(String name, String uri, boolean upsert) throws IOException {
+		this(name, new MongoConnection(uri), upsert);
+	}
+
+	public MongoOutput(String name, MongoConnection conn, boolean upsert) throws IOException {
+		this(name, conn, conn.defaultCollection(), upsert);
+	}
+
 	public MongoOutput(String name, String uri, String collection, boolean upsert) throws IOException {
+		this(name, new MongoConnection(uri), collection, upsert);
+	}
+
+	public MongoOutput(String name, MongoConnection conn, String collection, boolean upsert) throws IOException {
 		super(name);
 		this.upsert = upsert;
-		this.conn = new MongoConnection(uri);
-		this.collection = conn.db().getCollection(collection);
-		closing(conn::close);
+		this.conn = conn;
+		this.collection = this.conn.db().getCollection(collection);
+		closing(this.conn::close);
 		open();
 	}
 
