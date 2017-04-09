@@ -61,8 +61,10 @@ public class JdbcInput extends InputImpl<Map<String, Object>> {
 	}
 
 	private void openJdbc() {
+		long now = System.currentTimeMillis();
 		try {
 			rs = stat.executeQuery();
+			logger().debug("Query spent: " + (System.currentTimeMillis() - now) + " ms.");
 			next = rs.next();
 			parseMeta();
 		} catch (SQLException e) {
