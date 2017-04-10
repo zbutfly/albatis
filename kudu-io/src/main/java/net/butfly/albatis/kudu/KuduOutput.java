@@ -16,6 +16,7 @@ import org.apache.kudu.client.KuduException;
 import org.apache.kudu.client.KuduSession;
 import org.apache.kudu.client.KuduTable;
 import org.apache.kudu.client.OperationResponse;
+import org.apache.kudu.client.SessionConfiguration.FlushMode;
 import org.apache.kudu.client.Upsert;
 
 import net.butfly.albacore.io.faliover.FailoverOutput;
@@ -32,11 +33,18 @@ public class KuduOutput extends FailoverOutput<String, KuduResult> {
 		super(name, b -> new KuduResult(b), failoverPath, null == uri ? 200 : Integer.parseInt(uri.getParameter(PARAM_KEY_BATCH, "200")));
 		this.connect = new KuduConnection(uri, null);
 		this.session = connect.newSession();
-		
+		this.session.setFlushMode(FlushMode.AUTO_FLUSH_BACKGROUND);
+		open();
 	}
 
 	@Override
 	protected void closeInternal() {
+		try {
+			session.flush();
+		} catch (KuduException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		connect.close();
 	}
 
@@ -47,7 +55,7 @@ public class KuduOutput extends FailoverOutput<String, KuduResult> {
 			this.kuduTable = connect.kuduTable(name);
 		} catch (KuduException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			throw new RuntimeException("connect kudu table faile.");
 		}
 		AtomicLong c = new AtomicLong(0);
 		Schema schema = kuduTable.getSchema();
