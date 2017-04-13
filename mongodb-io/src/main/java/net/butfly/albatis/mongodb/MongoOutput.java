@@ -8,8 +8,8 @@ import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 
 import net.butfly.albacore.base.Namedly;
-import net.butfly.albacore.io.IO;
 import net.butfly.albacore.io.Output;
+import net.butfly.albacore.io.utils.Parals;
 
 public final class MongoOutput extends Namedly implements Output<DBObject> {
 	private final boolean upsert;
@@ -66,6 +66,6 @@ public final class MongoOutput extends Namedly implements Output<DBObject> {
 				if (collection.save(dbo).getN() == 1) count.incrementAndGet();
 			});
 			return count.get();
-		} else return collection.insert(IO.list(dbos)).getN();
+		} else return collection.insert(Parals.list(dbos)).getN();
 	}
 }

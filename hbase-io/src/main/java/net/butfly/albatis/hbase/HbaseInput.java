@@ -24,9 +24,9 @@ import org.apache.hadoop.hbase.ipc.RemoteWithExtrasException;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import net.butfly.albacore.base.Namedly;
-import net.butfly.albacore.io.IO;
-import net.butfly.albacore.io.utils.Streams;
 import net.butfly.albacore.io.Input;
+import net.butfly.albacore.io.utils.Parals;
+import net.butfly.albacore.io.utils.Streams;
 import net.butfly.albacore.utils.collection.Maps;
 
 public final class HbaseInput extends Namedly implements Input<HbaseResult> {
@@ -119,9 +119,9 @@ public final class HbaseInput extends Namedly implements Input<HbaseResult> {
 		if (gets == null || gets.isEmpty()) return new ArrayList<>();
 		return gets.size() == 1 ? Arrays.asList(get(gets.get(0))) : table(tname, t -> {
 			try {
-				return IO.list(Arrays.asList(t.get(gets)), r -> new HbaseResult(tname, r));
+				return Parals.list(Arrays.asList(t.get(gets)), r -> new HbaseResult(tname, r));
 			} catch (Exception ex) {
-				return IO.list(Streams.of(gets, false).map(this::get));
+				return Parals.list(Streams.of(gets, false).map(this::get));
 			}
 		});
 	}

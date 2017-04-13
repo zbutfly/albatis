@@ -10,7 +10,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import net.butfly.albacore.base.Namedly;
-import net.butfly.albacore.io.IO;
 import net.butfly.albacore.io.Message;
 import net.butfly.albacore.io.Output;
 import net.butfly.albacore.io.utils.Parals;
@@ -46,17 +45,17 @@ public abstract class FailoverOutput<K, M extends Message<K, ?, M>> extends Name
 
 	@Override
 	public final long enqueue(Stream<M> els) {
-		Map<K, List<M>> parts = IO.collect(els, Collectors.groupingByConcurrent(M::partition));
+		Map<K, List<M>> parts = Parals.collect(els, Collectors.groupingByConcurrent(M::partition));
 		if (parts.isEmpty()) return 0;
-		return eachs(parts.entrySet(), e -> enqueue(e.getKey(), e.getValue()), Streams.LONG_SUM);
+		return Parals.eachs(parts.entrySet(), e -> enqueue(e.getKey(), e.getValue()), Streams.LONG_SUM);
 	}
 
 	private long enqueue(K key, List<M> items) {
 		if (null == items || items.isEmpty()) return 0;
 		int size = items.size();
 		return size <= batchSize ? failover.output(key, Streams.of(items))
-				: eachs(Streams.spatial(items.spliterator(), Parals.calcParallelism(size, batchSize)).values(), it -> failover.output(key,
-						Streams.of(it)), Streams.LONG_SUM);
+				: Parals.eachs(Streams.spatial(items.spliterator(), Parals.calcBatchParal(size, batchSize)).values(), it -> failover.output(
+						key, Streams.of(it)), Streams.LONG_SUM);
 
 	}
 

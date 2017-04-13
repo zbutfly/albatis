@@ -18,9 +18,9 @@ import kafka.consumer.ConsumerTimeoutException;
 import kafka.consumer.KafkaStream;
 import kafka.javaapi.consumer.ConsumerConnector;
 import net.butfly.albacore.exception.ConfigException;
-import net.butfly.albacore.io.IO;
 import net.butfly.albacore.io.InputImpl;
 import net.butfly.albacore.io.ext.OpenableThread;
+import net.butfly.albacore.io.utils.Parals;
 import net.butfly.albacore.io.utils.Streams;
 import net.butfly.albacore.io.utils.URISpec;
 import net.butfly.albacore.utils.IOs;
@@ -93,7 +93,7 @@ public final class KafkaInput extends InputImpl<KafkaMessage> {
 			throw new RuntimeException("Offheap pool init failure", e);
 		}
 		AtomicInteger findex = new AtomicInteger();
-		raws = IO.map(r, s -> s, s -> new Fetcher(name + "Fetcher", s, findex.incrementAndGet()));
+		raws = Parals.map(r, s -> s, s -> new Fetcher(name + "Fetcher", s, findex.incrementAndGet()));
 		logger().trace(() -> MessageFormat.format("[{0}] local pool init [size: {3}]: \n\tpath: [{1}/{0}/{2}].", name, poolPath, poolId,
 				poolSize()));
 		closing(this::closeKafka);

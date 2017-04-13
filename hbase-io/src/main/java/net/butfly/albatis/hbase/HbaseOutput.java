@@ -15,8 +15,8 @@ import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Table;
 
-import net.butfly.albacore.io.IO;
 import net.butfly.albacore.io.faliover.FailoverOutput;
+import net.butfly.albacore.io.utils.Parals;
 import net.butfly.albacore.io.utils.URISpec;
 import net.butfly.albacore.utils.Exceptions;
 
@@ -62,7 +62,7 @@ public final class HbaseOutput extends FailoverOutput<String, HbaseResult> {
 	@Override
 	protected long write(String table, Stream<HbaseResult> values, Consumer<Collection<HbaseResult>> failing, Consumer<Long> committing,
 			int retry) {
-		List<Put> puts = IO.list(values, HbaseResult::forWrite);
+		List<Put> puts = Parals.list(values, HbaseResult::forWrite);
 		if (puts.isEmpty()) return 0;
 		long rr = 0;
 		try {
@@ -70,7 +70,7 @@ public final class HbaseOutput extends FailoverOutput<String, HbaseResult> {
 			rr = puts.size();
 		} catch (Exception ex) {
 			logger().warn(name() + " write failed [" + Exceptions.unwrap(ex).getMessage() + "], [" + puts.size() + "] into failover.");
-			failing.accept(IO.list(puts, p -> new HbaseResult(table, p)));
+			failing.accept(Parals.list(puts, p -> new HbaseResult(table, p)));
 		} finally {
 			committing.accept(rr);
 		}

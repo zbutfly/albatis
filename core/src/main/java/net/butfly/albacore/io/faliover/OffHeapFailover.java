@@ -13,8 +13,8 @@ import java.util.function.Function;
 
 import com.bluejeans.bigqueue.BigQueue;
 
-import net.butfly.albacore.io.IO;
 import net.butfly.albacore.io.Message;
+import net.butfly.albacore.io.utils.Parals;
 import net.butfly.albacore.io.utils.Streams;
 import net.butfly.albacore.utils.IOs;
 import net.butfly.albacore.utils.Pair;
@@ -42,12 +42,12 @@ public class OffHeapFailover<K, V extends Message<K, ?, V>> extends Failover<K, 
 			while (opened() && !failover.isEmpty()) {
 				Pair<K, List<V>> results;
 				try {
-					results = IO.run(this::fetch);
+					results = Parals.run(this::fetch);
 				} catch (Exception e) {
 					continue;
 				}
 				if (results != null && results.v2() != null && !results.v2().isEmpty()) {
-					IO.run(() -> output(results.v1(), stats(Streams.of(results.v2()))));
+					Parals.run(() -> output(results.v1(), stats(Streams.of(results.v2()))));
 				}
 			}
 		}
@@ -55,7 +55,7 @@ public class OffHeapFailover<K, V extends Message<K, ?, V>> extends Failover<K, 
 
 	private Pair<K, List<V>> fetch() throws IOException {
 		Pair<K, byte[][]> results = fromBytes(failover.dequeue());
-		return new Pair<>(results.v1(), IO.list(Arrays.asList(results.v2()), b -> construct.apply(b)));
+		return new Pair<>(results.v1(), Parals.list(Arrays.asList(results.v2()), b -> construct.apply(b)));
 	}
 
 	@Override
@@ -72,7 +72,7 @@ public class OffHeapFailover<K, V extends Message<K, ?, V>> extends Failover<K, 
 		try (ByteArrayOutputStream baos = new ByteArrayOutputStream(); ObjectOutputStream oos = new ObjectOutputStream(baos);) {
 			oos.writeObject(key);
 			IOs.writeInt(baos, values.size());
-			IOs.writeBytes(baos, IO.list(values, v -> v.toBytes()).toArray(new byte[values.size()][]));
+			IOs.writeBytes(baos, Parals.list(values, v -> v.toBytes()).toArray(new byte[values.size()][]));
 			return baos.toByteArray();
 		}
 	}

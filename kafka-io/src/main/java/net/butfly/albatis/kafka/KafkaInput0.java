@@ -20,9 +20,9 @@ import kafka.consumer.KafkaStream;
 import kafka.javaapi.consumer.ConsumerConnector;
 import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.exception.ConfigException;
-import net.butfly.albacore.io.IO;
 import net.butfly.albacore.io.Input;
 import net.butfly.albacore.io.utils.Its;
+import net.butfly.albacore.io.utils.Parals;
 import net.butfly.albacore.io.utils.Streams;
 import net.butfly.albacore.io.utils.URISpec;
 import net.butfly.albacore.utils.Texts;
@@ -63,7 +63,7 @@ public final class KafkaInput0 extends Namedly implements Input<KafkaMessage> {
 		}
 		logger().debug("parallelism of topics: " + allTopics.toString() + ".");
 		Stream<ConsumerIterator<byte[], byte[]>> r = connect();
-		raws = IO.list(r);
+		raws = Parals.list(r);
 		logger().info(MessageFormat.format("[{0}] local pool init: [{1}/{0}] with name [{2}], init size [{3}].", name, config.toString()));
 		closing(this::closeKafka);
 		open();

@@ -17,7 +17,7 @@ import kafka.common.TopicAndPartition;
 import kafka.javaapi.OffsetRequest;
 import kafka.javaapi.consumer.SimpleConsumer;
 import kafka.utils.ZkUtils;
-import net.butfly.albacore.io.IO;
+import net.butfly.albacore.io.utils.Parals;
 import net.butfly.albacore.serder.JsonSerder;
 import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.collection.Maps;
@@ -90,12 +90,12 @@ public class ZKConn implements AutoCloseable {
 					.collect(Collectors.toSet()));
 			return t;
 		});
-		return IO.map(s, t -> t._1, t -> t._2.stream().mapToInt(i -> null == i ? 0 : i.intValue()).sorted().toArray());
+		return Parals.map(s, t -> t._1, t -> t._2.stream().mapToInt(i -> null == i ? 0 : i.intValue()).sorted().toArray());
 	}
 
 	public Map<String, int[]> getTopicPartitions(String... topics) {
 		if (topics == null || topics.length == 0) return getTopicPartitions();
-		return IO.map(Stream.of(topics), t -> t, t -> {
+		return Parals.map(Stream.of(topics), t -> t, t -> {
 			Map<String, Object> info = fetchMap(ZkUtils.getTopicPath(t));
 			if (null == info) return new int[0];
 			else {
@@ -138,7 +138,7 @@ public class ZKConn implements AutoCloseable {
 		if (null == nodes || nodes.isEmpty()) {
 			Map<String, Object> map = fetchMap(path);
 			return null == map ? fetchValue(path, cl) : (T) map;
-		} else return (T) IO.mapping(nodes, s -> s.map(node -> {
+		} else return (T) Parals.mapping(nodes, s -> s.map(node -> {
 			String subpath = "/".equals(path) ? "/" + node : path + "/" + node;
 			System.err.println("Scan zk: " + subpath);
 			Object sub = fetchTree(subpath, cl);
