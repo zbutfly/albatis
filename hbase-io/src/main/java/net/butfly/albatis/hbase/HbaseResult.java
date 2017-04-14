@@ -15,8 +15,8 @@ import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
 
-import net.butfly.albacore.io.IO;
 import net.butfly.albacore.io.Message;
+import net.butfly.albacore.io.utils.Parals;
 import net.butfly.albacore.io.utils.Streams;
 import net.butfly.albacore.utils.IOs;
 import net.butfly.albacore.utils.logger.Logger;
@@ -50,7 +50,7 @@ public class HbaseResult extends Message<String, Put, HbaseResult> {
 		super();
 		this.table = table;
 		this.row = row;
-		List<Cell> l = IO.list(Streams.of(cells));
+		List<Cell> l = Parals.list(Streams.of(cells));
 		result = Result.create(l);
 
 	}
@@ -137,7 +137,7 @@ public class HbaseResult extends Message<String, Put, HbaseResult> {
 	}
 
 	public Set<String> cols() {
-		return isEmpty() ? null : IO.collect(cells().map(Hbases::colFamily), Collectors.toSet());
+		return isEmpty() ? null : Parals.collect(cells().map(Hbases::colFamily), Collectors.toSet());
 	}
 
 	public boolean isEmpty() {

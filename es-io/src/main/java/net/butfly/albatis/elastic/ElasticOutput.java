@@ -7,8 +7,8 @@ import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkRequest;
 
 import net.butfly.albacore.base.Namedly;
-import net.butfly.albacore.io.IO;
 import net.butfly.albacore.io.Output;
+import net.butfly.albacore.io.utils.Parals;
 import net.butfly.albacore.io.utils.Streams;
 
 @Deprecated
@@ -24,7 +24,7 @@ public final class ElasticOutput extends Namedly implements Output<ElasticMessag
 	@Override
 	public long enqueue(Stream<ElasticMessage> docs) {
 		long s = 0;
-		for (BulkItemResponse r : conn.client().bulk(new BulkRequest().add(IO.list(Streams.of(docs).map(ElasticMessage::forWrite))))
+		for (BulkItemResponse r : conn.client().bulk(new BulkRequest().add(Parals.list(Streams.of(docs).map(ElasticMessage::forWrite))))
 				.actionGet())
 			if (!r.isFailed()) s++;
 		return s;

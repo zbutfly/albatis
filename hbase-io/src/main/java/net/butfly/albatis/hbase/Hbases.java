@@ -8,9 +8,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.Properties;
 import java.util.stream.Collectors;
 
 import org.apache.hadoop.conf.Configuration;
@@ -23,7 +23,7 @@ import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
 
-import net.butfly.albacore.io.IO;
+import net.butfly.albacore.io.utils.Parals;
 import net.butfly.albacore.io.utils.Streams;
 import net.butfly.albacore.utils.IOs;
 import net.butfly.albacore.utils.Utils;
@@ -95,6 +95,6 @@ public final class Hbases extends Utils {
 	}
 
 	public static long totalCellSize(List<HbaseResult> rs) {
-		return IO.collect(Streams.of(rs), Collectors.summingLong(r -> r.size()));
+		return Parals.collect(Streams.of(rs), Collectors.summingLong(r -> r.size()));
 	}
 }
