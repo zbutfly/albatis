@@ -148,12 +148,13 @@ public final class KafkaInput extends InputImpl<KafkaMessage> {
 		}
 
 		private boolean hasNext() {
-			while (true)
+			while (opened())
 				try {
 					return it.hasNext();
 				} catch (ConsumerTimeoutException ex) {
 					Concurrents.waitSleep(POOL_LOCK_WAITING);
 				}
+			return opened();
 		}
 
 		@Override
