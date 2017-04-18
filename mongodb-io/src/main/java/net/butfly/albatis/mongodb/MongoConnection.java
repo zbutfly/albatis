@@ -97,10 +97,11 @@ public class MongoConnection extends NoSqlConnection<MongoClient> {
 	 * @param origin
 	 * @return
 	 */
-	public static BasicDBObject dbobj(BSONObject origin) {
+	public static BasicDBObject dbobj(BSONObject... origin) {
 		BasicDBObject dbo = new BasicDBObject();
-		for (String k : origin.keySet())
-			putDeeply(dbo, k, origin.get(k));
+		for (BSONObject o : origin)
+			if (null != o) for (String k : o.keySet())
+				putDeeply(dbo, k, o.get(k));
 		return dbo;
 	}
 
