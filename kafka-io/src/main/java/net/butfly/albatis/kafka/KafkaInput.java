@@ -1,5 +1,8 @@
 package net.butfly.albatis.kafka;
 
+import static net.butfly.albacore.io.utils.Streams.map;
+import static net.butfly.albacore.io.utils.Streams.of;
+
 import java.io.IOException;
 import java.text.MessageFormat;
 import java.util.List;
@@ -20,7 +23,6 @@ import kafka.javaapi.consumer.ConsumerConnector;
 import net.butfly.albacore.exception.ConfigException;
 import net.butfly.albacore.io.InputImpl;
 import net.butfly.albacore.io.ext.OpenableThread;
-import net.butfly.albacore.io.utils.Parals;
 import net.butfly.albacore.io.utils.Streams;
 import net.butfly.albacore.io.utils.URISpec;
 import net.butfly.albacore.utils.IOs;
@@ -83,7 +85,7 @@ public final class KafkaInput extends InputImpl<KafkaMessage> {
 		while (temp == null);
 		connect = c;
 		logger().info("[" + name() + "] connected.");
-		Stream<KafkaStream<byte[], byte[]>> r = Streams.of(temp.values()).flatMap(t -> Streams.of(t));
+		Stream<KafkaStream<byte[], byte[]>> r = of(temp.values()).flatMap(Streams::of);
 		// connect ent
 		poolSize = config.getPoolSize();
 		String poolId = config.toString();
@@ -93,7 +95,7 @@ public final class KafkaInput extends InputImpl<KafkaMessage> {
 			throw new RuntimeException("Offheap pool init failure", e);
 		}
 		AtomicInteger findex = new AtomicInteger();
-		raws = Parals.map(r, s -> s, s -> new Fetcher(name + "Fetcher", s, findex.incrementAndGet()));
+		raws = map(r, s -> s, s -> new Fetcher(name + "Fetcher", s, findex.incrementAndGet()));
 		logger().trace(() -> MessageFormat.format("[{0}] local pool init [size: {3}]: \n\tpath: [{1}/{0}/{2}].", name, poolPath, poolId,
 				poolSize()));
 		closing(this::closeKafka);

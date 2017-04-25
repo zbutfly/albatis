@@ -1,5 +1,7 @@
 package net.butfly.albatis.kafka;
 
+import static net.butfly.albacore.io.utils.Streams.list;
+
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -8,7 +10,6 @@ import kafka.producer.KeyedMessage;
 import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.exception.ConfigException;
 import net.butfly.albacore.io.Output;
-import net.butfly.albacore.io.utils.Parals;
 import net.butfly.albacore.io.utils.URISpec;
 import net.butfly.albacore.utils.Exceptions;
 import net.butfly.albatis.kafka.config.KafkaOutputConfig;
@@ -32,7 +33,7 @@ public final class KafkaOutput extends Namedly implements Output<KafkaMessage> {
 
 	@Override
 	public long enqueue(Stream<KafkaMessage> messages) {
-		List<KeyedMessage<byte[], byte[]>> ms = Parals.list(messages.map(KafkaMessage::toKeyedMessage));
+		List<KeyedMessage<byte[], byte[]>> ms = list(messages.map(KafkaMessage::toKeyedMessage));
 		try {
 			producer.send(ms);
 			return ms.size();

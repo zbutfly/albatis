@@ -1,5 +1,7 @@
 package net.butfly.albatis.hbase;
 
+import static net.butfly.albacore.io.utils.Streams.list;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -25,7 +27,6 @@ import org.apache.hadoop.hbase.util.Bytes;
 
 import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.io.Input;
-import net.butfly.albacore.io.utils.Parals;
 import net.butfly.albacore.io.utils.Streams;
 import net.butfly.albacore.utils.collection.Maps;
 
@@ -119,9 +120,9 @@ public final class HbaseInput extends Namedly implements Input<HbaseResult> {
 		if (gets == null || gets.isEmpty()) return new ArrayList<>();
 		return gets.size() == 1 ? Arrays.asList(get(gets.get(0))) : table(tname, t -> {
 			try {
-				return Parals.list(Arrays.asList(t.get(gets)), r -> new HbaseResult(tname, r));
+				return list(Arrays.asList(t.get(gets)), r -> new HbaseResult(tname, r));
 			} catch (Exception ex) {
-				return Parals.list(Streams.of(gets, false).map(this::get));
+				return list(Streams.of(gets, false).map(this::get));
 			}
 		});
 	}

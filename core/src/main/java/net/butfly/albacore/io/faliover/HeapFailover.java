@@ -11,8 +11,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Function;
 
 import net.butfly.albacore.io.Message;
-import net.butfly.albacore.io.utils.Parals;
 import net.butfly.albacore.io.utils.Streams;
+import net.butfly.albacore.utils.parallel.Parals;
 
 public class HeapFailover<K, V extends Message<K, ?, V>> extends Failover<K, V> {
 	private static final int MAX_FAILOVER = 50000;

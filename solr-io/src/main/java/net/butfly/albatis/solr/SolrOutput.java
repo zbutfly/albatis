@@ -1,5 +1,7 @@
 package net.butfly.albatis.solr;
 
+import static net.butfly.albacore.io.utils.Streams.list;
+
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
@@ -13,7 +15,6 @@ import com.hzcominfo.albatis.nosql.Connection;
 
 import net.butfly.albacore.io.Message;
 import net.butfly.albacore.io.faliover.FailoverOutput;
-import net.butfly.albacore.io.utils.Parals;
 import net.butfly.albacore.io.utils.URISpec;
 import net.butfly.albacore.utils.Exceptions;
 
@@ -50,7 +51,7 @@ public final class SolrOutput extends FailoverOutput<String, SolrMessage<SolrInp
 	@Override
 	protected long write(String core, Stream<SolrMessage<SolrInputDocument>> docs,
 			Consumer<Collection<SolrMessage<SolrInputDocument>>> failing, Consumer<Long> committing, int retry) {
-		List<SolrInputDocument> ds = Parals.list(docs, SolrMessage<SolrInputDocument>::forWrite);
+		List<SolrInputDocument> ds = list(docs, SolrMessage<SolrInputDocument>::forWrite);
 		if (ds.isEmpty()) return 0;
 		long rr = 0;
 		try {
@@ -58,7 +59,7 @@ public final class SolrOutput extends FailoverOutput<String, SolrMessage<SolrInp
 			rr = ds.size();
 		} catch (Exception ex) {
 			logger().warn(name() + " write failed [" + Exceptions.unwrap(ex).getMessage() + "], [" + ds.size() + "] into failover.");
-			failing.accept(Parals.list(ds, sid -> new SolrMessage<>(core, sid)));
+			failing.accept(list(ds, sid -> new SolrMessage<>(core, sid)));
 		} finally {
 			committing.accept(rr);
 		}

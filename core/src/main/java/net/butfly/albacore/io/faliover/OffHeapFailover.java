@@ -1,5 +1,8 @@
 package net.butfly.albacore.io.faliover;
 
+import static net.butfly.albacore.io.utils.Streams.list;
+import static net.butfly.albacore.io.utils.Streams.of;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -14,11 +17,10 @@ import java.util.function.Function;
 import com.bluejeans.bigqueue.BigQueue;
 
 import net.butfly.albacore.io.Message;
-import net.butfly.albacore.io.utils.Parals;
-import net.butfly.albacore.io.utils.Streams;
 import net.butfly.albacore.utils.IOs;
 import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.parallel.Concurrents;
+import net.butfly.albacore.utils.parallel.Parals;
 
 public class OffHeapFailover<K, V extends Message<K, ?, V>> extends Failover<K, V> {
 	private BigQueue failover;
@@ -47,7 +49,7 @@ public class OffHeapFailover<K, V extends Message<K, ?, V>> extends Failover<K, 
 					continue;
 				}
 				if (results != null && results.v2() != null && !results.v2().isEmpty()) {
-					Parals.run(() -> output(results.v1(), stats(Streams.of(results.v2()))));
+					Parals.run(() -> output(results.v1(), stats(of(results.v2()))));
 				}
 			}
 		}
@@ -55,7 +57,7 @@ public class OffHeapFailover<K, V extends Message<K, ?, V>> extends Failover<K, 
 
 	private Pair<K, List<V>> fetch() throws IOException {
 		Pair<K, byte[][]> results = fromBytes(failover.dequeue());
-		return new Pair<>(results.v1(), Parals.list(Arrays.asList(results.v2()), b -> construct.apply(b)));
+		return new Pair<>(results.v1(), list(Arrays.asList(results.v2()), b -> construct.apply(b)));
 	}
 
 	@Override
@@ -72,7 +74,7 @@ public class OffHeapFailover<K, V extends Message<K, ?, V>> extends Failover<K, 
 		try (ByteArrayOutputStream baos = new ByteArrayOutputStream(); ObjectOutputStream oos = new ObjectOutputStream(baos);) {
 			oos.writeObject(key);
 			IOs.writeInt(baos, values.size());
-			IOs.writeBytes(baos, Parals.list(values, v -> v.toBytes()).toArray(new byte[values.size()][]));
+			IOs.writeBytes(baos, list(values, v -> v.toBytes()).toArray(new byte[values.size()][]));
 			return baos.toByteArray();
 		}
 	}

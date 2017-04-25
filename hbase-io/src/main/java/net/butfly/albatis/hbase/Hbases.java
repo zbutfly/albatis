@@ -1,5 +1,7 @@
 package net.butfly.albatis.hbase;
 
+import static net.butfly.albacore.io.utils.Streams.collect;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -23,7 +25,6 @@ import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
 
-import net.butfly.albacore.io.utils.Parals;
 import net.butfly.albacore.io.utils.Streams;
 import net.butfly.albacore.utils.IOs;
 import net.butfly.albacore.utils.Utils;
@@ -95,6 +96,6 @@ public final class Hbases extends Utils {
 	}
 
 	public static long totalCellSize(List<HbaseResult> rs) {
-		return Parals.collect(Streams.of(rs), Collectors.summingLong(r -> r.size()));
+		return collect(Streams.of(rs), Collectors.summingLong(r -> r.size()));
 	}
 }

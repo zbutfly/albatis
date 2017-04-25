@@ -1,5 +1,9 @@
 package net.butfly.albatis.hbase;
 
+import static net.butfly.albacore.io.utils.Streams.collect;
+import static net.butfly.albacore.io.utils.Streams.list;
+import static net.butfly.albacore.io.utils.Streams.of;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -16,8 +20,6 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import net.butfly.albacore.io.Message;
-import net.butfly.albacore.io.utils.Parals;
-import net.butfly.albacore.io.utils.Streams;
 import net.butfly.albacore.utils.IOs;
 import net.butfly.albacore.utils.logger.Logger;
 
@@ -50,7 +52,7 @@ public class HbaseResult extends Message<String, Put, HbaseResult> {
 		super();
 		this.table = table;
 		this.row = row;
-		List<Cell> l = Parals.list(Streams.of(cells));
+		List<Cell> l = list(of(cells));
 		result = Result.create(l);
 
 	}
@@ -68,12 +70,12 @@ public class HbaseResult extends Message<String, Put, HbaseResult> {
 
 	public static long sizes(Iterable<HbaseResult> results) {
 		if (null == results) return 0;
-		return Streams.of(results).collect(Collectors.summingLong(r -> r.size()));
+		return of(results).collect(Collectors.summingLong(r -> r.size()));
 	}
 
 	public static long cells(Iterable<HbaseResult> results) {
 		if (null == results) return 0;
-		return Streams.of(results).collect(Collectors.summingLong(r -> r.cells().collect(Collectors.counting())));
+		return of(results).collect(Collectors.summingLong(r -> r.cells().collect(Collectors.counting())));
 	}
 
 	public long size() {
@@ -137,7 +139,7 @@ public class HbaseResult extends Message<String, Put, HbaseResult> {
 	}
 
 	public Set<String> cols() {
-		return isEmpty() ? null : Parals.collect(cells().map(Hbases::colFamily), Collectors.toSet());
+		return isEmpty() ? null : collect(cells().map(Hbases::colFamily), Collectors.toSet());
 	}
 
 	public boolean isEmpty() {

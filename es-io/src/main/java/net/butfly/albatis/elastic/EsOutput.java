@@ -1,5 +1,8 @@
 package net.butfly.albatis.elastic;
 
+import static net.butfly.albacore.io.utils.Streams.collect;
+import static net.butfly.albacore.io.utils.Streams.list;
+import static net.butfly.albacore.io.utils.Streams.of;
 import static net.butfly.albacore.utils.Exceptions.unwrap;
 
 import java.io.IOException;
@@ -29,8 +32,6 @@ import org.elasticsearch.transport.RemoteTransportException;
 import com.hzcominfo.albatis.nosql.Connection;
 
 import net.butfly.albacore.io.faliover.FailoverOutput;
-import net.butfly.albacore.io.utils.Parals;
-import net.butfly.albacore.io.utils.Streams;
 import net.butfly.albacore.io.utils.URISpec;
 import net.butfly.albacore.utils.Exceptions;
 import net.butfly.albacore.utils.Texts;
@@ -81,7 +82,7 @@ public final class EsOutput extends FailoverOutput<String, ElasticMessage> {
 			return i;
 		}
 		List<ElasticMessage> retries = new ArrayList<>(origin.values());
-		BulkRequest req = new BulkRequest().add(Parals.list(retries, ElasticMessage::forWrite));
+		BulkRequest req = new BulkRequest().add(list(retries, ElasticMessage::forWrite));
 		long bytes = logger().isTraceEnabled() ? req.estimatedSizeInBytes() : 0;
 		long now = System.currentTimeMillis();
 
@@ -89,7 +90,7 @@ public final class EsOutput extends FailoverOutput<String, ElasticMessage> {
 			conn.client().bulk(req, new ActionListener<BulkResponse>() {
 				@Override
 				public void onResponse(BulkResponse response) {
-					Map<Boolean, List<BulkItemResponse>> resps = Parals.collect(response, Collectors.partitioningBy(r -> r.isFailed()));
+					Map<Boolean, List<BulkItemResponse>> resps = collect(response, Collectors.partitioningBy(r -> r.isFailed()));
 					List<BulkItemResponse> succResps = resps.get(Boolean.FALSE);
 					List<BulkItemResponse> failResps = resps.get(Boolean.TRUE);
 					String sample = succResps.isEmpty() ? null : succResps.get(0).getId();
@@ -99,11 +100,11 @@ public final class EsOutput extends FailoverOutput<String, ElasticMessage> {
 						committing.accept((long) origin.size());
 						result = new Result(succResps.size(), 0, sample);
 					} else {
-						Set<String> succIds = Parals.collect(succResps, r -> r.getId(), Collectors.toSet());
+						Set<String> succIds = collect(succResps, r -> r.getId(), Collectors.toSet());
 						// process failing and retry...
-						Map<Boolean, List<BulkItemResponse>> failOrRetry = Streams.of(failResps).collect(Collectors.partitioningBy(
+						Map<Boolean, List<BulkItemResponse>> failOrRetry = of(failResps).collect(Collectors.partitioningBy(
 								EsOutput.this::failed));
-						Set<String> failIds = Parals.collect(failOrRetry.get(Boolean.TRUE), r -> r.getFailure().getId(), Collectors.toSet());
+						Set<String> failIds = collect(failOrRetry.get(Boolean.TRUE), r -> r.getFailure().getId(), Collectors.toSet());
 						if (logger().isDebugEnabled()) //
 							failOrRetry.get(Boolean.TRUE).forEach(r -> logger().warn("Writing failed id [" + r.getId() + "] for: " + unwrap(
 									r.getFailure().getCause()).getMessage()));
@@ -111,14 +112,14 @@ public final class EsOutput extends FailoverOutput<String, ElasticMessage> {
 						for (ElasticMessage m : retries)
 							if (succIds.contains(m.id) || failIds.contains(m.id)) retries.remove(m);
 						// move fail marked into failing
-						failing.accept((Parals.list(failIds, origin::get)));
+						failing.accept((list(failIds, origin::get)));
 
 						// process and stats success...
 						result = new Result(succIds.size(), failIds.size(), sample);
 					}
 					if (result != null && logger().isTraceEnabled()) result.trace(origin.size(), bytes, retry, retries.size(), System
 							.currentTimeMillis() - now);
-					if (!retries.isEmpty()) write(type, Streams.of(retries), failing, committing, retry + 1);
+					if (!retries.isEmpty()) write(type, of(retries), failing, committing, retry + 1);
 				}
 
 				@Override

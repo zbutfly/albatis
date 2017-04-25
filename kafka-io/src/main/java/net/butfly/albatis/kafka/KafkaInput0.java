@@ -1,5 +1,8 @@
 package net.butfly.albatis.kafka;
 
+import static net.butfly.albacore.io.utils.Streams.list;
+import static net.butfly.albacore.io.utils.Streams.of;
+
 import java.io.IOException;
 import java.text.MessageFormat;
 import java.util.ArrayList;
@@ -22,8 +25,6 @@ import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.exception.ConfigException;
 import net.butfly.albacore.io.Input;
 import net.butfly.albacore.io.utils.Its;
-import net.butfly.albacore.io.utils.Parals;
-import net.butfly.albacore.io.utils.Streams;
 import net.butfly.albacore.io.utils.URISpec;
 import net.butfly.albacore.utils.Texts;
 import net.butfly.albacore.utils.parallel.Concurrents;
@@ -63,7 +64,7 @@ public final class KafkaInput0 extends Namedly implements Input<KafkaMessage> {
 		}
 		logger().debug("parallelism of topics: " + allTopics.toString() + ".");
 		Stream<ConsumerIterator<byte[], byte[]>> r = connect();
-		raws = Parals.list(r);
+		raws = list(r);
 		logger().info(MessageFormat.format("[{0}] local pool init: [{1}/{0}] with name [{2}], init size [{3}].", name, config.toString()));
 		closing(this::closeKafka);
 		open();
@@ -83,7 +84,7 @@ public final class KafkaInput0 extends Namedly implements Input<KafkaMessage> {
 			}
 		while (temp == null);
 		logger().debug("connected.");
-		return Streams.of(temp.values()).flatMap(t -> Streams.of(t).map(s -> s.iterator()));
+		return of(temp.values()).flatMap(t -> of(t).map(s -> s.iterator()));
 	}
 
 	private void closeKafka() {
@@ -106,7 +107,7 @@ public final class KafkaInput0 extends Namedly implements Input<KafkaMessage> {
 		Collections.shuffle(l);
 		Iterator<ConsumerIterator<byte[], byte[]>> sit = Its.loop(l);
 		AtomicReference<ConsumerIterator<byte[], byte[]>> curr = new AtomicReference<>(sit.next());
-		return using.apply(Streams.of(() -> {
+		return using.apply(of(() -> {
 			ConsumerIterator<byte[], byte[]> begin = curr.get(), it = begin;
 			KafkaMessage km = null;
 			while (opened() && null == km) {
