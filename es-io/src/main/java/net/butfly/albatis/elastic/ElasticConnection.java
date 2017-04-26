@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.elasticsearch.client.transport.TransportClient;
@@ -60,6 +61,19 @@ public class ElasticConnection extends NoSqlConnection<TransportClient> implemen
 		} catch (IOException e) {
 			logger().error("Close failure", e);
 		}
+		await();
 		client().close();
+	}
+
+	private void await() {
+		boolean closed = false;
+		logger().debug("ES connection thread pool terminating...");
+		while (!closed)
+			try {
+				closed = client().threadPool().awaitTermination(1, TimeUnit.SECONDS);
+			} catch (InterruptedException e) {
+				closed = true;
+			}
+		logger().debug("ES connection thread pool terminated...");
 	}
 }

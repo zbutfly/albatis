@@ -2,14 +2,15 @@ package net.butfly.albacore.io.faliover;
 
 import static net.butfly.albacore.io.utils.Streams.list;
 import static net.butfly.albacore.io.utils.Streams.of;
+import static net.butfly.albacore.utils.IOs.mkdirs;
+import static net.butfly.albacore.utils.IOs.readBytes;
+import static net.butfly.albacore.utils.IOs.readInt;
+import static net.butfly.albacore.utils.IOs.writeBytes;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.text.MessageFormat;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.function.Function;
@@ -25,11 +26,11 @@ import net.butfly.albacore.utils.parallel.Parals;
 public class OffHeapFailover<K, V extends Message<K, ?, V>> extends Failover<K, V> {
 	private BigQueue failover;
 
-	public OffHeapFailover(String parentName, FailoverOutput<K, V> output, Function<byte[], ? extends V> constructor, String path,
-			String poolName) throws IOException {
+	public OffHeapFailover(String parentName, FailoverOutput<K, V> output, Function<byte[], V> constructor, String path, String poolName)
+			throws IOException {
 		super(parentName, output, constructor);
 		if (poolName == null) poolName = "POOL";
-		failover = new BigQueue(IOs.mkdirs(path + "/" + parentName), poolName);
+		failover = new BigQueue(mkdirs(path + "/" + parentName), poolName);
 		logger.debug(MessageFormat.format("Failover [persist mode] init: [{0}/{1}] with name [{2}], init size [{3}].", //
 				path, parentName, poolName, size()));
 		closing(this::closePool);
@@ -41,23 +42,22 @@ public class OffHeapFailover<K, V extends Message<K, ?, V>> extends Failover<K, 
 		while (opened()) {
 			while (opened() && failover.isEmpty())
 				Concurrents.waitSleep(1000);
-			while (opened() && !failover.isEmpty()) {
-				Pair<K, List<V>> results;
-				try {
-					results = Parals.run(this::fetch);
-				} catch (Exception e) {
-					continue;
-				}
-				if (results != null && results.v2() != null && !results.v2().isEmpty()) {
-					Parals.run(() -> output(results.v1(), stats(of(results.v2()))));
-				}
+			Pair<K, List<V>> results;
+			while (null != (results = Parals.run(this::fetch))) {
+				Pair<K, List<V>> r = results;
+				Parals.run(() -> output(r.v1(), stats(of(r.v2()))));
 			}
 		}
 	}
 
 	private Pair<K, List<V>> fetch() throws IOException {
-		Pair<K, byte[][]> results = fromBytes(failover.dequeue());
-		return new Pair<>(results.v1(), list(Arrays.asList(results.v2()), b -> construct.apply(b)));
+		byte[] bytes;
+		if (!opened() || null == (bytes = failover.dequeue()) || 0 == bytes.length) return null;
+		try (ByteArrayInputStream baos = new ByteArrayInputStream(bytes);) {
+			K k = IOs.readObj(baos);
+			List<V> values = readBytes(baos, readInt(baos), construct);
+			return values.isEmpty() ? null : new Pair<>(k, values);
+		}
 	}
 
 	@Override
@@ -70,33 +70,17 @@ public class OffHeapFailover<K, V extends Message<K, ?, V>> extends Failover<K, 
 		return failover.isEmpty();
 	}
 
-	private byte[] toBytes(K key, Collection<V> values) throws IOException {
-		try (ByteArrayOutputStream baos = new ByteArrayOutputStream(); ObjectOutputStream oos = new ObjectOutputStream(baos);) {
-			oos.writeObject(key);
-			IOs.writeInt(baos, values.size());
-			IOs.writeBytes(baos, list(values, v -> v.toBytes()).toArray(new byte[values.size()][]));
-			return baos.toByteArray();
-		}
-	}
-
-	private Pair<K, byte[][]> fromBytes(byte[] data) throws IOException {
-		try (ByteArrayInputStream baos = new ByteArrayInputStream(data); ObjectInputStream oos = new ObjectInputStream(baos);) {
-			@SuppressWarnings("unchecked")
-			K k = (K) oos.readObject();
-			int c = IOs.readInt(baos);
-			byte[][] results = new byte[c][];
-			for (int i = 0; i < c; i++)
-				results[i] = IOs.readBytes(baos);
-			return new Pair<>(k, results);
-		} catch (ClassNotFoundException e) {
-			throw new IOException(e);
-		}
-	}
-
 	@Override
 	protected long fail(K key, Collection<V> values) {
 		try {
-			failover.enqueue(toBytes(key, values));
+			byte[] bytes;
+			try (ByteArrayOutputStream baos = new ByteArrayOutputStream();) {
+				IOs.writeObj(baos, key);
+				writeBytes(baos, list(values, V::toBytes).toArray(new byte[values.size()][]));
+				bytes = baos.toByteArray();
+			}
+			if (bytes.length == 0) return 0;
+			failover.enqueue(bytes);
 			return values.size();
 		} catch (IOException e) {
 			logger.error(MessageFormat.format("Failover failed, [{0}] docs lost on [{1}]", values.size(), key), e);

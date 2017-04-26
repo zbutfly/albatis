@@ -13,9 +13,9 @@ import net.butfly.albacore.utils.logger.Logger;
 public abstract class Failover<K, V extends Message<K, ?, V>> extends OpenableThread implements Statistical<Failover<K, V>> {
 	protected static final Logger logger = Logger.getLogger(Failover.class);
 	protected final FailoverOutput<K, V> output;
-	protected final Function<byte[], ? extends V> construct;
+	protected final Function<byte[], V> construct;
 
-	protected Failover(String parentName, FailoverOutput<K, V> output, Function<byte[], ? extends V> constructor) {
+	protected Failover(String parentName, FailoverOutput<K, V> output, Function<byte[], V> constructor) {
 		super(parentName + "Failover");
 		this.output = output;
 		this.construct = constructor;

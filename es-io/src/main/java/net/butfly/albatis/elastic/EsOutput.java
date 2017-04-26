@@ -124,7 +124,8 @@ public final class EsOutput extends FailoverOutput<String, ElasticMessage> {
 
 				@Override
 				public void onFailure(Exception ex) {
-					logger().warn("Elastic connection op failed [" + Exceptions.unwrap(ex) + "], [" + retries.size() + "] failover");
+					Throwable t = Exceptions.unwrap(ex);
+					logger().warn("Elastic connection op failed [" + t + "], [" + retries.size() + "] failover", t);
 					failing.accept(retries);
 				}
 			});

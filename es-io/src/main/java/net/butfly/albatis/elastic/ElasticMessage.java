@@ -100,6 +100,7 @@ public class ElasticMessage extends Message<String, ActionRequest, ElasticMessag
 			boolean scrpiting = null != script;
 			oos.writeBoolean(scrpiting);
 			if (scrpiting) writeScript(oos, script);
+			oos.flush();
 			return baos.toByteArray();
 		} catch (IOException e) {
 			return null;
@@ -109,7 +110,7 @@ public class ElasticMessage extends Message<String, ActionRequest, ElasticMessag
 	@SuppressWarnings("unchecked")
 	public ElasticMessage(byte[] bytes) {
 		if (null == bytes) throw new IllegalArgumentException();
-		try (ObjectInputStream oos = new ObjectInputStream(new ByteArrayInputStream(bytes));) {
+		try (ByteArrayInputStream bais = new ByteArrayInputStream(bytes); ObjectInputStream oos = new ObjectInputStream(bais);) {
 			index = oos.readUTF();
 			type = oos.readUTF();
 			id = oos.readUTF();

@@ -34,8 +34,7 @@ public abstract class FailoverOutput<K, M extends Message<K, ?, M>> extends Name
 	private final Failover<K, M> failover;
 	final int batchSize;
 
-	protected FailoverOutput(String name, Function<byte[], ? extends M> constructor, String failoverPath, int batchSize)
-			throws IOException {
+	protected FailoverOutput(String name, Function<byte[], M> constructor, String failoverPath, int batchSize) throws IOException {
 		super(name);
 		this.batchSize = batchSize;
 		failover = failoverPath == null ? new HeapFailover<K, M>(name(), this, constructor)

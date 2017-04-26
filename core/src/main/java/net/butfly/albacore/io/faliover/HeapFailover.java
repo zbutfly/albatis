@@ -18,7 +18,7 @@ public class HeapFailover<K, V extends Message<K, ?, V>> extends Failover<K, V> 
 	private static final int MAX_FAILOVER = 50000;
 	private Map<K, LinkedBlockingQueue<V>> failover = new ConcurrentHashMap<>();
 
-	public HeapFailover(String parentName, FailoverOutput<K, V> output, Function<byte[], ? extends V> constructor) throws IOException {
+	public HeapFailover(String parentName, FailoverOutput<K, V> output, Function<byte[], V> constructor) throws IOException {
 		super(parentName, output, constructor);
 		failover = new ConcurrentHashMap<>();
 		logger.info(MessageFormat.format("SolrOutput [{0}] failover [memory mode] init.", parentName));
