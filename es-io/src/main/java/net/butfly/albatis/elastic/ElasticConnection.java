@@ -61,11 +61,11 @@ public class ElasticConnection extends NoSqlConnection<TransportClient> implemen
 		} catch (IOException e) {
 			logger().error("Close failure", e);
 		}
-		await();
+		// await();
 		client().close();
 	}
 
-	private void await() {
+	protected final void await() {
 		boolean closed = false;
 		logger().debug("ES connection thread pool terminating...");
 		while (!closed)

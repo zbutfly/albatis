@@ -89,7 +89,7 @@ public class OffHeapFailover<K, V extends Message<K, ?, V>> extends Failover<K, 
 	}
 
 	private void closePool() {
-		while (!output.closed()) // confirm!! NO lost!!
+		while (output.opened()) // confirm!! NO lost!!
 			Concurrents.waitSleep(100, logger(), "output not closed, waiting!");
 		failover.gc();
 		long size = size();

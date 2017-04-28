@@ -6,13 +6,13 @@ import static net.butfly.albacore.io.utils.Streams.of;
 import static net.butfly.albacore.utils.Exceptions.unwrap;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -27,6 +27,7 @@ import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
+import org.elasticsearch.index.mapper.MapperException;
 import org.elasticsearch.transport.RemoteTransportException;
 
 import com.hzcominfo.albatis.nosql.Connection;
@@ -81,7 +82,7 @@ public final class EsOutput extends FailoverOutput<String, ElasticMessage> {
 			committing.accept(i);
 			return i;
 		}
-		List<ElasticMessage> retries = new ArrayList<>(origin.values());
+		LinkedBlockingQueue<ElasticMessage> retries = new LinkedBlockingQueue<>(origin.values());
 		BulkRequest req = new BulkRequest().add(list(retries, ElasticMessage::forWrite));
 		long bytes = logger().isTraceEnabled() ? req.estimatedSizeInBytes() : 0;
 		long now = System.currentTimeMillis();
@@ -109,8 +110,7 @@ public final class EsOutput extends FailoverOutput<String, ElasticMessage> {
 							failOrRetry.get(Boolean.TRUE).forEach(r -> logger().warn("Writing failed id [" + r.getId() + "] for: " + unwrap(
 									r.getFailure().getCause()).getMessage()));
 						// remove from retries: successed or marked fail.
-						for (ElasticMessage m : retries)
-							if (succIds.contains(m.id) || failIds.contains(m.id)) retries.remove(m);
+						retries.removeIf(m -> succIds.contains(m.id) || failIds.contains(m.id));
 						// move fail marked into failing
 						failing.accept((list(failIds, origin::get)));
 
@@ -176,9 +176,11 @@ public final class EsOutput extends FailoverOutput<String, ElasticMessage> {
 	}
 
 	private boolean failed(BulkItemResponse r) {
-		@SuppressWarnings("unchecked")
-		Class<Throwable> c = (Class<Throwable>) r.getFailure().getCause().getClass();
-		return EsRejectedExecutionException.class.isAssignableFrom(c) || VersionConflictEngineException.class.isAssignableFrom(c);
+		Throwable cause = r.getFailure().getCause();
+		Class<? extends Throwable> c = cause.getClass();
+		if (MapperException.class.isAssignableFrom(c)) logger().error("ES mapper exception", cause);
+		return EsRejectedExecutionException.class.isAssignableFrom(c) || VersionConflictEngineException.class.isAssignableFrom(c)
+				|| MapperException.class.isAssignableFrom(c);
 	}
 
 	static {
