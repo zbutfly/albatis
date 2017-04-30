@@ -16,14 +16,11 @@ import net.butfly.albacore.serder.JsonSerder;
  */
 
 public class KuduResult extends Message<String, Map<String, Object>, KuduResult> {
-
 	private static final long serialVersionUID = -5843704512434056538L;
-
 	private String table;
-	
-	private final Map<String,Object> result;
-	
-	public KuduResult(Map<String,Object> result, String table) {
+	private final Map<String, Object> result;
+
+	public KuduResult(Map<String, Object> result, String table) {
 		this.table = table;
 		this.result = result;
 	}
