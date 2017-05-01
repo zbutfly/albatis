@@ -25,11 +25,13 @@ public class JdbcInput extends InputImpl<Map<String, Object>> {
 	private int colCount;
 	private String[] colNames;
 
-	public JdbcInput(final String name, String jdbc, final String sql, final Object... params) throws IOException, SQLException {
-		this(name, DriverManager.getConnection(jdbc), sql, params);
+	public JdbcInput(final String name, String jdbc, final int batch, final String sql, final Object... params) throws IOException,
+			SQLException {
+		this(name, DriverManager.getConnection(jdbc), batch, sql, params);
 	}
 
-	public JdbcInput(final String name, Connection conn, final String sql, final Object... params) throws IOException, SQLException {
+	public JdbcInput(final String name, Connection conn, final int batch, final String sql, final Object... params) throws IOException,
+			SQLException {
 		super(name);
 		logger().debug("[" + name + "] from [" + conn.getClientInfo() + "], sql: \n\t" + sql);
 		this.conn = conn;
@@ -42,6 +44,7 @@ public class JdbcInput extends InputImpl<Map<String, Object>> {
 		int i = 1;
 		for (Object p : params)
 			stat.setObject(i++, p);
+		batch(100);
 		opening(this::openJdbc);
 		closing(this::closeJdbc);
 		open();
@@ -68,7 +71,7 @@ public class JdbcInput extends InputImpl<Map<String, Object>> {
 			next = rs.next();
 			parseMeta();
 		} catch (SQLException e) {
-			logger().error("SQL Error", e);
+			logger().error("SQL Error on JDBC opening", e);
 			rs = null;
 			next = false;
 		}
@@ -104,6 +107,7 @@ public class JdbcInput extends InputImpl<Map<String, Object>> {
 					try {
 						v = rs.getObject(i + 1);
 					} catch (SQLException e) {
+						logger().error("SQL Error on JDBC column fetching", e);
 						v = null;
 					}
 					r.put(colNames[i], v);
@@ -113,6 +117,7 @@ public class JdbcInput extends InputImpl<Map<String, Object>> {
 				try {
 					next = rs.next();
 				} catch (SQLException e) {
+					logger().error("SQL Error on JDBC row nexting", e);
 					next = false;
 				}
 			}
@@ -121,11 +126,11 @@ public class JdbcInput extends InputImpl<Map<String, Object>> {
 		}
 	}
 
-	public JdbcInput batch(int batching) {
+	private JdbcInput batch(int batching) {
 		try {
 			stat.setFetchSize(batching);
 		} catch (SQLException e) {
-			logger().error("SQL Error", e);
+			logger().error("SQL Error on JDBC fetching size setting", e);
 		}
 		return this;
 	}
