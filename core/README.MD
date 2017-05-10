@@ -21,6 +21,7 @@ http://10.118.159.44:39201/
 ### albatis-solr    
 目前没有用到，而且里边的类都为@Deprecated
 
+
 ## Query
 
 ## Result
