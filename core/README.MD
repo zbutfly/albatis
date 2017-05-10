@@ -1,7 +1,7 @@
 ## 通用搜索说明
 ### albatis-es
 #### 调用方式 
-  通过引用jar包的形式来调用
+1. 通过引用jar包的形式来调用
 #### 调用示例
 1. 执行sql 
 	~~~java
@@ -15,7 +15,7 @@
 	~~~java
 		ElasticResultMetadata searchResult = (ElasticResultMetadata) rs.getMetaData();
 	~~~
-#### es地址
+#### ES地址
 http://10.118.159.44:39201/
 	
 ### albatis-solr
