@@ -1,24 +1,24 @@
 ## 通用搜索说明
 ### albatis-es
-#### 调用方式 
-1. 通过引用jar包的形式来调用
-#### 调用示例
-1. 执行sql 
-	~~~java
-		ResultSet rs = connection.prepareStatement(sql).executeQuery();
-	~~~
-	1. sql结构:
-		~~~sql
-		select * from index..type where [condition] 
+1. 调用方式     
+ 	 通过引用jar包的形式来调用
+2. 调用示例
+	1. 执行sql 
+		~~~java
+			ResultSet rs = connection.prepareStatement(sql).executeQuery();
 		~~~
-2. 解析结果
-	~~~java
-		ElasticResultMetadata searchResult = (ElasticResultMetadata) rs.getMetaData();
-	~~~
-#### ES地址
+		1. sql结构:
+			~~~sql
+			select * from index..type where [condition] 
+			~~~
+	2. 解析结果
+		~~~java
+			ElasticResultMetadata searchResult = (ElasticResultMetadata) rs.getMetaData();
+		~~~
+3. ES地址
 http://10.118.159.44:39201/
 	
-### albatis-solr
+### albatis-solr    
 目前没有用到，而且里边的类都为@Deprecated
 
 ## Query
