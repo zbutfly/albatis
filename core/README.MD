@@ -8,9 +8,9 @@
 		ResultSet rs = connection.prepareStatement(sql).executeQuery();
 	~~~
 		1. sql结构:
-		~~~sql
-		select * from index..type where [condition] 
-		~~~
+			~~~sql
+			select * from index..type where [condition] 
+			~~~
 	2. 解析结果
 	~~~java
 		ElasticResultMetadata searchResult = (ElasticResultMetadata) rs.getMetaData();
