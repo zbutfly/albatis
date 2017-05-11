@@ -8,7 +8,6 @@
  */
 package com.hzcominfo.albatis.search.driver;
 
-import java.io.IOException;
 import java.net.URI;
 import java.util.Properties;
 
@@ -33,5 +32,7 @@ public interface Connection extends java.sql.Connection, com.hzcominfo.albatis.n
 
 	void setProperties(Properties properties);
 
-	Result execute(Action action, Describe describe) throws SearchAPIException, IOException;
+	Result execute(Action action, Describe describe) throws SearchAPIException;
+
+	Result execute(Action action, Describe describe, Long shardSize) throws SearchAPIException;
 }

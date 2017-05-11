@@ -3,15 +3,23 @@
 1. 调用方式     
  	 通过引用jar包的形式来调用
 2. 调用示例
-	1. 执行sql 
+	1. 将sql解析成es查询语句 
 		~~~java
-			ResultSet rs = connection.prepareStatement(sql).executeQuery();
+			ElasticPrepareStatement pstat = connection.prepareStatement(sql);
 		~~~
 		1. sql结构:
 			~~~sql
 			select * from index..type where [condition] 
 			~~~
-	2. 解析结果
+	2.设置分片size，默认值为10L，仅当使用aggregation时使用
+		~~~java
+			pstat.setShardSize(10L);
+		~~~
+	3.执行es查询
+		~~~java
+			ResultSet rs = pstat.executeQuery();		
+		~~~
+	2.返回结果
 		~~~java
 			ElasticResultMetadata searchResult = (ElasticResultMetadata) rs.getMetaData();
 		~~~

@@ -12,6 +12,6 @@
 		但是只能实现简单的关联，不满足所提要求。
 4. aggregation分片大小问题
 	问题：aggregation时分片设置为10造成部分数据统计错误
-	方案：目前是在类ElasticQuery中定义了shard_size的数值，计划写成可配置的
+	方案：目前是在类ElasticQuery中定义了shard_size的数值10，可修改相关方法，使得外部可以修改shard_size的值。
 ### albatis-solr
 1. 目前没有用到，而且里边的类都为@Deprecated
