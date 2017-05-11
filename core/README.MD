@@ -1,7 +1,13 @@
 ## 通用搜索说明
 ### albatis-es
-1. 调用方式     
- 	 通过引用jar包的形式来调用
+1. mvn依赖：
+	~~~xml
+	<dependency>
+		<groupId>net.butfly.albatis</groupId>
+		<artifactId>albatis-es</artifactId>
+		<version>1.0.1-SNAPSHOT</version>
+	</dependency>
+	~~~
 2. 调用示例
 	1. 将sql解析成es查询语句 
 		~~~java
