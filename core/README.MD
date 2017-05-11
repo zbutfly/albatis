@@ -17,15 +17,15 @@
 			~~~sql
 			select * from index..type where [condition] 
 			~~~
-	2.设置分片size，默认值为10L，仅当使用aggregation时使用
+	2. 设置分片size，默认值为10L，仅当使用aggregation时使用
 		~~~java
 			pstat.setShardSize(10L);
 		~~~
-	3.执行es查询
+	3. 执行es查询
 		~~~java
 			ResultSet rs = pstat.executeQuery();		
 		~~~
-	2.返回结果
+	2. 返回结果
 		~~~java
 			ElasticResultMetadata searchResult = (ElasticResultMetadata) rs.getMetaData();
 		~~~
