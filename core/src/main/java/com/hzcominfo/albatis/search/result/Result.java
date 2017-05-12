@@ -9,7 +9,6 @@
 package com.hzcominfo.albatis.search.result;
 
 import java.sql.ResultSet;
-import java.util.List;
 import java.util.Map;
 
 import com.hzcominfo.albatis.search.exception.SearchAPIException;
