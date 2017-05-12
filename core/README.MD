@@ -15,11 +15,11 @@
 		~~~
 		1. sql结构:
 			~~~sql
-				select * from index..type where [condition] 
+				select * from indexName..typeName where [condition] 
 			~~~
 		2. sql示例：
 			~~~sql
-				select * from index..type where zjhm='574646121111111' and name like '*tom*'; 
+				select * from indexName..typeName where zjhm='574646121111111' and name like '.*tom.*'; 
 			~~~
 	2. 设置分片size，默认值为10L，仅当使用aggregation时使用
 		~~~java
