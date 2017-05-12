@@ -35,7 +35,7 @@
 		~~~
 	2. 返回结果
 		~~~java
-			ElasticResultMetadata searchResult = (ElasticResultMetadata) rs.getMetaData();
+		List<Map<String, Object>> resultMapList = ((com.hzcominfo.albatis.search.es.result.ElasticResult) resultSet).getResultMapList();			
 		~~~
 3. ES地址
 http://10.118.159.44:39201/
