@@ -9,6 +9,7 @@
 package com.hzcominfo.albatis.search.result;
 
 import java.sql.ResultSet;
+import java.util.List;
 import java.util.Map;
 
 import com.hzcominfo.albatis.search.exception.SearchAPIException;
@@ -33,6 +34,14 @@ public interface Result extends ResultSet {
 	}
 
 	default void setResultMetadata(ResultMetadata resultMetadata) throws SearchAPIException {
+		throw new UnsupportedOperationException();
+	}
+	
+	default List<Map<String, Object>> getResultMapList() throws SearchAPIException {
+		throw new UnsupportedOperationException();
+	}
+	
+	default void setResultMapList(List<Map<String, Object>> resultMapList) throws SearchAPIException {
 		throw new UnsupportedOperationException();
 	}
 }

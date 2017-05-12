@@ -15,11 +15,19 @@
 		~~~
 		1. sql结构:
 			~~~sql
-			select * from index..type where [condition] 
+				select * from index..type where [condition] 
+			~~~
+		2. sql示例：
+			~~~sql
+				select * from index..type where zjhm='574646121111111' and name like '*tom*'; 
 			~~~
 	2. 设置分片size，默认值为10L，仅当使用aggregation时使用
 		~~~java
 			pstat.setShardSize(10L);
+		~~~
+	3. 设置结果集中的过滤参数
+		~~~java
+			pstat.setFilterParam("过滤参数");
 		~~~
 	3. 执行es查询
 		~~~java
