@@ -1,19 +1,41 @@
 ## 通用搜索说明
 ### albatis-es
-1. 调用方式     
- 	 通过引用jar包的形式来调用
+1. mvn依赖：
+	~~~xml
+	<dependency>
+		<groupId>net.butfly.albatis</groupId>
+		<artifactId>albatis-es</artifactId>
+		<version>1.0.1-SNAPSHOT</version>
+	</dependency>
+	~~~
 2. 调用示例
-	1. 执行sql 
+	1. 将sql解析成es查询语句 
 		~~~java
-			ResultSet rs = connection.prepareStatement(sql).executeQuery();
+			ElasticPrepareStatement pstat = connection.prepareStatement(sql);
 		~~~
 		1. sql结构:
 			~~~sql
-			select * from index..type where [condition] 
+				select * from indexName..typeName where [condition] 
 			~~~
-	2. 解析结果
+		2. sql示例：
+			~~~sql
+				select * from indexName..typeName where zjhm='574646121111111' and name like '.*tom.*'; 
+			~~~
+	2. 设置分片size，默认值为10L，仅当使用aggregation时使用
 		~~~java
-			ElasticResultMetadata searchResult = (ElasticResultMetadata) rs.getMetaData();
+			pstat.setShardSize(10L);
+		~~~
+	3. 设置结果集中的过滤参数
+		~~~java
+			pstat.setFilterParam("过滤参数");
+		~~~
+	3. 执行es查询
+		~~~java
+			ResultSet rs = pstat.executeQuery();		
+		~~~
+	2. 返回结果
+		~~~java
+		List<Map<String, Object>> resultMapList = ((com.hzcominfo.albatis.search.es.result.ElasticResult) resultSet).getResultMapList();			
 		~~~
 3. ES地址
 http://10.118.159.44:39201/
