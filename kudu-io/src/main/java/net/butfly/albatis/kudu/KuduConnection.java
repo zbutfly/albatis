@@ -31,7 +31,7 @@ public class KuduConnection extends NoSqlConnection<KuduClient> {
 	protected KuduConnection(URISpec kuduUri, Map<String, String> props) throws IOException {
 		super(kuduUri, r -> new KuduClient.KuduClientBuilder(kuduUri.getHost()).build(), "kudu", "kudu");
 		session = client().newSession();
-		session.setFlushMode(FlushMode.AUTO_FLUSH_BACKGROUND);
+		session.setFlushMode(FlushMode.AUTO_FLUSH_SYNC);
 		session.setTimeoutMillis(10000);
 		failHandler = new Thread(() -> {
 			do {
@@ -97,11 +97,15 @@ public class KuduConnection extends NoSqlConnection<KuduClient> {
 		Schema schema = t.getSchema();
 		List<String> keys = new ArrayList<>();
 		schema.getPrimaryKeyColumns().forEach(p -> keys.add(p.getName()));
+		if (record == null) return false;
 		if (!record.keySet().containsAll(keys)) return false;
 		Upsert upsert = t.newUpsert();
 		schema.getColumns().forEach(cs -> upsert(cs, record, upsert));
 		try {
 			OperationResponse or = session.apply(upsert);
+			if (or == null) {
+				return true;
+			}
 			boolean error = or.hasRowError();
 			if (error) logger().error("Kudu row error: " + or.getRowError().toString());
 			return error;

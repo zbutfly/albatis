@@ -1,0 +1,15 @@
+bin
+target
+META-INF
+logs
+*.log
+*.jar
+*.war
+*.tar
+*.gz
+*.rar
+*.7z
+*.class
+*.iml
+.idea
+.settings
