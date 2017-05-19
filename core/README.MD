@@ -11,7 +11,7 @@
 2. 调用示例
 	1. 将sql解析成es查询语句 
 		~~~java
-			ElasticPrepareStatement pstat = connection.prepareStatement(sql);
+			ElasticPrepareStatement pstat = (ElasticPrepareStatement) connection.prepareStatement(sql);
 		~~~
 		1. sql结构:
 			~~~sql
@@ -25,17 +25,21 @@
 		~~~java
 			pstat.setShardSize(10L);
 		~~~
-	3. 设置结果集中的过滤参数
+	3. 设置当前查询用户的权限 
 		~~~java
-			pstat.setFilterParam("过滤参数");
+			pstat.setUserRole("userRole");
 		~~~
-	3. 执行es查询
+	4. 设置结果集中的过滤参数
+		~~~java
+			pstat.setFilterParam("filterParam");
+		~~~
+	5. 执行es查询
 		~~~java
 			ResultSet rs = pstat.executeQuery();		
 		~~~
-	2. 返回结果
+	6. 返回结果
 		~~~java
-		List<Map<String, Object>> resultMapList = ((com.hzcominfo.albatis.search.es.result.ElasticResult) resultSet).getResultMapList();			
+		List<Map<String, Object>> resultMapList = ((com.hzcominfo.albatis.search.es.result.ElasticResult) rs).getResultMapList();			
 		~~~
 3. ES地址
 http://10.118.159.44:39201/
