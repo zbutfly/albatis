@@ -2,13 +2,17 @@
 ### albatis-es
 1. mvn依赖：
 	~~~xml
-	<dependency>
-		<groupId>net.butfly.albatis</groupId>
-		<artifactId>albatis-es</artifactId>
-		<version>1.0.1-SNAPSHOT</version>
-	</dependency>
+		<dependency>
+			<groupId>net.butfly.albatis</groupId>
+			<artifactId>albatis-es</artifactId>
+			<version>1.1.0-SNAPSHOT</version>
+		</dependency>
 	~~~
 2. 调用示例
+	1. connection create
+		~~~java
+		Connection connection = DriverManager.getConnection("elasticsearch://phgacluster@10.120.173.60:39300");
+		~~~
 	1. 将sql解析成es查询语句 
 		~~~java
 			ElasticPrepareStatement pstat = (ElasticPrepareStatement) connection.prepareStatement(sql);
@@ -39,7 +43,7 @@
 		~~~
 	6. 返回结果
 		~~~java
-		List<Map<String, Object>> resultMapList = ((com.hzcominfo.albatis.search.es.result.ElasticResult) rs).getResultMapList();			
+		List<Map<String, Object>> resultMapList = ((ResultSetBase) rs).getResultMapList();			
 		~~~
 3. ES地址
 http://10.118.159.44:39201/
