@@ -31,7 +31,7 @@ public class KuduConnection extends NoSqlConnection<KuduClient> {
 	protected KuduConnection(URISpec kuduUri, Map<String, String> props) throws IOException {
 		super(kuduUri, r -> new KuduClient.KuduClientBuilder(kuduUri.getHost()).build(), "kudu", "kudu");
 		session = client().newSession();
-		session.setFlushMode(FlushMode.AUTO_FLUSH_SYNC);
+		session.setFlushMode(FlushMode.AUTO_FLUSH_BACKGROUND);
 		session.setTimeoutMillis(10000);
 		failHandler = new Thread(() -> {
 			do {
