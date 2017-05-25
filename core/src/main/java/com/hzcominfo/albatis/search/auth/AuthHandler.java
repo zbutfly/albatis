@@ -12,7 +12,7 @@ import net.butfly.albacore.utils.logger.Logger;
 public interface AuthHandler {
 	static final Logger logger = Logger.getLogger(AuthHandler.class);
 
-	ResultSetBase auth(ResultSetBase rs, String table, String authKey) throws IllegalArgumentException, SQLException;
+	ResultSetBase auth(ResultSetBase rs, String uri, String dbName, String tableName, String authKey) throws IllegalArgumentException, SQLException;
 
 	static AuthHandler scan() {
 		List<Class<? extends AuthHandler>> cs = new ArrayList<>(Reflections.getSubClasses(AuthHandler.class));
