@@ -11,11 +11,8 @@ package com.hzcominfo.albatis.search.driver;
 import java.net.URI;
 import java.util.Properties;
 
-import com.hzcominfo.albatis.search.Action;
-import com.hzcominfo.albatis.search.Describe;
 import com.hzcominfo.albatis.search.Query;
 import com.hzcominfo.albatis.search.exception.SearchAPIException;
-import com.hzcominfo.albatis.search.result.Result;
 
 /**
  * Created by ljx on 2016/11/24.
@@ -31,8 +28,4 @@ public interface Connection extends java.sql.Connection, com.hzcominfo.albatis.n
 	void setUri(URI uri);
 
 	void setProperties(Properties properties);
-	
-	Result execute(Action action, Describe describe) throws SearchAPIException;
-
-	Result execute(Action action, Describe describe, Long shardSize) throws SearchAPIException;
 }

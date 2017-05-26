@@ -8,6 +8,14 @@
 			<version>1.1.0-SNAPSHOT</version>
 		</dependency>
 	~~~
+	如果需要设置数据权限：
+	~~~xml
+		<dependency>
+            <groupId>com.hzcominfo.dataggr</groupId>
+            <artifactId>dataggr-authority</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+        </dependency>
+	~~~
 2. 调用示例
 	1. connection create
 		~~~java
@@ -15,7 +23,7 @@
 		~~~
 	1. 将sql解析成es查询语句 
 		~~~java
-			ElasticPrepareStatement pstat = (ElasticPrepareStatement) connection.prepareStatement(sql);
+			PreparedStatementBase pstat = (PreparedStatementBase) connection.prepareStatement(sql);
 		~~~
 		1. sql结构:
 			~~~sql
@@ -29,9 +37,9 @@
 		~~~java
 			pstat.setShardSize(10L);
 		~~~
-	3. 设置当前查询用户的权限 
+	3. 设置当前查询用户的权限
 		~~~java
-			pstat.setUserRole("userRole");
+			pstat.setAuthKey("authKey");
 		~~~
 	4. 设置结果集中的过滤参数
 		~~~java
