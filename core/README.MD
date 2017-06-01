@@ -21,7 +21,7 @@
 		~~~java
 		Connection connection = DriverManager.getConnection("elasticsearch://phgacluster@10.120.173.60:39300");
 		~~~
-	1. 将sql解析成es查询语句 
+	1. 将sql解析成es查询语句 （不支持多表及别名）
 		~~~java
 			PreparedStatementBase pstat = (PreparedStatementBase) connection.prepareStatement(sql);
 		~~~
@@ -47,11 +47,13 @@
 		~~~
 	5. 执行es查询
 		~~~java
-			ResultSet rs = pstat.executeQuery();		
+			ResultSetBase rbase = (ResultSetBase) pstat.executeQuery();			
 		~~~
 	6. 返回结果
 		~~~java
-		List<Map<String, Object>> resultMapList = ((ResultSetBase) rs).getResultMapList();			
+		List<Map<String, Object>> resultMapList = rbase.getResultMapList();		
+		//可以选择是否去掉map中key包含的数据库名和表名，只留字段名
+		//List<Map<String, Object>> resultMapList = rbase.onlyFieldResult(rbase.getResultMapList());
 		~~~
 3. ES地址
 http://10.118.159.44:39201/

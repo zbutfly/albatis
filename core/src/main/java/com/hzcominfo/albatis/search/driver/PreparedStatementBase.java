@@ -2,6 +2,7 @@ package com.hzcominfo.albatis.search.driver;
 
 import java.io.InputStream;
 import java.io.Reader;
+import java.io.StringReader;
 import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.Array;
@@ -21,12 +22,31 @@ import java.sql.SQLWarning;
 import java.sql.SQLXML;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import com.hzcominfo.albatis.search.Authable;
 import com.hzcominfo.albatis.search.auth.AuthHandler;
+import com.hzcominfo.albatis.search.exception.SearchAPIException;
 
 import net.butfly.albacore.utils.logger.Loggable;
+import net.sf.jsqlparser.JSQLParserException;
+import net.sf.jsqlparser.expression.Expression;
+import net.sf.jsqlparser.expression.Function;
+import net.sf.jsqlparser.parser.CCJSqlParserManager;
+import net.sf.jsqlparser.schema.Column;
+import net.sf.jsqlparser.schema.Table;
+import net.sf.jsqlparser.statement.Statement;
+import net.sf.jsqlparser.statement.select.AllColumns;
+import net.sf.jsqlparser.statement.select.FromItem;
+import net.sf.jsqlparser.statement.select.PlainSelect;
+import net.sf.jsqlparser.statement.select.Select;
+import net.sf.jsqlparser.statement.select.SelectBody;
+import net.sf.jsqlparser.statement.select.SelectExpressionItem;
+import net.sf.jsqlparser.statement.select.SelectItem;
 
 public class PreparedStatementBase implements PreparedStatement, Authable, Loggable {
 	protected static final AuthHandler h = AuthHandler.scan();
@@ -45,6 +65,61 @@ public class PreparedStatementBase implements PreparedStatement, Authable, Logga
 
 	public void setFilterParam(String filterParam) {
 		this.filterParam = filterParam;
+	}
+	
+	public List<String> getFieldsList(String sql) throws SearchAPIException {
+		StringReader stringReader = new StringReader(sql);
+		CCJSqlParserManager parserManager = new CCJSqlParserManager();
+		Statement statement = null;
+		try {
+			statement = parserManager.parse(stringReader);
+		} catch (JSQLParserException e) {
+			e.printStackTrace();
+			throw new SearchAPIException("sql analysis exception");
+		}
+		List<String> fList = new ArrayList<>();
+		List<String> tList = new ArrayList<>();
+		Map<String, String> tMap = new HashMap<>();
+		if (statement instanceof Select) {
+			SelectBody sbody = ((Select) statement).getSelectBody();
+			if (sbody instanceof PlainSelect) {
+				PlainSelect ps = (PlainSelect) sbody;
+				FromItem fItem = ps.getFromItem();
+				if (fItem instanceof Table) {
+					tMap.put(((Table) fItem).getName(), ((Table) fItem).getDatabase().getDatabaseName());
+					tList.add(((Table) fItem).getDatabase().getDatabaseName() + "." + ((Table) fItem).getName());
+				}
+				
+				//join no need for single table 
+				/*List<Join> joins = ps.getJoins();
+				if (joins != null && joins.size() > 0) {
+					for (Join join : joins) {
+						tMap.put(((Table) join.getRightItem()).getName(), ((Table) join.getRightItem()).getDatabase().getDatabaseName());
+						tList.add(((Table) join.getRightItem()).getDatabase().getDatabaseName() + "." + ((Table) join.getRightItem()).getName());
+					}
+				}*/
+				
+				List<SelectItem> sItems = ps.getSelectItems();
+				for (SelectItem sItem : sItems) {
+					if (sItem instanceof AllColumns) 
+						fList.add(tList.get(0) + ".*");
+					else if (sItem instanceof SelectExpressionItem) {
+						Expression ex = ((SelectExpressionItem) sItem).getExpression();
+						if (ex instanceof Function) 
+							fList.add(tList.get(0) + "." + ex.toString().toUpperCase());
+						else if (ex instanceof Column) { 
+							String fname = ((Column) ex).getColumnName();
+							String tname = ((Column) ex).getTable().getName();
+							String dname = tMap.get(tname);
+							//1
+							String f = tname == null ? tList.get(0):(tname.contains(".") ? tname:dname + "." + tname);
+							fList.add(f + "." + fname.toUpperCase());
+						}
+					}
+				}
+			}
+		}
+		return fList;
 	}
 
 	@Override
