@@ -41,7 +41,7 @@ public class KafkaMessage implements Serializable {
 			key = IOs.readBytes(bo);
 			body = IOs.readBytes(bo);
 		} catch (IOException e) {
-			throw new RuntimeException();
+			throw new RuntimeException(e);
 		}
 	}
 
