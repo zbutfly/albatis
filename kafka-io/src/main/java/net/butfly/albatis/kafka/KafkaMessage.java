@@ -59,7 +59,9 @@ public class KafkaMessage implements Serializable {
 
 	public byte[] toBytes() {
 		try (ByteArrayOutputStream bo = new ByteArrayOutputStream()) {
-			IOs.writeBytes(bo, topic.getBytes(Charsets.UTF_8), key, body);
+			IOs.writeBytes(bo, topic.getBytes(Charsets.UTF_8));
+			IOs.writeBytes(bo, key);
+			IOs.writeBytes(bo, body);
 			return bo.toByteArray();
 		} catch (IOException e) {
 			return null;
