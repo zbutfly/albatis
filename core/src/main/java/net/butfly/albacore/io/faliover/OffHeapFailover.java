@@ -4,7 +4,6 @@ import static net.butfly.albacore.io.utils.Streams.list;
 import static net.butfly.albacore.io.utils.Streams.of;
 import static net.butfly.albacore.utils.IOs.mkdirs;
 import static net.butfly.albacore.utils.IOs.readBytes;
-import static net.butfly.albacore.utils.IOs.readInt;
 import static net.butfly.albacore.utils.IOs.writeBytes;
 
 import java.io.ByteArrayInputStream;
@@ -55,7 +54,7 @@ public class OffHeapFailover<K, V extends Message<K, ?, V>> extends Failover<K, 
 		if (!opened() || null == (bytes = failover.dequeue()) || 0 == bytes.length) return null;
 		try (ByteArrayInputStream baos = new ByteArrayInputStream(bytes);) {
 			K k = IOs.readObj(baos);
-			List<V> values = readBytes(baos, readInt(baos), construct);
+			List<V> values = readBytes(baos, construct);
 			return values.isEmpty() ? null : new Pair<>(k, values);
 		}
 	}
