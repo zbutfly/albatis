@@ -13,15 +13,7 @@ import java.util.TreeSet;
 import org.apache.kudu.Type;
 import org.apache.kudu.client.PartialRow;
 
-/**
- * @Author Naturn
- *
- * @Date 2016年12月8日-下午5:18:42
- *
- * @Version 1.0.0
- *
- * @Email juddersky@gmail.com
- */
+
 
 public class KuduCommon {
 

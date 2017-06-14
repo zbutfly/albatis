@@ -14,15 +14,7 @@ import com.stumbleupon.async.Deferred;
 import net.butfly.albacore.io.utils.URISpec;
 import net.butfly.albacore.utils.logger.Logger;
 
-/**
- * @Author Naturn
- *
- * @Date 2017年4月10日-下午4:47:00
- *
- * @Version 1.0.0
- *
- * @Email juddersky@gmail.com
- */
+
 
 public class AsyncKuduConnection extends NoSqlConnection<AsyncKuduClient> {
 

@@ -11,15 +11,7 @@ import org.junit.Test;
 import net.butfly.albatis.kudu.KuduConnection;
 import net.butfly.albatis.kudu.KuduResult;
 
-/**
- * @Author Naturn
- *
- * @Date 2017年3月20日-下午5:27:11
- *
- * @Version 1.0.0
- *
- * @Email juddersky@gmail.com
- */
+
 
 public class KuduConnectionTest {
 
