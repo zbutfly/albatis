@@ -9,6 +9,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
+import org.apache.kudu.client.KuduClient;
+
 import net.butfly.albacore.io.faliover.FailoverOutput;
 import net.butfly.albacore.io.utils.URISpec;
 
@@ -41,5 +43,10 @@ public class KuduOutput extends FailoverOutput<String, KuduResult> {
 			else failing.accept(Arrays.asList(r));
 		});
 		return c.get();
+	}
+
+	@Deprecated
+	public KuduClient client() {
+		return connect.client();
 	}
 }
