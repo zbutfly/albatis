@@ -11,10 +11,7 @@ import org.junit.Test;
 import net.butfly.albatis.kudu.KuduConnection;
 import net.butfly.albatis.kudu.KuduResult;
 
-
-
 public class KuduConnectionTest {
-
 	@Test
 	public void test() {
 
