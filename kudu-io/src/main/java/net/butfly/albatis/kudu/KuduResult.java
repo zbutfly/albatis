@@ -5,8 +5,6 @@ import java.util.Map;
 import net.butfly.albacore.io.Message;
 import net.butfly.albacore.serder.JsonSerder;
 
-
-
 public class KuduResult extends Message<String, Map<String, Object>, KuduResult> {
 	private static final long serialVersionUID = -5843704512434056538L;
 	private String table;
@@ -20,7 +18,11 @@ public class KuduResult extends Message<String, Map<String, Object>, KuduResult>
 	@SuppressWarnings("unchecked")
 	public KuduResult(byte[] source) {
 		this.result = JsonSerder.JSON_MAPPER.fromBytes(source, Map.class);
-		this.table = "";
+	}
+
+	public KuduResult table(String table) {
+		this.table = table;
+		return this;
 	}
 
 	@Override

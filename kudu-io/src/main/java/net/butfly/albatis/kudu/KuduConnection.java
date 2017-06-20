@@ -38,6 +38,7 @@ public class KuduConnection extends NoSqlConnection<KuduClient> {
 				processError();
 			} while (Concurrents.waitSleep());
 		}, "KuduErrorHandler[" + kuduUri.toString() + "]");
+		failHandler.setDaemon(true);
 		failHandler.start();
 	}
 
@@ -103,9 +104,7 @@ public class KuduConnection extends NoSqlConnection<KuduClient> {
 		schema.getColumns().forEach(cs -> upsert(cs, record, upsert));
 		try {
 			OperationResponse or = session.apply(upsert);
-			if (or == null) {
-				return true;
-			}
+			if (or == null) { return true; }
 			boolean error = or.hasRowError();
 			if (error) logger().error("Kudu row error: " + or.getRowError().toString());
 			return error;
