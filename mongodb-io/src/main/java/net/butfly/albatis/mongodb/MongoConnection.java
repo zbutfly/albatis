@@ -128,9 +128,9 @@ public class MongoConnection extends NoSqlConnection<MongoClient> {
 
 	public static BasicDBObject dbobj(String key, Object... valueAndKeys) {
 		BasicDBObject dbo = dbobj();
-		dbo.put(key, valueAndKeys[0]);
+		if (null != valueAndKeys[0]) dbo.put(key, valueAndKeys[0]);
 		for (int i = 1; i + 1 < valueAndKeys.length; i += 2)
-			dbo.put(((CharSequence) valueAndKeys[i]).toString(), valueAndKeys[i + 1]);
+			if (null != valueAndKeys[i + 1]) dbo.put(((CharSequence) valueAndKeys[i]).toString(), valueAndKeys[i + 1]);
 		return dbo;
 	}
 
