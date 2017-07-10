@@ -8,7 +8,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.bson.BSONObject;
 
-import com.google.common.base.Joiner;
+import com.hzcominfo.albatis.nosql.Connection;
 import com.hzcominfo.albatis.nosql.NoSqlConnection;
 import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;
@@ -32,17 +32,22 @@ public class MongoConnection extends NoSqlConnection<MongoClient> {
 	private final String defaultDB;
 	private final String defaultCollection;
 
+	static {
+		Connection.register("mongodb", MongoConnection.class);
+	}
+
 	public MongoConnection(URISpec urispec) throws IOException {
 		super(urispec, u -> {
 			try {
 				String str = u.getScheme() + "://" + u.getAuthority() + "/";
 				String db = u.getPathAt(0);
-				if (null != db) str += db;
+				if (null != db)
+					str += db;
 				return new MongoClient(new MongoClientURI(str));
 			} catch (UnknownHostException e) {
 				throw new RuntimeException(e);
 			}
-		}, "mongodb");
+		} , "mongodb");
 		defaultDB = uri.getPathAt(0);
 		defaultCollection = uri.getFile();
 		dbs = new ConcurrentHashMap<>();
@@ -103,8 +108,9 @@ public class MongoConnection extends NoSqlConnection<MongoClient> {
 	public static BasicDBObject dbobj(BSONObject... origin) {
 		BasicDBObject dbo = new BasicDBObject();
 		for (BSONObject o : origin)
-			if (null != o) for (String k : o.keySet())
-				putDeeply(dbo, k, o.get(k));
+			if (null != o)
+				for (String k : o.keySet())
+					putDeeply(dbo, k, o.get(k));
 		return dbo;
 	}
 
@@ -123,17 +129,23 @@ public class MongoConnection extends NoSqlConnection<MongoClient> {
 
 	@SuppressWarnings("unchecked")
 	private static void putDeeply(BasicDBObject dbo, String k, Object v) {
-		if (null == v) dbo.put(k, v);
-		else if (v instanceof BSONObject) dbo.put(k, dbobj((BSONObject) v));
-		else if (v instanceof Map) dbo.put(k, dbobj((Map<String, ?>) v));
-		else dbo.put(k, v);
+		if (null == v)
+			dbo.put(k, v);
+		else if (v instanceof BSONObject)
+			dbo.put(k, dbobj((BSONObject) v));
+		else if (v instanceof Map)
+			dbo.put(k, dbobj((Map<String, ?>) v));
+		else
+			dbo.put(k, v);
 	}
 
 	public static BasicDBObject dbobj(String key, Object... valueAndKeys) {
 		BasicDBObject dbo = dbobj();
-		if (null != valueAndKeys[0]) dbo.put(key, valueAndKeys[0]);
+		if (null != valueAndKeys[0])
+			dbo.put(key, valueAndKeys[0]);
 		for (int i = 1; i + 1 < valueAndKeys.length; i += 2)
-			if (null != valueAndKeys[i + 1]) dbo.put(((CharSequence) valueAndKeys[i]).toString(), valueAndKeys[i + 1]);
+			if (null != valueAndKeys[i + 1])
+				dbo.put(((CharSequence) valueAndKeys[i]).toString(), valueAndKeys[i + 1]);
 		return dbo;
 	}
 

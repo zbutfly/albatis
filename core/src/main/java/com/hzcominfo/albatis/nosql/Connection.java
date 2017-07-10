@@ -1,9 +1,8 @@
 package com.hzcominfo.albatis.nosql;
 
-import java.util.Arrays;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.ConcurrentSkipListMap;
+
+import net.butfly.albacore.io.utils.URISpec;
 
 import net.butfly.albacore.io.URISpec;
 
@@ -20,21 +19,19 @@ public interface Connection extends AutoCloseable {
 
 	URISpec getURI();
 
-	static Connection connect(URISpec spec) {
-		return null;
+	public Connection connection(String url) throws Exception;
+
+	public Connection connection(URISpec uriSpec) throws Exception;
+
+	class _Private {
+		private static final ConcurrentSkipListMap<String, Class<?>> registerMap = new ConcurrentSkipListMap<>();
 	}
 
-	static void register(Class<? extends Connection> c, String... schemas) {
-		for (String s : schemas)
-			_Wrap.drivers.compute(s, (schema, classes) -> {
-				if (null == classes) classes = new ConcurrentSkipListSet<>();
-				classes.add(c);
-				return classes;
-			});
-		_Wrap.schemas.compute(c, (cc, ss) -> {
-			if (null == ss) ss = new ConcurrentSkipListSet<>();
-			ss.addAll(Arrays.asList(schemas));
-			return ss;
-		});
+	public static void register(String schema, Class<?> clazzName) {
+		_Private.registerMap.put(schema, clazzName);
+	}
+
+	public static Class<?> getRegisterInfo(String schema) {
+		return _Private.registerMap.get(schema);
 	}
 }

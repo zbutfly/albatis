@@ -133,20 +133,20 @@ public class ZKConn implements AutoCloseable {
 		return null == text ? 0 : Long.parseLong(text);
 	}
 
-	@SuppressWarnings("unchecked")
-	@Deprecated
-	protected <T> T fetchTree(String path, Class<T> cl) {
-		List<String> nodes = fetchChildren(path);
-		if (null == nodes || nodes.isEmpty()) {
-			Map<String, Object> map = fetchMap(path);
-			return null == map ? fetchValue(path, cl) : (T) map;
-		} else return (T) mapping(nodes, s -> s.map(node -> {
-			String subpath = "/".equals(path) ? "/" + node : path + "/" + node;
-			System.err.println("Scan zk: " + subpath);
-			Object sub = fetchTree(subpath, cl);
-			return new Pair<String, Object>(node, sub);
-		}).filter(p -> p.v2() != null), Collectors.toMap(p -> p.v1(), p -> p.v2()));
-	}
+//	@SuppressWarnings("unchecked")
+//	@Deprecated
+//	protected <T> T fetchTree(String path, Class<T> cl) {
+//		List<String> nodes = fetchChildren(path);
+//		if (null == nodes || nodes.isEmpty()) {
+//			Map<String, Object> map = fetchMap(path);
+//			return null == map ? fetchValue(path, cl) : (T) map;
+//		} else return (T) mapping(nodes, s -> s.map(node -> {
+//			String subpath = "/".equals(path) ? "/" + node : path + "/" + node;
+//			System.err.println("Scan zk: " + subpath);
+//			Object sub = fetchTree(subpath, cl);
+//			return new Pair<String, Object>(node, sub);
+//		}).filter(p -> p.v2() != null), Collectors.toMap(p -> p.v1(), p -> p.v2()));
+//	}
 
 	@Override
 	public void close() {
