@@ -1,6 +1,7 @@
 package com.hzcominfo.albatis.nosql;
 
 import java.io.IOException;
+import java.lang.reflect.Constructor;
 import java.net.ProtocolException;
 import java.util.Arrays;
 import java.util.Map;
@@ -20,14 +21,17 @@ public abstract class NoSqlConnection<C> implements Connection, Loggable {
 	protected final URISpec uri;
 	protected final Properties parameters;
 
-	protected NoSqlConnection(URISpec uri, Function<URISpec, C> client, int defaultPort, String... supportedSchema) throws IOException {
+	protected NoSqlConnection(URISpec uri, Function<URISpec, C> client, int defaultPort, String... supportedSchema)
+			throws IOException {
 		super();
 		supportedSchemas = null != supportedSchema ? supportedSchema : new String[0];
 		this.uri = uri;
-		if (this.uri.getDefaultPort() < 0) this.uri.setDefaultPort(defaultPort);
+		if (this.uri.getDefaultPort() < 0)
+			this.uri.setDefaultPort(defaultPort);
 		String schema = supportedSchema(uri.getScheme());
-		if (null == schema) throw new ProtocolException(uri.getScheme() + " is not supported, "//
-				+ "supported list: [" + Joiner.on(',').join(supportedSchemas) + "]");
+		if (null == schema)
+			throw new ProtocolException(uri.getScheme() + " is not supported, "//
+					+ "supported list: [" + Joiner.on(',').join(supportedSchemas) + "]");
 		this.client = client.apply(uri);
 
 		parameters = new Properties();
@@ -36,7 +40,8 @@ public abstract class NoSqlConnection<C> implements Connection, Loggable {
 			String[] propertisies = qstr.split("&");
 			Stream.of(propertisies).forEach(value -> {
 				String[] keyValue = value.split("=", 2);
-				if (keyValue.length != 2) throw new SearchAPIError("parameter error " + Arrays.toString(keyValue));
+				if (keyValue.length != 2)
+					throw new SearchAPIError("parameter error " + Arrays.toString(keyValue));
 				parameters.put(keyValue[0], keyValue[1]);
 			});
 		}
@@ -61,14 +66,17 @@ public abstract class NoSqlConnection<C> implements Connection, Loggable {
 	}
 
 	public String supportedSchema(String schema) {
-		if (null == schema) return defaultSchema();
+		if (null == schema)
+			return defaultSchema();
 		for (String s : supportedSchemas)
-			if (s.equalsIgnoreCase(schema)) return s;
+			if (s.equalsIgnoreCase(schema))
+				return s;
 		return null;
 	}
 
 	@Override
-	public void close() throws IOException {}
+	public void close() throws IOException {
+	}
 
 	public final C client() {
 		return client;
@@ -93,5 +101,24 @@ public abstract class NoSqlConnection<C> implements Connection, Loggable {
 	@Override
 	public URISpec getURI() {
 		return uri;
+	}
+
+	@Override
+	public Connection connection(String url) throws Exception {
+		URISpec uriSpec = new URISpec(url);
+		return connection(uriSpec);
+	}
+
+	@SuppressWarnings({ "unchecked", "rawtypes" })
+	@Override
+	public Connection connection(URISpec uriSpec) throws Exception {
+		Class clazz;
+		Connection connection = null;
+		if (uriSpec.getScheme().equalsIgnoreCase("mongodb")) {
+			clazz = Connection.getRegisterInfo("mongodb");
+			Constructor con = clazz.getConstructor(new Class[] { URISpec.class });
+			connection = (Connection) con.newInstance(uriSpec);
+		}
+		return connection;
 	}
 }

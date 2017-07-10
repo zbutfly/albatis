@@ -1,12 +1,8 @@
 package com.hzcominfo.albatis.nosql;
 
-import java.lang.reflect.Constructor;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.concurrent.ConcurrentSkipListMap;
 
-import net.butfly.albacore.io.URISpec;
-import net.butfly.albacore.utils.Pair;
-import net.butfly.albacore.utils.collection.Maps;
+import net.butfly.albacore.io.utils.URISpec;
 
 public interface Connection extends AutoCloseable {
 	public static final String PARAM_KEY_BATCH = "batch";
@@ -16,30 +12,19 @@ public interface Connection extends AutoCloseable {
 
 	URISpec getURI();
 
-	public static <T extends Connection> T connect(String url, Class<T> clazz) throws Exception {
-		return connect(new URISpec(url), clazz);
+	public Connection connection(String url) throws Exception;
+
+	public Connection connection(URISpec uriSpec) throws Exception;
+
+	class _Private {
+		private static final ConcurrentSkipListMap<String, Class<?>> registerMap = new ConcurrentSkipListMap<>();
 	}
 
-	public static <T extends Connection> T connect(String url, Class<T> clazz, String... params) throws Exception {
-		Pair<String, Object[]> p = Maps.parseFirstKey((Object[]) params);
-		return connect(new URISpec(url), clazz, Maps.of(p.v1(), p.v2()));
+	public static void register(String schema, Class<?> clazzName) {
+		_Private.registerMap.put(schema, clazzName);
 	}
 
-	public static <T extends Connection> T connect(String url, Class<T> clazz, Map<String, String> props) throws Exception {
-		return connect(new URISpec(url), clazz, props);
-	}
-
-	public static <T extends Connection> T connect(URISpec uri, Class<T> clazz) throws Exception {
-		return connect(uri, clazz, new HashMap<>());
-	}
-
-	public static <T extends Connection> T connect(URISpec uri, Class<T> clazz, String... params) throws Exception {
-		Pair<String, Object[]> p = Maps.parseFirstKey((Object[]) params);
-		return connect(uri, clazz, Maps.of(p.v1(), p.v2()));
-	}
-
-	public static <T extends Connection> T connect(URISpec uriSpec, Class<T> clazz, Map<String, String> props) throws Exception {
-		Constructor<T> con = clazz.getConstructor(new Class[] { URISpec.class });
-		return con.newInstance(uriSpec);
+	public static Class<?> getRegisterInfo(String schema) {
+		return _Private.registerMap.get(schema);
 	}
 }
