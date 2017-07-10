@@ -32,6 +32,10 @@ public class MongoConnection extends NoSqlConnection<MongoClient> {
 	private final String defaultDB;
 	private final String defaultCollection;
 
+	static {
+		Connection.register("mongodb", MongoConnection.class);
+	}
+
 	public MongoConnection(URISpec urispec) throws IOException {
 		super(urispec, u -> {
 			try {

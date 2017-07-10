@@ -1,6 +1,7 @@
 package com.hzcominfo.albatis.nosql;
 
 import java.io.IOException;
+import java.lang.reflect.Constructor;
 import java.net.ProtocolException;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -106,5 +107,24 @@ public abstract class NoSqlConnection<C> implements Connection, Loggable {
 	@Override
 	public URISpec getURI() {
 		return uri;
+	}
+
+	@Override
+	public Connection connection(String url) throws Exception {
+		URISpec uriSpec = new URISpec(url);
+		return connection(uriSpec);
+	}
+
+	@SuppressWarnings({ "unchecked", "rawtypes" })
+	@Override
+	public Connection connection(URISpec uriSpec) throws Exception {
+		Class clazz;
+		Connection connection = null;
+		if (uriSpec.getScheme().equalsIgnoreCase("mongodb")) {
+			clazz = Connection.getRegisterInfo("mongodb");
+			Constructor con = clazz.getConstructor(new Class[] { URISpec.class });
+			connection = (Connection) con.newInstance(uriSpec);
+		}
+		return connection;
 	}
 }
