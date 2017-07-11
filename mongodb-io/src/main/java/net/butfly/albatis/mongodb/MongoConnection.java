@@ -153,25 +153,16 @@ public class MongoConnection extends NoSqlConnection<MongoClient> {
 		return dbl;
 	}
 
-	public DBCursor cursor(String table, DBObject... filter) {
-		DBCursor cursor;
-		if (!collectionExists(table)) throw new IllegalArgumentException("Collection [" + table + "] not existed for input");
-		DBCollection col = collection(table);
-		long now;
-		if (null == filter || filter.length == 0) {
-			now = System.nanoTime();
-			cursor = col.find();
-		} else {
-			logger.info("Mongodb [" + table + "] filters: \n\t" + Joiner.on("\n\t").join(filter) + "\nnow count:");
-			if (filter.length == 1) {
-				now = System.nanoTime();
-				cursor = col.find(filter[0]);
-			} else {
-				BasicDBList filters = new BasicDBList();
-				for (DBObject f : filter)
-					filters.add(f);
-				now = System.nanoTime();
-				cursor = col.find(dbobj("$and", filters));
+	public static void main(String[] args) {
+		String uri = "mongodb://migrater:migrater1234@hzga137:30017/migrater";
+		try {
+			Connection connection = Connection.connection(uri, null);
+			MongoConnection mc = (MongoConnection) connection;
+			
+			Cursor cursor = mc.collection("TEST_SRC").find();
+			while (cursor.hasNext()) {
+				DBObject obj = cursor.next();
+				System.out.println(obj.toString());
 			}
 		}
 		String p = getParameter("limit");

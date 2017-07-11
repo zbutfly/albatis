@@ -30,8 +30,12 @@ public class KuduConnection extends NoSqlConnection<KuduClient> {
 	private final KuduSession session;
 	private Thread failHandler;
 
-	public KuduConnection(URISpec kuduUri) throws IOException {
-		super(kuduUri, r -> new KuduClient.KuduClientBuilder(kuduUri.getHost()).build(), "kudu");
+	static {
+		Connection.register("kudu", KuduConnection.class);
+	}
+
+	public KuduConnection(URISpec kuduUri, Map<String, String> props) throws IOException {
+		super(kuduUri, r -> new KuduClient.KuduClientBuilder(kuduUri.getHost()).build(), "kudu", "kudu");
 		session = client().newSession();
 		session.setFlushMode(FlushMode.AUTO_FLUSH_BACKGROUND);
 		session.setTimeoutMillis(10000);
@@ -90,45 +94,37 @@ public class KuduConnection extends NoSqlConnection<KuduClient> {
 
 	}
 
-	private static final Map<String, Map<String, ColumnSchema>> SCHEMAS_CI = new ConcurrentHashMap<>();
-
-	private Map<String, ColumnSchema> schemas(String table) {
-		return SCHEMAS_CI.computeIfAbsent(table, t -> {
-			Map<String, ColumnSchema> m = table(t).getSchema().getColumns().parallelStream()//
-					.collect(Collectors.toConcurrentMap(c -> c.getName().toLowerCase(), c -> c));
-			return m;
-		});
-	}
-
-	public Throwable apply(Message m) {
-		Operation op = op(m);
-		if (null != op) {
-			OperationResponse or;
-			try {
-				or = session.apply(op);
-			} catch (KuduException e) {
-				if (isNonRecoverable(e)) {
-					logger.error("Kudu apply fail non-recoverable: " + e.getMessage());
-					return null;
-				} else return e;
-			}
-			if (or != null && or.hasRowError()) return new IOException(or.getRowError().toString());
-		}
-		return null;
-	}
-
-	private static final Class<? extends KuduException> c;
-	static {
-		Class<? extends KuduException> cc = null;
+	public boolean upsert(String table, Map<String, Object> record) {
+		KuduTable t = table(table);
+		if (null == t)
+			return false;
+		Schema schema = t.getSchema();
+		List<String> keys = new ArrayList<>();
+		schema.getPrimaryKeyColumns().forEach(p -> keys.add(p.getName()));
+		if (record == null)
+			return false;
+		if (!record.keySet().containsAll(keys))
+			return false;
+		Upsert upsert = t.newUpsert();
+		schema.getColumns().forEach(cs -> upsert(cs, record, upsert));
 		try {
-			cc = (Class<? extends KuduException>) Class.forName("org.apache.kudu.client.NonRecoverableException");
-		} catch (ClassNotFoundException e) {} finally {
-			c = cc;
+			OperationResponse or = session.apply(upsert);
+			if (or == null) {
+				return true;
+			}
+			boolean error = or.hasRowError();
+			if (error)
+				logger().error("Kudu row error: " + or.getRowError().toString());
+			return error;
+		} catch (KuduException ex) {
+			return false;
 		}
 	}
 
-	public static boolean isNonRecoverable(KuduException e) {
-		return null != c && c.isAssignableFrom(e.getClass());
+	private void upsert(ColumnSchema columnSchema, Map<String, Object> record, Upsert upsert) {
+		Object field = record.get(columnSchema.getName());
+		if (null != field)
+			KuduCommon.generateColumnData(columnSchema.getType(), upsert.getRow(), columnSchema.getName(), field);
 	}
 
 	private Operation op(Message m) {
