@@ -18,33 +18,47 @@ import org.apache.kudu.client.KuduTable;
 import org.apache.kudu.client.Operation;
 import org.apache.kudu.client.OperationResponse;
 import org.apache.kudu.client.SessionConfiguration.FlushMode;
+import org.apache.kudu.client.Upsert;
+
+import com.hzcominfo.albatis.nosql.Connection;
+import com.hzcominfo.albatis.nosql.NoSqlConnection;
 
 import com.google.common.base.Joiner;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.Configs;
 
-@SuppressWarnings("unchecked")
-public class KuduConnection extends KuduConnectionBase<KuduConnection, KuduClient, KuduSession> {
-	public KuduConnection(URISpec kuduUri) throws IOException {
-		super(kuduUri, r -> new KuduClient.KuduClientBuilder(kuduUri.getHost()).build());
-		session = client().newSession();
-		session.setFlushMode(FlushMode.AUTO_FLUSH_BACKGROUND);
-		session.setTimeoutMillis(Long.parseLong(Configs.get(KuduProps.TIMEOUT, "2000")));
+	static {
+		Connection.register("kudu", KuduConnection.class);
 	}
 
-	@Override
-	public void commit() {
-		List<OperationResponse> v;
-		try {
-			v = session.flush();
-		} catch (KuduException e) {
-			logger.error("Kudu commit fail", e);
-			return;
-		}
-		of(v).eachs(r -> {
-			if (r.hasRowError()) error(r);
-		});
+	public KuduConnection(URISpec kuduUri, Map<String, String> props) throws IOException {
+		super(kuduUri, r -> new KuduClient.KuduClientBuilder(kuduUri.getHost()).build(), "kudu", "kudu");
+		session = client().newSession();
+		session.setFlushMode(FlushMode.AUTO_FLUSH_BACKGROUND);
+		session.setTimeoutMillis(10000);
+		failHandler = new Thread(() -> {
+			do {
+				processError();
+			} while (Concurrents.waitSleep());
+		} , "KuduErrorHandler[" + kuduUri.toString() + "]");
+		failHandler.setDaemon(true);
+		failHandler.start();
+	}
+
+	public KuduConnection(String kuduUri, Map<String, String> props) throws IOException {
+		this(new URISpec(kuduUri), props);
+	}
+
+	private void processError() {
+		if (session.getPendingErrors() != null)
+			Arrays.asList(session.getPendingErrors().getRowErrors()).forEach(p -> {
+				try {
+					session.apply(p.getOperation());
+				} catch (KuduException e) {
+					throw new RuntimeException("retry apply operation fail.");
+				}
+			});
 	}
 
 	@Override
@@ -93,48 +107,36 @@ public class KuduConnection extends KuduConnectionBase<KuduConnection, KuduClien
 		}
 	}
 
-	@Override
-	public void destruct(String name) {
+	public boolean upsert(String table, Map<String, Object> record) {
+		KuduTable t = table(table);
+		if (null == t)
+			return false;
+		Schema schema = t.getSchema();
+		List<String> keys = new ArrayList<>();
+		schema.getPrimaryKeyColumns().forEach(p -> keys.add(p.getName()));
+		if (record == null)
+			return false;
+		if (!record.keySet().containsAll(keys))
+			return false;
+		Upsert upsert = t.newUpsert();
+		schema.getColumns().forEach(cs -> upsert(cs, record, upsert));
 		try {
-			if (!client().tableExists(name)) logger.warn("Kudu table [" + name + "] not exised, need not dropped.");
-			else {
-				logger.warn("Kudu table [" + name + "] exised and dropped.");
-				client().deleteTable(name);
+			OperationResponse or = session.apply(upsert);
+			if (or == null) {
+				return true;
 			}
+			boolean error = or.hasRowError();
+			if (error)
+				logger().error("Kudu row error: " + or.getRowError().toString());
+			return error;
 		} catch (KuduException ex) {
 			logger.warn("Kudu table [" + name + "] drop fail", ex);
 		}
 	}
 
-	@Override
-	public void construct(String table, ColumnSchema... cols) {
-		try {
-			if (client().tableExists(table)) {
-				logger.warn("Ask for creating new table but existed and not droped, ignore");
-				return;
-			}
-		} catch (KuduException e) {
-			throw new RuntimeException(e);
-		}
-		List<String> keys = new ArrayList<>();
-		for (ColumnSchema c : cols)
-			if (c.isKey()) keys.add(c.getName());
-			else break;
-
-		int buckets = Integer.parseInt(System.getProperty(KuduProps.TABLE_BUCKETS, "24"));
-		String v = Configs.get(KuduProps.TABLE_REPLICAS);
-		int replicas = null == v ? -1 : Integer.parseInt(v);
-		String info = "with bucket [" + buckets + "], can be defined by [-D" + KuduProps.TABLE_BUCKETS + "=8(default value)]";
-		if (replicas > 0) info = info + ", with replicas [" + replicas + "], can be defined by [-D" + KuduProps.TABLE_REPLICAS
-				+ "=xx(no default value)]";
-		logger.info("Kudu table [" + table + "] will be created with keys: [" + Joiner.on(',').join(keys) + "], " + info);
-		CreateTableOptions opts = new CreateTableOptions().addHashPartitions(keys, buckets);
-		if (replicas > 0) opts = opts.setNumReplicas(replicas);
-		try {
-			client().createTable(table, new Schema(Arrays.asList(cols)), opts);
-		} catch (KuduException e) {
-			throw new RuntimeException(e);
-		}
-		logger.info("Kudu table [" + table + "] created successfully.");
+	private void upsert(ColumnSchema columnSchema, Map<String, Object> record, Upsert upsert) {
+		Object field = record.get(columnSchema.getName());
+		if (null != field)
+			KuduCommon.generateColumnData(columnSchema.getType(), upsert.getRow(), columnSchema.getName(), field);
 	}
 }
