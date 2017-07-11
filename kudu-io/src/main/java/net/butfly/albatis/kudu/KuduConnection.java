@@ -29,6 +29,10 @@ public class KuduConnection extends NoSqlConnection<KuduClient> {
 	private final KuduSession session;
 	private Thread failHandler;
 
+	static {
+		Connection.register("kudu", KuduConnection.class);
+	}
+
 	public KuduConnection(URISpec kuduUri, Map<String, String> props) throws IOException {
 		super(kuduUri, r -> new KuduClient.KuduClientBuilder(kuduUri.getHost()).build(), "kudu", "kudu");
 		session = client().newSession();
@@ -92,36 +96,37 @@ public class KuduConnection extends NoSqlConnection<KuduClient> {
 
 	}
 
-	public void apply(Message m) throws IOException {
-		Operation op = op(m);
-		if (null == op) return;
-		OperationResponse or = session.apply(op);
-		if (or != null && or.hasRowError()) throw new IOException(or.getRowError().toString());
-	}
-
-	private Operation op(Message m) {
-		KuduTable t = table(m.table());
-		if (null == t) return null;
-		switch (m.op()) {
-		case DELETE:
-			for (ColumnSchema cs : t.getSchema().getColumns())
-				if (cs.isKey()) {
-					Delete del = t.newDelete();
-					del.getRow().addString(cs.getName().toUpperCase(), m.key());
-					return del;
-				}
-			return null;
-		case INSERT:
-		case UPDATE:
-		case UPSERT:
-			Upsert ups = table(m.table()).newUpsert();
-			t.getSchema().getColumns().forEach(cs -> {
-				Object field = m.get(cs.getName().toUpperCase());
-				if (null != field) KuduCommon.generateColumnData(cs.getType(), ups.getRow(), cs.getName(), field);
-			});
-			return ups;
+	public boolean upsert(String table, Map<String, Object> record) {
+		KuduTable t = table(table);
+		if (null == t)
+			return false;
+		Schema schema = t.getSchema();
+		List<String> keys = new ArrayList<>();
+		schema.getPrimaryKeyColumns().forEach(p -> keys.add(p.getName()));
+		if (record == null)
+			return false;
+		if (!record.keySet().containsAll(keys))
+			return false;
+		Upsert upsert = t.newUpsert();
+		schema.getColumns().forEach(cs -> upsert(cs, record, upsert));
+		try {
+			OperationResponse or = session.apply(upsert);
+			if (or == null) {
+				return true;
+			}
+			boolean error = or.hasRowError();
+			if (error)
+				logger().error("Kudu row error: " + or.getRowError().toString());
+			return error;
+		} catch (KuduException ex) {
+			return false;
 		}
 		return null;
 	}
 
+	private void upsert(ColumnSchema columnSchema, Map<String, Object> record, Upsert upsert) {
+		Object field = record.get(columnSchema.getName());
+		if (null != field)
+			KuduCommon.generateColumnData(columnSchema.getType(), upsert.getRow(), columnSchema.getName(), field);
+	}
 }
