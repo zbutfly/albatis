@@ -18,6 +18,10 @@ import org.apache.kudu.client.KuduTable;
 import org.apache.kudu.client.Operation;
 import org.apache.kudu.client.OperationResponse;
 import org.apache.kudu.client.SessionConfiguration.FlushMode;
+import org.apache.kudu.client.Upsert;
+
+import com.hzcominfo.albatis.nosql.Connection;
+import com.hzcominfo.albatis.nosql.NoSqlConnection;
 
 import com.google.common.base.Joiner;
 import com.hzcominfo.albatis.Albatis;
@@ -25,13 +29,37 @@ import com.hzcominfo.albatis.Albatis;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.Configs;
 
-@SuppressWarnings("unchecked")
-public class KuduConnection extends KuduConnBase<KuduConnection, KuduClient, KuduSession> {
-	public KuduConnection(URISpec kuduUri) throws IOException {
-		super(kuduUri, r -> new KuduClient.KuduClientBuilder(kuduUri.getHost()).build());
+	static {
+		Connection.register("kudu", KuduConnection.class);
+	}
+
+	public KuduConnection(URISpec kuduUri, Map<String, String> props) throws IOException {
+		super(kuduUri, r -> new KuduClient.KuduClientBuilder(kuduUri.getHost()).build(), "kudu", "kudu");
 		session = client().newSession();
 		session.setFlushMode(FlushMode.AUTO_FLUSH_BACKGROUND);
-		session.setTimeoutMillis(Long.parseLong(Configs.get(Albatis.Props.PROP_KUDU_TIMEOUT, "2000")));
+		session.setTimeoutMillis(10000);
+		failHandler = new Thread(() -> {
+			do {
+				processError();
+			} while (Concurrents.waitSleep());
+		} , "KuduErrorHandler[" + kuduUri.toString() + "]");
+		failHandler.setDaemon(true);
+		failHandler.start();
+	}
+
+	public KuduConnection(String kuduUri, Map<String, String> props) throws IOException {
+		this(new URISpec(kuduUri), props);
+	}
+
+	private void processError() {
+		if (session.getPendingErrors() != null)
+			Arrays.asList(session.getPendingErrors().getRowErrors()).forEach(p -> {
+				try {
+					session.apply(p.getOperation());
+				} catch (KuduException e) {
+					throw new RuntimeException("retry apply operation fail.");
+				}
+			});
 	}
 
 	@Override
@@ -91,33 +119,36 @@ public class KuduConnection extends KuduConnBase<KuduConnection, KuduClient, Kud
 		}
 	}
 
-	@Override
-	public void table(String name, List<ColumnSchema> cols, boolean autoKey) {
-		int buckets = Integer.parseInt(System.getProperty(Albatis.Props.PROP_KUDU_TABLE_BUCKETS, "8"));
-		String v = Configs.get(Albatis.Props.PROP_KUDU_TABLE_REPLICAS);
-		int replicas = null == v ? -1 : Integer.parseInt(v);
-		String info = "Kudu table constructing, with bucket [" + buckets + "], can be defined by [-D"
-				+ Albatis.Props.PROP_KUDU_TABLE_BUCKETS + "=8(default value)]";
-		if (replicas > 0) info = info + ", with replicas [" + replicas + "], can be defined by [-D" + Albatis.Props.PROP_KUDU_TABLE_REPLICAS
-				+ "=xx(no default value)]";
-		logger.info(info + ".");
+	public boolean upsert(String table, Map<String, Object> record) {
+		KuduTable t = table(table);
+		if (null == t)
+			return false;
+		Schema schema = t.getSchema();
+		List<String> keys = new ArrayList<>();
+		schema.getPrimaryKeyColumns().forEach(p -> keys.add(p.getName()));
+		if (record == null)
+			return false;
+		if (!record.keySet().containsAll(keys))
+			return false;
+		Upsert upsert = t.newUpsert();
+		schema.getColumns().forEach(cs -> upsert(cs, record, upsert));
 		try {
-			if (client().tableExists(name)) {
-				logger.info("Kudu table [" + name + "] existed, will be droped.");
-				client().deleteTable(name);
+			OperationResponse or = session.apply(upsert);
+			if (or == null) {
+				return true;
 			}
-			List<String> keys = new ArrayList<>();
-			for (ColumnSchema c : cols)
-				if (c.isKey()) keys.add(c.getName());
-				else break;
-			logger.info("Kudu table [" + name + "] will be created with keys: [" + Joiner.on(',').join(keys) + "].");
-			CreateTableOptions opts = new CreateTableOptions().addHashPartitions(keys, buckets);
-			if (replicas > 0) opts = opts.setNumReplicas(replicas);
-			client().createTable(name, new Schema(cols), opts);
-			logger.info("Kudu table [" + name + "] created successfully.");
-		} catch (KuduException e) {
-			logger.error("Build kudu table fail.", e);
-			throw new RuntimeException(e);
+			boolean error = or.hasRowError();
+			if (error)
+				logger().error("Kudu row error: " + or.getRowError().toString());
+			return error;
+		} catch (KuduException ex) {
+			return false;
 		}
+	}
+
+	private void upsert(ColumnSchema columnSchema, Map<String, Object> record, Upsert upsert) {
+		Object field = record.get(columnSchema.getName());
+		if (null != field)
+			KuduCommon.generateColumnData(columnSchema.getType(), upsert.getRow(), columnSchema.getName(), field);
 	}
 }
