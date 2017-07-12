@@ -1,7 +1,6 @@
 package net.butfly.albatis.kafka;
 
-import static net.butfly.albacore.utils.collection.Streams.map;
-import static net.butfly.albacore.utils.collection.Streams.mapping;
+import static net.butfly.albacore.io.utils.Streams.map;
 
 import java.io.IOException;
 import java.util.ArrayList;

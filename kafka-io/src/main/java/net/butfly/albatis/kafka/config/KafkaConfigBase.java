@@ -72,6 +72,7 @@ public abstract class KafkaConfigBase implements Serializable {
 		if (sch.startsWith("kafka:")) sch = sch.substring(6);
 		switch (sch) {
 		case "zk":
+		case "zk:kafka":
 		case "zookeeper":
 		case "kafka":
 			String u = uri.getHost() + uri.getPathOnly();
