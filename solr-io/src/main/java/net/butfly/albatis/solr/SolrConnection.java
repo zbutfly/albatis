@@ -44,6 +44,32 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 	private static final Map<Class<? extends ResponseParser>, ResponseParser> PARSER_POOL = new ConcurrentHashMap<>();
 	private final SolrMeta meta;
 
+	static {
+		Connection.register("zk:solr", SolrConnection.class);
+	}
+
+	public enum ResponseFormat {
+		XML(XMLResponseParser.class), JSON(JsonMapResponseParser.class), BINARY(BinaryResponseParser.class);
+		private final Class<? extends ResponseParser> parser;
+
+		private <P extends ResponseParser> ResponseFormat(Class<P> parser) {
+			this.parser = parser;
+		}
+
+		@SuppressWarnings("unchecked")
+		private static Class<? extends ResponseParser> parse(String id) {
+			try {
+				return ResponseFormat.valueOf(id.toUpperCase()).parser;
+			} catch (Exception e) {
+				try {
+					return (Class<? extends ResponseParser>) Class.forName(id);
+				} catch (ClassNotFoundException e1) {
+					throw new IllegalArgumentException("Parser [" + id + "] not found.");
+				}
+			}
+		}
+	}
+
 	public SolrConnection(String connection) throws IOException {
 		this(new URISpec(connection));
 	}
