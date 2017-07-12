@@ -1,7 +1,6 @@
 package com.hzcominfo.albatis.nosql;
 
 import java.lang.reflect.Constructor;
-import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.concurrent.ConcurrentSkipListMap;
 
@@ -35,31 +34,47 @@ public interface Connection extends AutoCloseable {
 		return _Private.registerMap.get(schema);
 	}
 
-	public static Connection connection(String url, Map<String, String> props) throws Exception {
+	public static Connection connect(String url, Map<String, String> props) throws Exception {
 		URISpec uriSpec = new URISpec(url);
-		return connection(uriSpec, props);
+		return connect(uriSpec, props);
 	}
 
 	@SuppressWarnings({ "unchecked", "rawtypes" })
-	public static Connection connection(URISpec uriSpec, Map<String, String> props) throws Exception {
+	public static Connection connect(URISpec uriSpec, Map<String, String> props) throws Exception {
 		Class clazz;
+		Constructor con = null;
 		Connection connection = null;
-		if (uriSpec.getScheme().equalsIgnoreCase("mongodb")) {
-			clazz = Connection.getRegisterInfo("mongodb");
-			Constructor con = clazz.getConstructor(new Class[] { URISpec.class });
-			connection = (Connection) con.newInstance(uriSpec);
-		} else if (uriSpec.getScheme().equalsIgnoreCase("kudu")) {
-			clazz = Connection.getRegisterInfo("kudu");
-			Constructor con = clazz.getConstructor(new Class[] { URISpec.class, Map.class });
-			connection = (Connection) con.newInstance(uriSpec, props);
-		} else if (uriSpec.getScheme().equalsIgnoreCase("es")) {
-			clazz = Connection.getRegisterInfo("es");
-			Constructor con = clazz.getConstructor(new Class[] { URISpec.class, Map.class });
-			connection = (Connection) con.newInstance(uriSpec, props);
-		} else if (uriSpec.getScheme().equalsIgnoreCase("hbase")) {
-			clazz = Connection.getRegisterInfo("hbase");
-			Constructor con = clazz.getConstructor(new Class[] { URISpec.class });
-			connection = (Connection) con.newInstance(uriSpec);
+		switch (uriSpec.getScheme()) {
+			case "mongodb":
+				clazz = Connection.getRegisterInfo("mongodb");
+				con = clazz.getConstructor(new Class[] { URISpec.class });
+				connection = (Connection) con.newInstance(uriSpec);
+				break;
+			case "kudu":
+				clazz = Connection.getRegisterInfo("kudu");
+				con = clazz.getConstructor(new Class[] { URISpec.class, Map.class });
+				connection = (Connection) con.newInstance(uriSpec, props);
+				break;
+			case "es":
+				clazz = Connection.getRegisterInfo("es");
+				con = clazz.getConstructor(new Class[] { URISpec.class, Map.class });
+				connection = (Connection) con.newInstance(uriSpec, props);
+				break;
+			case "hbase":
+				clazz = Connection.getRegisterInfo("hbase");
+				con = clazz.getConstructor(new Class[] { URISpec.class });
+				connection = (Connection) con.newInstance(uriSpec);
+				break;
+			case "zk:kafka":
+				
+				break;
+			case "zk:solr":
+				clazz = Connection.getRegisterInfo("zk:solr");
+				con = clazz.getConstructor(new Class[] { URISpec.class });
+				connection = (Connection) con.newInstance(uriSpec);
+				break;
+			default:
+				break;
 		}
 		return connection;
 	}

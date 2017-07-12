@@ -91,7 +91,7 @@ public class ElasticConnection extends NoSqlConnection<TransportClient>implement
 		URISpec uriSpec = new URISpec(uri);
 		
 		try {
-			Connection connection = Connection.connection(uriSpec, null);
+			Connection connection = Connection.connect(uriSpec, null);
 			ElasticConnection ec = (ElasticConnection) connection;
 			List<DiscoveryNode> nodes = ec.client().connectedNodes();
 			for (DiscoveryNode node : nodes) {
