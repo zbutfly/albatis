@@ -164,7 +164,7 @@ public class MongoConnection extends NoSqlConnection<MongoClient> {
 	public static void main(String[] args) {
 		String uri = "mongodb://migrater:migrater1234@hzga137:30017/migrater";
 		try {
-			Connection connection = Connection.connection(uri, null);
+			Connection connection = Connection.connect(uri, null);
 			MongoConnection mc = (MongoConnection) connection;
 			
 			Cursor cursor = mc.collection("TEST_SRC").find();
