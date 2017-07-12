@@ -32,6 +32,7 @@ import org.apache.solr.client.solrj.response.DelegationTokenResponse.JsonMapResp
 import org.apache.solr.common.params.CoreAdminParams.CoreAdminAction;
 import org.apache.solr.common.params.ModifiableSolrParams;
 
+import com.hzcominfo.albatis.nosql.Connection;
 import com.hzcominfo.albatis.nosql.NoSqlConnection;
 
 import net.butfly.albacore.io.URISpec;
@@ -47,6 +48,32 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 	private static final CloseableHttpClient HTTP_CLIENT = SolrHttpContext.createDefaultHttpclient();
 	private static final Map<Class<? extends ResponseParser>, ResponseParser> PARSER_POOL = Maps.of();
 	private final SolrMeta meta;
+
+	static {
+		Connection.register("zk:solr", SolrConnection.class);
+	}
+
+	public enum ResponseFormat {
+		XML(XMLResponseParser.class), JSON(JsonMapResponseParser.class), BINARY(BinaryResponseParser.class);
+		private final Class<? extends ResponseParser> parser;
+
+		private <P extends ResponseParser> ResponseFormat(Class<P> parser) {
+			this.parser = parser;
+		}
+
+		@SuppressWarnings("unchecked")
+		private static Class<? extends ResponseParser> parse(String id) {
+			try {
+				return ResponseFormat.valueOf(id.toUpperCase()).parser;
+			} catch (Exception e) {
+				try {
+					return (Class<? extends ResponseParser>) Class.forName(id);
+				} catch (ClassNotFoundException e1) {
+					throw new IllegalArgumentException("Parser [" + id + "] not found.");
+				}
+			}
+		}
+	}
 
 	public SolrConnection(String connection) throws IOException {
 		this(new URISpec(connection));
@@ -69,36 +96,38 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 		this(uri, ResponseFormat.parse(uri.getParameter("parser", "XML")), parsing);
 	}
 
-	public SolrConnection(URISpec uri, Class<? extends ResponseParser> parserClass, boolean parsing) throws IOException {
-		super(uri, u -> create(u, parserClass), "solr", "zk:solr", "zookeeper", "zk", "http");
-		meta = parsing ? SolrMeta.parse(uri) : null;
+	public SolrConnection(URISpec uri, Class<? extends ResponseParser> parserClass, boolean parsing)
+			throws IOException {
+		super(uri, u -> create(u, parserClass), "solr", "zookeeper", "zk", "http", "zk:solr");
+		meta = parsing ? parse() : null;
 	}
 
 	private static SolrClient create(URISpec uri, Class<? extends ResponseParser> parserClass) {
-		if (null == parserClass) parserClass = XMLResponseParser.class;
+		if (null == parserClass)
+			parserClass = XMLResponseParser.class;
 		ResponseParser p = PARSER_POOL.computeIfAbsent(parserClass, clz -> Reflections.construct(clz));
 		switch (uri.getScheme()) {
-		case "solr:http":
-		case "http":
-			logger.debug("Solr client create: " + uri);
-			Builder hb = new HttpSolrClient.Builder(uri.toString().replaceAll("/$", "")).allowCompression(true).withHttpClient(HTTP_CLIENT)//
-					.withResponseParser(p);
-			return hb.build();
-		case "solr":
-		case "solr:zk":
-		case "zookeeper":
-		case "zk":
-		case "zk:solr":
-			logger.debug("Solr client create by zookeeper: " + uri);
-			CloudSolrClient.Builder cb = new CloudSolrClient.Builder();
-			CloudSolrClient c = cb.withZkHost(Arrays.asList(uri.getHost().split(","))).withHttpClient(HTTP_CLIENT).build();
-			c.setZkClientTimeout(Integer.parseInt(System.getProperty("albatis.io.zkclient.timeout", "30000")));
-			c.setZkConnectTimeout(Integer.parseInt(System.getProperty("albatis.io.zkconnect.timeout", "30000")));
-			c.setParallelUpdates(true);
-			c.setParser(p);
-			return c;
-		default:
-			throw new RuntimeException("Solr open failure, invalid uri: " + uri);
+			case "http":
+				logger.debug("Solr client create: " + uri);
+				Builder hb = new HttpSolrClient.Builder(uri.toString()).allowCompression(true)
+						.withHttpClient(HTTP_CLIENT)//
+						.withResponseParser(p);
+				return hb.build();
+			case "solr":
+			case "zookeeper":
+			case "zk":
+			case "zk:solr":
+				logger.debug("Solr client create by zookeeper: " + uri);
+				CloudSolrClient.Builder cb = new CloudSolrClient.Builder();
+				CloudSolrClient c = cb.withZkHost(Arrays.asList(uri.getHost().split(","))).withHttpClient(HTTP_CLIENT)
+						.build();
+				c.setZkClientTimeout(Integer.parseInt(System.getProperty("albatis.io.zkclient.timeout", "30000")));
+				c.setZkConnectTimeout(Integer.parseInt(System.getProperty("albatis.io.zkconnect.timeout", "30000")));
+				c.setParallelUpdates(true);
+				c.setParser(p);
+				return c;
+			default:
+				throw new RuntimeException("Solr open failure, invalid uri: " + uri);
 		}
 	}
 
@@ -130,7 +159,8 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 			params.set(HttpClientUtil.PROP_FOLLOW_REDIRECTS, false);
 			params.set(HttpClientUtil.PROP_CONNECTION_TIMEOUT, SolrHttpContext.SOLR_HTTP_CONN_TIMEOUT);
 			params.set(HttpClientUtil.PROP_SO_TIMEOUT, SolrHttpContext.SOLR_HTTP_SO_TIMEOUT);
-			HttpClientUtil.addRequestInterceptor((req, ctx) -> {});
+			HttpClientUtil.addRequestInterceptor((req, ctx) -> {
+			});
 			return HttpClientUtil.createClient(params);
 		}
 
@@ -141,7 +171,8 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 			m.setMaxTotal(SolrHttpContext.SOLR_HTTP_MAX_TOTAL);
 			m.setDefaultMaxPerRoute(SolrHttpContext.SOLR_HTTP_MAX_PER_ROUTE);
 			m.setDefaultSocketConfig(SocketConfig.custom().setSoTimeout(SolrHttpContext.SOLR_HTTP_SO_TIMEOUT).build());
-			m.setDefaultConnectionConfig(ConnectionConfig.custom().setBufferSize(SolrHttpContext.SOLR_HTTP_BUFFER_SIZE).build());
+			m.setDefaultConnectionConfig(
+					ConnectionConfig.custom().setBufferSize(SolrHttpContext.SOLR_HTTP_BUFFER_SIZE).build());
 			return HttpClientBuilder.create()//
 					.addInterceptorLast(SolrHttpContext.SOLR_HTTP_ICPT)//
 					.setConnectionManager(m)//
@@ -186,35 +217,30 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 			this.allCores = allCores;
 		}
 
-		@Override
-		public String toString() {
-			return "SolrMeta: " + baseUrl + " [default core: " + defCore + "]" + (allCores.length == 0 ? ""
-					: ", [all cores: " + String.join(",", allCores) + "]");
-		}
-
-		/**
-		 * @param uri
-		 * @return Tuple3: <baseURL, defaultCore[maybe null], allCores>, or null for invalid uri
-		 * @throws IOException
-		 * @throws SolrServerException
-		 * @throws URISyntaxException
-		 */
-		public static SolrMeta parse(URISpec uri) throws IOException {
-			try {
-				return parse0(uri.resolve("."), uri.getFile());
-			} catch (IOException e) {
-				if (null != uri.getFile()) try {
-					return parse0(new URISpec(uri.toString() + "/"), null);
-				} catch (IOException ee) {}
-				URISpec uri1 = uri.resolve("..").setFile(uri.getFile());
-				if (!uri1.equals(uri)) return parse(uri1);
-				throw new IOException("Solr uri base parsing failure: " + uri);
-			}
-		}
-
-		private static SolrMeta parse0(URISpec base, String file) throws IOException {
-			CoreAdminRequest req = new CoreAdminRequest();
-			req.setAction(CoreAdminAction.STATUS);
+	/**
+	 * @param uri
+	 * @return Tuple3: <baseURL, defaultCore[maybe null], allCores>, or null for
+	 *         invalid uri
+	 * @throws IOException
+	 * @throws SolrServerException
+	 * @throws URISyntaxException
+	 */
+	public SolrMeta parse() throws IOException {
+		String url = uri.toString();
+		CoreAdminRequest req = new CoreAdminRequest();
+		req.setAction(CoreAdminAction.STATUS);
+		try { // no core segment in uri
+			CoreAdminResponse resp = req.process(client());
+			String[] cores = new String[resp.getCoreStatus().size()];
+			for (int i = 0; i < resp.getCoreStatus().size(); i++)
+				cores[i] = resp.getCoreStatus().getName(i);
+			return new SolrMeta(url, null, cores);
+		} catch (SolrServerException | RemoteSolrException e) {
+			// has core segment in uri
+			String core = uri.getFile();
+			if (null == core)
+				throw new IOException("Solr uri invalid: " + uri);
+			URISpec base = uri.resolve("..");
 			try (SolrConnection solr = new SolrConnection(base, false);) {
 				CoreAdminResponse resp = req.process(solr.client());
 				String[] cores = new String[resp.getCoreStatus().size()];
