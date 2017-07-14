@@ -88,7 +88,7 @@ public final class KafkaInput extends InputImpl<KafkaMessage> {
 		Stream<KafkaStream<byte[], byte[]>> r = of(temp.values()).flatMap(Streams::of);
 		// connect ent
 		poolSize = config.getPoolSize();
-		String poolId = config.toString();
+		String poolId = config.toString().replaceAll(":", "_");
 		try {
 			pool = new BigQueue(IOs.mkdirs(poolPath + "/" + name), poolId);
 		} catch (IOException e) {
