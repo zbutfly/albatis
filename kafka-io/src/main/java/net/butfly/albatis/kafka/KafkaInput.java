@@ -168,6 +168,7 @@ public final class KafkaInput extends InputImpl<KafkaMessage> {
 						while (opened() && poolSize() > poolSize)
 							Concurrents.waitSleep();
 						byte[] b = new KafkaMessage(it.next()).toBytes();
+						logger().trace(() -> "KafkaInput[" + name() + "] read [" + b.length + "] bytes");
 						pool.enqueue(b);
 					}
 					Concurrents.waitSleep(1000); // kafka empty
