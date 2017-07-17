@@ -29,10 +29,6 @@ public class KuduConnection extends NoSqlConnection<KuduClient> {
 	private final KuduSession session;
 	private Thread failHandler;
 
-	static {
-		Connection.register("kudu", KuduConnection.class);
-	}
-
 	public KuduConnection(URISpec kuduUri, Map<String, String> props) throws IOException {
 		super(kuduUri, r -> new KuduClient.KuduClientBuilder(kuduUri.getHost()).build(), "kudu", "kudu");
 		session = client().newSession();
