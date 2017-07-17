@@ -29,10 +29,6 @@ import com.hzcominfo.albatis.Albatis;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.Configs;
 
-	static {
-		Connection.register("kudu", KuduConnection.class);
-	}
-
 	public KuduConnection(URISpec kuduUri, Map<String, String> props) throws IOException {
 		super(kuduUri, r -> new KuduClient.KuduClientBuilder(kuduUri.getHost()).build(), "kudu", "kudu");
 		session = client().newSession();
