@@ -49,10 +49,6 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 	private static final Map<Class<? extends ResponseParser>, ResponseParser> PARSER_POOL = Maps.of();
 	private final SolrMeta meta;
 
-	static {
-		Connection.register("zk:solr", SolrConnection.class);
-	}
-
 	public enum ResponseFormat {
 		XML(XMLResponseParser.class), JSON(JsonMapResponseParser.class), BINARY(BinaryResponseParser.class);
 		private final Class<? extends ResponseParser> parser;

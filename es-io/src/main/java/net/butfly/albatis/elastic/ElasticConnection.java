@@ -25,10 +25,6 @@ import net.butfly.albatis.io.Message;
 
 public class ElasticConnection extends NoSqlConnection<TransportClient>implements ElasticConnect {
 
-	static {
-		Connection.register("es", ElasticConnection.class);
-	}
-
 	public ElasticConnection(URISpec uri, Map<String, String> props) throws IOException {
 		super(uri, u -> ElasticConnect.Builder.buildTransportClient(u, props), 39300, "es", "elastic", "elasticsearch");
 	}
