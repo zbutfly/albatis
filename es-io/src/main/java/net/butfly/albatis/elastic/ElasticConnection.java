@@ -20,10 +20,6 @@ import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.serder.JsonSerder;
 
 
-	static {
-		Connection.register("es", ElasticConnection.class);
-	}
-
 	public ElasticConnection(URISpec uri, Map<String, String> props) throws IOException {
 		super(uri, u -> ElasticConnect.Builder.buildTransportClient(u, props), 39300, "es", "elasticsearch");
 	}
