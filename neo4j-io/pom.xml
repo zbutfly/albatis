@@ -6,7 +6,7 @@
 		<artifactId>albatis</artifactId>
 		<version>1.0.0-SNAPSHOT</version>
 	</parent>
-	<artifactId>albatis-neo4j</artifactId>
+	<artifactId>albatis-neo4j-io</artifactId>
 	<dependencies>
 		<dependency>
 			<groupId>net.butfly.albatis</groupId>
