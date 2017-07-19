@@ -19,7 +19,7 @@ import java.util.stream.Stream;
 
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.ActionRequest;
+import org.elasticsearch.action.DocWriteRequest;
 import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
@@ -138,7 +138,7 @@ public final class EsOutput extends FailoverOutput<String, ElasticMessage> {
 
 	private boolean update(String type, ElasticMessage es) {
 		if (es.type == null) es.type = type;
-		ActionRequest req = es.forWrite();
+		DocWriteRequest<?> req = es.forWrite();
 		if (req instanceof IndexRequest) get(conn.client().index((IndexRequest) req), 0);
 		else if (req instanceof UpdateRequest) get(conn.client().update((UpdateRequest) req), 0);
 		else return false;

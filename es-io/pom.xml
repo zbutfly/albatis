@@ -73,17 +73,17 @@
 		<dependency>
 			<groupId>org.elasticsearch.client</groupId>
 			<artifactId>transport</artifactId>
-			<version>5.2.2</version>
+			<version>${version.elastic}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.elasticsearch.client</groupId>
 			<artifactId>rest</artifactId>
-			<version>5.2.2</version>
+			<version>${version.elastic}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.elasticsearch.client</groupId>
 			<artifactId>sniffer</artifactId>
-			<version>5.2.2</version>
+			<version>${version.elastic}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
