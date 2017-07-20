@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -36,6 +37,7 @@ import net.butfly.albacore.io.faliover.FailoverOutput;
 import net.butfly.albacore.io.utils.URISpec;
 import net.butfly.albacore.utils.Exceptions;
 import net.butfly.albacore.utils.Texts;
+import net.butfly.albacore.utils.parallel.Concurrents;
 
 public final class EsOutput extends FailoverOutput<String, ElasticMessage> {
 	private final ElasticConnection conn;
@@ -58,10 +60,15 @@ public final class EsOutput extends FailoverOutput<String, ElasticMessage> {
 
 	@Override
 	protected void closeInternal() {
+		long act;
+		while ((act = actionCount.longValue()) > 0 && Concurrents.waitSleep())
+			logger().debug("ES Async op waiting for closing: " + act);
 		try {
 			conn.close();
 		} catch (Exception e) {}
 	}
+
+	private final AtomicLong actionCount = new AtomicLong(0);
 
 	@Override
 	protected long write(String type, Stream<ElasticMessage> msgs, Consumer<Collection<ElasticMessage>> failing, Consumer<Long> committing,
@@ -87,6 +94,7 @@ public final class EsOutput extends FailoverOutput<String, ElasticMessage> {
 		long bytes = logger().isTraceEnabled() ? req.estimatedSizeInBytes() : 0;
 		long now = System.currentTimeMillis();
 
+		logger().debug("ES async op waiting: " + actionCount.incrementAndGet());
 		try {
 			conn.client().bulk(req, new ActionListener<BulkResponse>() {
 				@Override
@@ -120,6 +128,7 @@ public final class EsOutput extends FailoverOutput<String, ElasticMessage> {
 					if (result != null && logger().isTraceEnabled()) result.trace(origin.size(), bytes, retry, retries.size(), System
 							.currentTimeMillis() - now);
 					if (!retries.isEmpty()) write(type, of(retries), failing, committing, retry + 1);
+					logger().debug("ES async op success 1, waiting: " + actionCount.decrementAndGet());
 				}
 
 				@Override
@@ -127,6 +136,7 @@ public final class EsOutput extends FailoverOutput<String, ElasticMessage> {
 					Throwable t = Exceptions.unwrap(ex);
 					logger().warn("Elastic connection op failed [" + t + "], [" + retries.size() + "] failover", t);
 					failing.accept(retries);
+					logger().debug("ES async op failed 1, waiting: " + actionCount.decrementAndGet());
 				}
 			});
 		} catch (IllegalStateException ex) {
