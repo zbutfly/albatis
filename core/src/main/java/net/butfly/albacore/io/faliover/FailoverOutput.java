@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -19,6 +20,7 @@ import java.util.stream.Stream;
 import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.io.Message;
 import net.butfly.albacore.io.Output;
+import net.butfly.albacore.utils.parallel.Concurrents;
 
 /**
  * Output with buffer and failover supporting.<br>
@@ -33,6 +35,7 @@ import net.butfly.albacore.io.Output;
 public abstract class FailoverOutput<K, M extends Message<K, ?, M>> extends Namedly implements Output<M> {
 	private final Failover<K, M> failover;
 	final int batchSize;
+	protected final AtomicLong actionCount = new AtomicLong(0);
 
 	protected FailoverOutput(String name, Function<byte[], M> constructor, String failoverPath, int batchSize) throws IOException {
 		super(name);
@@ -41,6 +44,9 @@ public abstract class FailoverOutput<K, M extends Message<K, ?, M>> extends Name
 				: new OffHeapFailover<K, M>(name(), this, constructor, failoverPath, null);
 		failover.trace(batchSize, () -> "failover: " + size());
 		closing(() -> {
+			long act;
+			while ((act = actionCount.longValue()) > 0 && Concurrents.waitSleep())
+				logger().debug("ES Async op waiting for closing: " + act);
 			failover.close();
 			this.closeInternal();
 		});
