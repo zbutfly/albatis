@@ -14,7 +14,10 @@ import java.util.stream.Stream;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Table;
+import org.apache.hadoop.hbase.client.coprocessor.Batch.Callback;
+import org.apache.hadoop.hbase.util.Bytes;
 
 import net.butfly.albacore.io.faliover.FailoverOutput;
 import net.butfly.albacore.io.utils.URISpec;
@@ -59,21 +62,24 @@ public final class HbaseOutput extends FailoverOutput<String, HbaseResult> {
 		}
 	}
 
+	private final Callback<Result> callback = (region, row, result) -> //
+	logger().trace(() -> "HBase put [" + Bytes.toString(row) + "] callbacked.");
+
 	@Override
 	protected long write(String table, Stream<HbaseResult> values, Consumer<Collection<HbaseResult>> failing, Consumer<Long> committing,
 			int retry) {
 		List<Put> puts = list(values, HbaseResult::forWrite);
 		if (puts.isEmpty()) return 0;
-		long rr = 0;
+		Result[] results = new Result[puts.size()];
 		try {
-			table(table).put(puts);
-			rr = puts.size();
+			if (logger().isTraceEnabled()) table(table).batchCallback(puts, results, callback);
+			else table(table).batch(puts, results);
 		} catch (Exception ex) {
 			logger().warn(name() + " write failed [" + Exceptions.unwrap(ex).getMessage() + "], [" + puts.size() + "] into failover.");
 			failing.accept(list(puts, p -> new HbaseResult(table, p)));
 		} finally {
-			committing.accept(rr);
+			committing.accept((long) results.length);
 		}
-		return rr;
+		return results.length;
 	}
 }
