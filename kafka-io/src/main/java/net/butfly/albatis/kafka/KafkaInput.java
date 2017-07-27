@@ -88,7 +88,7 @@ public final class KafkaInput extends InputImpl<KafkaMessage> {
 		Stream<KafkaStream<byte[], byte[]>> r = of(temp.values()).flatMap(Streams::of);
 		// connect ent
 		poolSize = config.getPoolSize();
-		String poolId = config.toString();
+		String poolId = config.toString().replaceAll(":", "_");
 		try {
 			pool = new BigQueue(IOs.mkdirs(poolPath + "/" + name), poolId);
 		} catch (IOException e) {
@@ -168,6 +168,7 @@ public final class KafkaInput extends InputImpl<KafkaMessage> {
 						while (opened() && poolSize() > poolSize)
 							Concurrents.waitSleep();
 						byte[] b = new KafkaMessage(it.next()).toBytes();
+						logger().trace(() -> "KafkaInput[" + name() + "] read [" + b.length + "] bytes");
 						pool.enqueue(b);
 					}
 					Concurrents.waitSleep(1000); // kafka empty

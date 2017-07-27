@@ -19,7 +19,7 @@ import java.util.stream.Stream;
 
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.ActionRequest;
+import org.elasticsearch.action.DocWriteRequest;
 import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
@@ -120,6 +120,7 @@ public final class EsOutput extends FailoverOutput<String, ElasticMessage> {
 					if (result != null && logger().isTraceEnabled()) result.trace(origin.size(), bytes, retry, retries.size(), System
 							.currentTimeMillis() - now);
 					if (!retries.isEmpty()) write(type, of(retries), failing, committing, retry + 1);
+					logger().debug("ES async op success 1, waiting: " + actionCount.decrementAndGet());
 				}
 
 				@Override
@@ -127,6 +128,7 @@ public final class EsOutput extends FailoverOutput<String, ElasticMessage> {
 					Throwable t = Exceptions.unwrap(ex);
 					logger().warn("Elastic connection op failed [" + t + "], [" + retries.size() + "] failover", t);
 					failing.accept(retries);
+					logger().debug("ES async op failed 1, waiting: " + actionCount.decrementAndGet());
 				}
 			});
 		} catch (IllegalStateException ex) {
@@ -138,7 +140,7 @@ public final class EsOutput extends FailoverOutput<String, ElasticMessage> {
 
 	private boolean update(String type, ElasticMessage es) {
 		if (es.type == null) es.type = type;
-		ActionRequest req = es.forWrite();
+		DocWriteRequest<?> req = es.forWrite();
 		if (req instanceof IndexRequest) get(conn.client().index((IndexRequest) req), 0);
 		else if (req instanceof UpdateRequest) get(conn.client().update((UpdateRequest) req), 0);
 		else return false;

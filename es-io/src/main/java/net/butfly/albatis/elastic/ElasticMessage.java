@@ -7,7 +7,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.Map;
 
-import org.elasticsearch.action.ActionRequest;
+import org.elasticsearch.action.DocWriteRequest;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.script.Script;
@@ -15,7 +15,7 @@ import org.elasticsearch.script.ScriptType;
 
 import net.butfly.albacore.io.Message;
 
-public class ElasticMessage extends Message<String, ActionRequest, ElasticMessage> {
+public class ElasticMessage extends Message<String, DocWriteRequest<?>, ElasticMessage> {
 	private static final long serialVersionUID = -125189207796104302L;
 
 	final boolean updating;
@@ -57,7 +57,7 @@ public class ElasticMessage extends Message<String, ActionRequest, ElasticMessag
 	}
 
 	@Override
-	public ActionRequest forWrite() {
+	public DocWriteRequest<?> forWrite() {
 		if (updating) {
 			UpdateRequest req = new UpdateRequest(index, type, id);
 			if (script == null) req.doc(doc).docAsUpsert(upsert);

@@ -6,7 +6,7 @@
 		<artifactId>albatis</artifactId>
 		<version>1.0.0-SNAPSHOT</version>
 	</parent>
-	<artifactId>albatis-neo4j</artifactId>
+	<artifactId>albatis-arangodb-io</artifactId>
 	<dependencies>
 		<dependency>
 			<groupId>net.butfly.albatis</groupId>
@@ -14,9 +14,15 @@
 			<version>1.0.0-SNAPSHOT</version>
 		</dependency>
 		<dependency>
-			<groupId>org.neo4j</groupId>
-			<artifactId>neo4j</artifactId>
-			<version>3.1.1</version>
+			<groupId>com.arangodb</groupId>
+			<artifactId>arangodb-java-driver-async</artifactId>
+			<version>${version.arangodb}</version>
+			<exclusions>
+				<exclusion>
+					<groupId>junit</groupId>
+					<artifactId>junit</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 	</dependencies>
 </project>

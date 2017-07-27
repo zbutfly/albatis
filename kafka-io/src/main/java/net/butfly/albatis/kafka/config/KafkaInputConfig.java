@@ -40,7 +40,7 @@ public class KafkaInputConfig extends KafkaConfigBase {
 
 	protected long zookeeperSyncTimeMs;
 	protected final String consumerId;
-	protected String groupId;
+	protected final String groupId;
 	protected boolean autoCommitEnable;
 	protected long autoCommitIntervalMs;
 	protected String autoOffsetReset;
@@ -57,8 +57,7 @@ public class KafkaInputConfig extends KafkaConfigBase {
 	public KafkaInputConfig(String consumerId, URISpec uri) {
 		super(uri);
 		this.consumerId = consumerId;
-		groupId = uri.getUsername();
-		if (groupId == null || "".equals(groupId)) groupId = Systems.suffixDebug(Systems.getMainClass().getSimpleName(), logger);
+		groupId = calcGroupId(uri.getUsername());
 		Map<String, String> props = uri.getParameters();
 
 		zookeeperSyncTimeMs = Long.parseLong(props.getOrDefault("zksynctime", "15000").trim());
@@ -82,10 +81,7 @@ public class KafkaInputConfig extends KafkaConfigBase {
 	public KafkaInputConfig(String consumerId, Properties props) {
 		super(props);
 		this.consumerId = consumerId;
-		groupId = null;
-		if (props.containsKey("albatis.kafka.group.id")) groupId = props.getProperty("albatis.kafka.group.id");
-		if (groupId == null || "".equals(groupId)) groupId = Systems.getMainClass().getSimpleName();
-		groupId = Systems.suffixDebug(groupId, logger);
+		groupId = calcGroupId(props.getProperty("albatis.kafka.group.id"));
 
 		zookeeperSyncTimeMs = Long.parseLong(props.getProperty(PROP_PREFIX + "zookeeper.sync.time.ms", "15000").trim());
 		autoCommitIntervalMs = Long.parseLong(props.getProperty(PROP_PREFIX + "auto.commit.interval.ms", DEFAULT_AUTO_COMMIT_MS).trim());
@@ -100,6 +96,12 @@ public class KafkaInputConfig extends KafkaConfigBase {
 		zookeeperSessionTimeoutMs = Long.parseLong(props.getProperty(PROP_PREFIX + "zookeeper.session.timeout.ms", "30000"));
 
 		partitionParallelism = Integer.parseInt(props.getProperty(PROP_PREFIX + "partition.parallelism", "0").trim());
+	}
+
+	private static String calcGroupId(String configGroupId) {
+		if (configGroupId == null || "".equals(configGroupId)) configGroupId = Systems.getMainClass().getSimpleName();
+		configGroupId = Systems.suffixDebug(configGroupId, logger);
+		return configGroupId;
 	}
 
 	public int getPartitionParallelism() {

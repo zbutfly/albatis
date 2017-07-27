@@ -8,14 +8,15 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
+import org.elasticsearch.action.admin.indices.mapping.put.PutMappingResponse;
 import org.elasticsearch.client.transport.TransportClient;
 
 import com.hzcominfo.albatis.nosql.NoSqlConnection;
 
 import net.butfly.albacore.io.utils.URISpec;
+import net.butfly.albacore.serder.JsonSerder;
 
 public class ElasticConnection extends NoSqlConnection<TransportClient> implements ElasticConnect {
-
 	public ElasticConnection(URISpec uri, Map<String, String> props) throws IOException {
 		super(uri, u -> ElasticConnect.Builder.buildTransportClient(u, props), 39300, "es", "elasticsearch");
 	}
@@ -39,19 +40,20 @@ public class ElasticConnection extends NoSqlConnection<TransportClient> implemen
 
 	@Override
 	public String getDefaultType() {
-		return uri.getFile();
+		return uri.getPathAt(1);
 	}
 
 	@Override
 	public void mapping(Map<String, Object> mapping, String... types) {
-		logger().debug("Mapping constructing: " + mapping);
 		PutMappingRequest req = new PutMappingRequest(getDefaultIndex());
 		req.source(mapping);
 		Set<String> tps = new HashSet<>(Arrays.asList(types));
 		if (null != getDefaultType()) tps.add(getDefaultType());
-		for (String t : tps)
-			if (!client().admin().indices().putMapping(req.type(t)).actionGet().isAcknowledged()) logger().error("Mapping failed on type ["
-					+ t + "]" + req.toString());
+		for (String t : tps) {
+			PutMappingResponse r = client().admin().indices().putMapping(req.type(t)).actionGet();
+			if (!r.isAcknowledged()) logger().error("Mapping failed on type [" + t + "]" + req.toString());
+			else logger().debug(() -> "Mapping construced sussesfully: \n\t" + JsonSerder.JSON_MAPPER.ser(mapping));
+		}
 	}
 
 	@Override

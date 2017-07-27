@@ -22,6 +22,7 @@ public class KuduCommon {
 	private static final TimeZone TIMEZONE = TimeZone.getTimeZone("GMT+8");
 	public static final SimpleDateFormat SDF = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
+	@SuppressWarnings("rawtypes")
 	public static final PartialRow generateColumnData(Type type, PartialRow row, String name, Object o) {
 		switch (type) {
 		case INT8:
