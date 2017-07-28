@@ -100,6 +100,17 @@ public final class KafkaInput extends InputImpl<KafkaMessage> {
 				poolSize()));
 		closing(this::closeKafka);
 		open();
+		Thread gc = new Thread(() -> {
+			do {
+				try {
+					pool.gc();
+				} catch (Throwable t) {
+					logger().error("Pool gc fail", t);
+				}
+			} while (opened() && Concurrents.waitSleep(30000));
+		}, "KafkaPoolGCer");
+		gc.setDaemon(true);
+		gc.start();
 	}
 
 	@Override
