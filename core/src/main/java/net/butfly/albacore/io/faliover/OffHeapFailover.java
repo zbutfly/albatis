@@ -16,6 +16,7 @@ import java.util.function.Function;
 
 import com.bluejeans.bigqueue.BigQueue;
 
+import net.butfly.albacore.io.BigqQueue;
 import net.butfly.albacore.io.Message;
 import net.butfly.albacore.utils.IOs;
 import net.butfly.albacore.utils.Pair;
@@ -34,6 +35,17 @@ public class OffHeapFailover<K, V extends Message<K, ?, V>> extends Failover<K, 
 				path, parentName, poolName, size()));
 		closing(this::closePool);
 		open();
+		Thread gc = new Thread(() -> {
+			do {
+				try {
+					failover.gc();
+				} catch (Throwable t) {
+					logger().error("Pool gc fail", t);
+				}
+			} while (opened() && Concurrents.waitSleep(BigqQueue.GC_INTV));
+		}, "Failover-Maintainancer-Daemon-Thread");
+		gc.setDaemon(true);
+		gc.start();
 	}
 
 	@Override

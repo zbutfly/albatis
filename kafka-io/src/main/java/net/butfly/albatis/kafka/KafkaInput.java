@@ -21,6 +21,7 @@ import kafka.consumer.ConsumerTimeoutException;
 import kafka.consumer.KafkaStream;
 import kafka.javaapi.consumer.ConsumerConnector;
 import net.butfly.albacore.exception.ConfigException;
+import net.butfly.albacore.io.BigqQueue;
 import net.butfly.albacore.io.InputImpl;
 import net.butfly.albacore.io.ext.OpenableThread;
 import net.butfly.albacore.io.utils.Streams;
@@ -107,8 +108,8 @@ public final class KafkaInput extends InputImpl<KafkaMessage> {
 				} catch (Throwable t) {
 					logger().error("Pool gc fail", t);
 				}
-			} while (opened() && Concurrents.waitSleep(30000));
-		}, "KafkaPoolGCer");
+			} while (opened() && Concurrents.waitSleep(BigqQueue.GC_INTV));
+		}, "KafkaInputPool-Maintainancer-Daemon-Thread");
 		gc.setDaemon(true);
 		gc.start();
 	}
