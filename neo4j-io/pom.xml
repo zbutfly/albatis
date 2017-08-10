@@ -18,16 +18,5 @@
 			<artifactId>neo4j-java-driver</artifactId>
 			<version>${version.neo4j}</version>
 		</dependency>
-		<!-- <dependency> -->
-		<!-- <groupId>org.neo4j</groupId> -->
-		<!-- <artifactId>neo4j</artifactId> -->
-		<!-- <version>3.2.2</version> -->
-		<!-- </dependency> -->
 	</dependencies>
-	<repositories>
-		<repository>
-			<id>_m2e_lifecycling_repos_</id>
-			<url>http://simulation.tudelft.nl/maven/</url>
-		</repository>
-	</repositories>
 </project>
