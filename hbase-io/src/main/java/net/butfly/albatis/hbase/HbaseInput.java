@@ -118,11 +118,12 @@ public final class HbaseInput extends Namedly implements Input<HbaseResult> {
 
 	public List<HbaseResult> get(List<Get> gets) {
 		if (gets == null || gets.isEmpty()) return new ArrayList<>();
-		return gets.size() == 1 ? Arrays.asList(get(gets.get(0))) : table(tname, t -> {
+		if (gets.size() == 1) return Arrays.asList(scan(gets.get(0)));
+		return table(tname, t -> {
 			try {
 				return list(Arrays.asList(t.get(gets)), r -> new HbaseResult(tname, r));
 			} catch (Exception ex) {
-				return list(Streams.of(gets, false).map(this::get));
+				return list(Streams.of(gets, true).map(this::scan).filter(r -> null != r));
 			}
 		});
 	}
@@ -131,7 +132,7 @@ public final class HbaseInput extends Namedly implements Input<HbaseResult> {
 		return table(tname, t -> {
 			Result r;
 			try {
-				r = getByScan(get);
+				r = t.get(get);
 			} catch (Exception e) {
 				logger().warn("Hbase scan fail: [" + e.getMessage() + "].");
 				return null;
@@ -142,40 +143,39 @@ public final class HbaseInput extends Namedly implements Input<HbaseResult> {
 		});
 	}
 
-	private Result getByScan(Get get) {
-		String row = Bytes.toString(get.getRow());
+	private HbaseResult scan(Get get) {
+		byte[] rowb = get.getRow();
+		String row = Bytes.toString(rowb);
 		return table(tname, t -> {
-			Result r;
 			int retry = 0;
 			long now = System.currentTimeMillis();
+			Result r = null;
 			do {
-				Scan s = new Scan().setRowPrefixFilter(get.getRow());
+				Scan s = new Scan().setStartRow(rowb).setStopRow(rowb);
 				if (get.hasFamilies()) for (byte[] cf : get.familySet())
 					s.addFamily(cf);
 				Filter f = get.getFilter();
+				s.setCaching(1);
 				if (null != f) s.setFilter(f);
-				ResultScanner sc;
-				try {
-					sc = t.getScanner(s);
-				} catch (IOException ex) {
-					logger().error("Hbase get(scan) failed on retry #" + retry + ": [" + row + "] in [" + (System.currentTimeMillis() - now)
-							+ " ms], error:\n\t" + ex.getMessage());
-					return null;
-				}
-				try {
+				else s.setBatch(1);
+
+				try (ResultScanner sc = t.getScanner(s);) {
 					r = sc.next();
 				} catch (IOException ex) {
 					if (doNotRetry(ex)) {
 						logger().error("Hbase get(scan) failed on retry #" + retry + ": [" + row + "] in [" + (System.currentTimeMillis()
 								- now) + " ms], error:\n\t" + ex.getMessage());
 						return null;
-					} else r = null;
-				} finally {
-					sc.close();
+					}
 				}
 			} while (null == r && retry++ < MAX_RETRIES && opened());
-			logger().trace("Hbase get(scan) on [" + row + "] with [" + retry + "] retries");
-			return r;
+
+			if (null == r) return null;
+			Result rr = r;
+			int rt = retry;
+			logger().trace(() -> "Hbase get(scan) on [" + row + "] with [" + rt + "] retries, size: [" + Result.getTotalSizeOfCells(rr)
+					+ "]");
+			return new HbaseResult(tname, r);
 		});
 	}
 
