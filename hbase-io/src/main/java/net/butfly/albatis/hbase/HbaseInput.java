@@ -129,11 +129,16 @@ public final class HbaseInput extends Namedly implements Input<HbaseResult> {
 
 	public HbaseResult get(Get get) {
 		return table(tname, t -> {
+			Result r;
 			try {
-				return new HbaseResult(tname, t.get(get));
-			} catch (Exception ex) {
-				return new HbaseResult(tname, getByScan(get));
+				r = getByScan(get);
+			} catch (Exception e) {
+				logger().warn("Hbase scan fail: [" + e.getMessage() + "].");
+				return null;
 			}
+			if (null != r) return new HbaseResult(tname, r);
+			logger().error("Hbase get/scan return null: \n\t" + get.toString());
+			return null;
 		});
 	}
 
