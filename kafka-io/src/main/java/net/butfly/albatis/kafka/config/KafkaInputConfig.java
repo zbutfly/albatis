@@ -99,7 +99,7 @@ public class KafkaInputConfig extends KafkaConfigBase {
 	}
 
 	private static String calcGroupId(String configGroupId) {
-		if (configGroupId == null || "".equals(configGroupId)) configGroupId = Systems.getMainClass().getSimpleName();
+		if (configGroupId == null || "".equals(configGroupId)) configGroupId = Systems.JVM.mainClass().getSimpleName();
 		configGroupId = Systems.suffixDebug(configGroupId, logger);
 		return configGroupId;
 	}
