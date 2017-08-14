@@ -143,7 +143,8 @@ public final class HbaseInput extends Namedly implements Input<HbaseResult> {
 		});
 	}
 
-	private static final int ONE_M = 1024 * 1024 * 3;
+	private static final int HBASE_SCAN_BYTES = 1024 * 1024 * 3;
+	private static final int HBASE_SCAN_LIMIT = 1;
 
 	private HbaseResult scan(Get get) {
 		byte[] rowb = get.getRow();
@@ -154,9 +155,9 @@ public final class HbaseInput extends Namedly implements Input<HbaseResult> {
 			Result r = null;
 			do {
 				Scan s = new Scan().setStartRow(rowb).setStopRow(rowb);
-				s.setCaching(1);// rows per rpc
-				s.setBatch(1);// cols per rpc
-				s.setMaxResultSize(ONE_M);
+				s.setCaching(HBASE_SCAN_LIMIT);// rows per rpc
+				s.setBatch(HBASE_SCAN_LIMIT);// cols per rpc
+				s.setMaxResultSize(HBASE_SCAN_BYTES);
 				if (get.hasFamilies()) for (byte[] cf : get.familySet())
 					s.addFamily(cf);
 				Filter f = get.getFilter();
