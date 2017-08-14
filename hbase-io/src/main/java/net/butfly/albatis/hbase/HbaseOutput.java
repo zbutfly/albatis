@@ -72,7 +72,7 @@ public final class HbaseOutput extends FailoverOutput<String, HbaseResult> {
 		List<HbaseResult> vs = list(values);
 		List<Put> puts = new ArrayList<>();
 		for (HbaseResult r : vs)
-			if (null != r) puts.add(r.forWrite());
+			puts.add(r.forWrite());
 		if (puts.isEmpty()) return 0;
 		Object[] results = new Object[puts.size()];
 		long succ = 0;
@@ -86,7 +86,11 @@ public final class HbaseOutput extends FailoverOutput<String, HbaseResult> {
 			List<HbaseResult> fails = new ArrayList<>();
 			for (int i = 0; i < results.length; i++) {
 				if (results[i] instanceof Result) succ++;
-				else fails.add(vs.get(i));
+				else {
+					fails.add(vs.get(i));
+					if (!(results[i] instanceof Throwable)) logger().warn("Unknown hbase return [" + results[i].getClass() + "]: "
+							+ results[i].toString());
+				}
 			}
 			committing.accept((long) succ);
 			failing.accept(fails);
