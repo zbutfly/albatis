@@ -32,6 +32,7 @@ import net.butfly.albacore.utils.collection.Maps;
 
 public final class HbaseInput extends Namedly implements Input<HbaseResult> {
 	private static final int MAX_RETRIES = 5;
+	private static final int CACHED_SCAN_OBJS = 500;
 	private final Connection hconn;
 	private final String tname;
 	private final Table htable;
@@ -39,6 +40,7 @@ public final class HbaseInput extends Namedly implements Input<HbaseResult> {
 	private ResultScanner scaner = null;
 	private ReentrantReadWriteLock scanerLock;
 	private AtomicBoolean ended;
+	private final LinkedBlockingQueue<Scan> scans = new LinkedBlockingQueue<>(CACHED_SCAN_OBJS);
 
 	public HbaseInput(String name, final String table, byte[] startRow, byte[] stopRow) throws IOException {
 		super(name);
@@ -143,45 +145,38 @@ public final class HbaseInput extends Namedly implements Input<HbaseResult> {
 		});
 	}
 
-	private static final int HBASE_SCAN_BYTES = 1024 * 1024 * 3;
-	private static final int HBASE_SCAN_LIMIT = 1;
-
 	private HbaseResult scan(Get get) {
-		byte[] rowb = get.getRow();
-		String row = Bytes.toString(rowb);
+		byte[] row = get.getRow();
 		return table(tname, t -> {
 			int retry = 0;
 			long now = System.currentTimeMillis();
 			Result r = null;
 			do {
-				Scan s = new Scan().setStartRow(rowb).setStopRow(rowb);
-				s.setCaching(HBASE_SCAN_LIMIT);// rows per rpc
-				s.setBatch(HBASE_SCAN_LIMIT);// cols per rpc
-				s.setMaxResultSize(HBASE_SCAN_BYTES);
-				if (get.hasFamilies()) for (byte[] cf : get.familySet())
-					s.addFamily(cf);
-				Filter f = get.getFilter();
-				if (null != f) s.setFilter(f);
-
+				Scan s = scanOpen(row, get.getFilter(), get.familySet().toArray(new byte[get.numFamilies()][]));
 				try (ResultScanner sc = t.getScanner(s);) {
 					r = sc.next();
 				} catch (IOException ex) {
 					if (doNotRetry(ex)) {
-						logger().error("Hbase get(scan) failed on retry #" + retry + ": [" + row + "] in [" + (System.currentTimeMillis()
-								- now) + " ms], error:\n\t" + ex.getMessage());
+						logger().error("Hbase get(scan) failed on retry #" + retry + ": [" + Bytes.toString(row) + "] in [" + (System
+								.currentTimeMillis() - now) + " ms], error:\n\t" + ex.getMessage());
 						return null;
 					}
+				} finally {
+					scanClose(s);
 				}
 			} while (null == r && retry++ < MAX_RETRIES && opened());
 
 			if (null == r) return null;
 			Result rr = r;
 			int rt = retry;
-			logger().trace(() -> "Hbase get(scan) on [" + row + "] with [" + rt + "] retries, size: [" + Result.getTotalSizeOfCells(rr)
-					+ "]");
+			logger().trace(() -> "Hbase get(scan) on [" + Bytes.toString(row) + "] with [" + rt + "] retries, size: [" + Result
+					.getTotalSizeOfCells(rr) + "]");
 			return new HbaseResult(tname, r);
 		});
 	}
+
+	private static final int HBASE_SCAN_BYTES = 1024 * 1024 * 3;
+	private static final int HBASE_SCAN_LIMIT = 1;
 
 	private boolean doNotRetry(Throwable th) {
 		while (!(th instanceof RemoteWithExtrasException) && th.getCause() != null && th.getCause() != th)
@@ -206,6 +201,55 @@ public final class HbaseInput extends Namedly implements Input<HbaseResult> {
 				t.close();
 			} catch (IOException e) {
 				logger().error("Hbase close fail", e);
+			}
+		}
+	}
+
+	private Scan scanOpen(byte[] row, Filter filter, byte[]... families) {
+		Scan s = scans.poll();
+		if (null == s) {
+			s = new Scan();
+			optimize(s);
+		}
+		s = s.setStartRow(row).setStopRow(row);
+		s.getFamilyMap().clear();
+		for (byte[] cf : families)
+			s.addFamily(cf);
+		s.setFilter(filter);
+		return s;
+	}
+
+	private void scanClose(Scan s) {
+		scans.offer(s);
+	}
+
+	private void optimize(Scan s) {
+		// optimize scan for performance, but hbase throw strang exception...
+		try {
+			s.setCaching(HBASE_SCAN_LIMIT);// rows per rpc
+		} catch (Throwable t) {
+			try {
+				s.setCaching(HBASE_SCAN_LIMIT);// rows per rpc
+			} catch (Throwable tt) {
+				logger().debug("Hbase setCaching fail", tt);
+			}
+		}
+		try {
+			s.setBatch(HBASE_SCAN_LIMIT);// cols per rpc
+		} catch (Throwable t) {
+			try {
+				s.setBatch(HBASE_SCAN_LIMIT);// cols per rpc
+			} catch (Throwable tt) {
+				logger().debug("Hbase setBatch fail", tt);
+			}
+		}
+		try {
+			s.setMaxResultSize(HBASE_SCAN_BYTES);
+		} catch (Throwable t) {
+			try {
+				s.setMaxResultSize(HBASE_SCAN_BYTES);
+			} catch (Throwable tt) {
+				logger().debug("Hbase setMaxResultSize fail", tt);
 			}
 		}
 	}
