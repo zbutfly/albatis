@@ -46,7 +46,7 @@ public final class EsOutput extends FailoverOutput<String, ElasticMessage> {
 	}
 
 	public EsOutput(String name, URISpec uri, String failoverPath) throws IOException {
-		super(name, b -> new ElasticMessage(b), failoverPath, Integer.parseInt(uri.getParameter(Connection.PARAM_KEY_BATCH, "200")));
+		super(name, b -> new ElasticMessage(b), failoverPath, Integer.parseInt(uri.getParameter(Connection.PARAM_KEY_BATCH, "1000")));
 		conn = new ElasticConnection(uri);
 		maxRetry = Integer.parseInt(uri.getParameter("retry", "5"));
 		open();
@@ -120,15 +120,15 @@ public final class EsOutput extends FailoverOutput<String, ElasticMessage> {
 					if (result != null && logger().isTraceEnabled()) result.trace(origin.size(), bytes, retry, retries.size(), System
 							.currentTimeMillis() - now);
 					if (!retries.isEmpty()) write(type, of(retries), failing, committing, retry + 1);
-					logger().debug("ES async op success 1, waiting: " + actionCount.decrementAndGet());
+					logger().trace("ES async op success 1, waiting: " + actionCount.decrementAndGet());
 				}
 
 				@Override
 				public void onFailure(Exception ex) {
 					Throwable t = Exceptions.unwrap(ex);
-					logger().warn("Elastic connection op failed [" + t + "], [" + retries.size() + "] failover", t);
+					logger().warn("Elastic connection op failed [" + t + "], [" + retries.size() + "] failover, waiting: " + actionCount
+							.decrementAndGet(), t);
 					failing.accept(retries);
-					logger().debug("ES async op failed 1, waiting: " + actionCount.decrementAndGet());
 				}
 			});
 		} catch (IllegalStateException ex) {
@@ -166,7 +166,7 @@ public final class EsOutput extends FailoverOutput<String, ElasticMessage> {
 					.append("] ms, step successed:[" + succs + "], ");
 			if (remains > 0) sb.append("remained:[").append(remains).append("], ");
 			if (fails > 0) sb.append("failed:[").append(fails).append("], ");
-			logger().debug(sb.append("sample id: [").append(sample).append("]."));
+			logger().trace(sb.append("sample id: [").append(sample).append("]."));
 		}
 	}
 

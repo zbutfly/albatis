@@ -3,8 +3,6 @@ package net.butfly.albatis.elastic;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.util.Map;
 
 import org.elasticsearch.action.DocWriteRequest;
@@ -14,6 +12,7 @@ import org.elasticsearch.script.Script;
 import org.elasticsearch.script.ScriptType;
 
 import net.butfly.albacore.io.Message;
+import net.butfly.albacore.utils.IOs;
 
 public class ElasticMessage extends Message<String, DocWriteRequest<?>, ElasticMessage> {
 	private static final long serialVersionUID = -125189207796104302L;
@@ -90,55 +89,42 @@ public class ElasticMessage extends Message<String, DocWriteRequest<?>, ElasticM
 
 	@Override
 	public byte[] toBytes() {
-		try (ByteArrayOutputStream baos = new ByteArrayOutputStream(); ObjectOutputStream oos = new ObjectOutputStream(baos);) {
-			oos.writeUTF(index);
-			oos.writeUTF(type);
-			oos.writeUTF(id);
-			oos.writeBoolean(upsert);
-			oos.writeBoolean(updating);
-			oos.writeObject(doc);
-			boolean scrpiting = null != script;
-			oos.writeBoolean(scrpiting);
-			if (scrpiting) writeScript(oos, script);
-			oos.flush();
+		try (ByteArrayOutputStream baos = new ByteArrayOutputStream();) {
+			IOs.writeBytes(baos, index.getBytes(), type.getBytes(), id.getBytes(), //
+					new byte[] { (byte) (upsert ? 1 : 0), (byte) (updating ? 1 : 0), (byte) (null != script ? 1 : 0) });
+			IOs.writeObj(baos, doc);
+			if (null != script) writeScript(baos, script);
 			return baos.toByteArray();
 		} catch (IOException e) {
 			return null;
 		}
 	}
 
-	@SuppressWarnings("unchecked")
 	public ElasticMessage(byte[] bytes) {
 		if (null == bytes) throw new IllegalArgumentException();
-		try (ByteArrayInputStream bais = new ByteArrayInputStream(bytes); ObjectInputStream oos = new ObjectInputStream(bais);) {
-			index = oos.readUTF();
-			type = oos.readUTF();
-			id = oos.readUTF();
-			upsert = oos.readBoolean();
-			updating = oos.readBoolean();
-			doc = (Map<String, Object>) oos.readObject();
-			boolean scrpiting = oos.readBoolean();
-			script = scrpiting ? readScript(oos) : null;
-		} catch (IOException | ClassNotFoundException e) {
+		try (ByteArrayInputStream bios = new ByteArrayInputStream(bytes);) {
+			byte[][] attrs = IOs.readBytesList(bios);
+			index = new String(attrs[0]);
+			type = new String(attrs[1]);
+			id = new String(attrs[2]);
+			doc = IOs.readObj(bios);
+			upsert = attrs[3][0] == 1;
+			updating = attrs[3][1] == 1;
+			boolean scripting = attrs[3][2] == 1;
+			script = scripting ? readScript(bios) : null;
+		} catch (IOException e) {
 			throw new IllegalArgumentException(e);
 		}
 	}
 
-	static void writeScript(ObjectOutputStream oos, Script script) throws IOException {
-		oos.writeUTF(script.getType().name());
-		oos.writeUTF(script.getLang());
-		oos.writeObject(script.getParams());
+	static void writeScript(ByteArrayOutputStream oos, Script script) throws IOException {
+		IOs.writeBytes(oos, script.getType().name().getBytes(), script.getLang().getBytes(), script.getIdOrCode().getBytes());
+		IOs.writeObj(oos, script.getParams());
 	}
 
-	@SuppressWarnings("unchecked")
-	static Script readScript(ObjectInputStream oos) throws IOException {
-		// String script = oos.readUTF();
-		ScriptType st = ScriptType.valueOf(oos.readUTF());
-		String lang = oos.readUTF();
-		try {
-			return new Script(st, lang, ScriptType.INLINE.toString(), (Map<String, Object>) oos.readObject());
-		} catch (ClassNotFoundException e) {
-			throw new IOException(e);
-		}
+	static Script readScript(ByteArrayInputStream oos) throws IOException {
+		byte[][] attrs = IOs.readBytesList(oos);
+		Map<String, Object> param = IOs.readObj(oos);
+		return new Script(ScriptType.valueOf(new String(attrs[0])), new String(attrs[1]), new String(attrs[2]), param);
 	}
 }

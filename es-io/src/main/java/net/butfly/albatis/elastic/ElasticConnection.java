@@ -52,7 +52,7 @@ public class ElasticConnection extends NoSqlConnection<TransportClient> implemen
 		for (String t : tps) {
 			PutMappingResponse r = client().admin().indices().putMapping(req.type(t)).actionGet();
 			if (!r.isAcknowledged()) logger().error("Mapping failed on type [" + t + "]" + req.toString());
-			else logger().debug(() -> "Mapping construced sussesfully: \n\t" + JsonSerder.JSON_MAPPER.ser(mapping));
+			else logger().info(() -> "Mapping on [" + t + "] construced sussesfully: \n\t" + JsonSerder.JSON_MAPPER.ser(mapping));
 		}
 	}
 
