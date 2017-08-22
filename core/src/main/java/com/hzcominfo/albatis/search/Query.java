@@ -11,6 +11,8 @@ package com.hzcominfo.albatis.search;
 
 import java.util.List;
 
+import net.sf.jsqlparser.expression.Expression;
+
 /**
  * 规定查询接口 query中迭代有逻辑关系
  *
@@ -26,6 +28,8 @@ public interface Query extends Describe {
 	// public Query db(String... db);
 
 	public Query where(Criteria criteria);
+	
+	public Query geo(Expression exp);
 
 	public Query limit(Long limit);
 

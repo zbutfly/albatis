@@ -16,7 +16,7 @@
             <version>1.0.0-SNAPSHOT</version>
         </dependency>
 	~~~
-2. 调用示例
+1. 调用示例
 	1. connection create
 		~~~java
 		Connection connection = DriverManager.getConnection("elasticsearch://phgacluster@10.120.173.60:39300");
@@ -55,7 +55,16 @@
 		//可以选择是否去掉map中key包含的数据库名和表名，只留字段名
 		//List<Map<String, Object>> resultMapList = rbase.onlyFieldResult(rbase.getResultMapList());
 		~~~
-3. ES地址
+1. GEO搜索说明
+	1. 各类形状定义函数
+		1. 矩形 geoBoundingBoxQuery(field, top, left, bottom, right)
+		1. 圆形 geoDistanceQuery(field, lat, lon, distance) 
+		1. 多边形 geoPolygonQuery(field, lat_lon,lat_lon,lat_lon ...)
+	1. 查询调用示例
+		~~~sql
+			select * from indexName..typeName where [condition] and geoBoundingBoxQuery(location, 3.0, 2.0, 1.5, 4.0)
+		~~~
+1. ES地址
 http://10.118.159.44:39201/
 	
 ### albatis-solr    
