@@ -5,16 +5,8 @@
 		<dependency>
 			<groupId>net.butfly.albatis</groupId>
 			<artifactId>albatis-es</artifactId>
-			<version>1.1.0-SNAPSHOT</version>
+			<version>1.2.0-SNAPSHOT</version>
 		</dependency>
-	~~~
-	如果需要设置数据权限：
-	~~~xml
-		<dependency>
-            <groupId>com.hzcominfo.dataggr</groupId>
-            <artifactId>dataggr-authority</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
-        </dependency>
 	~~~
 1. 调用示例
 	1. connection create
@@ -60,12 +52,15 @@
 		1. 矩形 geoBoundingBoxQuery(field, top, left, bottom, right)
 		1. 圆形 geoDistanceQuery(field, lat, lon, distance) 
 		1. 多边形 geoPolygonQuery(field, lat_lon,lat_lon,lat_lon ...)
-	1. 查询调用示例
+	1. 查询调用示例 (GEO函数一定要放在末尾)
 		~~~sql
 			select * from indexName..typeName where [condition] and geoBoundingBoxQuery(location, 3.0, 2.0, 1.5, 4.0)
 		~~~
 1. ES地址
 http://10.118.159.44:39201/
+
+1.权限
+	如需过滤权限，请阅读dataggr/dataggr-filter/README.MD
 	
 ### albatis-solr    
 目前没有用到，而且里边的类都为@Deprecated
