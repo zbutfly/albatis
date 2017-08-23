@@ -52,10 +52,14 @@
 		1. 矩形 geoBoundingBoxQuery(field, top, left, bottom, right)
 		1. 圆形 geoDistanceQuery(field, lat, lon, distance) 
 		1. 多边形 geoPolygonQuery(field, lat_lon,lat_lon,lat_lon ...)
-	1. 查询调用示例 (GEO函数一定要放在末尾)
+	1. 查询调用结构 (GEO函数一定要放在末尾)
 		~~~sql
 			select * from indexName..typeName where [condition] and geoBoundingBoxQuery(location, 3.0, 2.0, 1.5, 4.0)
 		~~~
+	1. 查询调用示例
+		~~~sql
+			select * from hzwa_dev_20170822..NEW_WA_SOURCE_FJ_1001 where geoBoundingBoxQuery(LOCATION, 30.1860760000000, 120.2812200000000, 30.1528250000000, 120.2975510000000) limit 100
+		~~~	
 1. ES地址
 http://10.118.159.44:39201/
 
