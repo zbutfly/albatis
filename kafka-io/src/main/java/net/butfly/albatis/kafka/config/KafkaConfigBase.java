@@ -1,9 +1,12 @@
 package net.butfly.albatis.kafka.config;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
@@ -71,14 +74,22 @@ public abstract class KafkaConfigBase implements Serializable {
 		case "zk":
 		case "zookeeper":
 		case "kafka":
-			zookeeperConnect = uri.getHost() + (null == uri.getPath() ? "" : uri.getPath());
-			try (ZKConn zk = new ZKConn(zookeeperConnect)) {
+			String u = uri.getHost() + uri.getPathOnly();
+			if (u.endsWith("/")) u = u.substring(0, u.length() - 1);
+			try (ZKConn zk = new ZKConn(u)) {
 				bootstrapServers = Joiner.on(",").join(zk.getBorkers());
 				logger.trace("Zookeeper detect broken list automatically: [" + bootstrapServers + "])");
 			} catch (Exception e) {
-				bootstrapServers = null;
-				logger.warn("Zookeeper detect broken list failure", e);
+				u = uri.getHost() + uri.getPath();
+				try (ZKConn zk = new ZKConn(u)) {
+					bootstrapServers = Joiner.on(",").join(zk.getBorkers());
+					logger.trace("Zookeeper detect broken list automatically: [" + bootstrapServers + "])");
+				} catch (Exception ee) {
+					bootstrapServers = null;
+					logger.warn("Zookeeper detect broken list failure", ee);
+				}
 			}
+			zookeeperConnect = u;
 			break;
 		case "bootstrap":
 			bootstrapServers = uri.getHost();
@@ -93,7 +104,9 @@ public abstract class KafkaConfigBase implements Serializable {
 		keySerializerClass = props.getOrDefault("kserial", ByteArraySerializer.class.getName());
 		valueSerializerClass = props.getOrDefault("vserial", ByteArraySerializer.class.getName());
 		poolSize = Long.parseLong(props.getOrDefault("pool", "3000000"));
-		topics = Texts.split(props.getOrDefault("topic", ""), ",");
+		Set<String> ts = new HashSet<>(Texts.split(uri.getFile(), ","));
+		ts.addAll(Texts.split(props.getOrDefault("topic", ""), ","));
+		topics = new ArrayList<>(ts);
 		backoffMs = Long.parseLong(props.getOrDefault("backoff", "100"));
 	}
 

@@ -35,7 +35,7 @@ public final class KafkaOutput extends Namedly implements Output<KafkaMessage> {
 	public long enqueue(Stream<KafkaMessage> messages) {
 		List<KeyedMessage<byte[], byte[]>> ms = list(messages.map(KafkaMessage::toKeyedMessage));
 		try {
-			producer.send(ms);
+			if (!ms.isEmpty()) producer.send(ms);
 			return ms.size();
 		} catch (Exception e) {
 			logger().error("Kafka sending failure", Exceptions.unwrap(e));

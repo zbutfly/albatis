@@ -4,6 +4,7 @@ import static com.hzcominfo.albatis.nosql.Connection.PARAM_KEY_BATCH;
 import static net.butfly.albacore.io.utils.Streams.list;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -68,9 +69,13 @@ public final class HbaseOutput extends FailoverOutput<String, HbaseResult> {
 	@Override
 	protected long write(String table, Stream<HbaseResult> values, Consumer<Collection<HbaseResult>> failing, Consumer<Long> committing,
 			int retry) {
-		List<Put> puts = list(values, HbaseResult::forWrite);
+		List<HbaseResult> vs = list(values);
+		List<Put> puts = new ArrayList<>();
+		for (HbaseResult r : vs)
+			puts.add(r.forWrite());
 		if (puts.isEmpty()) return 0;
-		Result[] results = new Result[puts.size()];
+		Object[] results = new Object[puts.size()];
+		long succ = 0;
 		try {
 			if (logger().isTraceEnabled()) table(table).batchCallback(puts, results, callback);
 			else table(table).batch(puts, results);
@@ -78,7 +83,17 @@ public final class HbaseOutput extends FailoverOutput<String, HbaseResult> {
 			logger().warn(name() + " write failed [" + Exceptions.unwrap(ex).getMessage() + "], [" + puts.size() + "] into failover.");
 			failing.accept(list(puts, p -> new HbaseResult(table, p)));
 		} finally {
-			committing.accept((long) results.length);
+			List<HbaseResult> fails = new ArrayList<>();
+			for (int i = 0; i < results.length; i++) {
+				if (results[i] instanceof Result) succ++;
+				else {
+					fails.add(vs.get(i));
+					if (!(results[i] instanceof Throwable)) logger().warn("Unknown hbase return [" + results[i].getClass() + "]: "
+							+ results[i].toString());
+				}
+			}
+			committing.accept((long) succ);
+			failing.accept(fails);
 		}
 		return results.length;
 	}

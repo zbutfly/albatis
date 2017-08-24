@@ -55,10 +55,4 @@
 		<developerConnection>https://butfly@bitbucket.org/butfly/albatis.git</developerConnection>
 		<url>https://bitbucket.org/butfly/albatis</url>
 	</scm>
-	<repositories>
-		<repository>
-			<id>cloudera</id>
-			<url>https://repository.cloudera.com/artifactory/cloudera-repos/</url>
-		</repository>
-	</repositories>
 </project>
