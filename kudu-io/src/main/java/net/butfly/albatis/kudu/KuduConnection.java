@@ -93,12 +93,12 @@ public class KuduConnection extends NoSqlConnection<KuduClient> {
 	}
 
 	public boolean upsert(String table, Map<String, Object> record) {
+		if (record == null || null == table) return false;
 		KuduTable t = table(table);
 		if (null == t) return false;
 		Schema schema = t.getSchema();
 		List<String> keys = new ArrayList<>();
 		schema.getPrimaryKeyColumns().forEach(p -> keys.add(p.getName()));
-		if (record == null) return false;
 		if (!record.keySet().containsAll(keys)) return false;
 		Upsert upsert = t.newUpsert();
 		schema.getColumns().forEach(cs -> upsert(cs, record, upsert));

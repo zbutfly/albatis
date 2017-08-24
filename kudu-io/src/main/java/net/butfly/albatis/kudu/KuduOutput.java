@@ -15,10 +15,17 @@ import net.butfly.albacore.io.faliover.FailoverOutput;
 import net.butfly.albacore.io.utils.URISpec;
 
 public class KuduOutput extends FailoverOutput<String, KuduResult> {
+	public static final long DEFAULT_BATCH_SIZE = 200;
 	private final KuduConnection connect;
 
 	public KuduOutput(String name, URISpec uri, String failoverPath) throws IOException {
-		super(name, b -> new KuduResult(b), failoverPath, null == uri ? 200 : Integer.parseInt(uri.getParameter(PARAM_KEY_BATCH, "200")));
+		super(name, b -> new KuduResult(b), failoverPath, null == uri ? 0 : Integer.parseInt(uri.getParameter(PARAM_KEY_BATCH, "0")));
+		connect = new KuduConnection(uri, null);
+		open();
+	}
+
+	public KuduOutput(String name, URISpec uri, String failoverPath, long batchSize) throws IOException {
+		super(name, b -> new KuduResult(b), failoverPath, (int) (batchSize > 0 ? batchSize : DEFAULT_BATCH_SIZE));
 		connect = new KuduConnection(uri, null);
 		open();
 	}
