@@ -203,4 +203,12 @@ public interface Criteria extends Serializable {
 			this.value = v;
 		}
 	}
+	
+	public class Exist<V> extends ByFieldValue<V> {
+		private static final long serialVersionUID = 4593053001556231013L;
+
+		public Exist(String field, V value) {
+			super(field, value);
+		}
+	}
 }

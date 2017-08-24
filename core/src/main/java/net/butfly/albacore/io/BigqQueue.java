@@ -7,8 +7,10 @@ import com.bluejeans.bigqueue.BigQueue;
 
 import net.butfly.albacore.io.queue.QueueImpl;
 import net.butfly.albacore.utils.logger.Logger;
+import net.butfly.albacore.utils.parallel.Concurrents;
 
 public class BigqQueue<V> extends QueueImpl<V> {
+	public static final long GC_INTV = Integer.parseInt(System.getProperty("albatis.queue.bigqueue.autogc", "30")) * 1000;
 	protected static final Logger logger = Logger.getLogger(BigqQueue.class);
 
 	protected final String dataFolder;
@@ -24,6 +26,17 @@ public class BigqQueue<V> extends QueueImpl<V> {
 		logger.info("Off heap queue (\"BigQueue\") creating as [" + name + "] at [" + dataFolder + "]");
 		queue = new BigQueue(dataFolder, name);
 		closing(this::closeLocal);
+		Thread gc = new Thread(() -> {
+			do {
+				try {
+					queue.gc();
+				} catch (Throwable t) {
+					logger().error("BigQueue gc fail", t);
+				}
+			} while (opened() && Concurrents.waitSleep(GC_INTV));
+		}, "BigQueue-Maintainancer-Daemon-Thread");
+		gc.setDaemon(true);
+		gc.start();
 		open();
 	}
 

@@ -34,7 +34,7 @@ import net.butfly.albacore.utils.parallel.Concurrents;
  */
 public abstract class FailoverOutput<K, M extends Message<K, ?, M>> extends Namedly implements Output<M> {
 	private final Failover<K, M> failover;
-	final int batchSize;
+	public final int batchSize;
 	protected final AtomicLong actionCount = new AtomicLong(0);
 
 	protected FailoverOutput(String name, Function<byte[], M> constructor, String failoverPath, int batchSize) throws IOException {

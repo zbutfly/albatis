@@ -3,7 +3,6 @@ package net.butfly.albacore.io.faliover;
 import static net.butfly.albacore.io.utils.Streams.list;
 import static net.butfly.albacore.io.utils.Streams.of;
 import static net.butfly.albacore.utils.IOs.mkdirs;
-import static net.butfly.albacore.utils.IOs.readBytes;
 import static net.butfly.albacore.utils.IOs.writeBytes;
 
 import java.io.ByteArrayInputStream;
@@ -13,10 +12,13 @@ import java.text.MessageFormat;
 import java.util.Collection;
 import java.util.List;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import com.bluejeans.bigqueue.BigQueue;
 
+import net.butfly.albacore.io.BigqQueue;
 import net.butfly.albacore.io.Message;
+import net.butfly.albacore.io.utils.Streams;
 import net.butfly.albacore.utils.IOs;
 import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.parallel.Concurrents;
@@ -34,6 +36,17 @@ public class OffHeapFailover<K, V extends Message<K, ?, V>> extends Failover<K, 
 				path, parentName, poolName, size()));
 		closing(this::closePool);
 		open();
+		Thread gc = new Thread(() -> {
+			do {
+				try {
+					failover.gc();
+				} catch (Throwable t) {
+					logger().error("Pool gc fail", t);
+				}
+			} while (opened() && Concurrents.waitSleep(BigqQueue.GC_INTV));
+		}, "Failover-Maintainancer-Daemon-Thread");
+		gc.setDaemon(true);
+		gc.start();
 	}
 
 	@Override
@@ -54,7 +67,14 @@ public class OffHeapFailover<K, V extends Message<K, ?, V>> extends Failover<K, 
 		if (!opened() || null == (bytes = failover.dequeue()) || 0 == bytes.length) return null;
 		try (ByteArrayInputStream baos = new ByteArrayInputStream(bytes);) {
 			K k = IOs.readObj(baos);
-			List<V> values = readBytes(baos, construct);
+			List<V> values = Streams.collect(Streams.of(IOs.readBytesList(baos)).map(b -> {
+				if (null == b) return null;
+				try {
+					return construct.apply(b);
+				} catch (Exception ex) {
+					return null;
+				}
+			}), Collectors.toList());
 			return values.isEmpty() ? null : new Pair<>(k, values);
 		}
 	}
