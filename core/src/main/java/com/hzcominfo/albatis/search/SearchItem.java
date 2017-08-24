@@ -42,11 +42,11 @@ public interface SearchItem extends Serializable {
 		private static final long serialVersionUID = 7362988191068875155L;
 		public String column;
 		public String alias;
-
+		
 		public ByFunctionColumn(String column) {
 			this.column = column;
 		}
-
+		
 		public SearchItem as(String alias) {
 			this.alias = alias;
 			return this;
@@ -124,5 +124,4 @@ public interface SearchItem extends Serializable {
 			super(fristColumn, secondColumn);
 		}
 	}
-
 }
