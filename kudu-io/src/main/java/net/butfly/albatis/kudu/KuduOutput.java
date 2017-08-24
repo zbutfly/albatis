@@ -5,6 +5,7 @@ import static com.hzcominfo.albatis.nosql.Connection.PARAM_KEY_BATCH;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
@@ -45,7 +46,10 @@ public class KuduOutput extends FailoverOutput<String, KuduResult> {
 	protected long write(String table, Stream<KuduResult> pkg, Consumer<Collection<KuduResult>> failing, Consumer<Long> committing,
 			int retry) {
 		AtomicLong c = new AtomicLong(0);
-		pkg.forEach(r -> {
+		pkg.parallel().filter(r -> {
+			Map<String, Object> rr = r.forWrite();
+			return rr != null && !rr.isEmpty();
+		}).forEach(r -> {
 			if (connect.upsert(table, r.forWrite())) c.incrementAndGet();
 			else failing.accept(Arrays.asList(r));
 		});
