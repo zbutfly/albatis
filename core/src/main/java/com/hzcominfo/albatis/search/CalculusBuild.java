@@ -59,6 +59,10 @@ public class CalculusBuild {
 	public static <V> Criteria allField(V value) {
 		return new Criteria.AllField<V>(value);
 	}
+	
+	public static <V> Criteria exist(String columnName, V isNull) {
+		return new Criteria.Exist<V>(columnName, isNull);
+	}
 
 	public static OrderBy sort(String field, OrderBy.Order order) {
 		return new OrderBy.Sort(field, order);
@@ -103,5 +107,4 @@ public class CalculusBuild {
 	public static SearchItem sub(String fristColumn, String secondColumn) {
 		return new SearchItem.Sub(fristColumn, secondColumn);
 	}
-
 }

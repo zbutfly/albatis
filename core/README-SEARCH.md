@@ -5,18 +5,10 @@
 		<dependency>
 			<groupId>net.butfly.albatis</groupId>
 			<artifactId>albatis-es</artifactId>
-			<version>1.1.0-SNAPSHOT</version>
+			<version>1.2.0-SNAPSHOT</version>
 		</dependency>
 	~~~
-	如果需要设置数据权限：
-	~~~xml
-		<dependency>
-            <groupId>com.hzcominfo.dataggr</groupId>
-            <artifactId>dataggr-authority</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
-        </dependency>
-	~~~
-2. 调用示例
+1. 调用示例
 	1. connection create
 		~~~java
 		Connection connection = DriverManager.getConnection("elasticsearch://phgacluster@10.120.173.60:39300");
@@ -55,8 +47,24 @@
 		//可以选择是否去掉map中key包含的数据库名和表名，只留字段名
 		//List<Map<String, Object>> resultMapList = rbase.onlyFieldResult(rbase.getResultMapList());
 		~~~
-3. ES地址
+1. GEO搜索说明
+	1. 各类形状定义函数
+		1. 矩形 geoBoundingBoxQuery(field, top, left, bottom, right)
+		1. 圆形 geoDistanceQuery(field, lat, lon, distance) 
+		1. 多边形 geoPolygonQuery(field, lat_lon,lat_lon,lat_lon ...)
+	1. 查询调用结构 (GEO函数一定要放在末尾)
+		~~~sql
+			select * from indexName..typeName where [condition] and geoBoundingBoxQuery(location, 3.0, 2.0, 1.5, 4.0)
+		~~~
+	1. 查询调用示例
+		~~~sql
+			select * from hzwa_dev_20170822..NEW_WA_SOURCE_FJ_1001 where geoBoundingBoxQuery(LOCATION, 30.1860760000000, 120.2812200000000, 30.1528250000000, 120.2975510000000) limit 100
+		~~~	
+1. ES地址
 http://10.118.159.44:39201/
+
+1.权限
+	如需过滤权限，请阅读dataggr/dataggr-filter/README.MD
 	
 ### albatis-solr    
 目前没有用到，而且里边的类都为@Deprecated
