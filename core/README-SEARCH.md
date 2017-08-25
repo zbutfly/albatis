@@ -8,7 +8,15 @@
 			<version>1.2.0-SNAPSHOT</version>
 		</dependency>
 	~~~
-1. 调用示例
+	如果需要设置数据权限：
+	~~~xml
+		<dependency>
+            <groupId>com.hzcominfo.dataggr</groupId>
+            <artifactId>dataggr-authority</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+        </dependency>
+	~~~
+2. 调用示例
 	1. connection create
 		~~~java
 		Connection connection = DriverManager.getConnection("elasticsearch://phgacluster@10.120.173.60:39300");

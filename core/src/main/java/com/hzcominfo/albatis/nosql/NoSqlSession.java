@@ -10,7 +10,6 @@ import org.apache.ibatis.session.ResultHandler;
 import org.apache.ibatis.session.RowBounds;
 import org.apache.ibatis.session.SqlSession;
 
-@SuppressWarnings("rawtypes")
 public interface NoSqlSession extends SqlSession {
 	@Override
 	<T> T selectOne(String statement);

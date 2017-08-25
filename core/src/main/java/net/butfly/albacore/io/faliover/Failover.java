@@ -31,7 +31,6 @@ public abstract class Failover<K, V extends Message<K, ?, V>> extends OpenableTh
 
 	protected final long output(K key, Stream<V> pkg) {
 		paralling.incrementAndGet();
-		long now = System.currentTimeMillis();
 		return output.write(key, pkg, fails -> {
 			fail(key, fails);
 		}, s -> {
@@ -39,10 +38,7 @@ public abstract class Failover<K, V extends Message<K, ?, V>> extends OpenableTh
 				output.commit(key);
 			} catch (Exception e) {
 				logger().warn(output.name() + " commit failure [" + e.getMessage() + "]");
-			} finally {
-				if (logger().isTraceEnabled()) logger.debug(output.name() + " write [" + s + " records], spent [" + (System
-						.currentTimeMillis() - now) + " ms], pending parallelism: " + paralling.decrementAndGet());
-			}
+			} finally {}
 		}, 0);
 	}
 }
