@@ -38,6 +38,7 @@ import net.butfly.albacore.utils.Exceptions;
 import net.butfly.albacore.utils.Texts;
 
 public final class EsOutput extends FailoverOutput<String, ElasticMessage> {
+	public static final long DEFAULT_BATCH_SIZE = 1000;
 	private final ElasticConnection conn;
 	private final int maxRetry;
 
@@ -45,8 +46,16 @@ public final class EsOutput extends FailoverOutput<String, ElasticMessage> {
 		this(name, new URISpec(uri), failoverPath);
 	}
 
+	public EsOutput(String name, String uri, String failoverPath, long batchSize) throws IOException {
+		this(name, new URISpec(uri), failoverPath, batchSize);
+	}
+
 	public EsOutput(String name, URISpec uri, String failoverPath) throws IOException {
-		super(name, b -> new ElasticMessage(b), failoverPath, Integer.parseInt(uri.getParameter(Connection.PARAM_KEY_BATCH, "1000")));
+		this(name, uri, failoverPath, Integer.parseInt(uri.getParameter(Connection.PARAM_KEY_BATCH, "0")));
+	}
+
+	public EsOutput(String name, URISpec uri, String failoverPath, long batchSize) throws IOException {
+		super(name, b -> new ElasticMessage(b), failoverPath, (int) (batchSize > 0 ? batchSize : DEFAULT_BATCH_SIZE));
 		conn = new ElasticConnection(uri);
 		maxRetry = Integer.parseInt(uri.getParameter("retry", "5"));
 		open();

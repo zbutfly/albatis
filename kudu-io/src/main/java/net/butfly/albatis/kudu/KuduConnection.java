@@ -1,14 +1,11 @@
 package net.butfly.albatis.kudu;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.kudu.ColumnSchema;
-import org.apache.kudu.Schema;
 import org.apache.kudu.client.KuduClient;
 import org.apache.kudu.client.KuduException;
 import org.apache.kudu.client.KuduSession;
@@ -93,22 +90,18 @@ public class KuduConnection extends NoSqlConnection<KuduClient> {
 	}
 
 	public boolean upsert(String table, Map<String, Object> record) {
+		if (record == null || null == table) return false;
 		KuduTable t = table(table);
 		if (null == t) return false;
-		Schema schema = t.getSchema();
-		List<String> keys = new ArrayList<>();
-		schema.getPrimaryKeyColumns().forEach(p -> keys.add(p.getName()));
-		if (record == null) return false;
-		if (!record.keySet().containsAll(keys)) return false;
 		Upsert upsert = t.newUpsert();
-		schema.getColumns().forEach(cs -> upsert(cs, record, upsert));
+		t.getSchema().getColumns().forEach(cs -> upsert(cs, record, upsert));
 		try {
 			OperationResponse or = session.apply(upsert);
-			if (or == null) { return true; }
-			boolean error = or.hasRowError();
-			if (error) logger().error("Kudu row error: " + or.getRowError().toString());
-			return error;
+			if (or == null || !or.hasRowError()) return true;
+			logger().error("Kudu row error: " + or.getRowError().toString());
+			return false;
 		} catch (KuduException ex) {
+			logger.error("Kudu error", ex);
 			return false;
 		}
 	}
