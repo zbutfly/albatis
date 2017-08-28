@@ -5,17 +5,17 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
-import net.butfly.albacore.io.Message;
+import net.butfly.albacore.io.Record;
 import net.butfly.albacore.io.ext.OpenableThread;
 import net.butfly.albacore.io.stats.Statistical;
 import net.butfly.albacore.utils.logger.Logger;
 
-public abstract class Failover<K, V extends Message<K, ?, V>> extends OpenableThread implements Statistical<Failover<K, V>> {
+public abstract class Failover extends OpenableThread implements Statistical<Failover> {
 	protected static final Logger logger = Logger.getLogger(Failover.class);
-	protected final FailoverOutput<K, V> output;
-	protected final Function<byte[], V> construct;
+	protected final FailoverOutput output;
+	protected final Function<byte[], Record> construct;
 
-	protected Failover(String parentName, FailoverOutput<K, V> output, Function<byte[], V> constructor) {
+	protected Failover(String parentName, FailoverOutput output, Function<byte[], Record> constructor) {
 		super(parentName + "Failover");
 		this.output = output;
 		this.construct = constructor;
@@ -25,11 +25,11 @@ public abstract class Failover<K, V extends Message<K, ?, V>> extends OpenableTh
 
 	public abstract long size();
 
-	protected abstract long fail(K key, Collection<V> values);
+	protected abstract long fail(String key, Collection<? extends Record> values);
 
 	private final AtomicInteger paralling = new AtomicInteger();
 
-	protected final long output(K key, Stream<V> pkg) {
+	protected final long output(String key, Stream<? extends Record> pkg) {
 		paralling.incrementAndGet();
 		return output.write(key, pkg, fails -> {
 			fail(key, fails);

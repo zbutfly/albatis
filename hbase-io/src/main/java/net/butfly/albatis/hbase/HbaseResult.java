@@ -5,67 +5,65 @@ import static net.butfly.albacore.io.utils.Streams.list;
 import static net.butfly.albacore.io.utils.Streams.of;
 
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
+import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
 
-import net.butfly.albacore.io.Message;
+import net.butfly.albacore.io.Record;
 import net.butfly.albacore.utils.IOs;
 import net.butfly.albacore.utils.logger.Logger;
 
-public class HbaseResult extends Message<String, Put, HbaseResult> {
+public class HbaseResult extends Record {
 	private static final long serialVersionUID = -486156318929790823L;
 	private static final Logger logger = Logger.getLogger(HbaseResult.class);
 	public static final String DEFAULT_COL_FAMILY_NAME = "cf1";
 	public static final byte[] DEFAULT_COL_FAMILY_VALUE = Bytes.toBytes(DEFAULT_COL_FAMILY_NAME);
 
-	private String table;
 	private byte[] row;
-	private Result result;
+	// private Result result;
+
+	public HbaseResult(String table, byte[] row, Stream<Cell> cells) {
+		super(table, map(cells));
+		this.row = row;
+	}
 
 	public HbaseResult(String table, Put put) {
-		this.table = table;
-		this.row = put.getRow();
-		result = Result.create(put.getFamilyCellMap().values().parallelStream().flatMap(l -> l.parallelStream()).collect(Collectors
-				.toList()));
+		this(table, put.getRow(), put.getFamilyCellMap().values().parallelStream().flatMap(l -> l.parallelStream()));
+	}
+
+	public static Map<String, Object> map(Stream<Cell> cells) {
+		return null == cells ? new ConcurrentHashMap<>()
+				: cells.collect(Collectors.toConcurrentMap(c -> Bytes.toString(CellUtil.cloneFamily(c)) + ":" + Bytes.toString(CellUtil
+						.cloneQualifier(c)), c -> CellUtil.cloneValue(c)));
 	}
 
 	public HbaseResult(String table, byte[] row, Cell... cells) {
-		this(table, row, Arrays.asList(cells));
+		this(table, row, null == cells ? null : Arrays.asList(cells));
 	}
 
 	public HbaseResult(String table, Cell row, Cell... cells) {
-		this(table, CellUtil.cloneRow(row), Arrays.asList(cells));
+		this(table, CellUtil.cloneRow(row), null == cells ? null : Arrays.asList(cells));
 	}
 
 	private HbaseResult(String table, byte[] row, List<Cell> cells) {
-		super();
-		this.table = table;
-		this.row = row;
-		List<Cell> l = list(of(cells));
-		result = Result.create(l);
-
+		this(table, row, null == cells ? null : cells.stream());
 	}
 
 	public HbaseResult(String table, Result result) {
-		super();
-		init(table, result);
-	}
-
-	private void init(String table, Result result) {
-		this.table = table;
-		this.row = result.getRow();
-		this.result = result;
+		super(table, result.getRow(), result.listCells());
 	}
 
 	public static long sizes(Iterable<HbaseResult> results) {
@@ -78,10 +76,6 @@ public class HbaseResult extends Message<String, Put, HbaseResult> {
 		return of(results).collect(Collectors.summingLong(r -> r.cells().collect(Collectors.counting())));
 	}
 
-	public long size() {
-		return isEmpty() ? 0 : cells().mapToLong(c -> c.getValueLength()).sum();
-	}
-
 	public String getTable() {
 		return table;
 	}
@@ -91,10 +85,23 @@ public class HbaseResult extends Message<String, Put, HbaseResult> {
 	}
 
 	public Result getResult() {
-		return result;
+		Stream<Cell> cells = entrySet().stream().map(e -> {
+			if (e.getValue() == null) return null;
+			Class<? extends Object> c = e.getValue().getClass();
+			byte[] v;
+			if (c.isArray() && byte.class.equals(c.getComponentType())) v = (byte[]) e.getValue();
+			else if (CharSequence.class.isAssignableFrom(c)) v = Bytes.toBytes(e.getValue().toString());
+			else return null;// XXX
+			String[] fq = e.getKey().split(":", 2);
+			if (fq.length == 1) return CellUtil.createCell(row, DEFAULT_COL_FAMILY_VALUE, Bytes.toBytes(fq[0]), System.currentTimeMillis(),
+					KeyValue.Type.Put, v);
+			if (fq.length == 2) return CellUtil.createCell(row, Bytes.toBytes(fq[0]), Bytes.toBytes(fq[1]), System.currentTimeMillis(),
+					KeyValue.Type.Put, v);
+			return null;
+		});
+		return Result.create();
 	}
 
-	@Override
 	public Put forWrite() {
 		if (isEmpty()) return null;
 		if (row == null || row.length == 0) row = result.getRow();
@@ -111,7 +118,7 @@ public class HbaseResult extends Message<String, Put, HbaseResult> {
 	}
 
 	public byte[] get(String col) throws IOException {
-		String[] cols = col.split(":");
+		String[] cols = col.split(":", 2);
 		switch (cols.length) {
 		case 0:
 			return null;
@@ -140,26 +147,6 @@ public class HbaseResult extends Message<String, Put, HbaseResult> {
 
 	public Set<String> cols() {
 		return isEmpty() ? null : collect(cells().map(Hbases::colFamily), Collectors.toSet());
-	}
-
-	public boolean isEmpty() {
-		return null == result || result.isEmpty();
-	}
-
-	@Override
-	public byte[] toBytes() {
-		try (ByteArrayOutputStream baos = new ByteArrayOutputStream();) {
-			IOs.writeBytes(baos, table.getBytes());
-			IOs.writeBytes(baos, Hbases.toBytes(result));
-			return baos.toByteArray();
-		} catch (IOException e) {
-			throw new IllegalArgumentException(e);
-		}
-	}
-
-	@Override
-	public String partition() {
-		return table;
 	}
 
 	public HbaseResult(byte[] bytes) {

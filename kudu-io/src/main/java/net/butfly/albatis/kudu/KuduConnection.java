@@ -107,7 +107,7 @@ public class KuduConnection extends NoSqlConnection<KuduClient> {
 	}
 
 	private void upsert(ColumnSchema columnSchema, Map<String, Object> record, Upsert upsert) {
-		Object field = record.get(columnSchema.getName());
+		Object field = record.get(columnSchema.getName().toUpperCase());
 		if (null != field) KuduCommon.generateColumnData(columnSchema.getType(), upsert.getRow(), columnSchema.getName(), field);
 	}
 }

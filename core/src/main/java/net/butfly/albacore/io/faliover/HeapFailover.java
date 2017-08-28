@@ -10,15 +10,15 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Function;
 
-import net.butfly.albacore.io.Message;
+import net.butfly.albacore.io.Record;
 import net.butfly.albacore.io.utils.Streams;
 import net.butfly.albacore.utils.parallel.Parals;
 
-public class HeapFailover<K, V extends Message<K, ?, V>> extends Failover<K, V> {
+public class HeapFailover extends Failover {
 	private static final int MAX_FAILOVER = 50000;
-	private Map<K, LinkedBlockingQueue<V>> failover = new ConcurrentHashMap<>();
+	private Map<String, LinkedBlockingQueue<Record>> failover = new ConcurrentHashMap<>();
 
-	public HeapFailover(String parentName, FailoverOutput<K, V> output, Function<byte[], V> constructor) throws IOException {
+	public HeapFailover(String parentName, FailoverOutput output, Function<byte[], Record> constructor) throws IOException {
 		super(parentName, output, constructor);
 		failover = new ConcurrentHashMap<>();
 		logger.info(MessageFormat.format("SolrOutput [{0}] failover [memory mode] init.", parentName));
@@ -27,7 +27,7 @@ public class HeapFailover<K, V extends Message<K, ?, V>> extends Failover<K, V> 
 	@Override
 	public long size() {
 		long c = 0;
-		for (K key : failover.keySet())
+		for (String key : failover.keySet())
 			c += failover.get(key).size();
 		return c;
 	}
@@ -38,7 +38,7 @@ public class HeapFailover<K, V extends Message<K, ?, V>> extends Failover<K, V> 
 	}
 
 	@Override
-	protected long fail(K key, Collection<V> values) {
+	protected long fail(String key, Collection<? extends Record> values) {
 		if (opened()) try {
 			failover.computeIfAbsent(key, k -> new LinkedBlockingQueue<>(MAX_FAILOVER)).addAll(values);
 			return values.size();
@@ -54,10 +54,10 @@ public class HeapFailover<K, V extends Message<K, ?, V>> extends Failover<K, V> 
 
 	@Override
 	protected void exec() {
-		List<V> retries = new ArrayList<>(output.batchSize);
+		List<Record> retries = new ArrayList<>(output.batchSize);
 		while (opened()) {
-			for (K key : failover.keySet()) {
-				LinkedBlockingQueue<V> fails = failover.get(key);
+			for (String key : failover.keySet()) {
+				LinkedBlockingQueue<Record> fails = failover.get(key);
 				retries.clear();
 				fails.drainTo(retries, output.batchSize);
 				if (!retries.isEmpty()) Parals.run(() -> output(key, Streams.of(retries)));

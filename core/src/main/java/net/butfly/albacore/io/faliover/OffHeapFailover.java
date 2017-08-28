@@ -17,17 +17,17 @@ import java.util.stream.Collectors;
 import com.bluejeans.bigqueue.BigQueue;
 
 import net.butfly.albacore.io.BigqQueue;
-import net.butfly.albacore.io.Message;
+import net.butfly.albacore.io.Record;
 import net.butfly.albacore.io.utils.Streams;
 import net.butfly.albacore.utils.IOs;
 import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.parallel.Concurrents;
 import net.butfly.albacore.utils.parallel.Parals;
 
-public class OffHeapFailover<K, V extends Message<K, ?, V>> extends Failover<K, V> {
+public class OffHeapFailover extends Failover {
 	private BigQueue failover;
 
-	public OffHeapFailover(String parentName, FailoverOutput<K, V> output, Function<byte[], V> constructor, String path, String poolName)
+	public OffHeapFailover(String parentName, FailoverOutput output, Function<byte[], Record> constructor, String path, String poolName)
 			throws IOException {
 		super(parentName, output, constructor);
 		if (poolName == null) poolName = "POOL";
@@ -54,20 +54,20 @@ public class OffHeapFailover<K, V extends Message<K, ?, V>> extends Failover<K, 
 		while (opened()) {
 			while (opened() && failover.isEmpty())
 				Concurrents.waitSleep(1000);
-			Pair<K, List<V>> results;
+			Pair<String, List<Record>> results;
 			while (null != (results = Parals.run(this::fetch))) {
-				Pair<K, List<V>> r = results;
+				Pair<String, List<Record>> r = results;
 				Parals.run(() -> output(r.v1(), stats(of(r.v2()))));
 			}
 		}
 	}
 
-	private Pair<K, List<V>> fetch() throws IOException {
+	private Pair<String, List<Record>> fetch() throws IOException {
 		byte[] bytes;
 		if (!opened() || null == (bytes = failover.dequeue()) || 0 == bytes.length) return null;
 		try (ByteArrayInputStream baos = new ByteArrayInputStream(bytes);) {
-			K k = IOs.readObj(baos);
-			List<V> values = Streams.collect(Streams.of(IOs.readBytesList(baos)).map(b -> {
+			String k = IOs.readObj(baos);
+			List<Record> values = Streams.collect(Streams.of(IOs.readBytesList(baos)).map(b -> {
 				if (null == b) return null;
 				try {
 					return construct.apply(b);
@@ -90,12 +90,12 @@ public class OffHeapFailover<K, V extends Message<K, ?, V>> extends Failover<K, 
 	}
 
 	@Override
-	protected long fail(K key, Collection<V> values) {
+	protected long fail(String key, Collection<? extends Record> values) {
 		try {
 			byte[] bytes;
 			try (ByteArrayOutputStream baos = new ByteArrayOutputStream();) {
 				IOs.writeObj(baos, key);
-				writeBytes(baos, list(values, V::toBytes).toArray(new byte[values.size()][]));
+				writeBytes(baos, list(values, Record::toBytes).toArray(new byte[values.size()][]));
 				bytes = baos.toByteArray();
 			}
 			if (bytes.length == 0) return 0;

@@ -117,8 +117,8 @@ public interface ElasticConnect extends Connection {
 			InetSocketTransportAddress[] addrs = meta == null ? Arrays.stream(uri.getInetAddrs()).map(InetSocketTransportAddress::new)
 					.toArray(i -> new InetSocketTransportAddress[i])
 					: Arrays.stream(Parser.getNodes(meta)).map(n -> n.transport).toArray(i -> new InetSocketTransportAddress[i]);
-			_logger.debug(() -> "Elastic transport client consrtuct, cluster: [" + cn + "]\n\t" + Arrays.stream(addrs)
-					.map(a -> a.toString()).collect(Collectors.joining(",")));
+			_logger.debug(() -> "Elastic transport client consrtuct, cluster: [" + cn + "]\n\t" + Arrays.stream(addrs).map(a -> a
+					.toString()).collect(Collectors.joining(",")));
 
 			tc.addTransportAddresses(addrs);
 			return tc;

@@ -18,8 +18,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import net.butfly.albacore.base.Namedly;
-import net.butfly.albacore.io.Message;
 import net.butfly.albacore.io.Output;
+import net.butfly.albacore.io.Record;
 import net.butfly.albacore.utils.parallel.Concurrents;
 
 /**
@@ -31,16 +31,16 @@ import net.butfly.albacore.utils.parallel.Concurrents;
  *
  * @param <M>
  */
-public abstract class FailoverOutput<K, M extends Message<K, ?, M>> extends Namedly implements Output<M> {
-	private final Failover<K, M> failover;
+public abstract class FailoverOutput extends Namedly implements Output<Record> {
+	private final Failover failover;
 	public final int batchSize;
 	protected final AtomicLong actionCount = new AtomicLong(0);
 
-	protected FailoverOutput(String name, Function<byte[], M> constructor, String failoverPath, int batchSize) throws IOException {
+	protected FailoverOutput(String name, Function<byte[], Record> constructor, String failoverPath, int batchSize) throws IOException {
 		super(name);
 		this.batchSize = batchSize;
-		failover = failoverPath == null ? new HeapFailover<K, M>(name(), this, constructor)
-				: new OffHeapFailover<K, M>(name(), this, constructor, failoverPath, null);
+		failover = failoverPath == null ? new HeapFailover(name(), this, constructor)
+				: new OffHeapFailover(name(), this, constructor, failoverPath, null);
 		failover.trace(batchSize, () -> "failover: " + failover.size());
 		closing(() -> {
 			long act;
@@ -51,18 +51,19 @@ public abstract class FailoverOutput<K, M extends Message<K, ?, M>> extends Name
 		});
 	}
 
-	protected abstract long write(K key, Stream<M> pkg, Consumer<Collection<M>> failing, Consumer<Long> committing, int retry);
+	protected abstract long write(String key, Stream<? extends Record> pkg, Consumer<Collection<? extends Record>> failing,
+			Consumer<Long> committing, int retry);
 
-	protected void commit(K key) {}
+	protected void commit(String key) {}
 
 	@Override
-	public final long enqueue(Stream<M> els) {
-		Map<K, List<M>> parts = collect(els, Collectors.groupingByConcurrent(M::partition));
+	public final long enqueue(Stream<Record> els) {
+		Map<String, List<Record>> parts = collect(els, Collectors.groupingByConcurrent(Record::table));
 		if (parts.isEmpty()) return 0;
 		return eachs(parts.entrySet(), e -> enqueue(e.getKey(), e.getValue()), LONG_SUM);
 	}
 
-	private long enqueue(K key, List<M> items) {
+	private long enqueue(String key, List<Record> items) {
 		if (null == items || items.isEmpty()) return 0;
 		int size = items.size();
 		return size <= batchSize ? failover.output(key, of(items))
