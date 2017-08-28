@@ -10,15 +10,15 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Function;
 
-import net.butfly.albacore.io.Record;
+import net.butfly.albacore.io.Message;
 import net.butfly.albacore.io.utils.Streams;
 import net.butfly.albacore.utils.parallel.Parals;
 
-public class HeapFailover extends Failover {
+public class HeapFailover<M extends Message> extends Failover<M> {
 	private static final int MAX_FAILOVER = 50000;
-	private Map<String, LinkedBlockingQueue<Record>> failover = new ConcurrentHashMap<>();
+	private Map<String, LinkedBlockingQueue<M>> failover = new ConcurrentHashMap<>();
 
-	public HeapFailover(String parentName, FailoverOutput output, Function<byte[], Record> constructor) throws IOException {
+	public HeapFailover(String parentName, FailoverOutput<M> output, Function<byte[], M> constructor) throws IOException {
 		super(parentName, output, constructor);
 		failover = new ConcurrentHashMap<>();
 		logger.info(MessageFormat.format("SolrOutput [{0}] failover [memory mode] init.", parentName));
@@ -38,7 +38,7 @@ public class HeapFailover extends Failover {
 	}
 
 	@Override
-	protected long fail(String key, Collection<? extends Record> values) {
+	protected long fail(String key, Collection<? extends M> values) {
 		if (opened()) try {
 			failover.computeIfAbsent(key, k -> new LinkedBlockingQueue<>(MAX_FAILOVER)).addAll(values);
 			return values.size();
@@ -54,10 +54,10 @@ public class HeapFailover extends Failover {
 
 	@Override
 	protected void exec() {
-		List<Record> retries = new ArrayList<>(output.batchSize);
+		List<M> retries = new ArrayList<>(output.batchSize);
 		while (opened()) {
 			for (String key : failover.keySet()) {
-				LinkedBlockingQueue<Record> fails = failover.get(key);
+				LinkedBlockingQueue<M> fails = failover.get(key);
 				retries.clear();
 				fails.drainTo(retries, output.batchSize);
 				if (!retries.isEmpty()) Parals.run(() -> output(key, Streams.of(retries)));

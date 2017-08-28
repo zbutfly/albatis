@@ -1,61 +1,45 @@
-//package net.butfly.albatis.solr;
-//
-//import org.apache.solr.common.SolrDocumentBase;
-//import org.apache.solr.common.SolrInputDocument;
-//
-//import net.butfly.albacore.io.Message;
-//import net.butfly.albacore.utils.Systems;
-//
-//public class SolrMessage<D extends SolrDocumentBase<?, D>> extends Message<String, D, SolrMessage<D>> {
-//	private static final long serialVersionUID = -3391502515682546301L;
-//	public final boolean delete;
-//	private final String core;
-//	private final D doc;
-//
-//	public SolrMessage(String core, D doc) {
-//		this(core, doc, false);
-//	}
-//
-//	public SolrMessage(String core, D doc, boolean delete) {
-//		super();
-//		this.delete = delete;
-//		this.core = core;
-//		this.doc = doc;
-//	}
-//
-//	public String getCore() {
-//		return core;
-//	}
-//
-//	@Override
-//	public D forWrite() {
-//		return doc;
-//	}
-//
-//	public long size() {
-//		return Systems.sizeOf(doc);
-//	}
-//
-//	@Override
-//	public String partition() {
-//		return core;
-//	}
-//
-//	@Override
-//	public String toString() {
-//		return core + ":\n\t" + doc.toString();
-//	}
-//
-//	public static final class SolrInputMessage extends SolrMessage<SolrInputDocument> {
-//		private static final long serialVersionUID = -1677835898716156514L;
-//
-//		public SolrInputMessage(String core, SolrInputDocument doc, boolean delete) {
-//			super(core, doc, delete);
-//		}
-//
-//		public SolrInputMessage(String core, SolrInputDocument doc) {
-//			super(core, doc);
-//		}
-//
-//	}
-//}
+package net.butfly.albatis.solr;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.Map;
+
+import net.butfly.albacore.io.Message;
+import net.butfly.albacore.utils.IOs;
+
+public class SolrMessage extends Message {
+	private static final long serialVersionUID = -3391502515682546301L;
+	public final boolean delete;
+
+	public SolrMessage(String core) {
+		super(core);
+		delete = false;
+	}
+
+	public SolrMessage(String core, Map<? extends String, ? extends Object> doc) {
+		this(core, doc, false);
+	}
+
+	public SolrMessage(String core, Map<? extends String, ? extends Object> doc, boolean delete) {
+		super(core, doc);
+		this.delete = delete;
+	}
+
+	@Override
+	protected void write(OutputStream os) throws IOException {
+		super.write(os);
+		IOs.writeBytes(os, new byte[] { (byte) (delete ? 1 : 0) });
+	}
+
+	public static SolrMessage fromBytes(byte[] b) {
+		if (null == b) throw new IllegalArgumentException();
+		try (ByteArrayInputStream bais = new ByteArrayInputStream(b)) {
+			Message base = Message.fromBytes(bais);
+			boolean delete = IOs.readBytes(bais)[0] == 1;
+			return new SolrMessage(base.table(), base, delete);
+		} catch (IOException e) {
+			return null;
+		}
+	}
+}

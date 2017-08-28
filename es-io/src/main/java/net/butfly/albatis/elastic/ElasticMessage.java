@@ -11,48 +11,65 @@ import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.script.Script;
 import org.elasticsearch.script.ScriptType;
 
-import net.butfly.albacore.io.Record;
-import net.butfly.albacore.serder.BsonSerder;
+import net.butfly.albacore.io.Message;
 import net.butfly.albacore.utils.IOs;
 import net.butfly.albacore.utils.Pair;
 
-public class ElasticMessage extends Record {
+public class ElasticMessage extends Message {
 	private static final long serialVersionUID = -125189207796104302L;
 
+	public final String id;
+	private String index;
 	final boolean updating;
 	private final boolean upsert;
-	final String id;
 	private transient Script script;
 
 	public ElasticMessage(String index, String type, String id, Map<String, Object> doc) {
 		this(index, type, id, doc, true, false);
 	}
 
-	public ElasticMessage(String index, String type, String id, Map<String, Object> doc, boolean upsert, boolean updateing) {
-		super(assembly(index, type), doc);
+	public ElasticMessage(String index, String type, String id, Map<String, Object> doc, boolean upsert, boolean updating) {
+		super(type, doc);
+		this.index = index;
 		this.id = id;
 		this.upsert = upsert;
-		this.updating = updateing;
+		this.updating = updating;
 		this.script = null;
 	}
 
-	private static String assembly(String index, String type) {
-		if (null == index) return type;
-		if (null == type) return index + "/";
-		return index + "/" + type;
+	public ElasticMessage(String index, String type, String id, Script script, Map<String, Object> upsertDoc) {
+		super(type, upsertDoc);
+		this.index = index;
+		this.id = id;
+		this.upsert = upsertDoc != null;
+		this.updating = true;
+		this.script = script;
+	}
+
+	@Override
+	public String table() {
+		return index + "/" + table;
+	}
+
+	@Override
+	public Message table(String table) {
+		if (null == table) return table(null, null);
+		else {
+			String[] it = table.split("/");
+			if (it.length == 1) return table(null, it[0]);
+			else return table(it[0], it[1]);
+		}
+	}
+
+	public Message table(String index, String type) {
+		super.table(type);
+		this.index = index;
+		return this;
 	}
 
 	private static Pair<String, String> dessembly(String table) {
 		String[] it = table.split("/", 2);
 		return new Pair<>(it.length == 2 ? it[0] : null, it.length == 2 ? it[1] : it[0]);
-	}
-
-	public ElasticMessage(String index, String type, String id, Script script, Map<String, Object> upsertDoc) {
-		super(assembly(index, type), upsertDoc);
-		this.id = id;
-		this.script = script;
-		this.upsert = upsertDoc != null;
-		this.updating = true;
 	}
 
 	public ElasticMessage(String index, String type, String id, Script script) {
@@ -88,7 +105,7 @@ public class ElasticMessage extends Record {
 	@Override
 	protected void write(OutputStream os) throws IOException {
 		super.write(os);
-		IOs.writeBytes(os, id.getBytes(), new byte[] { //
+		IOs.writeBytes(os, index.getBytes(), id.getBytes(), new byte[] { //
 				(byte) (upsert ? 1 : 0), //
 				(byte) (updating ? 1 : 0), //
 				(byte) (null != script ? 1 : 0) //
@@ -99,17 +116,17 @@ public class ElasticMessage extends Record {
 	public static ElasticMessage fromBytes(byte[] b) {
 		if (null == b) throw new IllegalArgumentException();
 		try (ByteArrayInputStream bais = new ByteArrayInputStream(b)) {
-			byte[] t = IOs.readBytes(bais);
-			Pair<String, String> it = null == t ? null : dessembly(new String(t));
-			Map<String, Object> map = BsonSerder.DEFAULT_MAP.der(IOs.readBytes(bais));
+			Message base = Message.fromBytes(bais);
+
 			byte[][] attrs = IOs.readBytesList(bais);
-			String id = new String(attrs[2]);
-			boolean upsert = attrs[3][0] == 1;
-			boolean updating = attrs[3][1] == 1;
-			boolean scripting = attrs[3][2] == 1;
+			String index = new String(attrs[0]);
+			String id = new String(attrs[1]);
+			boolean upsert = attrs[2][0] == 1;
+			boolean updating = attrs[2][1] == 1;
+			boolean scripting = attrs[2][2] == 1;
 			Script script = scripting ? readScript(bais) : null;
-			return scripting ? new ElasticMessage(it.v1(), it.v2(), id, script, map)
-					: new ElasticMessage(it.v1(), it.v2(), id, map, upsert, updating);
+			return scripting ? new ElasticMessage(index, base.table(), id, script, base)
+					: new ElasticMessage(index, base.table(), id, base, upsert, updating);
 		} catch (IOException e) {
 			return null;
 		}
@@ -124,10 +141,5 @@ public class ElasticMessage extends Record {
 		byte[][] attrs = IOs.readBytesList(oos);
 		Map<String, Object> param = IOs.readObj(oos);
 		return new Script(ScriptType.valueOf(new String(attrs[0])), new String(attrs[1]), new String(attrs[2]), param);
-	}
-
-	public void type(String type) {
-		Pair<String, String> p = dessembly(table).v2(type);
-		table = assembly(p.v1(), p.v2());
 	}
 }

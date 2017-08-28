@@ -32,13 +32,12 @@ import org.elasticsearch.transport.RemoteTransportException;
 
 import com.hzcominfo.albatis.nosql.Connection;
 
-import net.butfly.albacore.io.Record;
 import net.butfly.albacore.io.faliover.FailoverOutput;
 import net.butfly.albacore.io.utils.URISpec;
 import net.butfly.albacore.utils.Exceptions;
 import net.butfly.albacore.utils.Texts;
 
-public final class EsOutput extends FailoverOutput {
+public final class EsOutput extends FailoverOutput<ElasticMessage> {
 	public static final long DEFAULT_BATCH_SIZE = 1000;
 	private final ElasticConnection conn;
 	private final int maxRetry;
@@ -74,7 +73,7 @@ public final class EsOutput extends FailoverOutput {
 	}
 
 	@Override
-	protected long write(String type, Stream<? extends Record> msgs, Consumer<Collection<? extends Record>> failing,
+	protected long write(String type, Stream<? extends ElasticMessage> msgs, Consumer<Collection<ElasticMessage>> failing,
 			Consumer<Long> committing, int retry) {
 		Map<String, ElasticMessage> origin = new ConcurrentHashMap<>();
 		msgs.forEach(m -> origin.put(((ElasticMessage) m).id, (ElasticMessage) m));
@@ -149,7 +148,7 @@ public final class EsOutput extends FailoverOutput {
 	}
 
 	private boolean update(String type, ElasticMessage es) {
-		es.type(type);
+		es.table(type);
 		DocWriteRequest<?> req = es.forWrite();
 		if (req instanceof IndexRequest) get(conn.client().index((IndexRequest) req), 0);
 		else if (req instanceof UpdateRequest) get(conn.client().update((UpdateRequest) req), 0);

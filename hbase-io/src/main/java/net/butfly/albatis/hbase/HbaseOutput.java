@@ -24,12 +24,12 @@ import net.butfly.albacore.io.faliover.FailoverOutput;
 import net.butfly.albacore.io.utils.URISpec;
 import net.butfly.albacore.utils.Exceptions;
 
-public final class HbaseOutput extends FailoverOutput<String, HbaseResult> {
+public final class HbaseOutput extends FailoverOutput<HbaseResult> {
 	private final Connection connect;
 	private final Map<String, Table> tables;
 
 	public HbaseOutput(String name, URISpec uri, String failoverPath) throws IOException {
-		super(name, HbaseResult::new, failoverPath, null == uri ? 200 : Integer.parseInt(uri.getParameter(PARAM_KEY_BATCH, "200")));
+		super(name, HbaseResult::fromBytes, failoverPath, null == uri ? 200 : Integer.parseInt(uri.getParameter(PARAM_KEY_BATCH, "200")));
 		connect = Hbases.connect(null == uri ? null : uri.getParameters());
 		tables = new ConcurrentHashMap<>();
 		open();
@@ -67,9 +67,9 @@ public final class HbaseOutput extends FailoverOutput<String, HbaseResult> {
 	logger().trace(() -> "HBase put [" + Bytes.toString(row) + "] callbacked.");
 
 	@Override
-	protected long write(String table, Stream<HbaseResult> values, Consumer<Collection<HbaseResult>> failing, Consumer<Long> committing,
-			int retry) {
-		List<HbaseResult> vs = list(values);
+	protected long write(String table, Stream<? extends HbaseResult> values, Consumer<Collection<HbaseResult>> failing,
+			Consumer<Long> committing, int retry) {
+		List<HbaseResult> vs = list(values, r -> (HbaseResult) r);
 		List<Put> puts = new ArrayList<>();
 		for (HbaseResult r : vs)
 			puts.add(r.forWrite());

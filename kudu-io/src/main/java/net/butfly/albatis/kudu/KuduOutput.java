@@ -11,22 +11,22 @@ import java.util.stream.Stream;
 
 import org.apache.kudu.client.KuduClient;
 
-import net.butfly.albacore.io.Record;
+import net.butfly.albacore.io.Message;
 import net.butfly.albacore.io.faliover.FailoverOutput;
 import net.butfly.albacore.io.utils.URISpec;
 
-public class KuduOutput extends FailoverOutput {
+public class KuduOutput extends FailoverOutput<Message> {
 	public static final long DEFAULT_BATCH_SIZE = 200;
 	private final KuduConnection connect;
 
 	public KuduOutput(String name, URISpec uri, String failoverPath) throws IOException {
-		super(name, b -> Record.fromBytes(b), failoverPath, null == uri ? 0 : Integer.parseInt(uri.getParameter(PARAM_KEY_BATCH, "0")));
+		super(name, b -> Message.fromBytes(b), failoverPath, null == uri ? 0 : Integer.parseInt(uri.getParameter(PARAM_KEY_BATCH, "0")));
 		connect = new KuduConnection(uri, null);
 		open();
 	}
 
 	public KuduOutput(String name, URISpec uri, String failoverPath, long batchSize) throws IOException {
-		super(name, b -> Record.fromBytes(b), failoverPath, (int) (batchSize > 0 ? batchSize : DEFAULT_BATCH_SIZE));
+		super(name, b -> Message.fromBytes(b), failoverPath, (int) (batchSize > 0 ? batchSize : DEFAULT_BATCH_SIZE));
 		connect = new KuduConnection(uri, null);
 		open();
 	}
@@ -43,8 +43,8 @@ public class KuduOutput extends FailoverOutput {
 	}
 
 	@Override
-	protected long write(String table, Stream<? extends Record> pkg, Consumer<Collection<? extends Record>> failing,
-			Consumer<Long> committing, int retry) {
+	protected long write(String table, Stream<? extends Message> pkg, Consumer<Collection<Message>> failing, Consumer<Long> committing,
+			int retry) {
 		AtomicLong c = new AtomicLong(0);
 		pkg.parallel().filter(r -> {
 			return r != null && !r.isEmpty();

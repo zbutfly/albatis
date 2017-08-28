@@ -8,7 +8,7 @@ import java.util.Map;
 import org.junit.Assert;
 import org.junit.Test;
 
-import net.butfly.albacore.io.Record;
+import net.butfly.albacore.io.Message;
 import net.butfly.albatis.kudu.KuduConnection;
 
 public class KuduConnectionTest {
@@ -20,7 +20,7 @@ public class KuduConnectionTest {
 			Map<String, Object> o = new HashMap<>();
 			o.put("id", 123456789);
 			o.put("name", "123456789");
-			Record result = new Record("my_first_table", o);
+			Message result = new Message("my_first_table", o);
 			Assert.assertNotNull(result);
 		} catch (IOException e) {
 			e.printStackTrace();
