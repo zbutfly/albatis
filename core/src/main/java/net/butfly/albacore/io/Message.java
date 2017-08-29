@@ -14,7 +14,67 @@ import net.butfly.albacore.utils.collection.Maps;
 
 public class Message extends ConcurrentHashMap<String, Object> {
 	private static final long serialVersionUID = 2316795812336748252L;
+	protected String key;
 	protected String table;
+	protected Op op;
+
+	public enum Op {
+		UPSERT, INSERT, DELETE, UPDATE;
+		private static final Op DEFAULT_OP = Op.INSERT;
+	}
+
+	public Message() {
+		this((String) null);
+	}
+
+	public Message(String table) {
+		this(table, (String) null);
+	}
+
+	public Message(String table, String key) {
+		super();
+		this.table = table;
+		this.key = key;
+		op = Op.DEFAULT_OP;
+	}
+
+	public Message(Map<? extends String, ? extends Object> values) {
+		super(values);
+		op = Op.DEFAULT_OP;
+	}
+
+	public Message(String table, Map<? extends String, ? extends Object> values) {
+		this(values);
+		this.table = table;
+	}
+
+	public Message(String table, String key, Map<? extends String, ? extends Object> values) {
+		this(table, values);
+		this.key = key;
+		op = Op.DEFAULT_OP;
+	}
+
+	public Message(String table, String key, String firstFieldName, Object... firstFieldValueAndOthers) {
+		this(table, null, Maps.of(firstFieldName, firstFieldValueAndOthers));
+	}
+
+	public String key() {
+		return key;
+	}
+
+	public Message key(String key) {
+		this.key = key;
+		return this;
+	}
+
+	public Op deleting() {
+		return op;
+	}
+
+	public Message op(Op op) {
+		this.op = op;
+		return this;
+	}
 
 	public String table() {
 		return table;
@@ -25,53 +85,17 @@ public class Message extends ConcurrentHashMap<String, Object> {
 		return this;
 	}
 
-	public Message(String table, Map<? extends String, ? extends Object> values) {
-		super(values);
-		this.table = table;
+	public Message(byte[] data) throws IOException {
+		this(new ByteArrayInputStream(data));
 	}
 
-	public Message(String table) {
+	public Message(InputStream is) throws IOException {
 		super();
-		this.table = table;
-	}
-
-	public Message(Map<? extends String, ? extends Object> values) {
-		this(null, values);
-	}
-
-	public Message() {
-		this((String) null);
-	}
-
-	public Message(String table, String firstFieldName, Object... firstFieldValueAndOthers) {
-		this(table, Maps.of(firstFieldName, firstFieldValueAndOthers));
-	}
-
-	public Message(String firstFieldName, Object... firstFieldValueAndOthers) {
-		this(Maps.of(firstFieldName, firstFieldValueAndOthers));
-	}
-
-	protected void write(OutputStream os) throws IOException {
-		IOs.writeBytes(os, null == table ? null : table.getBytes());
-		IOs.writeBytes(os, BsonSerder.DEFAULT_MAP.ser(this));
-	}
-
-	public static Message fromBytes(byte[] b) {
-		try (ByteArrayInputStream bais = new ByteArrayInputStream(b)) {
-			byte[] t = IOs.readBytes(bais);
-			String table = null == t ? null : new String(t);
-			Map<String, Object> map = BsonSerder.DEFAULT_MAP.der(IOs.readBytes(bais));
-			return new Message(table, map);
-		} catch (IOException e) {
-			return null;
-		}
-	}
-
-	public static Message fromBytes(InputStream os) throws IOException {
-		byte[] t = IOs.readBytes(os);
-		String table = null == t ? null : new String(t);
-		Map<String, Object> map = BsonSerder.DEFAULT_MAP.der(IOs.readBytes(os));
-		return new Message(table, map);
+		byte[][] attrs = IOs.readBytesList(is);
+		table = null != attrs[0] ? null : new String(attrs[0]);
+		key = null != attrs[1] ? null : new String(attrs[1]);
+		if (null == attrs[2]) putAll(BsonSerder.DEFAULT_MAP.der(attrs[2]));
+		op = Op.values()[attrs[3][0]];
 	}
 
 	public final byte[] toBytes() {
@@ -81,5 +105,10 @@ public class Message extends ConcurrentHashMap<String, Object> {
 		} catch (IOException e) {
 			return null;
 		}
+	}
+
+	protected void write(OutputStream os) throws IOException {
+		IOs.writeBytes(os, null == table ? null : table.getBytes(), null == key ? null : key.getBytes(), BsonSerder.DEFAULT_MAP.ser(this),
+				new byte[] { (byte) op.ordinal() });
 	}
 }

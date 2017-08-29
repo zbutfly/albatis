@@ -11,7 +11,6 @@ import java.io.IOException;
 import java.text.MessageFormat;
 import java.util.Collection;
 import java.util.List;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import com.bluejeans.bigqueue.BigQueue;
@@ -24,12 +23,16 @@ import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.parallel.Concurrents;
 import net.butfly.albacore.utils.parallel.Parals;
 
-public class OffHeapFailover<M extends Message> extends Failover<M> {
+public class OffHeapFailover extends Failover {
 	private BigQueue failover;
 
-	public OffHeapFailover(String parentName, FailoverOutput<M> output, Function<byte[], M> constructor, String path, String poolName)
+	public OffHeapFailover(String parentName, FailoverOutput output, String path, String poolName) throws IOException {
+		this(parentName, output, Message.class, path, poolName);
+	}
+
+	public OffHeapFailover(String parentName, FailoverOutput output, Class<? extends Message> messageClass, String path, String poolName)
 			throws IOException {
-		super(parentName, output, constructor);
+		super(parentName, output, messageClass);
 		if (poolName == null) poolName = "POOL";
 		failover = new BigQueue(mkdirs(path + "/" + parentName), poolName);
 		logger.debug(MessageFormat.format("Failover [persist mode] init: [{0}/{1}] with name [{2}], init size [{3}].", //
@@ -54,23 +57,23 @@ public class OffHeapFailover<M extends Message> extends Failover<M> {
 		while (opened()) {
 			while (opened() && failover.isEmpty())
 				Concurrents.waitSleep(1000);
-			Pair<String, List<M>> results;
+			Pair<String, List<Message>> results;
 			while (null != (results = Parals.run(this::fetch))) {
-				Pair<String, List<M>> r = results;
+				Pair<String, List<Message>> r = results;
 				Parals.run(() -> output(r.v1(), stats(of(r.v2()))));
 			}
 		}
 	}
 
-	private Pair<String, List<M>> fetch() throws IOException {
+	private Pair<String, List<Message>> fetch() throws IOException {
 		byte[] bytes;
 		if (!opened() || null == (bytes = failover.dequeue()) || 0 == bytes.length) return null;
 		try (ByteArrayInputStream baos = new ByteArrayInputStream(bytes);) {
 			String k = IOs.readObj(baos);
-			List<M> values = Streams.collect(Streams.of(IOs.readBytesList(baos)).map(b -> {
+			List<Message> values = Streams.collect(Streams.of(IOs.readBytesList(baos)).map(b -> {
 				if (null == b) return null;
 				try {
-					return construct.apply(b);
+					return construct.newInstance(b);
 				} catch (Exception ex) {
 					return null;
 				}
@@ -90,12 +93,12 @@ public class OffHeapFailover<M extends Message> extends Failover<M> {
 	}
 
 	@Override
-	protected long fail(String key, Collection<? extends M> values) {
+	protected long fail(String key, Collection<? extends Message> values) {
 		try {
 			byte[] bytes;
 			try (ByteArrayOutputStream baos = new ByteArrayOutputStream();) {
 				IOs.writeObj(baos, key);
-				writeBytes(baos, list(values, M::toBytes).toArray(new byte[values.size()][]));
+				writeBytes(baos, list(values, Message::toBytes).toArray(new byte[values.size()][]));
 				bytes = baos.toByteArray();
 			}
 			if (bytes.length == 0) return 0;

@@ -8,18 +8,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.function.Function;
 
 import net.butfly.albacore.io.Message;
 import net.butfly.albacore.io.utils.Streams;
 import net.butfly.albacore.utils.parallel.Parals;
 
-public class HeapFailover<M extends Message> extends Failover<M> {
+public class HeapFailover extends Failover {
 	private static final int MAX_FAILOVER = 50000;
-	private Map<String, LinkedBlockingQueue<M>> failover = new ConcurrentHashMap<>();
+	private Map<String, LinkedBlockingQueue<Message>> failover = new ConcurrentHashMap<>();
 
-	public HeapFailover(String parentName, FailoverOutput<M> output, Function<byte[], M> constructor) throws IOException {
-		super(parentName, output, constructor);
+	public HeapFailover(String parentName, FailoverOutput output) throws IOException {
+		super(parentName, output, null);
 		failover = new ConcurrentHashMap<>();
 		logger.info(MessageFormat.format("SolrOutput [{0}] failover [memory mode] init.", parentName));
 	}
@@ -38,7 +37,7 @@ public class HeapFailover<M extends Message> extends Failover<M> {
 	}
 
 	@Override
-	protected long fail(String key, Collection<? extends M> values) {
+	protected long fail(String key, Collection<? extends Message> values) {
 		if (opened()) try {
 			failover.computeIfAbsent(key, k -> new LinkedBlockingQueue<>(MAX_FAILOVER)).addAll(values);
 			return values.size();
@@ -54,10 +53,10 @@ public class HeapFailover<M extends Message> extends Failover<M> {
 
 	@Override
 	protected void exec() {
-		List<M> retries = new ArrayList<>(output.batchSize);
+		List<Message> retries = new ArrayList<>(output.batchSize);
 		while (opened()) {
 			for (String key : failover.keySet()) {
-				LinkedBlockingQueue<M> fails = failover.get(key);
+				LinkedBlockingQueue<Message> fails = failover.get(key);
 				retries.clear();
 				fails.drainTo(retries, output.batchSize);
 				if (!retries.isEmpty()) Parals.run(() -> output(key, Streams.of(retries)));

@@ -13,11 +13,12 @@ import org.apache.solr.common.SolrInputDocument;
 
 import com.hzcominfo.albatis.nosql.Connection;
 
+import net.butfly.albacore.io.Message;
 import net.butfly.albacore.io.faliover.FailoverOutput;
 import net.butfly.albacore.io.utils.URISpec;
 import net.butfly.albacore.utils.Exceptions;
 
-public final class SolrOutput extends FailoverOutput<SolrMessage> {
+public final class SolrOutput extends FailoverOutput {
 	static final int DEFAULT_AUTO_COMMIT_MS = 30000;
 	private final SolrConnection solr;
 
@@ -26,7 +27,7 @@ public final class SolrOutput extends FailoverOutput<SolrMessage> {
 	}
 
 	public SolrOutput(String name, URISpec uri, String failoverPath) throws IOException {
-		super(name, SolrMessage::fromBytes, failoverPath, Integer.parseInt(uri.getParameter(Connection.PARAM_KEY_BATCH, "200")));
+		super(name, failoverPath, Integer.parseInt(uri.getParameter(Connection.PARAM_KEY_BATCH, "200")));
 		solr = new SolrConnection(uri);
 		open();
 	}
@@ -46,10 +47,11 @@ public final class SolrOutput extends FailoverOutput<SolrMessage> {
 		}
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
-	protected long write(String core, Stream<? extends SolrMessage> docs, Consumer<Collection<SolrMessage>> failing,
-			Consumer<Long> committing, int retry) {
-		List<SolrInputDocument> ds = list(docs, d -> {
+	protected <M extends Message> long write(String core, Stream<M> msgs, Consumer<Collection<M>> failing, Consumer<Long> committing,
+			int retry) {
+		List<SolrInputDocument> ds = list(msgs, d -> {
 			SolrInputDocument sd = new SolrInputDocument();
 			d.entrySet().forEach(e -> sd.addField(e.getKey(), e.getValue()));
 			return sd;
@@ -62,9 +64,9 @@ public final class SolrOutput extends FailoverOutput<SolrMessage> {
 		} catch (Exception ex) {
 			logger().warn(name() + " write failed [" + Exceptions.unwrap(ex).getMessage() + "], [" + ds.size() + "] into failover.");
 			failing.accept(list(ds, sid -> {
-				SolrMessage m = new SolrMessage(core);
+				Message m = new Message(core);
 				sid.getFieldNames().forEach(f -> m.put(f, sid.getFieldValue(f)));
-				return m;
+				return (M) m;
 			}));
 		} finally {
 			committing.accept(rr);
