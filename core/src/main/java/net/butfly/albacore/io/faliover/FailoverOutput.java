@@ -24,8 +24,7 @@ import net.butfly.albacore.utils.parallel.Concurrents;
 
 /**
  * Output with buffer and failover supporting.<br>
- * Parent class handle buffer, invoking really write/marshall op by callback
- * provided by children classes.<br>
+ * Parent class handle buffer, invoking really write/marshall op by callback provided by children classes.<br>
  * Children classes define and implemented connection to datasource.
  * 
  * @author zx
@@ -42,7 +41,7 @@ public abstract class FailoverOutput<K, M extends Message<K, ?, M>> extends Name
 		this.batchSize = batchSize;
 		failover = failoverPath == null ? new HeapFailover<K, M>(name(), this, constructor)
 				: new OffHeapFailover<K, M>(name(), this, constructor, failoverPath, null);
-		failover.trace(batchSize, () -> "failover: " + size());
+		failover.trace(batchSize, () -> "failover: " + failover.size());
 		closing(() -> {
 			long act;
 			while ((act = actionCount.longValue()) > 0 && Concurrents.waitSleep())

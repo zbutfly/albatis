@@ -8,7 +8,7 @@
 	</parent>
 	<groupId>net.butfly.albatis</groupId>
 	<artifactId>albatis</artifactId>
-	<version>1.0.0-SNAPSHOT</version>
+	<version>1.0.0</version>
 	<packaging>pom</packaging>
 	<properties>
 		<!-- <version.kafka>0.8.2.2</version.kafka> -->
@@ -17,7 +17,7 @@
 		<!-- <version.kafka>0.11.0.0</version.kafka> --><!-- for scala_2.11 only -->
 		<version.mongodb.thin>2.14.3</version.mongodb.thin>
 		<version.mongodb.fat>3.4.2</version.mongodb.fat>
-		<version.elastic>5.5.0</version.elastic>
+		<version.elastic>5.5.2</version.elastic>
 		<version.kudu>1.4.0</version.kudu>
 		<version.hbase>1.3.1</version.hbase>
 		<version.solr>6.6.0</version.solr>
@@ -46,7 +46,7 @@
 		<dependency>
 			<groupId>net.butfly.albacore</groupId>
 			<artifactId>albacore-test</artifactId>
-			<version>3.0.0-SNAPSHOT</version>
+			<version>3.0.0</version>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
