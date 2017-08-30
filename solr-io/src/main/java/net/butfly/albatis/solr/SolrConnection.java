@@ -34,7 +34,7 @@ import org.apache.solr.common.params.ModifiableSolrParams;
 
 import com.hzcominfo.albatis.nosql.NoSqlConnection;
 
-import net.butfly.albacore.io.utils.URISpec;
+import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.Reflections;
 import net.butfly.albacore.utils.logger.Logger;
 

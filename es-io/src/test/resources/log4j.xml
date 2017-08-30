@@ -26,7 +26,7 @@
 		<level value="debug" />
 		<appender-ref ref="log-console-stdout" />
 	</logger>
-	<logger name="net.butfly.albacore.io.faliover" additivity="false">
+	<logger name="net.butfly.albatis.io.faliover" additivity="false">
 		<level value="trace" />
 		<appender-ref ref="log-console-stdout" />
 	</logger>

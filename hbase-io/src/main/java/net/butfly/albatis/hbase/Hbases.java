@@ -1,6 +1,6 @@
 package net.butfly.albatis.hbase;
 
-import static net.butfly.albacore.io.utils.Streams.collect;
+import static net.butfly.albacore.utils.collection.Streams.collect;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -31,12 +31,12 @@ import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
 
-import net.butfly.albacore.io.Message;
-import net.butfly.albacore.io.utils.Streams;
 import net.butfly.albacore.utils.IOs;
 import net.butfly.albacore.utils.Utils;
 import net.butfly.albacore.utils.collection.Maps;
+import net.butfly.albacore.utils.collection.Streams;
 import net.butfly.albacore.utils.logger.Logger;
+import net.butfly.albatis.io.Message;
 
 public final class Hbases extends Utils {
 	protected static final Logger logger = Logger.getLogger(Hbases.class);

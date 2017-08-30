@@ -16,7 +16,7 @@ import org.apache.kudu.client.Upsert;
 
 import com.hzcominfo.albatis.nosql.NoSqlConnection;
 
-import net.butfly.albacore.io.utils.URISpec;
+import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albacore.utils.parallel.Concurrents;
 

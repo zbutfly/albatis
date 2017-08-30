@@ -8,7 +8,7 @@ import java.util.Map;
 import org.junit.Assert;
 import org.junit.Test;
 
-import net.butfly.albacore.io.Message;
+import net.butfly.albatis.io.Message;
 import net.butfly.albatis.kudu.KuduConnection;
 
 public class KuduConnectionTest {

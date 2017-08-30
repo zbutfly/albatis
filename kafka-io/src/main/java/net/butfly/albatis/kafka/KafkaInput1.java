@@ -1,6 +1,6 @@
 package net.butfly.albatis.kafka;
 
-import static net.butfly.albacore.io.utils.Streams.of;
+import static net.butfly.albacore.utils.collection.Streams.of;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -18,15 +18,15 @@ import kafka.consumer.KafkaStream;
 import kafka.javaapi.consumer.ConsumerConnector;
 import kafka.message.MessageAndMetadata;
 import net.butfly.albacore.exception.ConfigException;
-import net.butfly.albacore.io.InputImpl;
-import net.butfly.albacore.io.utils.Streams;
-import net.butfly.albacore.io.utils.URISpec;
+import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.Texts;
+import net.butfly.albacore.utils.collection.Streams;
 import net.butfly.albacore.utils.parallel.Concurrents;
+import net.butfly.albatis.io.InputOddImpl;
 import net.butfly.albatis.kafka.config.KafkaInputConfig;
 
-public final class KafkaInput1 extends InputImpl<KafkaMessage> {
+public final class KafkaInput1 extends InputOddImpl<KafkaMessage> {
 	private final KafkaInputConfig config;
 	private final Map<String, Integer> allTopics = new ConcurrentHashMap<>();
 	private final ConsumerConnector connect;

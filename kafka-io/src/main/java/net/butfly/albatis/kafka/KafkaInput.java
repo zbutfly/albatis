@@ -1,7 +1,7 @@
 package net.butfly.albatis.kafka;
 
-import static net.butfly.albacore.io.utils.Streams.map;
-import static net.butfly.albacore.io.utils.Streams.of;
+import static net.butfly.albacore.utils.collection.Streams.map;
+import static net.butfly.albacore.utils.collection.Streams.of;
 
 import java.io.IOException;
 import java.text.MessageFormat;
@@ -21,17 +21,17 @@ import kafka.consumer.ConsumerTimeoutException;
 import kafka.consumer.KafkaStream;
 import kafka.javaapi.consumer.ConsumerConnector;
 import net.butfly.albacore.exception.ConfigException;
-import net.butfly.albacore.io.BigqQueue;
-import net.butfly.albacore.io.InputImpl;
-import net.butfly.albacore.io.ext.OpenableThread;
-import net.butfly.albacore.io.utils.Streams;
-import net.butfly.albacore.io.utils.URISpec;
+import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.IOs;
+import net.butfly.albacore.utils.OpenableThread;
 import net.butfly.albacore.utils.Texts;
+import net.butfly.albacore.utils.collection.Streams;
 import net.butfly.albacore.utils.parallel.Concurrents;
+import net.butfly.albatis.io.InputOddImpl;
+import net.butfly.albatis.io.ext.BigqQueue;
 import net.butfly.albatis.kafka.config.KafkaInputConfig;
 
-public final class KafkaInput extends InputImpl<KafkaMessage> {
+public final class KafkaInput extends InputOddImpl<KafkaMessage> {
 	private static final long POOL_LOCK_WAITING = -1;
 	private final KafkaInputConfig config;
 	private final Map<String, Integer> allTopics = new ConcurrentHashMap<>();

@@ -1,6 +1,6 @@
 package net.butfly.albatis.mongodb;
 
-import static net.butfly.albacore.io.utils.Streams.list;
+import static net.butfly.albacore.utils.collection.Streams.list;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicLong;
@@ -10,7 +10,7 @@ import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 
 import net.butfly.albacore.base.Namedly;
-import net.butfly.albacore.io.Output;
+import net.butfly.albatis.io.Output;
 
 public final class MongoOutput extends Namedly implements Output<DBObject> {
 	private final boolean upsert;

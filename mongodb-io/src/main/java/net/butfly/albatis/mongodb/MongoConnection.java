@@ -16,7 +16,7 @@ import com.mongodb.DBCollection;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 
-import net.butfly.albacore.io.utils.URISpec;
+import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.logger.Logger;
 
 /**

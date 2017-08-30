@@ -7,7 +7,7 @@ import com.hzcominfo.albatis.nosql.Connection;
 
 import kafka.producer.ProducerConfig;
 import net.butfly.albacore.exception.ConfigException;
-import net.butfly.albacore.io.utils.URISpec;
+import net.butfly.albacore.io.URISpec;
 
 public class KafkaOutputConfig extends KafkaConfigBase {
 	private static final long serialVersionUID = -3028341800709486625L;

@@ -1,7 +1,7 @@
 package net.butfly.albatis.kafka;
 
-import static net.butfly.albacore.io.utils.Streams.list;
-import static net.butfly.albacore.io.utils.Streams.of;
+import static net.butfly.albacore.utils.collection.Streams.list;
+import static net.butfly.albacore.utils.collection.Streams.of;
 
 import java.io.IOException;
 import java.text.MessageFormat;
@@ -23,11 +23,11 @@ import kafka.consumer.KafkaStream;
 import kafka.javaapi.consumer.ConsumerConnector;
 import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.exception.ConfigException;
-import net.butfly.albacore.io.Input;
-import net.butfly.albacore.io.utils.Its;
-import net.butfly.albacore.io.utils.URISpec;
+import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.Texts;
+import net.butfly.albacore.utils.collection.Its;
 import net.butfly.albacore.utils.parallel.Concurrents;
+import net.butfly.albatis.io.Input;
 import net.butfly.albatis.kafka.config.KafkaInputConfig;
 
 public final class KafkaInput0 extends Namedly implements Input<KafkaMessage> {
@@ -101,7 +101,7 @@ public final class KafkaInput0 extends Namedly implements Input<KafkaMessage> {
 	}
 
 	@Override
-	public final long dequeue(Function<Stream<KafkaMessage>, Long> using, long batchSize) {
+	public final long dequeue(Function<Stream<KafkaMessage>, Long> using, int batchSize) {
 		if (!opened() || raws.isEmpty()) return 0;
 		List<ConsumerIterator<byte[], byte[]>> l = new ArrayList<>(raws);
 		Collections.shuffle(l);

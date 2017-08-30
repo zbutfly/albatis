@@ -1,6 +1,6 @@
 package net.butfly.albatis.solr;
 
-import static net.butfly.albacore.io.utils.Streams.list;
+import static net.butfly.albacore.utils.collection.Streams.list;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -13,10 +13,10 @@ import org.apache.solr.common.SolrInputDocument;
 
 import com.hzcominfo.albatis.nosql.Connection;
 
-import net.butfly.albacore.io.Message;
-import net.butfly.albacore.io.faliover.FailoverOutput;
-import net.butfly.albacore.io.utils.URISpec;
+import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.Exceptions;
+import net.butfly.albatis.io.Message;
+import net.butfly.albatis.io.faliover.FailoverOutput;
 
 public final class SolrOutput extends FailoverOutput {
 	static final int DEFAULT_AUTO_COMMIT_MS = 30000;

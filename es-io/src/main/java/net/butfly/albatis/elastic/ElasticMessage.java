@@ -12,10 +12,10 @@ import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.script.Script;
 import org.elasticsearch.script.ScriptType;
 
-import net.butfly.albacore.io.Message;
 import net.butfly.albacore.serder.BsonSerder;
 import net.butfly.albacore.utils.IOs;
 import net.butfly.albacore.utils.Pair;
+import net.butfly.albatis.io.Message;
 
 public class ElasticMessage extends Message {
 	private static final long serialVersionUID = -125189207796104302L;

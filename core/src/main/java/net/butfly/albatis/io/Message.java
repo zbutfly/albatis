@@ -1,4 +1,4 @@
-package net.butfly.albacore.io;
+package net.butfly.albatis.io;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;

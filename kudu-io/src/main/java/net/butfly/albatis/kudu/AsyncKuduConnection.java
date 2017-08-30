@@ -11,7 +11,7 @@ import org.apache.kudu.client.KuduTable;
 import com.hzcominfo.albatis.nosql.NoSqlConnection;
 import com.stumbleupon.async.Deferred;
 
-import net.butfly.albacore.io.utils.URISpec;
+import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.logger.Logger;
 
 

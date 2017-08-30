@@ -13,7 +13,7 @@ import org.elasticsearch.client.transport.TransportClient;
 
 import com.hzcominfo.albatis.nosql.NoSqlConnection;
 
-import net.butfly.albacore.io.utils.URISpec;
+import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.serder.JsonSerder;
 
 public class ElasticConnection extends NoSqlConnection<TransportClient> implements ElasticConnect {

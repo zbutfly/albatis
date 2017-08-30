@@ -10,7 +10,7 @@ import org.neo4j.driver.v1.GraphDatabase;
 
 import com.hzcominfo.albatis.nosql.NoSqlConnection;
 
-import net.butfly.albacore.io.utils.URISpec;
+import net.butfly.albacore.io.URISpec;
 
 public class Neo4jConnection extends NoSqlConnection<Driver> {
 	public Neo4jConnection(URISpec uri, Function<URISpec, Driver> client) throws IOException {

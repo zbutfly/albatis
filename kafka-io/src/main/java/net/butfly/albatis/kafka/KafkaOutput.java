@@ -1,6 +1,6 @@
 package net.butfly.albatis.kafka;
 
-import static net.butfly.albacore.io.utils.Streams.list;
+import static net.butfly.albacore.utils.collection.Streams.list;
 
 import java.util.List;
 import java.util.stream.Stream;
@@ -9,9 +9,9 @@ import kafka.javaapi.producer.Producer;
 import kafka.producer.KeyedMessage;
 import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.exception.ConfigException;
-import net.butfly.albacore.io.Output;
-import net.butfly.albacore.io.utils.URISpec;
+import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.Exceptions;
+import net.butfly.albatis.io.Output;
 import net.butfly.albatis.kafka.config.KafkaOutputConfig;
 
 /**

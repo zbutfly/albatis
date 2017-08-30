@@ -1,6 +1,6 @@
 package net.butfly.albatis.hbase;
 
-import static net.butfly.albacore.io.utils.Streams.list;
+import static net.butfly.albacore.utils.collection.Streams.list;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -26,10 +26,10 @@ import org.apache.hadoop.hbase.ipc.RemoteWithExtrasException;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import net.butfly.albacore.base.Namedly;
-import net.butfly.albacore.io.Input;
-import net.butfly.albacore.io.Message;
-import net.butfly.albacore.io.utils.Streams;
 import net.butfly.albacore.utils.collection.Maps;
+import net.butfly.albacore.utils.collection.Streams;
+import net.butfly.albatis.io.Input;
+import net.butfly.albatis.io.Message;
 
 public final class HbaseInput extends Namedly implements Input<Message> {
 	private static final int MAX_RETRIES = 5;
@@ -101,11 +101,11 @@ public final class HbaseInput extends Namedly implements Input<Message> {
 	}
 
 	@Override
-	public long dequeue(Function<Stream<Message>, Long> using, long batchSize) {
+	public long dequeue(Function<Stream<Message>, Long> using, int batchSize) {
 		if (!ended.get() && scanerLock.writeLock().tryLock()) {
 			Result[] rs = null;
 			try {
-				rs = scaner.next((int) batchSize);
+				rs = scaner.next(batchSize);
 			} catch (Exception ex) {
 				logger().warn("Hbase failure", ex);
 			} finally {

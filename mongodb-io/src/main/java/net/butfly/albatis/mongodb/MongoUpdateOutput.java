@@ -6,10 +6,10 @@ import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 import com.mongodb.WriteResult;
 
-import net.butfly.albacore.io.OutputImpl;
 import net.butfly.albacore.utils.Pair;
+import net.butfly.albatis.io.OutputOddImpl;
 
-public final class MongoUpdateOutput extends OutputImpl<Pair<DBObject, DBObject>> {
+public final class MongoUpdateOutput extends OutputOddImpl<Pair<DBObject, DBObject>> {
 	private final boolean upsert;
 	private final MongoConnection conn;
 	private final DBCollection collection;

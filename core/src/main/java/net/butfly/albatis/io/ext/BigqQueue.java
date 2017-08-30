@@ -1,15 +1,15 @@
-package net.butfly.albacore.io;
+package net.butfly.albatis.io.ext;
 
 import java.io.IOException;
 import java.util.function.Function;
 
 import com.bluejeans.bigqueue.BigQueue;
 
-import net.butfly.albacore.io.queue.QueueImpl;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albacore.utils.parallel.Concurrents;
+import net.butfly.albatis.io.QueueOddImpl;
 
-public class BigqQueue<V> extends QueueImpl<V> {
+public class BigqQueue<V> extends QueueOddImpl<V> {
 	public static final long GC_INTV = Integer.parseInt(System.getProperty("albatis.queue.bigqueue.autogc", "30")) * 1000;
 	protected static final Logger logger = Logger.getLogger(BigqQueue.class);
 

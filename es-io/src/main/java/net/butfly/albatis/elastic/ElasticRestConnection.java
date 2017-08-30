@@ -14,7 +14,7 @@ import org.elasticsearch.client.RestClient;
 
 import com.hzcominfo.albatis.nosql.NoSqlConnection;
 
-import net.butfly.albacore.io.utils.URISpec;
+import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.serder.JsonSerder;
 
 public class ElasticRestConnection extends NoSqlConnection<RestClient> implements ElasticConnect {

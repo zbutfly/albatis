@@ -1,5 +1,5 @@
-package net.butfly.albacore.io.mapdb;
-//package net.butfly.albacore.io;
+package net.butfly.albatis.io.ext;
+//package net.butfly.albatis.io;
 //
 //import java.io.File;
 //import java.util.function.Function;
@@ -7,9 +7,9 @@ package net.butfly.albacore.io.mapdb;
 //import org.mapdb.DB;
 //import org.mapdb.DBMaker;
 //
-//import net.butfly.albacore.io.queue.QueueImpl;
+//import net.butfly.albatis.io.queue.QueueOddImpl;
 //
-//public abstract class MapdbQueueImpl<V0> extends QueueImpl<V0> {
+//public abstract class MapdbQueueImpl<V0> extends QueueOddImpl<V0> {
 //	private static final String FILENAME_PREFIX = "mapdb-";
 //	private static final String FILENAME_EXT = ".db";
 //	protected final DB db;

@@ -1,11 +1,11 @@
-package net.butfly.albacore.io;
+package net.butfly.albatis.io;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
 import java.util.function.BiFunction;
 
-import net.butfly.albacore.io.utils.URISpec;
+import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.IOs;
 
 public class URIs {
