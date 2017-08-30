@@ -18,7 +18,7 @@ import net.butfly.albacore.io.faliover.FailoverOutput;
 import net.butfly.albacore.io.utils.URISpec;
 import net.butfly.albacore.utils.Exceptions;
 
-public final class SolrOutput extends FailoverOutput<String, SolrMessage<SolrInputDocument>> {
+public final class SolrOutput extends FailoverOutput {
 	static final int DEFAULT_AUTO_COMMIT_MS = 30000;
 	private final SolrConnection solr;
 
@@ -27,8 +27,7 @@ public final class SolrOutput extends FailoverOutput<String, SolrMessage<SolrInp
 	}
 
 	public SolrOutput(String name, URISpec uri, String failoverPath) throws IOException {
-		super(name, Message::<SolrMessage<SolrInputDocument>> fromBytes, failoverPath, Integer.parseInt(uri.getParameter(
-				Connection.PARAM_KEY_BATCH, "200")));
+		super(name, failoverPath, Integer.parseInt(uri.getParameter(Connection.PARAM_KEY_BATCH, "200")));
 		solr = new SolrConnection(uri);
 		open();
 	}
@@ -48,10 +47,15 @@ public final class SolrOutput extends FailoverOutput<String, SolrMessage<SolrInp
 		}
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
-	protected long write(String core, Stream<SolrMessage<SolrInputDocument>> docs,
-			Consumer<Collection<SolrMessage<SolrInputDocument>>> failing, Consumer<Long> committing, int retry) {
-		List<SolrInputDocument> ds = list(docs, SolrMessage<SolrInputDocument>::forWrite);
+	protected <M extends Message> long write(String core, Stream<M> msgs, Consumer<Collection<M>> failing, Consumer<Long> committing,
+			int retry) {
+		List<SolrInputDocument> ds = list(msgs, d -> {
+			SolrInputDocument sd = new SolrInputDocument();
+			d.entrySet().forEach(e -> sd.addField(e.getKey(), e.getValue()));
+			return sd;
+		});
 		if (ds.isEmpty()) return 0;
 		long rr = 0;
 		try {
@@ -59,7 +63,11 @@ public final class SolrOutput extends FailoverOutput<String, SolrMessage<SolrInp
 			rr = ds.size();
 		} catch (Exception ex) {
 			logger().warn(name() + " write failed [" + Exceptions.unwrap(ex).getMessage() + "], [" + ds.size() + "] into failover.");
-			failing.accept(list(ds, sid -> new SolrMessage<>(core, sid)));
+			failing.accept(list(ds, sid -> {
+				Message m = new Message(core);
+				sid.getFieldNames().forEach(f -> m.put(f, sid.getFieldValue(f)));
+				return (M) m;
+			}));
 		} finally {
 			committing.accept(rr);
 		}

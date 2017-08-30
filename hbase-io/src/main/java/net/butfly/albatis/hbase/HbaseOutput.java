@@ -20,16 +20,17 @@ import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.client.coprocessor.Batch.Callback;
 import org.apache.hadoop.hbase.util.Bytes;
 
+import net.butfly.albacore.io.Message;
 import net.butfly.albacore.io.faliover.FailoverOutput;
 import net.butfly.albacore.io.utils.URISpec;
 import net.butfly.albacore.utils.Exceptions;
 
-public final class HbaseOutput extends FailoverOutput<String, HbaseResult> {
+public final class HbaseOutput extends FailoverOutput {
 	private final Connection connect;
 	private final Map<String, Table> tables;
 
 	public HbaseOutput(String name, URISpec uri, String failoverPath) throws IOException {
-		super(name, HbaseResult::new, failoverPath, null == uri ? 200 : Integer.parseInt(uri.getParameter(PARAM_KEY_BATCH, "200")));
+		super(name, failoverPath, null == uri ? 200 : Integer.parseInt(uri.getParameter(PARAM_KEY_BATCH, "200")));
 		connect = Hbases.connect(null == uri ? null : uri.getParameters());
 		tables = new ConcurrentHashMap<>();
 		open();
@@ -67,12 +68,12 @@ public final class HbaseOutput extends FailoverOutput<String, HbaseResult> {
 	logger().trace(() -> "HBase put [" + Bytes.toString(row) + "] callbacked.");
 
 	@Override
-	protected long write(String table, Stream<HbaseResult> values, Consumer<Collection<HbaseResult>> failing, Consumer<Long> committing,
+	protected <M extends Message> long write(String table, Stream<M> values, Consumer<Collection<M>> failing, Consumer<Long> committing,
 			int retry) {
-		List<HbaseResult> vs = list(values);
+		List<M> vs = list(values, r -> (M) r);
 		List<Put> puts = new ArrayList<>();
-		for (HbaseResult r : vs)
-			puts.add(r.forWrite());
+		for (Message r : vs)
+			puts.add(Hbases.Results.put(r));
 		if (puts.isEmpty()) return 0;
 		Object[] results = new Object[puts.size()];
 		long succ = 0;
@@ -81,9 +82,9 @@ public final class HbaseOutput extends FailoverOutput<String, HbaseResult> {
 			else table(table).batch(puts, results);
 		} catch (Exception ex) {
 			logger().warn(name() + " write failed [" + Exceptions.unwrap(ex).getMessage() + "], [" + puts.size() + "] into failover.");
-			failing.accept(list(puts, p -> new HbaseResult(table, p)));
+			failing.accept(vs);
 		} finally {
-			List<HbaseResult> fails = new ArrayList<>();
+			List<M> fails = new ArrayList<>();
 			for (int i = 0; i < results.length; i++) {
 				if (results[i] instanceof Result) succ++;
 				else {

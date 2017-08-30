@@ -27,10 +27,11 @@ import org.apache.hadoop.hbase.util.Bytes;
 
 import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.io.Input;
+import net.butfly.albacore.io.Message;
 import net.butfly.albacore.io.utils.Streams;
 import net.butfly.albacore.utils.collection.Maps;
 
-public final class HbaseInput extends Namedly implements Input<HbaseResult> {
+public final class HbaseInput extends Namedly implements Input<Message> {
 	private static final int MAX_RETRIES = 5;
 	private static final int CACHED_SCAN_OBJS = 500;
 	private final Connection hconn;
@@ -100,7 +101,7 @@ public final class HbaseInput extends Namedly implements Input<HbaseResult> {
 	}
 
 	@Override
-	public long dequeue(Function<Stream<HbaseResult>, Long> using, long batchSize) {
+	public long dequeue(Function<Stream<Message>, Long> using, long batchSize) {
 		if (!ended.get() && scanerLock.writeLock().tryLock()) {
 			Result[] rs = null;
 			try {
@@ -112,25 +113,25 @@ public final class HbaseInput extends Namedly implements Input<HbaseResult> {
 			}
 			if (null != rs) {
 				ended.set(rs.length == 0);
-				if (rs.length > 0) return using.apply(Stream.of(rs).map(r -> new HbaseResult(tname, r)));
+				if (rs.length > 0) return using.apply(Stream.of(rs).map(r -> Hbases.Results.result(tname, r)));
 			}
 		}
 		return 0;
 	}
 
-	public List<HbaseResult> get(List<Get> gets) {
+	public List<Message> get(List<Get> gets) {
 		if (gets == null || gets.isEmpty()) return new ArrayList<>();
 		if (gets.size() == 1) return Arrays.asList(scan(gets.get(0)));
 		return table(tname, t -> {
 			try {
-				return list(Arrays.asList(t.get(gets)), r -> new HbaseResult(tname, r));
+				return list(Arrays.asList(t.get(gets)), r -> Hbases.Results.result(tname, r));
 			} catch (Exception ex) {
 				return list(Streams.of(gets, true).map(this::scan).filter(r -> null != r));
 			}
 		});
 	}
 
-	public HbaseResult get(Get get) {
+	public Message get(Get get) {
 		return table(tname, t -> {
 			Result r;
 			try {
@@ -139,13 +140,13 @@ public final class HbaseInput extends Namedly implements Input<HbaseResult> {
 				logger().warn("Hbase scan fail: [" + e.getMessage() + "].");
 				return null;
 			}
-			if (null != r) return new HbaseResult(tname, r);
+			if (null != r) return Hbases.Results.result(tname, r);
 			logger().error("Hbase get/scan return null: \n\t" + get.toString());
 			return null;
 		});
 	}
 
-	private HbaseResult scan(Get get) {
+	private Message scan(Get get) {
 		byte[] row = get.getRow();
 		return table(tname, t -> {
 			int retry = 0;
@@ -171,7 +172,7 @@ public final class HbaseInput extends Namedly implements Input<HbaseResult> {
 			int rt = retry;
 			logger().trace(() -> "Hbase get(scan) on [" + Bytes.toString(row) + "] with [" + rt + "] retries, size: [" + Result
 					.getTotalSizeOfCells(rr) + "]");
-			return new HbaseResult(tname, r);
+			return Hbases.Results.result(tname, r);
 		});
 	}
 

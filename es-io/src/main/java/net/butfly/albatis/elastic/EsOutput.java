@@ -32,12 +32,13 @@ import org.elasticsearch.transport.RemoteTransportException;
 
 import com.hzcominfo.albatis.nosql.Connection;
 
+import net.butfly.albacore.io.Message;
 import net.butfly.albacore.io.faliover.FailoverOutput;
 import net.butfly.albacore.io.utils.URISpec;
 import net.butfly.albacore.utils.Exceptions;
 import net.butfly.albacore.utils.Texts;
 
-public final class EsOutput extends FailoverOutput<String, ElasticMessage> {
+public final class EsOutput extends FailoverOutput {
 	public static final long DEFAULT_BATCH_SIZE = 1000;
 	private final ElasticConnection conn;
 	private final int maxRetry;
@@ -55,7 +56,7 @@ public final class EsOutput extends FailoverOutput<String, ElasticMessage> {
 	}
 
 	public EsOutput(String name, URISpec uri, String failoverPath, long batchSize) throws IOException {
-		super(name, b -> new ElasticMessage(b), failoverPath, (int) (batchSize > 0 ? batchSize : DEFAULT_BATCH_SIZE));
+		super(name, ElasticMessage.class, failoverPath, (int) (batchSize > 0 ? batchSize : DEFAULT_BATCH_SIZE));
 		conn = new ElasticConnection(uri);
 		maxRetry = Integer.parseInt(uri.getParameter("retry", "5"));
 		open();
@@ -73,10 +74,10 @@ public final class EsOutput extends FailoverOutput<String, ElasticMessage> {
 	}
 
 	@Override
-	protected long write(String type, Stream<ElasticMessage> msgs, Consumer<Collection<ElasticMessage>> failing, Consumer<Long> committing,
+	protected <M extends Message> long write(String type, Stream<M> msgs, Consumer<Collection<M>> failing, Consumer<Long> committing,
 			int retry) {
-		Map<String, ElasticMessage> origin = new ConcurrentHashMap<>();
-		msgs.forEach(m -> origin.put(m.id, m));
+		Map<String, M> origin = new ConcurrentHashMap<>();
+		msgs.forEach(m -> origin.put(m.key(), m));
 		long s = origin.size();
 		if (s == 0) return 0;
 		if (retry >= maxRetry) {
@@ -85,14 +86,14 @@ public final class EsOutput extends FailoverOutput<String, ElasticMessage> {
 		}
 		if (s == 1) {
 			long i = 0;
-			for (ElasticMessage m : origin.values())
-				if (update(type, m)) i++;
+			for (M m : origin.values())
+				if (update(type, (ElasticMessage) m)) i++;
 				else failing.accept(Arrays.asList(m));
 			committing.accept(i);
 			return i;
 		}
-		LinkedBlockingQueue<ElasticMessage> retries = new LinkedBlockingQueue<>(origin.values());
-		BulkRequest req = new BulkRequest().add(list(retries, ElasticMessage::forWrite));
+		LinkedBlockingQueue<M> retries = new LinkedBlockingQueue<>(origin.values());
+		BulkRequest req = new BulkRequest().add(list(retries, m -> ((ElasticMessage) m).forWrite()));
 		long bytes = logger().isTraceEnabled() ? req.estimatedSizeInBytes() : 0;
 		long now = System.currentTimeMillis();
 
@@ -119,7 +120,7 @@ public final class EsOutput extends FailoverOutput<String, ElasticMessage> {
 							failOrRetry.get(Boolean.TRUE).forEach(r -> logger().warn("Writing failed id [" + r.getId() + "] for: " + unwrap(
 									r.getFailure().getCause()).getMessage()));
 						// remove from retries: successed or marked fail.
-						retries.removeIf(m -> succIds.contains(m.id) || failIds.contains(m.id));
+						retries.removeIf(m -> succIds.contains(m.key()) || failIds.contains(m.key()));
 						// move fail marked into failing
 						failing.accept((list(failIds, origin::get)));
 
@@ -148,7 +149,7 @@ public final class EsOutput extends FailoverOutput<String, ElasticMessage> {
 	}
 
 	private boolean update(String type, ElasticMessage es) {
-		if (es.type == null) es.type = type;
+		es.table(type);
 		DocWriteRequest<?> req = es.forWrite();
 		if (req instanceof IndexRequest) get(conn.client().index((IndexRequest) req), 0);
 		else if (req instanceof UpdateRequest) get(conn.client().update((UpdateRequest) req), 0);

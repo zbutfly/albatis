@@ -4,14 +4,14 @@
 	<parent>
 		<groupId>net.butfly.albatis</groupId>
 		<artifactId>albatis</artifactId>
-		<version>1.0.0</version>
+		<version>1.3.1-SNAPSHOT</version>
 	</parent>
 	<artifactId>albatis-solr-io</artifactId>
 	<dependencies>
 		<dependency>
 			<groupId>net.butfly.albatis</groupId>
 			<artifactId>albatis-core</artifactId>
-			<version>1.0.0</version>
+			<version>1.3.1-SNAPSHOT</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.solr</groupId>
@@ -27,7 +27,6 @@
 		<dependency>
 			<groupId>org.apache.httpcomponents</groupId>
 			<artifactId>httpmime</artifactId>
-			<version>4.5.1</version>
 		</dependency>
 	</dependencies>
 </project>
