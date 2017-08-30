@@ -59,7 +59,7 @@
 	1. 各类形状定义函数
 		1. 矩形 geoBoundingBoxQuery(field, top, left, bottom, right)
 		1. 圆形 geoDistanceQuery(field, lat, lon, distance) 
-		1. 多边形 geoPolygonQuery(field, lat_lon,lat_lon,lat_lon ...)
+		1. 多边形 geoPolygonQuery(field, lat%lon,lat%lon,lat%lon ...)
 	1. 查询调用结构 (GEO函数一定要放在末尾)
 		~~~sql
 			select * from indexName..typeName where [condition] and geoBoundingBoxQuery(location, 3.0, 2.0, 1.5, 4.0)
