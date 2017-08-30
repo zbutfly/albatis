@@ -1,39 +1,33 @@
 package net.butfly.albatis.solr;
 
-import static net.butfly.albacore.utils.collection.Streams.list;
-
 import java.io.IOException;
-import java.util.Collection;
 import java.util.List;
-import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.common.SolrInputDocument;
 
-import com.hzcominfo.albatis.nosql.Connection;
-
+import net.butfly.albacore.io.EnqueueException;
 import net.butfly.albacore.io.URISpec;
-import net.butfly.albacore.utils.Exceptions;
+import net.butfly.albacore.utils.collection.Streams;
+import net.butfly.albatis.io.KeyOutput;
 import net.butfly.albatis.io.Message;
-import net.butfly.albatis.io.faliover.FailoverOutput;
 
-public final class SolrOutput extends FailoverOutput {
-	static final int DEFAULT_AUTO_COMMIT_MS = 30000;
+public final class SolrOutput extends KeyOutput<String, Message> {
+	public static final int SUGGEST_BATCH_SIZE = 200;
+	private static final int DEFAULT_AUTO_COMMIT_MS = 30000;
 	private final SolrConnection solr;
 
 	public SolrOutput(String name, URISpec uri) throws IOException {
-		this(name, uri, null);
-	}
-
-	public SolrOutput(String name, URISpec uri, String failoverPath) throws IOException {
-		super(name, failoverPath, Integer.parseInt(uri.getParameter(Connection.PARAM_KEY_BATCH, "200")));
+		super(name);
+		// Integer.parseInt(uri.getParameter(Connection.PARAM_KEY_BATCH, "200"))
 		solr = new SolrConnection(uri);
 		open();
 	}
 
 	@Override
-	protected void closeInternal() {
+	public void close() {
+		super.close();
 		try {
 			for (String core : solr.getCores())
 				solr.client().commit(core, false, false);
@@ -47,35 +41,22 @@ public final class SolrOutput extends FailoverOutput {
 		}
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
-	protected <M extends Message> long write(String core, Stream<M> msgs, Consumer<Collection<M>> failing, Consumer<Long> committing,
-			int retry) {
-		List<SolrInputDocument> ds = list(msgs, d -> {
-			SolrInputDocument sd = new SolrInputDocument();
-			d.entrySet().forEach(e -> sd.addField(e.getKey(), e.getValue()));
-			return sd;
-		});
-		if (ds.isEmpty()) return 0;
-		long rr = 0;
+	public long enqueue(String core, Stream<Message> msgs) {
+		List<SolrInputDocument> docs = Streams.list(msgs.map(m -> Solrs.input(m)));
+		if (docs.isEmpty()) return 0;
 		try {
-			solr.client().add(core, ds, DEFAULT_AUTO_COMMIT_MS);
-			rr = ds.size();
+			solr.client().add(core, docs, DEFAULT_AUTO_COMMIT_MS);
+			return docs.size();
 		} catch (Exception ex) {
-			logger().warn(name() + " write failed [" + Exceptions.unwrap(ex).getMessage() + "], [" + ds.size() + "] into failover.");
-			failing.accept(list(ds, sid -> {
-				Message m = new Message(core);
-				sid.getFieldNames().forEach(f -> m.put(f, sid.getFieldValue(f)));
-				return (M) m;
-			}));
-		} finally {
-			committing.accept(rr);
+			EnqueueException e = new EnqueueException();
+			e.fails(docs);
+			throw e;
 		}
-		return rr;
 	}
 
 	@Override
-	protected void commit(String key) {
+	public void commit(String key) {
 		try {
 			solr.client().commit(key, false, false, true);
 		} catch (RuntimeException e) {
@@ -83,5 +64,10 @@ public final class SolrOutput extends FailoverOutput {
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
+	}
+
+	@Override
+	protected String partitionize(Message v) {
+		return v.key();
 	}
 }

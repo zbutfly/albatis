@@ -9,6 +9,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 
 import org.apache.solr.client.solrj.ResponseParser;
 import org.apache.solr.client.solrj.SolrClient;
@@ -17,6 +18,8 @@ import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.request.CoreAdminRequest;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.common.SolrDocumentList;
+import org.apache.solr.common.SolrInputDocument;
+import org.apache.solr.common.SolrInputField;
 import org.apache.solr.common.params.CoreAdminParams.CoreAdminAction;
 import org.apache.solr.common.util.Pair;
 
@@ -29,7 +32,6 @@ import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.Utils;
 import net.butfly.albacore.utils.logger.Logger;
 
-@Deprecated
 public final class Solrs extends Utils {
 	protected static final Logger logger = Logger.getLogger(Solrs.class);
 	private static final Map<String, SolrClient> clients = new ConcurrentHashMap<>();
@@ -37,6 +39,7 @@ public final class Solrs extends Utils {
 	private Solrs() {}
 
 	@SuppressWarnings("resource")
+	@Deprecated
 	public static SolrClient open(String solrURL, Class<? extends ResponseParser> parserClass) {
 		try {
 			return new SolrConnection(new URISpec(solrURL), parserClass, false).client();
@@ -45,6 +48,7 @@ public final class Solrs extends Utils {
 		}
 	}
 
+	@Deprecated
 	public static void close(SolrClient solr) {
 		List<String> keys = new ArrayList<>();
 		for (Entry<String, SolrClient> e : clients.entrySet())
@@ -69,18 +73,22 @@ public final class Solrs extends Utils {
 		}
 	}
 
+	@Deprecated
 	public static SolrClient open(String solrURL) {
 		return open(solrURL, null);
 	}
 
+	@Deprecated
 	public static SolrDocumentList query(String url, SolrQuery query) throws SolrServerException, IOException {
 		return open(url).query(query).getResults();
 	}
 
+	@Deprecated
 	public static QueryResponse queryForResponse(String url, SolrQuery query) throws SolrServerException, IOException {
 		return open(url).query(query);
 	}
 
+	@Deprecated
 	public static QueryResponse[] query(SolrQuery query, String... url) {
 		if (null == url || null == query) return null;
 		if (url.length == 0) return new QueryResponse[0];
@@ -118,6 +126,7 @@ public final class Solrs extends Utils {
 		}
 	}
 
+	@Deprecated
 	public static QueryResponse[] query(String url, SolrQuery... query) {
 		if (null == url || null == query) return null;
 		if (query.length == 0) return new QueryResponse[0];
@@ -156,6 +165,7 @@ public final class Solrs extends Utils {
 	}
 
 	@SafeVarargs
+	@Deprecated
 	public static QueryResponse[] query(Pair<String, SolrQuery>... query) {
 		if (null == query) return null;
 		if (query.length == 0) return new QueryResponse[0];
@@ -193,6 +203,7 @@ public final class Solrs extends Utils {
 		}
 	}
 
+	@Deprecated
 	public static QueryResponse[] query(List<Pair<String, SolrQuery>> query) {
 		if (null == query) return null;
 		if (query.size() == 0) return new QueryResponse[0];
@@ -228,5 +239,13 @@ public final class Solrs extends Utils {
 		} finally {
 			ex.shutdown();
 		}
+	}
+
+	public static SolrInputDocument input(Map<String, Object> map) {
+		return null == map || map.isEmpty() ? null : new SolrInputDocument(map.entrySet().parallelStream().map(e -> {
+			SolrInputField f = new SolrInputField(e.getKey());
+			f.setValue(e.getValue(), 1f);
+			return f;
+		}).collect(Collectors.toConcurrentMap(f -> f.getName(), f -> f)));
 	}
 }
