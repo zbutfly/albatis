@@ -13,6 +13,7 @@ import net.butfly.albacore.io.IO;
 import net.butfly.albacore.utils.collection.Its;
 import net.butfly.albacore.utils.collection.Streams;
 import net.butfly.albacore.utils.parallel.Parals;
+import net.butfly.albatis.io.ext.FailoverOutput;
 
 public interface Output<V> extends IO, Consumer<Stream<V>>, Enqueue<V> {
 	static Output<?> NULL = items -> 0;
@@ -28,29 +29,22 @@ public interface Output<V> extends IO, Consumer<Stream<V>>, Enqueue<V> {
 	}
 
 	default <V0> Output<V0> prior(Function<V0, V> conv) {
-		return Wrapper.wrap(this, items -> enqueue(Streams.of(items.map(conv))));
+		return Wrapper.wrap(this, "Prior", items -> enqueue(Streams.of(items.map(conv))));
 	}
 
 	default <V0> Output<V0> priors(Function<Iterable<V0>, Iterable<V>> conv, int parallelism) {
-		return Wrapper.wrap(this, items -> Parals.eachs(Streams.spatial(items, parallelism).values(), s0 -> enqueue(Streams.of(conv.apply(
-				(Iterable<V0>) () -> Its.it(s0)))), Streams.LONG_SUM));
+		return Wrapper.wrap(this, "Priors", items -> Parals.eachs(Streams.spatial(items, parallelism).values(), s0 -> enqueue(Streams.of(
+				conv.apply((Iterable<V0>) () -> Its.it(s0)))), Streams.LONG_SUM));
 	}
 
 	// more extends
 
-	default Output<V> failover(Queue<V> pool) {
-		return Wrapper.wrap(this, items -> {
-			try {
-				return enqueue(items);
-			} catch (EnqueueException ex) {
-				pool.enqueue(Streams.of(ex.fails()));
-				return ex.success();
-			}
-		});
+	default FailoverOutput<V> failover(Queue<V> pool) {
+		return new FailoverOutput<V>(this, pool);
 	}
 
 	default Output<V> batch(int batchSize) {
-		return Wrapper.wrap(this, items -> {
+		return Wrapper.wrap(this, "Batch", items -> {
 			AtomicLong c = new AtomicLong();
 			Stream<Stream<V>> ss = Streams.batching(items, batchSize);
 			ss.parallel().forEach(s -> c.addAndGet(enqueue(s)));
@@ -61,7 +55,7 @@ public interface Output<V> extends IO, Consumer<Stream<V>>, Enqueue<V> {
 	default <K> KeyOutput<K, V> partitial(Function<V, K> partitier, BiFunction<K, Stream<V>, Long> enqueuing) {
 		return new KeyOutput<K, V>() {
 			@Override
-			protected K partitionize(V v) {
+			public K partition(V v) {
 				return partitier.apply(v);
 			}
 

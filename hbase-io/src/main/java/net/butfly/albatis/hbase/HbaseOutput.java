@@ -2,66 +2,30 @@ package net.butfly.albatis.hbase;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.Table;
 
+import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.io.EnqueueException;
-import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.Exceptions;
 import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.collection.Streams;
 import net.butfly.albatis.io.KeyOutput;
 import net.butfly.albatis.io.Message;
 
-public final class HbaseOutput extends KeyOutput<String, Message> {
+public final class HbaseOutput extends Namedly implements KeyOutput<String, Message> {
 	public static final int SUGGEST_BATCH_SIZE = 200;
-	private final Connection connect;
-	private final Map<String, Table> tables;
+	private final HbaseConnection hconn;
 
-	public HbaseOutput(String name, URISpec uri) throws IOException {
+	public HbaseOutput(String name, HbaseConnection hconn) throws IOException {
 		super(name);
 		// batchSize = null == uri ? SUGGEST_BATCH_SIZE
 		// : Integer.parseInt(uri.getParameter(PARAM_KEY_BATCH, Integer.toString(SUGGEST_BATCH_SIZE)));
-		connect = Hbases.connect(null == uri ? null : uri.getParameters());
-		tables = new ConcurrentHashMap<>();
+		this.hconn = hconn;
 		open();
-	}
-
-	private Table table(String table) {
-		return tables.computeIfAbsent(table, t -> {
-			try {
-				return connect.getTable(TableName.valueOf(t));
-			} catch (IOException e) {
-				throw new RuntimeException(e);
-			}
-		});
-	}
-
-	@Override
-	public void close() {
-		super.close();
-		for (String k : tables.keySet())
-			try {
-				Table t = tables.remove(k);
-				if (null != t) t.close();
-			} catch (IOException e) {
-				logger().error("Hbase table [" + k + "] close failure", e);
-			}
-		try {
-			synchronized (connect) {
-				if (!connect.isClosed()) connect.close();
-			}
-		} catch (IOException e) {
-			logger().error("Hbase close failure", e);
-		}
 	}
 
 	@Override
@@ -74,7 +38,7 @@ public final class HbaseOutput extends KeyOutput<String, Message> {
 		Object[] results = new Object[puts.size()];
 		EnqueueException eex = new EnqueueException();
 		try {
-			table(table).batch(puts, results);
+			hconn.table(table).batch(puts, results);
 		} catch (Exception ex) {
 			logger().warn(name() + " write failed [" + Exceptions.unwrap(ex).getMessage() + "], [" + puts.size() + "] into failover.");
 			eex.fails(vs);
@@ -90,7 +54,7 @@ public final class HbaseOutput extends KeyOutput<String, Message> {
 	}
 
 	@Override
-	protected String partitionize(Message v) {
+	public String partition(Message v) {
 		return v.key();
 	}
 }

@@ -11,7 +11,6 @@ import org.elasticsearch.index.query.QueryBuilders;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.io.InputOddImpl;
 
-@Deprecated
 public final class ElasticInput extends InputOddImpl<SearchResponse> {
 	protected static final Logger logger = Logger.getLogger(ElasticInput.class);
 	private final ElasticConnection elastic;
@@ -24,17 +23,19 @@ public final class ElasticInput extends InputOddImpl<SearchResponse> {
 	private String type;
 	private QueryBuilder query;
 
-	public ElasticInput(String connection) throws IOException {
-		elastic = new ElasticConnection(connection);
+	public ElasticInput(String name, ElasticConnection conn) throws IOException {
+		super(name);
+		elastic = conn;
 		index = elastic.getDefaultIndex();
 		type = elastic.getDefaultType();
 		closing(elastic::close);
 		open();
 	}
 
-	public ElasticInput(String connection, QueryBuilder query) throws IOException {
+	public ElasticInput(String name, ElasticConnection conn, QueryBuilder query) throws IOException {
+		super(name);
 		this.query = query;
-		elastic = new ElasticConnection(connection);
+		elastic = conn;
 		index = elastic.getDefaultIndex();
 		type = elastic.getDefaultType();
 		open();

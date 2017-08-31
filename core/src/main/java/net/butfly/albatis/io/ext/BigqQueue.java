@@ -1,7 +1,6 @@
 package net.butfly.albatis.io.ext;
 
 import java.io.IOException;
-import java.util.function.Function;
 
 import com.bluejeans.bigqueue.BigQueue;
 
@@ -15,10 +14,14 @@ public class BigqQueue<V> extends QueueOddImpl<V> {
 
 	protected final String dataFolder;
 	protected final BigQueue queue;
-	protected final Function<byte[], V> oconv;
-	protected final Function<V, byte[]> iconv;
+	protected final Constructor<V> oconv;
+	protected final Destructor<V> iconv;
 
-	public BigqQueue(String name, String dataFolder, long capacity, Function<V, byte[]> iconv, Function<byte[], V> oconv) {
+	public BigqQueue(String dataFolder, long capacity, Destructor<V> iconv, Constructor<V> oconv) {
+		this("BigQueue", dataFolder, capacity, iconv, oconv);
+	}
+
+	public BigqQueue(String name, String dataFolder, long capacity, Destructor<V> iconv, Constructor<V> oconv) {
 		super(name, capacity);
 		this.iconv = iconv;
 		this.oconv = oconv;
@@ -48,8 +51,15 @@ public class BigqQueue<V> extends QueueOddImpl<V> {
 	@Override
 	protected boolean enqueue(V e) {
 		if (null == e) return false;
-		byte[] v = iconv.apply(e);
+		byte[] v;
+		try {
+			v = iconv.destruct(e);
+		} catch (IOException e1) {
+			return false;
+		}
 		if (null == v) return false;
+		while (full())
+			Concurrents.waitSleep();
 		queue.enqueue(v);
 		return true;
 	}
@@ -61,7 +71,9 @@ public class BigqQueue<V> extends QueueOddImpl<V> {
 			while (v == null && !empty() && opened()) {
 				byte[] buf = queue.dequeue();
 				if (null == buf) continue;
-				v = this.oconv.apply(buf);
+				try {
+					v = oconv.construct(buf);
+				} catch (IOException e) {}
 			}
 		} finally {
 			if (queue.isEmpty()) gc();
@@ -80,5 +92,13 @@ public class BigqQueue<V> extends QueueOddImpl<V> {
 
 	public final void gc() {
 		queue.gc();
+	}
+
+	public interface Constructor<M> {
+		M construct(byte[] data) throws IOException;
+	}
+
+	public interface Destructor<M> {
+		byte[] destruct(M msg) throws IOException;
 	}
 }

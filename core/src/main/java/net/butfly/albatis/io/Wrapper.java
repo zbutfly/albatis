@@ -9,34 +9,34 @@ import net.butfly.albacore.lambda.Runnable;
 import net.butfly.albacore.utils.logger.Logger;
 
 public interface Wrapper {
-	static <T> WrapInput<T> wrap(Input<?> base, Dequeue<T> d) {
-		WrapInput<T> i = new WrapInput<T>(base) {
+	static <T, T1> WrapInput<T, T1> wrap(Input<T1> base, String suffix, Dequeue<T> d) {
+		return new WrapInput<T, T1>(base, suffix) {
 			@Override
 			public long dequeue(Function<Stream<T>, Long> using, int batchSize) {
 				return d.dequeue(using, batchSize);
 			}
 		};
-		return i;
 	}
 
-	static <T> WrapOutput<T> wrap(Output<?> base, Enqueue<T> d) {
-		WrapOutput<T> i = new WrapOutput<T>(base) {
+	static <T, T1> WrapOutput<T, T1> wrap(Output<T1> base, String suffix, Enqueue<T> d) {
+		return new WrapOutput<T, T1>(base, suffix) {
 			@Override
 			public long enqueue(Stream<T> items) {
 				return d.enqueue(items);
 			}
 		};
-		return i;
 	}
 
-	abstract class WrapInput<V> implements Input<V> {
+	abstract class WrapInput<V, V1> implements Input<V> {
 		@Override
 		public abstract long dequeue(Function<Stream<V>, Long> using, int batchSize);
 
-		protected final Input<?> base;
+		protected final Input<V1> base;
+		private String suffix;
 
-		protected WrapInput(Input<?> origin) {
+		protected WrapInput(Input<V1> origin, String suffix) {
 			this.base = origin;
+			this.suffix = suffix;
 		}
 
 		@Override
@@ -61,7 +61,7 @@ public interface Wrapper {
 
 		@Override
 		public String name() {
-			return base.name();
+			return base.name() + suffix;
 		}
 
 		@Override
@@ -71,7 +71,7 @@ public interface Wrapper {
 
 		@Override
 		public String toString() {
-			return base.toString() + "WrapIn";
+			return base.toString() + suffix;
 		}
 
 		@Override
@@ -105,14 +105,16 @@ public interface Wrapper {
 		}
 	}
 
-	abstract class WrapOutput<V> implements Output<V> {
+	abstract class WrapOutput<V, V1> implements Output<V> {
 		@Override
 		public abstract long enqueue(Stream<V> items);
 
-		private final Output<?> base;
+		protected final Output<V1> base;
+		private String suffix;
 
-		private WrapOutput(Output<?> origin) {
+		protected WrapOutput(Output<V1> origin, String suffix) {
 			this.base = origin;
+			this.suffix = suffix;
 		}
 
 		@Override
@@ -137,7 +139,7 @@ public interface Wrapper {
 
 		@Override
 		public String name() {
-			return base.name();
+			return base.name() + suffix;
 		}
 
 		@Override
@@ -147,7 +149,7 @@ public interface Wrapper {
 
 		@Override
 		public String toString() {
-			return base.toString() + "WrapOut";
+			return base.toString() + suffix;
 		}
 
 		@Override

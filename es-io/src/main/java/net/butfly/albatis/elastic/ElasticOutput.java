@@ -24,25 +24,21 @@ import org.elasticsearch.transport.RemoteTransportException;
 
 import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.io.EnqueueException;
-import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.Exceptions;
 import net.butfly.albacore.utils.Texts;
 import net.butfly.albatis.io.Output;
 
 public final class ElasticOutput extends Namedly implements Output<ElasticMessage> {
-	public static final long DEFAULT_BATCH_SIZE = 1000;
+	public static final int SUGGEST_RETRY = 5;
+	public static final int SUGGEST_BATCH_SIZE = 1000;
 	private final ElasticConnection conn;
 	private final int maxRetry;
 
-	public ElasticOutput(String name, URISpec uri) throws IOException {
+	public ElasticOutput(String name, ElasticConnection conn) throws IOException {
 		super(name);
-		conn = new ElasticConnection(uri);
-		maxRetry = Integer.parseInt(uri.getParameter("retry", "5"));
+		this.conn = conn;
+		maxRetry = SUGGEST_RETRY;
 		open();
-	}
-
-	public ElasticConnect getConnection() {
-		return conn;
 	}
 
 	@Override

@@ -45,15 +45,6 @@ public final class Hbases extends Utils {
 
 	final static ExecutorService ex = Executors.newCachedThreadPool();
 
-	private static Map<String, String> props() {
-		Properties p = new Properties();
-		try {
-			InputStream is = HbaseInput.class.getResourceAsStream("/albatis-hbase.properties");
-			if (null != is) p.load(is);
-		} catch (IOException e) {}
-		return Maps.of(p);
-	}
-
 	public static Connection connect() throws IOException {
 		return connect(null);
 	}
@@ -181,5 +172,14 @@ public final class Hbases extends Utils {
 			});
 			return put;
 		}
+	}
+
+	private static Map<String, String> props() {
+		Properties p = new Properties();
+		try {
+			InputStream is = HbaseInput.class.getResourceAsStream("/albatis-hbase.properties");
+			if (null != is) p.load(is);
+		} catch (IOException e) {}
+		return Maps.of(p);
 	}
 }

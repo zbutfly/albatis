@@ -8,11 +8,14 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.bson.BSONObject;
 
+import com.google.common.base.Joiner;
 import com.hzcominfo.albatis.nosql.NoSqlConnection;
 import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
+import com.mongodb.DBCursor;
+import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 
@@ -139,5 +142,36 @@ public class MongoConnection extends NoSqlConnection<MongoClient> {
 		dbl.add(first);
 		dbl.addAll(Arrays.asList(others));
 		return dbl;
+	}
+
+	public DBCursor cursor(String table, DBObject[] filter) {
+		DBCursor cursor;
+		if (!collectionExists(table)) throw new IllegalArgumentException("Collection [" + table + "] not existed for input");
+		DBCollection col = collection(table);
+		long now;
+		if (null == filter || filter.length == 0) {
+			now = System.nanoTime();
+			cursor = col.find();
+		} else {
+			logger.info("Mongodb [" + table + "] filters: \n\t" + Joiner.on("\n\t").join(filter) + "\nnow count:");
+			if (filter.length == 1) {
+				now = System.nanoTime();
+				cursor = col.find(filter[0]);
+			} else {
+				BasicDBList filters = new BasicDBList();
+				for (DBObject f : filter)
+					filters.add(f);
+				now = System.nanoTime();
+				cursor = col.find(dbobj("$and", filters));
+			}
+		}
+		String p = getParameter("limit");
+		if (p != null) cursor.limit(Integer.parseInt(p));
+		p = getParameter("skip");
+		if (p != null) cursor.skip(Integer.parseInt(p));
+		int count = cursor.count();
+		logger.debug(() -> "Mongodb [" + table + "] find [" + count + " records], end in [" + (System.nanoTime() - now) / 1000 + " ms].");
+		logger.trace(() -> "Mongodb [" + table + "] find [" + cursor.size() + " records].");
+		return cursor;
 	}
 }

@@ -1,5 +1,7 @@
 package net.butfly.albatis.io;
 
+import static net.butfly.albacore.utils.collection.Streams.of;
+
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -7,63 +9,60 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.io.EnqueueException;
 import net.butfly.albacore.utils.collection.Streams;
 import net.butfly.albacore.utils.parallel.Parals;
+import net.butfly.albatis.io.ext.FailoverOutput;
 
-public abstract class KeyOutput<K, V> extends Namedly implements Output<V> {
-	public KeyOutput() {
-		super();
-	}
+public interface KeyOutput<K, V> extends Output<V> {
+	K partition(V v);
 
-	public KeyOutput(String name) {
-		super(name);
-	}
-
-	protected abstract K partitionize(V v);
-
-	public abstract long enqueue(K key, Stream<V> v) throws EnqueueException;
+	long enqueue(K key, Stream<V> v) throws EnqueueException;
 
 	@Override
-	public long enqueue(Stream<V> items) throws EnqueueException {
-		Set<Entry<K, List<V>>> m = items.collect(Collectors.groupingBy(v -> partitionize(v))).entrySet();
+	public default long enqueue(Stream<V> items) throws EnqueueException {
+		Set<Entry<K, List<V>>> m = items.collect(Collectors.groupingBy(v -> partition(v))).entrySet();
 		AtomicLong c = new AtomicLong();
 		Parals.eachs(m, e -> c.addAndGet(enqueue(e.getKey(), Streams.of(e.getValue()))));
 		return c.get();
 	}
 
-	@Override
-	public KeyOutput<K, V> failover(Queue<V> pool) {
-		KeyOutput<K, V> origin = this;
-		KeyOutput<K, V> ko = new KeyOutput<K, V>() {
-			@Override
-			protected K partitionize(V v) {
-				return origin.partitionize(v);
-			}
+	class FailoverKeyOutput<K, V> extends FailoverOutput<V> implements KeyOutput<K, V> {
+		private final KeyOutput<K, V> output;
 
-			@Override
-			public long enqueue(K key, Stream<V> v) throws EnqueueException {
-				try {
-					return origin.enqueue(key, v);
-				} catch (EnqueueException ex) {
-					pool.enqueue(Streams.of(ex.fails()));
-					return ex.success();
-				}
+		public FailoverKeyOutput(KeyOutput<K, V> output, Queue<V> failover) {
+			super(output, failover);
+			this.output = output;
+		}
+
+		@Override
+		public K partition(V v) {
+			return output.partition(v);
+		}
+
+		@Override
+		public long enqueue(K key, Stream<V> v) throws EnqueueException {
+			try {
+				return output.enqueue(key, v);
+			} catch (EnqueueException ex) {
+				failover.enqueue(of(ex.fails()));
+				return ex.success();
 			}
-		};
-		ko.opening(() -> origin.open());
-		ko.closing(() -> origin.close());
-		return ko;
+		}
 	}
 
 	@Override
-	public KeyOutput<K, V> batch(int batchSize) {
+	default FailoverKeyOutput<K, V> failover(Queue<V> pool) {
+		return new FailoverKeyOutput<K, V>(this, pool);
+	}
+
+	@Override
+	default KeyOutput<K, V> batch(int batchSize) {
 		KeyOutput<K, V> origin = this;
 		KeyOutput<K, V> ko = new KeyOutput<K, V>() {
 			@Override
-			protected K partitionize(V v) {
-				return origin.partitionize(v);
+			public K partition(V v) {
+				return origin.partition(v);
 			}
 
 			@Override
@@ -79,7 +78,7 @@ public abstract class KeyOutput<K, V> extends Namedly implements Output<V> {
 		return ko;
 	}
 
-	public void commit(K key) {
+	default void commit(K key) {
 		commit();
 	}
 }

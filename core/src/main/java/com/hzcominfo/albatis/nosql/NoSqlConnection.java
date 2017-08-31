@@ -5,7 +5,6 @@ import java.net.ProtocolException;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Properties;
-import java.util.function.Function;
 import java.util.stream.Stream;
 
 import com.google.common.base.Joiner;
@@ -20,7 +19,11 @@ public abstract class NoSqlConnection<C> implements Connection, Loggable {
 	protected final URISpec uri;
 	protected final Properties parameters;
 
-	protected NoSqlConnection(URISpec uri, Function<URISpec, C> client, int defaultPort, String... supportedSchema) throws IOException {
+	public interface ConnectConstructor<C> {
+		C construct(URISpec uri) throws Exception;
+	}
+
+	protected NoSqlConnection(URISpec uri, ConnectConstructor<C> client, int defaultPort, String... supportedSchema) throws IOException {
 		super();
 		supportedSchemas = null != supportedSchema ? supportedSchema : new String[0];
 		this.uri = uri;
@@ -28,7 +31,11 @@ public abstract class NoSqlConnection<C> implements Connection, Loggable {
 		String schema = supportedSchema(uri.getScheme());
 		if (null == schema) throw new ProtocolException(uri.getScheme() + " is not supported, "//
 				+ "supported list: [" + Joiner.on(',').join(supportedSchemas) + "]");
-		this.client = client.apply(uri);
+		try {
+			this.client = client.construct(uri);
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
 
 		parameters = new Properties();
 		String qstr = uri.getQuery();
@@ -42,12 +49,17 @@ public abstract class NoSqlConnection<C> implements Connection, Loggable {
 		}
 	}
 
-	protected NoSqlConnection(URISpec uri, Function<URISpec, C> client, String... supportedSchema) throws IOException {
+	protected NoSqlConnection(URISpec uri, ConnectConstructor<C> client, String... supportedSchema) throws IOException {
 		this(uri, client, -1, supportedSchema);
 	}
 
 	public final Properties getParameters() {
 		return parameters;
+	}
+
+	public final int getBatchSize() {
+		String b = parameters.getProperty(PARAM_KEY_BATCH);
+		return null != b ? Integer.parseInt(b) : DEFAULT_BATCH_SIZE;
 	}
 
 	@Override

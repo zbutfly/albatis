@@ -118,7 +118,7 @@ public class ElasticMessage extends Message {
 		boolean s = null == script;
 		IOs.writeBytes(os, new byte[] { (byte) (s ? 0 : 1) });
 		if (s) IOs.writeBytes(os, script.getType().name().getBytes(), script.getLang().getBytes(), script.getIdOrCode().getBytes(),
-				BsonSerder.DEFAULT_MAP.ser(script.getParams()));
+				BsonSerder.map(script.getParams()));
 	}
 
 	public ElasticMessage(byte[] b) throws IOException {
@@ -130,7 +130,7 @@ public class ElasticMessage extends Message {
 		if (0 != IOs.readBytes(is)[0]) {
 			byte[][] attrs = IOs.readBytesList(is);
 			this.script = new Script(ScriptType.valueOf(new String(attrs[0])), new String(attrs[1]), new String(attrs[2]),
-					BsonSerder.DEFAULT_MAP.der(attrs[3]));
+					BsonSerder.map(attrs[3]));
 		}
 	}
 }

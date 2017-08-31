@@ -14,6 +14,7 @@ import java.util.stream.Stream;
 import net.butfly.albacore.io.Dequeue;
 import net.butfly.albacore.io.IO;
 import net.butfly.albacore.utils.collection.Its;
+import net.butfly.albatis.io.ext.PrefetchInput;
 
 public interface Input<V> extends IO, Dequeue<V>, Supplier<V>, Iterator<V> {
 	static Input<?> NULL = (using, batchSize) -> 0;
@@ -29,7 +30,7 @@ public interface Input<V> extends IO, Dequeue<V>, Supplier<V>, Iterator<V> {
 	}
 
 	default <V1> Input<V1> then(Function<V, V1> conv) {
-		return Wrapper.wrap(this, (using, batchSize) -> dequeue(s -> using.apply(s.map(conv)), batchSize));
+		return Wrapper.wrap(this, "Then", (using, batchSize) -> dequeue(s -> using.apply(s.map(conv)), batchSize));
 	}
 
 	default <V1> Input<V1> thens(Function<Iterable<V>, Iterable<V1>> conv) {
@@ -37,19 +38,14 @@ public interface Input<V> extends IO, Dequeue<V>, Supplier<V>, Iterator<V> {
 	}
 
 	default <V1> Input<V1> thens(Function<Iterable<V>, Iterable<V1>> conv, int parallelism) {
-		return Wrapper.wrap(this, (using, batchSize) -> dequeue(//
+		return Wrapper.wrap(this, "Thens", (using, batchSize) -> dequeue(//
 				s -> eachs(list(spatialMap(s, parallelism, t -> conv.apply(() -> Its.it(t)).spliterator())), s1 -> using.apply(s1)),
 				batchSize));
 	}
 
 	// more extends
-	default Input<V> prefetch(Queue0<V, V> pool, int fetchSize) {
-		return Wrapper.wrap(this, new Dequeue<V>() {
-			@Override
-			public long dequeue(Function<Stream<V>, Long> using, int batchSize) {
-				return pool.dequeue(using, batchSize);
-			}
-		});
+	default PrefetchInput<V> prefetch(Queue<V> pool, int batchSize) {
+		return new PrefetchInput<V>(this, pool, batchSize);
 	}
 
 	// constructor

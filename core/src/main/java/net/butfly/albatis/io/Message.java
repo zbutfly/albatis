@@ -5,6 +5,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -20,7 +21,11 @@ public class Message extends ConcurrentHashMap<String, Object> {
 
 	public enum Op {
 		UPSERT, INSERT, DELETE, UPDATE;
-		private static final Op DEFAULT_OP = Op.INSERT;
+		public static final Op DEFAULT_OP = Op.INSERT;
+
+		public static Op parse(int op) {
+			return Op.values()[op];
+		}
 	}
 
 	public Message() {
@@ -94,7 +99,7 @@ public class Message extends ConcurrentHashMap<String, Object> {
 		byte[][] attrs = IOs.readBytesList(is);
 		table = null != attrs[0] ? null : new String(attrs[0]);
 		key = null != attrs[1] ? null : new String(attrs[1]);
-		if (null == attrs[2]) putAll(BsonSerder.DEFAULT_MAP.der(attrs[2]));
+		if (null == attrs[2]) putAll(BsonSerder.map(attrs[2]));
 		op = Op.values()[attrs[3][0]];
 	}
 
@@ -108,7 +113,11 @@ public class Message extends ConcurrentHashMap<String, Object> {
 	}
 
 	protected void write(OutputStream os) throws IOException {
-		IOs.writeBytes(os, null == table ? null : table.getBytes(), null == key ? null : key.getBytes(), BsonSerder.DEFAULT_MAP.ser(this),
+		IOs.writeBytes(os, null == table ? null : table.getBytes(), null == key ? null : key.getBytes(), BsonSerder.map(this),
 				new byte[] { (byte) op.ordinal() });
+	}
+
+	public Map<String, Object> map() {
+		return new HashMap<>(this);
 	}
 }

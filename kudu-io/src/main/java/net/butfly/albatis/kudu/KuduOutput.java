@@ -3,26 +3,24 @@ package net.butfly.albatis.kudu;
 import java.io.IOException;
 import java.util.stream.Stream;
 
-import org.apache.kudu.client.KuduClient;
-
+import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.io.EnqueueException;
-import net.butfly.albacore.io.URISpec;
 import net.butfly.albatis.io.KeyOutput;
 import net.butfly.albatis.io.Message;
 
-public class KuduOutput extends KeyOutput<String, Message> {
+public class KuduOutput extends Namedly implements KeyOutput<String, Message> {
 	public static final int SUGGEST_BATCH_SIZE = 200;
 	private final KuduConnection connect;
 
-	public KuduOutput(String name, URISpec uri) throws IOException {
+	public KuduOutput(String name, KuduConnection conn) throws IOException {
 		super(name);
-		connect = new KuduConnection(uri, null);
+		connect = conn;
 		open();
 	}
 
 	@Override
 	public void close() {
-		super.close();
+		KeyOutput.super.close();
 		commit();
 		connect.close();
 	}
@@ -43,13 +41,8 @@ public class KuduOutput extends KeyOutput<String, Message> {
 		else throw ex;
 	}
 
-	@Deprecated
-	public KuduClient client() {
-		return connect.client();
-	}
-
 	@Override
-	protected String partitionize(Message v) {
+	public String partition(Message v) {
 		return v.key();
 	}
 }

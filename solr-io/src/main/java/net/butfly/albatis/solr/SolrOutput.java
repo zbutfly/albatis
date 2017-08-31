@@ -7,27 +7,27 @@ import java.util.stream.Stream;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.common.SolrInputDocument;
 
+import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.io.EnqueueException;
-import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.collection.Streams;
 import net.butfly.albatis.io.KeyOutput;
 import net.butfly.albatis.io.Message;
 
-public final class SolrOutput extends KeyOutput<String, Message> {
+public final class SolrOutput extends Namedly implements KeyOutput<String, Message> {
 	public static final int SUGGEST_BATCH_SIZE = 200;
 	private static final int DEFAULT_AUTO_COMMIT_MS = 30000;
 	private final SolrConnection solr;
 
-	public SolrOutput(String name, URISpec uri) throws IOException {
+	public SolrOutput(String name, SolrConnection conn) throws IOException {
 		super(name);
 		// Integer.parseInt(uri.getParameter(Connection.PARAM_KEY_BATCH, "200"))
-		solr = new SolrConnection(uri);
+		solr = conn;
 		open();
 	}
 
 	@Override
 	public void close() {
-		super.close();
+		KeyOutput.super.close();
 		try {
 			for (String core : solr.getCores())
 				solr.client().commit(core, false, false);
@@ -67,7 +67,7 @@ public final class SolrOutput extends KeyOutput<String, Message> {
 	}
 
 	@Override
-	protected String partitionize(Message v) {
+	public String partition(Message v) {
 		return v.key();
 	}
 }
