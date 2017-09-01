@@ -9,9 +9,9 @@ import com.mongodb.DBObject;
 import com.mongodb.MongoException;
 
 import net.butfly.albacore.utils.logger.Logger;
-import net.butfly.albatis.io.InputOddImpl;
+import net.butfly.albatis.io.OddInput;
 
-public class MongoInput extends InputOddImpl<DBObject> {
+public class MongoInput extends OddInput<DBObject> {
 	private static final Logger logger = Logger.getLogger(MongoInput.class);
 	private final MongoConnection conn;
 	private DBCursor cursor;

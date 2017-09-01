@@ -7,12 +7,12 @@ import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.utils.collection.Streams;
 import net.butfly.albacore.utils.parallel.Concurrents;
 
-public abstract class OutputOddImpl<V> extends Namedly implements Output<V> {
-	protected OutputOddImpl() {
+public abstract class OddOutput<V> extends Namedly implements Output<V> {
+	protected OddOutput() {
 		super();
 	}
 
-	protected OutputOddImpl(String name) {
+	protected OddOutput(String name) {
 		super(name);
 	}
 

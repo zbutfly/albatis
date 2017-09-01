@@ -8,12 +8,12 @@ import java.util.stream.Stream;
 import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.utils.collection.Streams;
 
-public abstract class InputOddImpl<V> extends Namedly implements Input<V>, Supplier<V>, Iterator<V> {
-	protected InputOddImpl() {
+public abstract class OddInput<V> extends Namedly implements Input<V>, Supplier<V>, Iterator<V> {
+	protected OddInput() {
 		super();
 	}
 
-	protected InputOddImpl(String name) {
+	protected OddInput(String name) {
 		super(name);
 	}
 

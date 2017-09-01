@@ -30,7 +30,7 @@ public interface KeyOutput<K, V> extends Output<V> {
 	class FailoverKeyOutput<K, V> extends FailoverOutput<V> implements KeyOutput<K, V> {
 		private final KeyOutput<K, V> output;
 
-		public FailoverKeyOutput(KeyOutput<K, V> output, Queue<V> failover) {
+		public FailoverKeyOutput(KeyOutput<K, V> output, Queue<? super V> failover) {
 			super(output, failover);
 			this.output = output;
 		}
@@ -52,7 +52,7 @@ public interface KeyOutput<K, V> extends Output<V> {
 	}
 
 	@Override
-	default FailoverKeyOutput<K, V> failover(Queue<V> pool) {
+	default FailoverKeyOutput<K, V> failover(Queue<? super V> pool) {
 		return new FailoverKeyOutput<K, V>(this, pool);
 	}
 

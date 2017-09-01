@@ -8,9 +8,9 @@ import org.slf4j.event.Level;
 
 import net.butfly.albacore.utils.Instances;
 import net.butfly.albacore.utils.logger.Logger;
-import net.butfly.albatis.io.OutputOddImpl;
+import net.butfly.albatis.io.OddOutput;
 
-public final class LoggerOutput extends OutputOddImpl<String> {
+public final class LoggerOutput extends OddOutput<String> {
 	private final Map<Level, Consumer<String>> loggings;
 	private final Logger logger;
 	private final Level level;

@@ -22,11 +22,11 @@ import net.butfly.albatis.io.Wrapper;
  * @param <M>
  */
 public class FailoverOutput<M> extends Wrapper.WrapOutput<M, M> {
-	protected final Queue<M> failover;
+	protected final Queue<? super M> failover;
 	protected final OpenableThread failovering;
 	protected final AtomicLong actionCount = new AtomicLong(0);
 
-	public FailoverOutput(Output<M> output, Queue<M> failover) {
+	public FailoverOutput(Output<M> output, Queue<? super M> failover) {
 		super(output, "Failover");
 		this.failover = failover;
 		failovering = new OpenableThread(() -> {}, "Failovering");
@@ -60,5 +60,10 @@ public class FailoverOutput<M> extends Wrapper.WrapOutput<M, M> {
 		while ((act = actionCount.longValue()) > 0 && Concurrents.waitSleep())
 			logger().info("Failover Async op waiting for closing: " + act);
 		failover.close();
+	}
+
+	@Override
+	public String toString() {
+		return super.toString() + "[fails: " + fails() + "]";
 	}
 }

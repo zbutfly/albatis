@@ -9,9 +9,9 @@ import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 
 import net.butfly.albacore.utils.logger.Logger;
-import net.butfly.albatis.io.InputOddImpl;
+import net.butfly.albatis.io.OddInput;
 
-public final class ElasticInput extends InputOddImpl<SearchResponse> {
+public final class ElasticInput extends OddInput<SearchResponse> {
 	protected static final Logger logger = Logger.getLogger(ElasticInput.class);
 	private final ElasticConnection elastic;
 	// view time def 10 minute

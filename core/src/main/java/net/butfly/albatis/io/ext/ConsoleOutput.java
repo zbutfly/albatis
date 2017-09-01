@@ -1,8 +1,8 @@
 package net.butfly.albatis.io.ext;
 
-import net.butfly.albatis.io.OutputOddImpl;
+import net.butfly.albatis.io.OddOutput;
 
-public class ConsoleOutput extends OutputOddImpl<String> {
+public class ConsoleOutput extends OddOutput<String> {
 	@Override
 	protected boolean enqueue(String item) {
 		System.out.println(item);

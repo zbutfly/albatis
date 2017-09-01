@@ -23,7 +23,7 @@ import net.butfly.albacore.utils.Texts;
 import net.butfly.albacore.utils.collection.Streams;
 import net.butfly.albacore.utils.parallel.Concurrents;
 import net.butfly.albatis.io.Input;
-import net.butfly.albatis.io.InputOddImpl;
+import net.butfly.albatis.io.OddInput;
 import net.butfly.albatis.io.Message;
 import net.butfly.albatis.kafka.config.KafkaInputConfig;
 
@@ -134,7 +134,7 @@ public final class KafkaInput extends Namedly implements Input<Message> {
 
 	}
 
-	class ConsumerOutput extends InputOddImpl<Message> {
+	class ConsumerOutput extends OddInput<Message> {
 		public final String topic;
 		public final ConsumerIterator<byte[], byte[]> it;
 		public final KafkaStream<byte[], byte[]> stream;

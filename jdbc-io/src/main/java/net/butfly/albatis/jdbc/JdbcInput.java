@@ -11,9 +11,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 
-import net.butfly.albatis.io.InputOddImpl;
+import net.butfly.albatis.io.OddInput;
 
-public class JdbcInput extends InputOddImpl<Map<String, Object>> {
+public class JdbcInput extends OddInput<Map<String, Object>> {
 	private final Connection conn;
 	private final PreparedStatement stat;
 
