@@ -10,9 +10,10 @@ import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 
 import net.butfly.albacore.base.Namedly;
+import net.butfly.albatis.io.Message;
 import net.butfly.albatis.io.Output;
 
-public final class MongoOutput extends Namedly implements Output<DBObject> {
+public final class MongoOutput extends Namedly implements Output<Message> {
 	private final boolean upsert;
 	private final MongoConnection conn;
 	private final DBCollection collection;
@@ -44,13 +45,13 @@ public final class MongoOutput extends Namedly implements Output<DBObject> {
 	}
 
 	@Override
-	public long enqueue(Stream<DBObject> dbos) {
+	public long enqueue(Stream<Message> msgs) {
 		if (upsert) {
 			AtomicLong count = new AtomicLong();
-			dbos.forEach(dbo -> {
-				if (collection.save(dbo).getN() == 1) count.incrementAndGet();
+			msgs.forEach(m -> {
+				if (collection.save(MongoConnection.dbobj(m)).getN() == 1) count.incrementAndGet();
 			});
 			return count.get();
-		} else return collection.insert(list(dbos)).getN();
+		} else return collection.insert(list(msgs, MongoConnection::dbobj)).getN();
 	}
 }

@@ -9,17 +9,20 @@ import com.mongodb.DBObject;
 import com.mongodb.MongoException;
 
 import net.butfly.albacore.utils.logger.Logger;
+import net.butfly.albatis.io.Message;
 import net.butfly.albatis.io.OddInput;
 
-public class MongoInput extends OddInput<DBObject> {
+public class MongoInput extends OddInput<Message> {
 	private static final Logger logger = Logger.getLogger(MongoInput.class);
 	private final MongoConnection conn;
 	private DBCursor cursor;
 	private final ReentrantReadWriteLock lock;
+	private String table;
 
 	public MongoInput(final String name, MongoConnection conn, final String table, final DBObject... filter) throws IOException {
 		super(name);
 		lock = new ReentrantReadWriteLock();
+		this.table = table;
 		logger.info("[" + name + "] from [" + conn.toString() + "], core [" + table + "]");
 		this.conn = conn;
 		logger.debug("[" + name + "] find begin...");
@@ -52,12 +55,14 @@ public class MongoInput extends OddInput<DBObject> {
 		else return false;
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
-	protected DBObject dequeue() {
-		DBObject r = null;
+	protected Message dequeue() {
+		boolean hasNext = true;
 		do {
 			if (lock.writeLock().tryLock()) try {
-				return cursor.hasNext() ? cursor.next() : null;
+				if (!(hasNext = cursor.hasNext())) return null;
+				else return new Message(table, (String) null, cursor.next().toMap());
 			} catch (MongoException ex) {
 				logger.warn("Mongo fail fetch, ignore and continue retry...");
 			} catch (IllegalStateException ex) {
@@ -65,8 +70,8 @@ public class MongoInput extends OddInput<DBObject> {
 			} finally {
 				lock.writeLock().unlock();
 			}
-		} while (r == null);
-		return r;
+		} while (!hasNext);
+		return null;
 	}
 
 	public MongoInput batch(int batching) {
