@@ -14,7 +14,6 @@ import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.exception.ConfigException;
 import net.butfly.albacore.io.EnqueueException;
 import net.butfly.albacore.io.URISpec;
-import net.butfly.albacore.utils.Exceptions;
 import net.butfly.albatis.io.Message;
 import net.butfly.albatis.io.Output;
 import net.butfly.albatis.kafka.config.KafkaOutputConfig;
