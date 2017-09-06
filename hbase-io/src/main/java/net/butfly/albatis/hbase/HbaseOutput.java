@@ -40,7 +40,7 @@ public final class HbaseOutput extends Namedly implements KeyOutput<String, Mess
 		try {
 			hconn.table(table).batch(puts, results);
 		} catch (Exception ex) {
-			logger().warn(name() + " write failed [" + Exceptions.unwrap(ex).getMessage() + "], [" + puts.size() + "] into failover.");
+			logger().warn(name() + " write failed [" + Exceptions.unwrap(ex).getMessage() + "], [" + puts.size() + "] into fails.");
 			eex.fails(vs);
 		} finally {
 			for (int i = 0; i < results.length; i++) {

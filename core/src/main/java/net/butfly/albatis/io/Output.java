@@ -39,8 +39,8 @@ public interface Output<V> extends IO, Consumer<Stream<V>>, Enqueue<V> {
 
 	// more extends
 
-	default FailoverOutput<V> failover(Queue<? super V> pool) {
-		return new FailoverOutput<V>(this, pool);
+	default FailoverOutput<V> failover(Queue<V> pool, int batchSize) {
+		return new FailoverOutput<V>(this, pool, batchSize);
 	}
 
 	default Output<V> batch(int batchSize) {

@@ -144,7 +144,7 @@ public class MongoConnection extends NoSqlConnection<MongoClient> {
 		return dbl;
 	}
 
-	public DBCursor cursor(String table, DBObject[] filter) {
+	public DBCursor cursor(String table, DBObject... filter) {
 		DBCursor cursor;
 		if (!collectionExists(table)) throw new IllegalArgumentException("Collection [" + table + "] not existed for input");
 		DBCollection col = collection(table);

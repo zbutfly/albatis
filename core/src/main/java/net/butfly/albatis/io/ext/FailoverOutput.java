@@ -13,7 +13,7 @@ import net.butfly.albatis.io.Queue;
 import net.butfly.albatis.io.Wrapper;
 
 /**
- * Output with buffer and failover supporting.<br>
+ * Output with buffer and fails supporting.<br>
  * Parent class handle buffer, invoking really write/marshall op by callback provided by children classes.<br>
  * Children classes define and implemented connection to datasource.
  * 
@@ -22,14 +22,28 @@ import net.butfly.albatis.io.Wrapper;
  * @param <M>
  */
 public class FailoverOutput<M> extends Wrapper.WrapOutput<M, M> {
-	protected final Queue<? super M> failover;
+	protected final Queue<M> fails;
 	protected final OpenableThread failovering;
 	protected final AtomicLong actionCount = new AtomicLong(0);
 
-	public FailoverOutput(Output<M> output, Queue<? super M> failover) {
+	public FailoverOutput(Output<M> output, Queue<M> failover, int batchSize) {
 		super(output, "Failover");
-		this.failover = failover;
-		failovering = new OpenableThread(() -> {}, "Failovering");
+		this.fails = failover;
+		failovering = new OpenableThread(() -> {
+			while (opened())
+				failover.dequeue(ms -> output.enqueue(ms), batchSize);
+		}, "Failovering");
+		opening(() -> {
+			fails.open();
+			failovering.open();
+		});
+		closing(() -> {
+			failovering.close();
+			long act;
+			while ((act = actionCount.longValue()) > 0 && Concurrents.waitSleep())
+				logger().info("Failover Async op waiting for closing: " + act);
+			fails.close();
+		});
 	}
 
 	@Override
@@ -37,29 +51,18 @@ public class FailoverOutput<M> extends Wrapper.WrapOutput<M, M> {
 		try {
 			return base.enqueue(els);
 		} catch (EnqueueException ex) {
-			failover.enqueue(of(ex.fails()));
+			fails.enqueue(of(ex.fails()));
 			return ex.success();
 		}
 	}
 
 	public final long fails() {
-		return failover.size();
-	}
-
-	@Override
-	public void open() {
-		super.open();
-		failovering.open();
+		return fails.size();
 	}
 
 	@Override
 	public void close() {
 		super.close();
-		failovering.close();
-		long act;
-		while ((act = actionCount.longValue()) > 0 && Concurrents.waitSleep())
-			logger().info("Failover Async op waiting for closing: " + act);
-		failover.close();
 	}
 
 	@Override

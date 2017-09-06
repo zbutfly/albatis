@@ -51,6 +51,7 @@ public final class ElasticOutput extends Namedly implements Output<ElasticMessag
 	@Override
 	public final long enqueue(Stream<ElasticMessage> msgs) throws EnqueueException {
 		ConcurrentMap<String, ElasticMessage> origin = msgs.collect(Collectors.toConcurrentMap(m -> m.key(), m -> m));
+		if (origin.isEmpty()) return 0;
 		int originSize = origin.size();
 		int retry = 0;
 		EnqueueException eex = new EnqueueException();
@@ -94,7 +95,7 @@ public final class ElasticOutput extends Namedly implements Output<ElasticMessag
 					@Override
 					public void onFailure(Exception e) {
 						Throwable t = Exceptions.unwrap(e);
-						logger().warn("Elastic connection op failed [" + t + "], [" + origin.size() + "] failover", t);
+						logger().warn("Elastic connection op failed [" + t + "], [" + origin.size() + "] fails", t);
 						eex.fails(origin.values());
 					}
 				});

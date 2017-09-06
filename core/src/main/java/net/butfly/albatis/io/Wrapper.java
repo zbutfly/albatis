@@ -31,10 +31,10 @@ public interface Wrapper {
 		@Override
 		public abstract long dequeue(Function<Stream<V>, Long> using, int batchSize);
 
-		protected final Input<V1> base;
+		protected final Input<? extends V1> base;
 		private String suffix;
 
-		protected WrapInput(Input<V1> origin, String suffix) {
+		protected WrapInput(Input<? extends V1> origin, String suffix) {
 			this.base = origin;
 			this.suffix = suffix;
 		}
