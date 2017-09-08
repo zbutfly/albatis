@@ -11,6 +11,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import net.butfly.albacore.serder.BsonSerder;
 import net.butfly.albacore.utils.IOs;
+import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.collection.Maps;
 
 public class Message extends ConcurrentHashMap<String, Object> {
@@ -20,8 +21,8 @@ public class Message extends ConcurrentHashMap<String, Object> {
 	protected Op op;
 
 	public enum Op {
-		UPSERT, INSERT, DELETE, UPDATE;
-		public static final Op DEFAULT_OP = Op.INSERT;
+		UPSERT, INSERT, UPDATE, DELETE; // DELETE must be 3
+		public static final Op DEFAULT_OP = Op.UPSERT;
 
 		public static Op parse(int op) {
 			return Op.values()[op];
@@ -59,6 +60,10 @@ public class Message extends ConcurrentHashMap<String, Object> {
 		op = Op.DEFAULT_OP;
 	}
 
+	public Message(String table, Pair<String, Map<String, Object>> keyAndValues) {
+		this(table, keyAndValues.v1(), keyAndValues.v2());
+	}
+
 	public Message(String table, String key, String firstFieldName, Object... firstFieldValueAndOthers) {
 		this(table, null, Maps.of(firstFieldName, firstFieldValueAndOthers));
 	}
@@ -72,7 +77,7 @@ public class Message extends ConcurrentHashMap<String, Object> {
 		return this;
 	}
 
-	public Op deleting() {
+	public Op op() {
 		return op;
 	}
 
@@ -113,8 +118,8 @@ public class Message extends ConcurrentHashMap<String, Object> {
 	}
 
 	protected void write(OutputStream os) throws IOException {
-		IOs.writeBytes(os, null == table ? null : table.getBytes(), null == key ? null : key.getBytes(), BsonSerder.map(this),
-				new byte[] { (byte) op.ordinal() });
+		IOs.writeBytes(os, null == table ? null : table.getBytes(), null == key ? null : key.getBytes(), BsonSerder.map(this), new byte[] {
+				(byte) op.ordinal() });
 	}
 
 	public Map<String, Object> map() {

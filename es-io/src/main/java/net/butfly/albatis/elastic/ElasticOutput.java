@@ -26,9 +26,10 @@ import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.io.EnqueueException;
 import net.butfly.albacore.utils.Exceptions;
 import net.butfly.albacore.utils.Texts;
+import net.butfly.albatis.io.Message;
 import net.butfly.albatis.io.Output;
 
-public final class ElasticOutput extends Namedly implements Output<ElasticMessage> {
+public final class ElasticOutput extends Namedly implements Output<Message> {
 	public static final int SUGGEST_RETRY = 5;
 	public static final int SUGGEST_BATCH_SIZE = 1000;
 	private final ElasticConnection conn;
@@ -49,14 +50,14 @@ public final class ElasticOutput extends Namedly implements Output<ElasticMessag
 	}
 
 	@Override
-	public final long enqueue(Stream<ElasticMessage> msgs) throws EnqueueException {
-		ConcurrentMap<String, ElasticMessage> origin = msgs.collect(Collectors.toConcurrentMap(m -> m.key(), m -> m));
+	public final long enqueue(Stream<Message> msgs) throws EnqueueException {
+		ConcurrentMap<String, Message> origin = msgs.collect(Collectors.toConcurrentMap(m -> m.key(), m -> m));
 		if (origin.isEmpty()) return 0;
 		int originSize = origin.size();
 		int retry = 0;
 		EnqueueException eex = new EnqueueException();
 		while (!origin.isEmpty() && retry++ <= maxRetry) {
-			BulkRequest req = new BulkRequest().add(list(origin.values(), ElasticMessage::forWrite));
+			BulkRequest req = new BulkRequest().add(list(origin.values(), Elastics::forWrite));
 			long bytes = logger().isTraceEnabled() ? req.estimatedSizeInBytes() : 0;
 			long now = System.currentTimeMillis();
 			int currentRetry = retry;

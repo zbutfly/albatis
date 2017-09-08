@@ -6,10 +6,12 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.kudu.ColumnSchema;
+import org.apache.kudu.client.Delete;
 import org.apache.kudu.client.KuduClient;
 import org.apache.kudu.client.KuduException;
 import org.apache.kudu.client.KuduSession;
 import org.apache.kudu.client.KuduTable;
+import org.apache.kudu.client.Operation;
 import org.apache.kudu.client.OperationResponse;
 import org.apache.kudu.client.SessionConfiguration.FlushMode;
 import org.apache.kudu.client.Upsert;
@@ -19,6 +21,7 @@ import com.hzcominfo.albatis.nosql.NoSqlConnection;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albacore.utils.parallel.Concurrents;
+import net.butfly.albatis.io.Message;
 
 public class KuduConnection extends NoSqlConnection<KuduClient> {
 	private static final Logger logger = Logger.getLogger(KuduConnection.class);
@@ -74,36 +77,49 @@ public class KuduConnection extends NoSqlConnection<KuduClient> {
 	private static final Map<String, KuduTable> tables = new ConcurrentHashMap<>();
 
 	public KuduTable table(String table) {
+
 		return tables.compute(table, (n, t) -> {
-			try {
-				return null == t ? client().openTable(table) : t;
+			if (null == t) try {
+				t = client().openTable(table);
 			} catch (KuduException e) {
-				logger().error("Kudu table open fail", e);
+				logger().error("Kudu table [" + table + "] open fail", e);
 				return null;
 			}
+			return t;
 		});
 
 	}
 
-	public boolean upsert(String table, Map<String, Object> record) {
-		if (record == null || null == table) return false;
-		KuduTable t = table(table);
-		if (null == t) return false;
-		Upsert upsert = t.newUpsert();
-		t.getSchema().getColumns().forEach(cs -> upsert(cs, record, upsert));
-		try {
-			OperationResponse or = session.apply(upsert);
-			if (or == null || !or.hasRowError()) return true;
-			logger().error("Kudu row error: " + or.getRowError().toString());
-			return false;
-		} catch (KuduException ex) {
-			logger.error("Kudu error", ex);
-			return false;
-		}
+	public void apply(Message m) throws IOException {
+		Operation op = op(m);
+		if (null == op) return;
+		OperationResponse or = session.apply(op);
+		if (or != null && or.hasRowError()) throw new IOException(or.getRowError().toString());
 	}
 
-	private void upsert(ColumnSchema columnSchema, Map<String, Object> record, Upsert upsert) {
-		Object field = record.get(columnSchema.getName().toUpperCase());
-		if (null != field) KuduCommon.generateColumnData(columnSchema.getType(), upsert.getRow(), columnSchema.getName(), field);
+	private Operation op(Message m) {
+		KuduTable t = table(m.table());
+		if (null == t) return null;
+		switch (m.op()) {
+		case DELETE:
+			for (ColumnSchema cs : t.getSchema().getColumns())
+				if (cs.isKey()) {
+					Delete del = t.newDelete();
+					del.getRow().addString(cs.getName().toUpperCase(), m.key());
+					return del;
+				}
+			return null;
+		case INSERT:
+		case UPDATE:
+		case UPSERT:
+			Upsert ups = table(m.table()).newUpsert();
+			t.getSchema().getColumns().forEach(cs -> {
+				Object field = m.get(cs.getName().toUpperCase());
+				if (null != field) KuduCommon.generateColumnData(cs.getType(), ups.getRow(), cs.getName(), field);
+			});
+			return ups;
+		}
+		return null;
 	}
+
 }

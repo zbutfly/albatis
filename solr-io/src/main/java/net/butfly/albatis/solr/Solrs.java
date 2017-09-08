@@ -31,6 +31,7 @@ import com.google.common.util.concurrent.MoreExecutors;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.Utils;
 import net.butfly.albacore.utils.logger.Logger;
+import net.butfly.albatis.io.Message;
 
 public final class Solrs extends Utils {
 	protected static final Logger logger = Logger.getLogger(Solrs.class);
@@ -241,11 +242,15 @@ public final class Solrs extends Utils {
 		}
 	}
 
-	public static SolrInputDocument input(Map<String, Object> map) {
-		return null == map || map.isEmpty() ? null : new SolrInputDocument(map.entrySet().parallelStream().map(e -> {
+	public static SolrInputDocument input(Message m, String keyFieldName) {
+		if (null == m) return null;
+		if (m.isEmpty() && null == m.key()) return null;
+		SolrInputDocument doc = new SolrInputDocument(m.entrySet().parallelStream().map(e -> {
 			SolrInputField f = new SolrInputField(e.getKey());
 			f.setValue(e.getValue(), 1f);
 			return f;
 		}).collect(Collectors.toConcurrentMap(f -> f.getName(), f -> f)));
+		doc.addField(keyFieldName, m.key());
+		return doc;
 	}
 }

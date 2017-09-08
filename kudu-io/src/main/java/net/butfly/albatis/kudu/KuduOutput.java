@@ -5,6 +5,7 @@ import java.util.stream.Stream;
 
 import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.io.EnqueueException;
+import net.butfly.albacore.utils.collection.Streams;
 import net.butfly.albatis.io.KeyOutput;
 import net.butfly.albatis.io.Message;
 
@@ -31,14 +32,18 @@ public class KuduOutput extends Namedly implements KeyOutput<String, Message> {
 	}
 
 	@Override
-	public long enqueue(String table, Stream<Message> values) throws EnqueueException {
+	public long enqueue(String table, Stream<Message> msgs) throws EnqueueException {
 		EnqueueException ex = new EnqueueException();
-		values.parallel().filter(r -> r != null && !r.isEmpty()).forEach(r -> {
-			if (connect.upsert(table, r)) ex.success(1);
-			else ex.fail(r, new RuntimeException());
+		msgs.parallel().filter(Streams.NOT_EMPTY_MAP).forEach(m -> {
+			try {
+				connect.apply(m);
+				ex.success(1);
+			} catch (IOException e) {
+				ex.fail(m, e);
+			}
 		});
-		if (ex.empty()) return ex.success();
-		else throw ex;
+		if (!ex.empty()) throw ex;
+		else return ex.success();
 	}
 
 	@Override

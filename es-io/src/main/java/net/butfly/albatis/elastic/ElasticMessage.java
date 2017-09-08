@@ -6,62 +6,22 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Map;
 
-import org.elasticsearch.action.DocWriteRequest;
-import org.elasticsearch.action.index.IndexRequest;
-import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.script.Script;
 import org.elasticsearch.script.ScriptType;
 
 import net.butfly.albacore.serder.BsonSerder;
 import net.butfly.albacore.utils.IOs;
-import net.butfly.albacore.utils.Pair;
 import net.butfly.albatis.io.Message;
 
 public class ElasticMessage extends Message {
 	private static final long serialVersionUID = -125189207796104302L;
-	private transient Script script;
-
-	public ElasticMessage(String index, String type, String id, Map<String, Object> doc) {
-		this(index, type, id, doc, Op.UPSERT);
-	}
-
-	public ElasticMessage(String index, String type, String id, Map<String, Object> doc, Op op) {
-		super(null, id, doc);
-		table(index, type);
-		op(op);
-		this.script = null;
-	}
+	transient Script script;
 
 	public ElasticMessage(String index, String type, String id, Script script, Map<String, Object> upsertDoc) {
 		super(null, id, upsertDoc);
-		table(index, type);
+		table(index + "/" + type);
 		op(null == upsertDoc ? Op.UPDATE : Op.UPSERT);
 		this.script = script;
-	}
-
-	@Override
-	public ElasticMessage table(String table) {
-		if (null == table) return table(null, null);
-		else {
-			String[] it = table.split("/");
-			if (it.length == 1) return table(null, it[0]);
-			else return table(it[0], it[1]);
-		}
-	}
-
-	public ElasticMessage table(String index, String type) {
-		if (null == index) return (ElasticMessage) super.table(type);
-		else if (null == type) return (ElasticMessage) super.table(index + "/");
-		else return (ElasticMessage) super.table(index + "/" + type);
-	}
-
-	private Pair<String, String> dessemble() {
-		if (null == table || table.isEmpty()) return new Pair<>(null, null);
-		String[] it = table.split("/", 2);
-		for (int i = 0; i < it.length; i++)
-			if (it[i].isEmpty()) it[i] = null;
-		if (it.length == 2) return new Pair<>(it[0], it[1]);
-		else return new Pair<>(null, it[0]);
 	}
 
 	public ElasticMessage(String index, String type, String id, Script script) {
@@ -69,39 +29,11 @@ public class ElasticMessage extends Message {
 	}
 
 	public String index() {
-		return dessemble().v1();
+		return Elastics.dessemble(table).v1();
 	}
 
 	public String type() {
-		return dessemble().v2();
-	}
-
-	public DocWriteRequest<?> forWrite() {
-		Pair<String, String> it = dessemble();
-		switch (op) {
-		case UPDATE:
-			UpdateRequest update = new UpdateRequest(it.v1(), it.v2(), key);
-			if (script == null) update.doc(this).docAsUpsert(false);
-			else update.script(script);
-			return update;
-		case UPSERT:
-			UpdateRequest upsert = new UpdateRequest(it.v1(), it.v2(), key);
-			if (script == null) upsert.doc(this).docAsUpsert(true);
-			else {
-				upsert.script(script);
-				if (!isEmpty()) upsert.upsert(new IndexRequest(it.v1(), it.v2(), key).source(this));
-			}
-			return upsert;
-		case INSERT:
-			if (script != null) throw new IllegalArgumentException("Script should only in UpdateRequest");
-			IndexRequest insert = new IndexRequest(it.v1(), it.v2(), key);
-			insert.source(this);
-			return insert;
-		case DELETE:
-			// throw new UnsupportedOperationException("Delete not supporting");
-			return null;
-		}
-		return null;
+		return Elastics.dessemble(table).v2();
 	}
 
 	@Override
@@ -129,8 +61,8 @@ public class ElasticMessage extends Message {
 		super(is);
 		if (0 != IOs.readBytes(is)[0]) {
 			byte[][] attrs = IOs.readBytesList(is);
-			this.script = new Script(ScriptType.valueOf(new String(attrs[0])), new String(attrs[1]), new String(attrs[2]),
-					BsonSerder.map(attrs[3]));
+			this.script = new Script(ScriptType.valueOf(new String(attrs[0])), new String(attrs[1]), new String(attrs[2]), BsonSerder.map(
+					attrs[3]));
 		}
 	}
 }

@@ -27,30 +27,6 @@ public interface KeyOutput<K, V> extends Output<V> {
 		return c.get();
 	}
 
-	class FailoverKeyOutput<K, V> extends FailoverOutput<V> implements KeyOutput<K, V> {
-		private final KeyOutput<K, V> output;
-
-		public FailoverKeyOutput(KeyOutput<K, V> output, Queue<V> failover, int batchSize) {
-			super(output, failover, batchSize);
-			this.output = output;
-		}
-
-		@Override
-		public K partition(V v) {
-			return output.partition(v);
-		}
-
-		@Override
-		public long enqueue(K key, Stream<V> v) throws EnqueueException {
-			try {
-				return output.enqueue(key, v);
-			} catch (EnqueueException ex) {
-				fails.enqueue(of(ex.fails()));
-				return ex.success();
-			}
-		}
-	}
-
 	@Override
 	default FailoverKeyOutput<K, V> failover(Queue<V> pool, int batchSize) {
 		return new FailoverKeyOutput<K, V>(this, pool, batchSize);
@@ -80,5 +56,29 @@ public interface KeyOutput<K, V> extends Output<V> {
 
 	default void commit(K key) {
 		commit();
+	}
+
+	class FailoverKeyOutput<K, V> extends FailoverOutput<V> implements KeyOutput<K, V> {
+		private final KeyOutput<K, V> output;
+
+		public FailoverKeyOutput(KeyOutput<K, V> output, Queue<V> failover, int batchSize) {
+			super(output, failover, batchSize);
+			this.output = output;
+		}
+
+		@Override
+		public K partition(V v) {
+			return output.partition(v);
+		}
+
+		@Override
+		public long enqueue(K key, Stream<V> v) throws EnqueueException {
+			try {
+				return output.enqueue(key, v);
+			} catch (EnqueueException ex) {
+				fails.enqueue(of(ex.fails()));
+				return ex.success();
+			}
+		}
 	}
 }
