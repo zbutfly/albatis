@@ -51,6 +51,11 @@ public abstract class NoSqlConnection<C> implements Connection, Loggable {
 		this(uri, client, -1, supportedSchema);
 	}
 
+	public final int getBatchSize() {
+		String b = parameters.getProperty(PARAM_KEY_BATCH);
+		return null != b ? Integer.parseInt(b) : DEFAULT_BATCH_SIZE;
+	}
+
 	public final Properties getParameters() {
 		return parameters;
 	}
