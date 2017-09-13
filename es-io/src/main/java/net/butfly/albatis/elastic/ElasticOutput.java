@@ -27,6 +27,7 @@ import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.io.EnqueueException;
 import net.butfly.albacore.utils.Exceptions;
 import net.butfly.albacore.utils.Texts;
+import net.butfly.albacore.utils.collection.Streams;
 import net.butfly.albatis.io.Message;
 import net.butfly.albatis.io.Output;
 
@@ -52,7 +53,7 @@ public final class ElasticOutput extends Namedly implements Output<Message> {
 
 	@Override
 	public final long enqueue(Stream<Message> msgs) throws EnqueueException {
-		ConcurrentMap<String, Message> origin = msgs.collect(Collectors.toConcurrentMap(m -> m.key(), m -> m));
+		ConcurrentMap<String, Message> origin = msgs.filter(Streams.NOT_NULL).collect(Collectors.toConcurrentMap(m -> m.key(), m -> m));
 		if (origin.isEmpty()) return 0;
 		int originSize = origin.size();
 		int retry = 0;

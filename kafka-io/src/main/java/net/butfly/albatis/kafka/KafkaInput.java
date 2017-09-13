@@ -6,13 +6,12 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.NoSuchElementException;
-import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import kafka.common.ConsumerRebalanceFailedException;
 import kafka.common.MessageStreamsExistException;
@@ -26,14 +25,12 @@ import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.paral.Exeter;
 import net.butfly.albacore.paral.Task;
 import net.butfly.albacore.utils.Texts;
-import net.butfly.albacore.utils.collection.Colls;
-import net.butfly.albacore.utils.collection.Maps;
-import net.butfly.albacore.utils.logger.Statistic;
+import net.butfly.albacore.utils.parallel.Concurrents;
 import net.butfly.albatis.io.Message;
 import net.butfly.albatis.io.OddInput;
 import net.butfly.albatis.kafka.config.KafkaInputConfig;
 
-public class KafkaInput extends net.butfly.albacore.base.Namedly implements OddInput<Message> {
+public final class KafkaInput extends OddInput<Message> {
 	private final KafkaInputConfig config;
 	private final Map<String, Integer> allTopics = Maps.of();
 	private final ConsumerConnector connect;
@@ -97,42 +94,32 @@ public class KafkaInput extends net.butfly.albacore.base.Namedly implements OddI
 		while (temp == null);
 		connect = c;
 		logger().info("[" + name() + "] connected.");
-		List<ConsumerIterator<byte[], byte[]>> l = Colls.list();
-		for (Entry<String, List<KafkaStream<byte[], byte[]>>> e : temp.entrySet())
-			for (KafkaStream<byte[], byte[]> ks : e.getValue())
-				l.add(ks.iterator());
-		consumers = new LinkedBlockingQueue<>(l);
+		consumers = new LinkedBlockingQueue<>(temp.entrySet().stream().flatMap(e -> e.getValue().stream().map(s -> s.iterator())).collect(
+				Collectors.toList()));
 		closing(this::closeKafka);
 	}
 
 	@Override
-	public Statistic trace() {
-		return new Statistic(this).<MessageAndMetadata<byte[], byte[]>> sizing(km -> (long) km.rawMessage$1().payloadSize()) //
-				.<MessageAndMetadata<byte[], byte[]>> sampling(km -> new String(km.key())).detailing(Exeter.of()::toString);
-	}
-
-	@Override
-	public Message dequeue() {
+	protected Message dequeue() {
 		ConsumerIterator<byte[], byte[]> it;
 		MessageAndMetadata<byte[], byte[]> m;
-		while (opened())
-			if (null != (it = consumers.poll())) {
+		if (null == (it = consumers.poll())) return null;
+		try {
+			while (true)
 				try {
-					if (null != (m = it.next())) //
-						return Kafkas.message((MessageAndMetadata<byte[], byte[]>) s().stats(m), decoder);
+					if (null != (m = it.next())) break;
 				} catch (ConsumerTimeoutException ex) {
-					return null;
+					continue;
 				} catch (NoSuchElementException ex) {
 					return null;
 				} catch (Exception ex) {
-					logger().warn("Unprocessed kafka error [" + ex.getClass().toString() + ": " + ex.getMessage()
-							+ "], ignore and continue.");
+					logger().warn("Unprocessed kafka error", ex);
 					return null;
-				} finally {
-					consumers.offer(it);
 				}
-			}
-		return null;
+		} finally {
+			consumers.offer(it);
+		}
+		return Kafkas.message(m, decoder);
 	}
 
 	private void closeKafka() {
