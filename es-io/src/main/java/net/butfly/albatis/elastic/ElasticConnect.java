@@ -19,8 +19,10 @@ import com.hzcominfo.albatis.nosql.Connection;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.serder.JsonSerder;
+import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.Utils;
 import net.butfly.albacore.utils.logger.Logger;
+import net.butfly.albatis.io.Message;
 
 public interface ElasticConnect extends Connection {
 	static final Logger _logger = Logger.getLogger(ElasticConnection.class);
@@ -28,6 +30,14 @@ public interface ElasticConnect extends Connection {
 	String getDefaultIndex();
 
 	String getDefaultType();
+
+	public default Message fixTable(Message m) {
+		Pair<String, String> p = Elastics.dessemble(m.table());
+		if (null == p.v1()) p.v1(getDefaultIndex());
+		if (null == p.v2()) p.v2(getDefaultType());
+		m.table(Elastics.assembly(p.v1(), p.v2()));
+		return m;
+	}
 
 	void mapping(Map<String, Object> mapping, String... types);
 

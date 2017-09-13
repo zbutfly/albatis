@@ -58,13 +58,6 @@ public class Elastics {
 		else return new Pair<>(null, it[0]);
 	}
 
-	public static String table(ElasticConnection es, String type) {
-		Pair<String, String> p = dessemble(type);
-		if (null == p.v1()) p.v1(es.getDefaultIndex());
-		if (null == p.v2()) p.v2(es.getDefaultType());
-		return assembly(p.v1(), p.v2());
-	}
-
 	public static String assembly(String index, String type) {
 		if (index == null) return type;
 		if (type == null) return index + "/";
