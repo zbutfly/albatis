@@ -14,6 +14,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.DocWriteRequest;
 import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
@@ -57,7 +58,10 @@ public final class ElasticOutput extends Namedly implements Output<Message> {
 		int retry = 0;
 		EnqueueException eex = new EnqueueException();
 		while (!origin.isEmpty() && retry++ <= maxRetry) {
-			BulkRequest req = new BulkRequest().add(list(origin.values(), Elastics::forWrite));
+			@SuppressWarnings("rawtypes")
+			List<DocWriteRequest> reqs = list(origin.values(), Elastics::forWrite);
+			if (reqs.isEmpty()) return 0;
+			BulkRequest req = new BulkRequest().add(reqs);
 			long bytes = logger().isTraceEnabled() ? req.estimatedSizeInBytes() : 0;
 			long now = System.currentTimeMillis();
 			int currentRetry = retry;
@@ -80,7 +84,13 @@ public final class ElasticOutput extends Namedly implements Output<Message> {
 							// process failing and retry...
 							Map<Boolean, List<BulkItemResponse>> failOrRetry = of(failResps).collect(Collectors.partitioningBy(
 									ElasticOutput.this::failed));
-							failOrRetry.get(Boolean.TRUE).forEach(r -> eex.fail(origin.remove(r.getId()), r.getFailure().getCause()));
+							failOrRetry.get(Boolean.TRUE).forEach(r -> {
+								Message m = origin.remove(r.getId());
+								Exception cause = r.getFailure().getCause();
+								if (null != m) eex.fail(m, cause);
+								else logger().debug("Message [" + r.getId() + "] could not failover for [" + cause.getMessage()
+										+ "], maybe processed or lost");
+							});
 							Set<String> failIds = collect(failOrRetry.get(Boolean.TRUE), r -> r.getFailure().getId(), Collectors.toSet());
 							if (logger().isDebugEnabled()) //
 								failOrRetry.get(Boolean.TRUE).forEach(r -> logger().warn("Writing failed id [" + r.getId() + "] for: "

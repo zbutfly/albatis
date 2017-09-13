@@ -39,10 +39,10 @@ public class FailoverOutput<M> extends Wrapper.WrapOutput<M, M> {
 		});
 		closing(() -> {
 			failovering.close();
+			fails.close();
 			long act;
 			while ((act = actionCount.longValue()) > 0 && Concurrents.waitSleep())
 				logger().info("Failover Async op waiting for closing: " + act);
-			fails.close();
 		});
 	}
 
