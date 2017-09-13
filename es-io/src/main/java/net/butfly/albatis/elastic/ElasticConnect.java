@@ -40,6 +40,8 @@ public interface ElasticConnect extends Connection {
 		return m;
 	}
 
+	void mapping(Map<String, Object> mapping, String... types);
+
 	@SuppressWarnings("unchecked")
 	static <C extends ElasticConnect> C connect(URISpec uri) throws IOException {
 		switch (uri.getScheme().toLowerCase()) {
