@@ -53,7 +53,8 @@ public final class ElasticOutput extends Namedly implements Output<Message> {
 
 	@Override
 	public final long enqueue(Stream<Message> msgs) throws EnqueueException {
-		ConcurrentMap<String, Message> origin = msgs.filter(Streams.NOT_NULL).collect(Collectors.toConcurrentMap(m -> m.key(), m -> m));
+		ConcurrentMap<String, Message> origin = msgs.filter(Streams.NOT_NULL).collect(Collectors.toConcurrentMap(Message::key,
+				conn::fixTable));
 		if (origin.isEmpty()) return 0;
 		int originSize = origin.size();
 		int retry = 0;
