@@ -30,7 +30,7 @@ import net.butfly.albatis.io.Message;
 import net.butfly.albatis.io.OddInput;
 import net.butfly.albatis.kafka.config.KafkaInputConfig;
 
-public class KafkaInput extends OddInput<Message> {
+public final class KafkaInput extends OddInput<Message> {
 	private final KafkaInputConfig config;
 	private final Map<String, Integer> allTopics = new ConcurrentHashMap<>();
 	private final ConsumerConnector connect;
@@ -93,8 +93,8 @@ public class KafkaInput extends OddInput<Message> {
 		while (temp == null);
 		connect = c;
 		logger().info("[" + name() + "] connected.");
-		consumers = new LinkedBlockingQueue<>(maps(temp.entrySet(), s -> s.flatMap(e -> map(e.getValue(),
-				KafkaStream<byte[], byte[]>::iterator)), Collectors.toList()));
+		consumers = new LinkedBlockingQueue<>(temp.entrySet().stream().flatMap(e -> e.getValue().stream().map(s -> s.iterator())).collect(
+				Collectors.toList()));
 		closing(this::closeKafka);
 		open();
 	}
@@ -109,7 +109,7 @@ public class KafkaInput extends OddInput<Message> {
 				try {
 					if (null != (m = it.next())) break;
 				} catch (ConsumerTimeoutException ex) {
-					return null;
+					continue;
 				} catch (NoSuchElementException ex) {
 					return null;
 				} catch (Exception ex) {
