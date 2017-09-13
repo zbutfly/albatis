@@ -3,12 +3,13 @@ package net.butfly.albatis.kafka;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
-import java.util.stream.Stream;
+import java.util.stream.Collectors;
 
 import kafka.common.ConsumerRebalanceFailedException;
 import kafka.common.MessageStreamsExistException;
@@ -16,23 +17,20 @@ import kafka.consumer.ConsumerIterator;
 import kafka.consumer.ConsumerTimeoutException;
 import kafka.consumer.KafkaStream;
 import kafka.javaapi.consumer.ConsumerConnector;
-import net.butfly.albacore.base.Namedly;
+import kafka.message.MessageAndMetadata;
 import net.butfly.albacore.exception.ConfigException;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.Texts;
-import net.butfly.albacore.utils.collection.Streams;
 import net.butfly.albacore.utils.parallel.Concurrents;
-import net.butfly.albatis.io.Input;
-import net.butfly.albatis.io.OddInput;
 import net.butfly.albatis.io.Message;
+import net.butfly.albatis.io.OddInput;
 import net.butfly.albatis.kafka.config.KafkaInputConfig;
 
-public final class KafkaInput extends Namedly implements Input<Message> {
-	private static final long POOL_LOCK_WAITING = -1;
+public final class KafkaInput extends OddInput<Message> {
 	private final KafkaInputConfig config;
 	private final Map<String, Integer> allTopics = new ConcurrentHashMap<>();
 	private final ConsumerConnector connect;
-	private final BlockingQueue<ConsumerOutput> consumers;
+	private final BlockingQueue<ConsumerIterator<byte[], byte[]>> consumers;
 	// for debug
 	private final AtomicLong skip;
 
@@ -85,42 +83,36 @@ public final class KafkaInput extends Namedly implements Input<Message> {
 		while (temp == null);
 		connect = c;
 		logger().info("[" + name() + "] connected.");
-		consumers = new LinkedBlockingQueue<>();
-		int i = 0;
-		for (String topic : temp.keySet())
-			for (KafkaStream<byte[], byte[]> s : temp.get(topic))
-				consumers.offer(new ConsumerOutput(topic, s, i++));
+		consumers = new LinkedBlockingQueue<>(temp.entrySet().stream().flatMap(e -> e.getValue().stream().map(s -> s.iterator())).collect(
+				Collectors.toList()));
 		closing(this::closeKafka);
 		open();
 	}
 
 	@Override
-	public long dequeue(Function<Stream<Message>, Long> using, int batchSize) {
-		return using.apply(Streams.of(() -> {
-			ConsumerOutput c = null;
-			if (null == (c = consumers.poll())) return null;
-			try {
-				return c.dequeue();
-			} finally {
-				consumers.offer(c);
-			}
-		}, batchSize, () -> opened()));
-	}
-
-	@Override
-	public void open() {
-		for (ConsumerOutput f : consumers)
-			f.open();
-		Input.super.open();
+	protected Message dequeue() {
+		ConsumerIterator<byte[], byte[]> it;
+		MessageAndMetadata<byte[], byte[]> m;
+		if (null == (it = consumers.poll())) return null;
+		try {
+			while (true)
+				try {
+					if (null != (m = it.next())) break;
+				} catch (ConsumerTimeoutException ex) {
+					continue;
+				} catch (NoSuchElementException ex) {
+					return null;
+				} catch (Exception ex) {
+					logger().warn("Unprocessed kafka error", ex);
+					return null;
+				}
+		} finally {
+			consumers.offer(it);
+		}
+		return Kafkas.message(m, decoder);
 	}
 
 	private void closeKafka() {
-		for (ConsumerOutput f : consumers)
-			if (f instanceof AutoCloseable) try {
-				((AutoCloseable) f).close();
-			} catch (Exception e) {
-				logger().error("[" + name() + "] internal fetcher close failure", e);
-			}
 		try {
 			connect.commitOffsets(true);
 		} catch (Exception e) {
@@ -132,41 +124,5 @@ public final class KafkaInput extends Namedly implements Input<Message> {
 			logger().error("[" + name() + "] shutdown fail", e);
 		}
 
-	}
-
-	class ConsumerOutput extends OddInput<Message> {
-		public final String topic;
-		public final ConsumerIterator<byte[], byte[]> it;
-		public final KafkaStream<byte[], byte[]> stream;
-
-		public ConsumerOutput(String topic, KafkaStream<byte[], byte[]> stream, int i) {
-			super(KafkaInput.this.name() + "#Consumer@" + topic + "#" + i);
-			this.topic = topic;
-			this.stream = stream;
-			it = stream.iterator();
-		}
-
-		public boolean existMore() {
-			while (opened())
-				try {
-					return it.hasNext();
-				} catch (ConsumerTimeoutException ex) {
-					Concurrents.waitSleep(POOL_LOCK_WAITING);
-				}
-			return opened();
-		}
-
-		@Override
-		protected Message dequeue() {
-			Message m = null;
-			while (opened() && existMore()) {
-				try {
-					return Kafkas.message(it.next(), decoder);
-				} catch (Exception e) {
-					logger().warn("[Fetcher: " + name() + "] reading failed and ignore...", e);
-				}
-			}
-			return m;
-		}
 	}
 }
