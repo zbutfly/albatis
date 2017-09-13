@@ -61,8 +61,11 @@ public final class ElasticOutput extends Namedly implements Output<Message> {
 		while (!origin.isEmpty() && retry++ <= maxRetry) {
 			@SuppressWarnings("rawtypes")
 			List<DocWriteRequest> reqs = list(origin.values(), Elastics::forWrite);
-			if (reqs.isEmpty()) return;
+			if (reqs.isEmpty()) return 0;
 			BulkRequest req = new BulkRequest().add(reqs);
+			long bytes = logger().isTraceEnabled() ? req.estimatedSizeInBytes() : 0;
+			long now = System.currentTimeMillis();
+			int currentRetry = retry;
 			try {
 				conn.client().bulk(req, new ActionListener<BulkResponse>() {
 					@Override
@@ -70,10 +73,32 @@ public final class ElasticOutput extends Namedly implements Output<Message> {
 						Map<Boolean, List<BulkItemResponse>> resps = collect(response, Collectors.partitioningBy(r -> r.isFailed()));
 						List<BulkItemResponse> succResps = resps.get(Boolean.FALSE);
 						List<BulkItemResponse> failResps = resps.get(Boolean.TRUE);
-						if (!succResps.isEmpty()) {
-							logger.trace(() -> "Elastic enqueue succeed [" + req.estimatedSizeInBytes() + " bytes], sample id: " + succResps
-									.get(0).getId());
-							succeeded(succResps.size());
+						String sample = succResps.isEmpty() ? null : succResps.get(0).getId();
+						Result result = null;
+						eex.success(succResps.size());
+						if (failResps.isEmpty()) {//
+							origin.clear();
+							result = new Result(succResps.size(), 0, sample);
+						} else {
+							// process success: remove from origin
+							succResps.forEach(succ -> origin.remove(succ.getId()));
+							// process failing and retry...
+							Map<Boolean, List<BulkItemResponse>> failOrRetry = of(failResps).collect(Collectors.partitioningBy(
+									ElasticOutput.this::failed));
+							failOrRetry.get(Boolean.TRUE).forEach(r -> {
+								Message m = origin.remove(r.getId());
+								Exception cause = r.getFailure().getCause();
+								if (null != m) eex.fail(m, cause);
+								else logger().debug("Message [" + r.getId() + "] could not failover for [" + cause.getMessage()
+										+ "], maybe processed or lost");
+							});
+							Set<String> failIds = collect(failOrRetry.get(Boolean.TRUE), r -> r.getFailure().getId(), Collectors.toSet());
+							if (logger().isDebugEnabled()) //
+								failOrRetry.get(Boolean.TRUE).forEach(r -> logger().warn("Writing failed id [" + r.getId() + "] for: "
+										+ unwrap(r.getFailure().getCause()).getMessage()));
+
+							// process and stats success...
+							result = new Result(succResps.size(), failIds.size(), sample);
 						}
 						if (failResps.isEmpty()) return;
 						// process success: remove from origin

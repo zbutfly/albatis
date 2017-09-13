@@ -30,9 +30,10 @@ public class FailoverOutput<M> extends Wrapper.WrapOutput<M, M> {
 		}, name() + "Failovering");
 		closing(() -> {
 			failovering.close();
-			if (!pool.empty()) logger().warn("Failovering pool not empty [" + pool.size() + "], maybe lost.");
-			else logger().info("Failovering pool empty and closing.");
-			pool.close();
+			fails.close();
+			long act;
+			while ((act = actionCount.longValue()) > 0 && Concurrents.waitSleep())
+				logger().info("Failover Async op waiting for closing: " + act);
 		});
 		pool.open();
 		open();
