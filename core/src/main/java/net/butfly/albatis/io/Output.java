@@ -32,16 +32,12 @@ public interface Output<V> extends IO, Consumer<Stream<V>>, Enqueuer<V> {
 	}
 
 	default <V0> Output<V0> prior(Function<V0, V> conv) {
-		return Wrapper.wrap(this, "Prior", s -> enqueue(map(s, conv)));
-	}
-
-	default <V0> Output<V0> priors(Function<Iterable<V0>, Iterable<V>> conv) {
-		return priors(conv, 1);
+		return Wrapper.wrap(this, "Prior", s -> enqueue(Streams.of(s.filter(Streams.NOT_NULL).map(conv))));
 	}
 
 	default <V0> Output<V0> priors(Function<Iterable<V0>, Iterable<V>> conv, int parallelism) {
-		return Wrapper.wrap(this, "Priors", s -> eachs(spatial(s, parallelism).values(), //
-				(Consumer<Spliterator<V0>>) s0 -> enqueue(Streams.of(conv.apply((Iterable<V0>) () -> Its.it(s0))))));
+		return Wrapper.wrap(this, "Priors", s -> Parals.eachs(Streams.spatial(s, parallelism).values(), s0 -> enqueue(Streams.of(conv.apply(
+				(Iterable<V0>) () -> Its.it(s0)))), Streams.LONG_SUM));
 	}
 
 	// more extends
