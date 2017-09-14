@@ -9,37 +9,27 @@ import net.butfly.albatis.io.Queue;
 import net.butfly.albatis.io.Wrapper;
 
 public class PrefetchInput<V> extends Wrapper.WrapInput<V, V> {
-	private final Queue<V> prefetch;
-	private final OpenableThread fetcher;
 	private final Queue<V> pool;
+	private final OpenableThread prefetching;
 
 	public PrefetchInput(Input<V> base, Queue<V> pool, int batchSize) {
 		super(base, "Prefetch");
-		this.prefetch = pool;
 		this.pool = pool;
-		fetcher = new OpenableThread(() -> {
+		prefetching = new OpenableThread(() -> {
 			while (opened() && !base.empty())
-				base.dequeue(prefetch::enqueue, batchSize);
-		}, base.name() + "PrefetcherThread");
-		closing(fetcher::close);
+				base.dequeue(pool::enqueue, batchSize);
+		}, base.name() + "Prefetching");
+		closing(() -> {
+			prefetching.close();
+			pool.close();
+		});
+		pool.open();
+		open();
+		prefetching.open();
 	}
 
 	@Override
 	public long dequeue(Function<Stream<V>, Long> using, int batchSize) {
-		return prefetch.dequeue(using, batchSize);
-	}
-
-	@Override
-	public void open() {
-		pool.open();
-		super.open();
-		prefetch.open();
-	}
-
-	@Override
-	public void close() {
-		prefetch.close();
-		super.close();
-		pool.close();
+		return pool.dequeue(using, batchSize);
 	}
 }

@@ -20,8 +20,8 @@ public interface KeyOutput<K, V> extends Output<V> {
 	long enqueue(K key, Stream<V> v) throws EnqueueException;
 
 	@Override
-	public default long enqueue(Stream<V> items) throws EnqueueException {
-		Set<Entry<K, List<V>>> m = items.collect(Collectors.groupingBy(v -> partition(v))).entrySet();
+	public default long enqueue(Stream<V> s) throws EnqueueException {
+		Set<Entry<K, List<V>>> m = s.filter(Streams.NOT_NULL).collect(Collectors.groupingBy(v -> partition(v))).entrySet();
 		AtomicLong c = new AtomicLong();
 		Parals.eachs(m, e -> c.addAndGet(enqueue(e.getKey(), Streams.of(e.getValue()))));
 		return c.get();
@@ -58,25 +58,23 @@ public interface KeyOutput<K, V> extends Output<V> {
 		commit();
 	}
 
+	@SuppressWarnings("unchecked")
 	class FailoverKeyOutput<K, V> extends FailoverOutput<V> implements KeyOutput<K, V> {
-		private final KeyOutput<K, V> output;
-
 		public FailoverKeyOutput(KeyOutput<K, V> output, Queue<V> failover, int batchSize) {
 			super(output, failover, batchSize);
-			this.output = output;
 		}
 
 		@Override
 		public K partition(V v) {
-			return output.partition(v);
+			return ((KeyOutput<K, V>) base).partition(v);
 		}
 
 		@Override
 		public long enqueue(K key, Stream<V> v) throws EnqueueException {
 			try {
-				return output.enqueue(key, v);
+				return ((KeyOutput<K, V>) base).enqueue(key, v);
 			} catch (EnqueueException ex) {
-				fails.enqueue(of(ex.fails()));
+				pool.enqueue(of(ex.fails()));
 				return ex.success();
 			}
 		}
