@@ -30,8 +30,7 @@ public interface Input<V> extends IO, Dequeuer<V>, Supplier<V>, Iterator<V> {
 	}
 
 	default <V1> Input<V1> then(Function<V, V1> conv) {
-		return Wrapper.wrap(this, "Then", (using, batchSize) -> dequeue(s -> using.accept(s.filter(Streams.NOT_NULL).map(conv)),
-				batchSize));
+		return Wrapper.wrap(this, "Then", (using, batchSize) -> dequeue(s -> using.apply(s.filter(Streams.NOT_NULL).map(conv)), batchSize));
 	}
 
 	default <V1> Input<V1> thens(Function<Iterable<V>, Iterable<V1>> conv) {

@@ -1,5 +1,7 @@
 package net.butfly.albatis.io.ext;
 
+import static net.butfly.albacore.utils.collection.Streams.of;
+
 import java.util.stream.Stream;
 
 import net.butfly.albacore.utils.OpenableThread;
@@ -24,16 +26,12 @@ public class FailoverOutput<M> extends Wrapper.WrapOutput<M, M> {
 		super(output, "Failover");
 		this.pool = failover;
 		failovering = new OpenableThread(() -> {
-			while (output.opened() && opened())
-				failover.dequeue(output::enqueue, batchSize);
-			logger().info("Failovering stopped.");
-		}, name() + "Failovering");
+			while (opened())
+				failover.dequeue(ms -> output.enqueue(ms), batchSize);
+		}, "Failovering");
 		closing(() -> {
 			failovering.close();
-			fails.close();
-			long act;
-			while ((act = actionCount.longValue()) > 0 && Concurrents.waitSleep())
-				logger().info("Failover Async op waiting for closing: " + act);
+			pool.close();
 		});
 		pool.open();
 		open();
@@ -41,13 +39,13 @@ public class FailoverOutput<M> extends Wrapper.WrapOutput<M, M> {
 	}
 
 	@Override
-	public final void enqueue(Stream<M> els) {
-		base.enqueue(els);
-	}
-
-	@Override
-	public void failed(Stream<M> failed) {
-		pool.enqueue(failed);
+	public final long enqueue(Stream<M> els) {
+		try {
+			return base.enqueue(els);
+		} catch (EnqueueException ex) {
+			pool.enqueue(of(ex.fails()));
+			return ex.success();
+		}
 	}
 
 	public final long fails() {
