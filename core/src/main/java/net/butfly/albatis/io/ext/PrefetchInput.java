@@ -17,18 +17,19 @@ public class PrefetchInput<V> extends Wrapper.WrapInput<V, V> {
 		this.pool = pool;
 		prefetching = new OpenableThread(() -> {
 			while (opened() && !base.empty())
-				base.dequeue(pool::enqueue);
+				base.dequeue(pool::enqueue, batchSize);
 		}, base.name() + "Prefetching");
 		closing(() -> {
 			prefetching.close();
 			pool.close();
 		});
 		pool.open();
+		open();
 		prefetching.open();
 	}
 
 	@Override
-	public void dequeue(Consumer<Sdream<V>> using) {
-		pool.dequeue(using);
+	public long dequeue(Function<Stream<V>, Long> using, int batchSize) {
+		return pool.dequeue(using, batchSize);
 	}
 }

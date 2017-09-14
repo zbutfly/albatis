@@ -10,9 +10,10 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
-import net.butfly.albacore.io.Dequeuer;
-import net.butfly.albacore.paral.Sdream;
-import net.butfly.albacore.utils.collection.Colls;
+import net.butfly.albacore.io.Dequeue;
+import net.butfly.albacore.io.IO;
+import net.butfly.albacore.utils.collection.Its;
+import net.butfly.albacore.utils.collection.Streams;
 import net.butfly.albatis.io.ext.PrefetchInput;
 
 public interface Input<V> extends IO, Dequeuer<V> {
@@ -28,9 +29,8 @@ public interface Input<V> extends IO, Dequeuer<V> {
 		return 0;
 	}
 
-	// TODO
-	default Input<V> filter(Map<String, Object> criteria) {
-		return this;
+	default <V1> Input<V1> then(Function<V, V1> conv) {
+		return Wrapper.wrap(this, "Then", (using, batchSize) -> dequeue(s -> using.apply(s.filter(Streams.NOT_NULL).map(conv)), batchSize));
 	}
 
 	// TODO
