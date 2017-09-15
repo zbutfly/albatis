@@ -34,8 +34,8 @@ public class KuduOutput extends Namedly implements KeyOutput<String, Message> {
 	public void enqueue(String table, Stream<Message> msgs) {
 		msgs.parallel().filter(Streams.NOT_EMPTY_MAP).forEach(m -> {
 			Throwable e = connect.apply(m);
-			if (null == e) succeeded(1);
-			else failed(Streams.of(new Message[] { m }));
+			if (null == e) ex.success(1);
+			else ex.fail(m, e);
 		});
 	}
 
