@@ -35,12 +35,9 @@ public class KuduOutput extends Namedly implements KeyOutput<String, Message> {
 	public long enqueue(String table, Stream<Message> msgs) throws EnqueueException {
 		EnqueueException ex = new EnqueueException();
 		msgs.parallel().filter(Streams.NOT_EMPTY_MAP).forEach(m -> {
-			try {
-				connect.apply(m);
-				ex.success(1);
-			} catch (IOException e) {
-				ex.fail(m, e);
-			}
+			Throwable e = connect.apply(m);
+			if (null == e) ex.success(1);
+			else ex.fail(m, e);
 		});
 		if (!ex.empty()) throw ex;
 		else return ex.success();
