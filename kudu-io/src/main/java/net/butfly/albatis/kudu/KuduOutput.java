@@ -77,15 +77,15 @@ public class KuduOutput extends OddOutput<Message> {
 	private final AtomicLong working = new AtomicLong();
 
 	@Override
-	public boolean enqueue(Message m) {
-		if (null == m || m.isEmpty()) return false;
-		working.incrementAndGet();
-		try {
-			connect.apply(op(m), (op, e) -> failed(of(m)));
-		} finally {
-			working.decrementAndGet();
-		}
-		return true;
+	public long enqueue(String table, Stream<Message> msgs) throws EnqueueException {
+		EnqueueException ex = new EnqueueException();
+		msgs.parallel().filter(Streams.NOT_EMPTY_MAP).forEach(m -> {
+			Throwable e = connect.apply(m);
+			if (null == e) ex.success(1);
+			else ex.fail(m, e);
+		});
+		if (!ex.empty()) throw ex;
+		else return ex.success();
 	}
 
 	public String status() {
