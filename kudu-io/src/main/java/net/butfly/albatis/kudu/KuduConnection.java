@@ -26,8 +26,11 @@ import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albacore.utils.parallel.Concurrents;
 import net.butfly.albatis.io.Message;
 
-import net.butfly.albacore.io.URISpec;
-import net.butfly.albacore.utils.Configs;
+@SuppressWarnings("unchecked")
+public class KuduConnection extends NoSqlConnection<KuduClient> {
+	private static final Logger logger = Logger.getLogger(KuduConnection.class);
+	private final KuduSession session;
+	private Thread failHandler;
 
 	public KuduConnection(URISpec kuduUri, Map<String, String> props) throws IOException {
 		super(kuduUri, r -> new KuduClient.KuduClientBuilder(kuduUri.getHost()).build(), "kudu", "kudu");
@@ -104,11 +107,35 @@ import net.butfly.albacore.utils.Configs;
 		}
 	}
 
-	public void apply(Message m) throws IOException {
+	public Throwable apply(Message m) {
 		Operation op = op(m);
-		if (null == op) return;
-		OperationResponse or = session.apply(op);
-		if (or != null && or.hasRowError()) throw new IOException(or.getRowError().toString());
+		if (null != op) {
+			OperationResponse or;
+			try {
+				or = session.apply(op);
+			} catch (KuduException e) {
+				if (isNonRecoverable(e)) {
+					logger.error("Kudu apply fail non-recoverable", e);
+					return null;
+				} else return e;
+			}
+			if (or != null && or.hasRowError()) return new IOException(or.getRowError().toString());
+		}
+		return null;
+	}
+
+	private static final Class<? extends KuduException> c;
+	static {
+		Class<? extends KuduException> cc = null;
+		try {
+			cc = (Class<? extends KuduException>) Class.forName("org.apache.kudu.client.NonRecoverableException");
+		} catch (ClassNotFoundException e) {} finally {
+			c = cc;
+		}
+	}
+
+	public static boolean isNonRecoverable(KuduException e) {
+		return null != c && c.isAssignableFrom(e.getClass());
 	}
 
 	private Operation op(Message m) {
@@ -119,7 +146,7 @@ import net.butfly.albacore.utils.Configs;
 			for (ColumnSchema cs : t.getSchema().getColumns())
 				if (cs.isKey()) {
 					Delete del = t.newDelete();
-					del.getRow().addString(cs.getName().toUpperCase(), m.key());
+					del.getRow().addString(cs.getName(), m.key());
 					return del;
 				}
 			return null;
@@ -128,12 +155,11 @@ import net.butfly.albacore.utils.Configs;
 		case UPSERT:
 			Upsert ups = table(m.table()).newUpsert();
 			t.getSchema().getColumns().forEach(cs -> {
-				Object field = m.get(cs.getName().toUpperCase());
+				Object field = m.get(cs.getName());
 				if (null != field) KuduCommon.generateColumnData(cs.getType(), ups.getRow(), cs.getName(), field);
 			});
 			return ups;
 		}
 		return null;
 	}
-
 }

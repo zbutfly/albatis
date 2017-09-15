@@ -73,10 +73,15 @@ public class KuduOutput extends OddOutputBase<Message> {
 	}
 
 	@Override
-	protected boolean enqueue0(Message m) {
-		if (null == m || m.isEmpty()) return false;
-		connect.apply(op(m), (op, e) -> failed(Sdream.of1(m)));
-		return true;
+	public long enqueue(String table, Stream<Message> msgs) throws EnqueueException {
+		EnqueueException ex = new EnqueueException();
+		msgs.parallel().filter(Streams.NOT_EMPTY_MAP).forEach(m -> {
+			Throwable e = connect.apply(m);
+			if (null == e) ex.success(1);
+			else ex.fail(m, e);
+		});
+		if (!ex.empty()) throw ex;
+		else return ex.success();
 	}
 
 	public String status() {
