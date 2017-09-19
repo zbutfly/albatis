@@ -45,7 +45,7 @@ public class MongoConnection extends NoSqlConnection<MongoClient> {
 			}
 		} , "mongodb");
 		defaultDB = uri.getPathAt(0);
-		defaultCollection = uri.getFile();
+		defaultCollection = uri.getPathAt(1);
 		dbs = new ConcurrentHashMap<>();
 	}
 
@@ -66,6 +66,10 @@ public class MongoConnection extends NoSqlConnection<MongoClient> {
 	}
 
 	public DBCollection collection(String collection) {
+		if (!db().collectionExists(collection)) {
+			logger.debug("Mongodb collection create on [" + db().toString() + "] with name: " + collection);
+			db().createCollection(collection, dbobj());
+		}
 		return db().getCollection(collection);
 	}
 
