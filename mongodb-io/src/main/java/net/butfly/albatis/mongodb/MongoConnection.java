@@ -48,7 +48,7 @@ public class MongoConnection extends NoSqlConnection<MongoClient> {
 			}
 		} , "mongodb");
 		defaultDB = uri.getPathAt(0);
-		defaultCollection = uri.getFile();
+		defaultCollection = uri.getPathAt(1);
 		dbs = new ConcurrentHashMap<>();
 	}
 
@@ -72,13 +72,11 @@ public class MongoConnection extends NoSqlConnection<MongoClient> {
 	private final Map<String, DBCollection> COLS = Maps.of();
 
 	public DBCollection collection(String collection) {
-		return COLS.computeIfAbsent(collection, c -> {
-			if (!db().collectionExists(collection)) {
-				logger.info("Mongodb collection create on [" + db().toString() + "] with name: " + collection);
-				db().createCollection(collection, dbobj());
-			}
-			return db().getCollection(collection);
-		});
+		if (!db().collectionExists(collection)) {
+			logger.debug("Mongodb collection create on [" + db().toString() + "] with name: " + collection);
+			db().createCollection(collection, dbobj());
+		}
+		return db().getCollection(collection);
 	}
 
 	public boolean collectionExists(String collectionName) {
