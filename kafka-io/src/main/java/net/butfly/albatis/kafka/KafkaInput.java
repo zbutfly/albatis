@@ -109,7 +109,7 @@ public final class KafkaInput extends OddInput<Message> {
 				try {
 					if (null != (m = it.next())) break;
 				} catch (ConsumerTimeoutException ex) {
-					continue;
+					return null;
 				} catch (NoSuchElementException ex) {
 					return null;
 				} catch (Exception ex) {
