@@ -3,6 +3,7 @@ package net.butfly.albatis.mongodb;
 import static net.butfly.albacore.utils.parallel.Parals.eachs;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
@@ -42,7 +43,7 @@ public class MongoInput extends OddInput<Message> {
 		this.conn = conn;
 		logger.debug("[" + name + "] find begin...");
 		cursors = new LinkedBlockingQueue<>(tables.length);
-		eachs(Stream.of(tables), t -> {
+		Parals.run((Runnable[]) Arrays.asList(tables).parallelStream().map(t -> (Runnable) () -> {
 			try {
 				cursors.put(new Pair<>(t, conn.cursor(t).batchSize(conn.getBatchSize()).addOption(Bytes.QUERYOPTION_NOTIMEOUT)));
 			} catch (Exception e) {
@@ -67,7 +68,7 @@ public class MongoInput extends OddInput<Message> {
 		this.conn = conn;
 		logger.debug("[" + name + "] find begin...");
 		cursors = new LinkedBlockingQueue<>(tablesAndQueries.size());
-		eachs(tablesAndQueries.entrySet(), e -> {
+		Parals.run((Runnable[]) tablesAndQueries.entrySet().parallelStream().map(e -> (Runnable) () -> {
 			try {
 				cursors.put(new Pair<>(e.getKey(), conn.cursor(e.getKey(), e.getValue()).batchSize(conn.getBatchSize()).addOption(
 						Bytes.QUERYOPTION_NOTIMEOUT)));
