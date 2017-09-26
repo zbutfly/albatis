@@ -18,12 +18,10 @@ public interface OddInput<V> extends Input<V> {
 		private int est;
 		private final OddInput<V> input;
 
-		public SupSpliterator(OddInput<V> get, Supplier<Boolean> end, int limit) {
-			super();
-			this.est = limit;
-			this.input = get;
-			// this.end = end;
-		}
+	@Override
+	public final long dequeue(Function<Stream<V>, Long> using, int batchSize) {
+		return using.apply(Streams.of(this::dequeue, batchSize, () -> empty() && opened()));
+	}
 
 		@Override
 		public int characteristics() {
