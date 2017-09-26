@@ -1,6 +1,7 @@
 package net.butfly.albatis.kafka;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -42,7 +43,13 @@ public final class KafkaInput extends OddInput<Message> {
 	}
 
 	public KafkaInput(String name, URISpec kafkaURI, Function<byte[], Map<String, Object>> decoder) throws ConfigException, IOException {
-		this(name, kafkaURI, decoder, Texts.split(kafkaURI.getParameter("topic", ""), ",").toArray(new String[0]));
+		this(name, kafkaURI, decoder, topic(kafkaURI).toArray(new String[0]));
+	}
+
+	private static Collection<String> topic(URISpec kafkaURI) {
+		String topics = kafkaURI.getParameter("topic", kafkaURI.getFile());
+		if (null == topics) throw new RuntimeException("Kafka topic not defined, as File segment of uri or [topic=TOPIC1,TOPIC2,...]");
+		return Texts.split(topics, ",");
 	}
 
 	public KafkaInput(String name, URISpec uri, Function<byte[], Map<String, Object>> decoder, String... topics) throws ConfigException,
