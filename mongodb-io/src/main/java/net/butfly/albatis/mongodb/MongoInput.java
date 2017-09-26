@@ -3,9 +3,10 @@ package net.butfly.albatis.mongodb;
 import static net.butfly.albatis.mongodb.MongoConnection.dbobj;
 
 import java.io.IOException;
-import java.util.List;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import com.mongodb.Bytes;
@@ -29,53 +30,40 @@ public class MongoInput extends net.butfly.albacore.base.Namedly implements OddI
 
 	public MongoInput(String name, MongoConnection conn) throws IOException {
 		super(name);
+		if (null == tables) {
+			if (conn.defaultCollection() == null) throw new IOException("MongoDB could not input whith non or null table.");
+			tables = new String[] { conn.defaultCollection() };
+		}
+		logger.info("[" + name + "] from [" + conn.toString() + "], collection [" + Joiner.on(",").join(tables) + "]");
+		queryings = new AtomicInteger(tables.length);
 		this.conn = conn;
+		logger.debug("[" + name + "] find begin...");
+		cursors = new LinkedBlockingQueue<>(tables.length);
+		Parals.run((Runnable[]) Arrays.asList(tables).parallelStream().map(t -> (Runnable) () -> {
+			try {
+				cursors.put(new Pair<>(t, conn.cursor(t).batchSize(conn.getBatchSize()).addOption(Bytes.QUERYOPTION_NOTIMEOUT)));
+			} catch (Exception e) {
+				logger.error("MongoDB query [" + t + "]failed", e);
+			} finally {
+				queryings.decrementAndGet();
+			}
+		}).toArray(c -> new Runnable[c]));
 		closing(this::closeMongo);
 	}
 
-	@Override
-	public void open() {
-		OddInput.super.open();
-		if (cursors.isEmpty()) {
-			if (null != conn.defaultCollection()) table(conn.defaultCollection());
-			else throw new RuntimeException("No table defined for input.");
+	public MongoInput(String name, MongoConnection conn, Map<String, DBObject> tablesAndQueries) throws IOException {
+		super(name);
+		if (null == tablesAndQueries) {
+			if (conn.defaultCollection() == null) throw new IOException("MongoDB could not input whith non or null table.");
+			tablesAndQueries = new ConcurrentHashMap<>();
+			tablesAndQueries.put(conn.defaultCollection(), MongoConnection.dbobj());
 		}
-	}
-
-	@Override
-	public Statistic trace() {
-		return new Statistic(this).<DBObject> sizing(b -> (long) b.keySet().size()) //
-				.<DBObject> sampling(DBObject::toString).detailing(() -> "[Stats Field Count, not Bytes]");
-	}
-
-	public void table(String... tables) {
-		Map<String, DBObject> queries = Maps.of();
-		for (String t : tables)
-			queries.put(t, dbobj());
-		if (!queries.isEmpty()) table(queries);
-	}
-
-	public void table(String table, DBObject query) {
-		table(Maps.of(table, query));
-	}
-
-	public void table(Map<String, DBObject> tablesAndQueries) {
-		if (null == tablesAndQueries || tablesAndQueries.isEmpty()) return;
-		logger.info("[" + name + "] from [" + conn.uri().toString() + "], collection [" + tablesAndQueries.toString() + "]");
-		List<Runnable> queries = Colls.list();
-		for (String t : tablesAndQueries.keySet())
-			queries.add(() -> cursorsMap.computeIfAbsent(t, tt -> new Cursor(tt, tablesAndQueries.get(t))));
-		Exeter.of().join(queries.toArray(new Runnable[queries.size()]));
-	}
-
-	private class Cursor {
-		final String col;
-		final DBCursor cursor;
-
-		public Cursor(String col, DBObject q) {
-			super();
-			this.col = col;
-			DBCursor c;
+		logger.info("[" + name + "] from [" + conn.toString() + "], collection [" + tablesAndQueries.toString() + "]");
+		queryings = new AtomicInteger(tablesAndQueries.size());
+		this.conn = conn;
+		logger.debug("[" + name + "] find begin...");
+		cursors = new LinkedBlockingQueue<>(tablesAndQueries.size());
+		Parals.run((Runnable[]) tablesAndQueries.entrySet().parallelStream().map(e -> (Runnable) () -> {
 			try {
 				c = conn.cursor(col, q).batchSize(conn.getBatchSize()).addOption(Bytes.QUERYOPTION_NOTIMEOUT);
 				if (c.hasNext()) {
