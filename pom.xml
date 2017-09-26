@@ -20,7 +20,7 @@
 		<version.elastic>5.5.2</version.elastic>
 		<version.kudu>1.4.0</version.kudu>
 		<version.hbase>1.3.1</version.hbase>
-		<version.solr>6.6.0</version.solr>
+		<version.solr>6.6.1</version.solr>
 		<version.arangodb>4.2.2</version.arangodb>
 		<version.neo4j>1.4.1</version.neo4j>
 	</properties>
