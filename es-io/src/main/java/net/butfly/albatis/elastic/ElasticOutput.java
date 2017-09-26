@@ -28,10 +28,12 @@ import net.butfly.albacore.io.EnqueueException;
 import net.butfly.albacore.utils.Exceptions;
 import net.butfly.albacore.utils.Texts;
 import net.butfly.albacore.utils.collection.Streams;
+import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.io.Message;
 import net.butfly.albatis.io.Output;
 
 public final class ElasticOutput extends Namedly implements Output<Message> {
+	private static final Logger logger = Logger.getLogger(ElasticOutput.class);
 	public static final int SUGGEST_RETRY = 5;
 	public static final int SUGGEST_BATCH_SIZE = 1000;
 	private final ElasticConnection conn;
@@ -54,7 +56,10 @@ public final class ElasticOutput extends Namedly implements Output<Message> {
 	@Override
 	public final long enqueue(Stream<Message> msgs) throws EnqueueException {
 		ConcurrentMap<String, Message> origin = msgs.filter(Streams.NOT_NULL).collect(Collectors.toConcurrentMap(Message::key,
-				conn::fixTable));
+				conn::fixTable, (m1, m2) -> {
+					logger.debug(() -> "Duplicated key [" + m1.key() + "], \n\t" + m1.toString() + "\ncoverd\n\t" + m2.toString());
+					return m1;
+				}));
 		if (origin.isEmpty()) return 0;
 		int originSize = origin.size();
 		int retry = 0;

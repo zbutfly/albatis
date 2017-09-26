@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 import org.apache.kudu.ColumnSchema;
 import org.apache.kudu.client.Delete;
@@ -85,15 +86,12 @@ public class KuduConnection extends NoSqlConnection<KuduClient> {
 		return null != c && c.isAssignableFrom(e.getClass());
 	}
 
-	@Override
-	public boolean apply(Operation op, BiConsumer<Operation, Throwable> error) {
-		if (null == op) return false;
-		// opCount.incrementAndGet();
-		boolean r = true;
-		OperationResponse or = null;
-		try {
+	private static final Map<String, KuduTable> tables = new ConcurrentHashMap<>();
+
+	public KuduTable table(String table) {
+		return tables.computeIfAbsent(table, t -> {
 			try {
-				or = session.apply(op);
+				return client().openTable(t);
 			} catch (KuduException e) {
 				if (isNonRecoverable(e)) logger.error("Kudu apply fail non-recoverable: " + e.getMessage());
 				else error.accept(op, e);
@@ -107,6 +105,16 @@ public class KuduConnection extends NoSqlConnection<KuduClient> {
 		}
 	}
 
+	private static final Map<String, Map<String, ColumnSchema>> schemas = new ConcurrentHashMap<>();
+
+	private Map<String, ColumnSchema> schemas(String table) {
+		return schemas.computeIfAbsent(table, t -> {
+			Map<String, ColumnSchema> m = table(t).getSchema().getColumns().parallelStream().collect(Collectors.toConcurrentMap(c -> c
+					.getName(), c -> c));
+			return m;
+		});
+	}
+
 	public Throwable apply(Message m) {
 		Operation op = op(m);
 		if (null != op) {
@@ -115,7 +123,7 @@ public class KuduConnection extends NoSqlConnection<KuduClient> {
 				or = session.apply(op);
 			} catch (KuduException e) {
 				if (isNonRecoverable(e)) {
-					logger.error("Kudu apply fail non-recoverable", e);
+					logger.error("Kudu apply fail non-recoverable: " + e.getMessage());
 					return null;
 				} else return e;
 			}
@@ -140,10 +148,11 @@ public class KuduConnection extends NoSqlConnection<KuduClient> {
 
 	private Operation op(Message m) {
 		KuduTable t = table(m.table());
+		Map<String, ColumnSchema> cols = schemas(m.table());
 		if (null == t) return null;
 		switch (m.op()) {
 		case DELETE:
-			for (ColumnSchema cs : t.getSchema().getColumns())
+			for (ColumnSchema cs : cols.values())
 				if (cs.isKey()) {
 					Delete del = t.newDelete();
 					del.getRow().addString(cs.getName(), m.key());
@@ -154,12 +163,15 @@ public class KuduConnection extends NoSqlConnection<KuduClient> {
 		case UPDATE:
 		case UPSERT:
 			Upsert ups = table(m.table()).newUpsert();
-			t.getSchema().getColumns().forEach(cs -> {
-				Object field = m.get(cs.getName());
-				if (null != field) KuduCommon.generateColumnData(cs.getType(), ups.getRow(), cs.getName(), field);
-			});
+			m.entrySet().stream().forEach(e -> upsert(ups, cols, e.getKey(), e.getValue()));
 			return ups;
 		}
 		return null;
+	}
+
+	private void upsert(Upsert ups, Map<String, ColumnSchema> cols, String field, Object value) {
+		ColumnSchema c;
+		if (null != (c = cols.get(field.toLowerCase())))//
+			KuduCommon.generateColumnData(c.getType(), ups.getRow(), c.getName(), value);
 	}
 }
