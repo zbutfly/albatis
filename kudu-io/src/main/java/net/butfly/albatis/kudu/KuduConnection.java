@@ -93,12 +93,12 @@ public class KuduConnection extends NoSqlConnection<KuduClient> {
 
 	}
 
-	private static final Map<String, Map<String, ColumnSchema>> schemas = new ConcurrentHashMap<>();
+	private static final Map<String, Map<String, ColumnSchema>> SCHEMAS_CI = new ConcurrentHashMap<>();
 
 	private Map<String, ColumnSchema> schemas(String table) {
-		return schemas.computeIfAbsent(table, t -> {
-			Map<String, ColumnSchema> m = table(t).getSchema().getColumns().parallelStream().collect(Collectors.toConcurrentMap(c -> c
-					.getName(), c -> c));
+		return SCHEMAS_CI.computeIfAbsent(table, t -> {
+			Map<String, ColumnSchema> m = table(t).getSchema().getColumns().parallelStream()//
+					.collect(Collectors.toConcurrentMap(c -> c.getName().toLowerCase(), c -> c));
 			return m;
 		});
 	}
@@ -137,6 +137,7 @@ public class KuduConnection extends NoSqlConnection<KuduClient> {
 	private Operation op(Message m) {
 		KuduTable t = table(m.table());
 		Map<String, ColumnSchema> cols = schemas(m.table());
+		ColumnSchema c;
 		if (null == t) return null;
 		switch (m.op()) {
 		case DELETE:
@@ -151,15 +152,11 @@ public class KuduConnection extends NoSqlConnection<KuduClient> {
 		case UPDATE:
 		case UPSERT:
 			Upsert ups = table(m.table()).newUpsert();
-			m.entrySet().stream().forEach(e -> upsert(ups, cols, e.getKey(), e.getValue()));
+			for (String f : m.keySet())
+				if (null != (c = cols.get(f.toLowerCase())))//
+					KuduCommon.generateColumnData(c.getType(), ups.getRow(), c.getName(), m.get(f));
 			return ups;
 		}
 		return null;
-	}
-
-	private void upsert(Upsert ups, Map<String, ColumnSchema> cols, String field, Object value) {
-		ColumnSchema c;
-		if (null != (c = cols.get(field.toLowerCase())))//
-			KuduCommon.generateColumnData(c.getType(), ups.getRow(), c.getName(), value);
 	}
 }
