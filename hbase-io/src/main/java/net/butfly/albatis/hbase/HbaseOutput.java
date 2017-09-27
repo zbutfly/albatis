@@ -5,8 +5,8 @@ import static net.butfly.albacore.utils.collection.Colls.list;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Row;
@@ -18,7 +18,6 @@ import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Statistic;
 import net.butfly.albatis.io.Message;
 import net.butfly.albatis.io.Message.Op;
-import net.butfly.albatis.io.OutputBase;
 
 /**
  * Subject (embedded document serialized as BSON with prefixed column name) writer to hbase.
@@ -36,8 +35,8 @@ public final class HbaseOutput extends OutputBase<Message> {
 
 	@Override
 	public long enqueue(String table, Stream<Message> values) throws EnqueueException {
-		List<Pair<Message, ? extends Row>> l = values.parallel().filter(Streams.NOT_NULL).map(v -> new Pair<>(v, Hbases.Results.put(v)))
-				.filter(p -> null != p && null != p.v2()).collect(Collectors.toList());
+		List<Pair<Message, ? extends Row>> l = incs(table, values).stream().filter(Streams.NOT_NULL).map(v -> new Pair<>(v, Hbases.Results
+				.put(v))).filter(p -> null != p && null != p.v2()).collect(Collectors.toList());
 		if (l.isEmpty()) return 0;
 		List<Message> vs = l.stream().map(v -> v.v1()).collect(Collectors.toList());
 		List<? extends Row> puts = l.stream().map(v -> v.v2()).collect(Collectors.toList());
@@ -58,59 +57,34 @@ public final class HbaseOutput extends OutputBase<Message> {
 				}
 			});
 		} finally {
-			List<Message> failed = Colls.list();
-			int succs = 0;
-			for (int i = 0; i < results.length; i++) {
-				if (null == results[i]) // error
-					failed.add(origins.get(i));
-				else if (results[i] instanceof Result) succs++;
-				else logger().error("HbaseOutput unknown: [" + results[i].toString() + "], pending: " + opsPending.get() + "]");
-			}
-			if (!failed.isEmpty()) failed(Sdream.of(failed));
-			if (succs > 0) succeeded(succs);
+			for (int i = 0; i < results.length; i++)
+				if (results[i] instanceof Result) eex.success(1);
+				else eex.fail(vs.get(i), results[i] instanceof Throwable ? (Throwable) results[i]
+						: new RuntimeException("Unknown hbase return [" + results[i].getClass() + "]: " + results[i].toString()));
 		}
 	}
 
-	private void incs(String table, List<Message> msgs, List<Message> origins, List<Mutation> puts) {
-		Map<Object, List<Message>> incByKeys = Maps.of();
-		for (Message m : msgs)
-			switch (m.op()) {
-			case Op.INCREASE:
-				incByKeys.compute(m.key(), (k, l) -> {
-					if (null == l) l = list();
-					l.add(m);
-					return l;
-				});
-				break;
-			case Op.DELETE:
-				logger().error("Message marked as delete but ignore: " + m.toString());
-				break;
-			default:
-				Mutation r = Hbases.Results.op(m, hconn.conv::apply);
-				if (null != r) {
-					origins.add(m);
-					puts.add(r);
-				}
-			}
-
-		for (Entry<Object, List<Message>> e : incByKeys.entrySet()) {
-			Message merge = new Message(table, e.getKey()).op(Op.INCREASE);
+	private List<Message> incs(String table, Stream<Message> values) {
+		Map<Boolean, List<Message>> ms = values.parallel().filter(Streams.NOT_NULL).collect(Collectors.partitioningBy(m -> m
+				.op() == Op.INCREASE));
+		List<Message> alls = ms.remove(Boolean.FALSE);
+		Map<String, List<Message>> incByKeys = ms.get(Boolean.TRUE).parallelStream().collect(Collectors.groupingBy(m -> m.key()));
+		for (Map.Entry<String, List<Message>> e : incByKeys.entrySet()) {
+			Message merge = new Message(table, e.getKey());
 			for (Message m : e.getValue())
 				for (Map.Entry<String, Object> f : m.entrySet())
-					merge.compute(f.getKey(), (fn, v) -> lvalue(v) + lvalue(f.getValue()));
-			for (String k : merge.keySet())
-				if (((Long) merge.get(k)).longValue() <= 0) merge.remove(k);
-			if (!merge.isEmpty()) {
-				Mutation r = Hbases.Results.op(merge, hconn.conv::apply);
-				if (null != r) {
-					origins.add(merge);
-					puts.add(r);
-				}
-			}
+					merge.compute(f.getKey(), (fn, v) -> lvalue(v) + lvalue(e.getValue()));
+			alls.add(merge);
 		}
+		return alls;
 	}
 
 	private long lvalue(Object o) {
 		return null != o && Number.class.isAssignableFrom(o.getClass()) ? ((Number) o).longValue() : 0;
+	}
+
+	@Override
+	public String partition(Message v) {
+		return v.key();
 	}
 }
