@@ -28,7 +28,7 @@ import net.butfly.albatis.io.Message;
 import net.butfly.albatis.io.OddInput;
 import net.butfly.albatis.kafka.config.KafkaInputConfig;
 
-public final class KafkaInput extends OddInput<Message> {
+public class KafkaInput extends OddInput<Message> {
 	private final KafkaInputConfig config;
 	private final Map<String, Integer> allTopics = Maps.of();
 	private final ConsumerConnector connect;

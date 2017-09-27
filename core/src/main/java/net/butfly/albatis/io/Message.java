@@ -7,39 +7,26 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Function;
+import java.util.function.BiConsumer;
+import java.util.stream.Collectors;
 
 import net.butfly.albacore.utils.IOs;
 import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.collection.Maps;
+import net.butfly.albacore.utils.collection.Streams;
 
 public class Message extends ConcurrentHashMap<String, Object> {
 	private static final long serialVersionUID = 2316795812336748252L;
 	protected Object key;
 	protected String table;
-	protected @Op int op;
+	protected Op op;
 
-	public @interface Op {
-		static int UPSERT = 0;
-		static int INSERT = 1;
-		static int UPDATE = 2;
-		static int DELETE = 3;// DELETE must be 3
-		static int INCREASE = 4;
-		static final @Op int DEFAULT = Op.UPSERT;
-	}
+	public enum Op {
+		UPSERT, INSERT, UPDATE, DELETE, INCREASE; // DELETE must be 3
+		public static final Op DEFAULT_OP = Op.UPSERT;
 
-	public static String opname(@Op int op) {
-		switch (op) {
-		case Op.UPSERT:
-			return "UPSERT";
-		case Op.INSERT:
-			return "INSERT";
-		case Op.UPDATE:
-			return "UPDATE";
-		case Op.DELETE:
-			return "DELETE";
-		case Op.INCREASE:
-			return "INCREASE";
+		public static Op parse(int op) {
+			return Op.values()[op];
 		}
 		return null;
 	}
@@ -158,5 +145,12 @@ public class Message extends ConcurrentHashMap<String, Object> {
 		clear();
 		putAll(map);
 		return this;
+	}
+
+	public void each(BiConsumer<String, Object> using) {
+		assert 0 == entrySet().parallelStream().map(e -> {
+			using.accept(e.getKey(), e.getValue());
+			return null;
+		}).filter(Streams.NOT_NULL).collect(Collectors.counting());
 	}
 }

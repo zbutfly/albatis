@@ -8,14 +8,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.function.Function;
 
-import org.apache.hadoop.hbase.client.Append;
-import org.apache.hadoop.hbase.client.Delete;
-import org.apache.hadoop.hbase.client.Increment;
-import org.apache.hadoop.hbase.client.Mutation;
-import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.Table;
-import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.client.Row;
 
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.Exceptions;
@@ -41,56 +35,14 @@ public final class HbaseOutput extends OutputBase<Message> {
 	}
 
 	@Override
-	public Statistic trace() {
-		return new Statistic(this).sizing(Mutation::heapSize).detailing(() -> "Pengding ops: " + opsPending.get())//
-				.<Mutation> sampling(r -> Bytes.toString(r.getRow()));
-	}
-
-	@Override
-	protected void enqueue0(Sdream<Message> msgs) {
-		Map<String, List<Message>> map = Maps.of();
-		msgs.eachs(m -> {
-			map.compute(m.table(), (core, cores) -> {
-				if (null == m.key()) return cores;
-				if (null == cores) cores = Colls.list();
-				cores.add(m);
-				return cores;
-			});
-		});
-		for (String table : map.keySet()) {
-			List<Message> l = map.get(table);
-			if (l.isEmpty()) continue;
-			if (1 == l.size()) enq1(table, Hbases.Results.op(l.get(0), hconn.conv::apply), l.get(0));
-			else enq(table, l);
-		}
-	}
-
-	protected void enq1(String table, Mutation op, Message origin) {
-		Table t = hconn.table(table);
-		s().statsOut(op, o -> {
-			try {
-				if (op instanceof Put) t.put((Put) op);
-				else if (op instanceof Delete) t.delete((Delete) op);
-				else if (op instanceof Increment) t.increment((Increment) op);
-				else if (op instanceof Append) t.append((Append) op);
-				succeeded(1);
-			} catch (IOException e) {
-				failed(Sdream.of1(origin));
-			}
-		});
-	}
-
-	protected void enq(String table, List<Message> msgs) {
-		List<Message> origins = Colls.list();
-		List<Mutation> puts = Colls.list();
-		incs(table, msgs, origins, puts);
-
-		if (1 == puts.size()) enq1(origins.get(0).table(), puts.get(0), origins.get(0));
-		else enqs(table, origins, puts);
-	}
-
-	protected void enqs(String table, List<Message> origins, List<Mutation> enqs) {
-		Object[] results = new Object[enqs.size()];
+	public long enqueue(String table, Stream<Message> values) throws EnqueueException {
+		List<Pair<Message, ? extends Row>> l = values.parallel().filter(Streams.NOT_NULL).map(v -> new Pair<>(v, Hbases.Results.put(v)))
+				.filter(p -> null != p && null != p.v2()).collect(Collectors.toList());
+		if (l.isEmpty()) return 0;
+		List<Message> vs = l.stream().map(v -> v.v1()).collect(Collectors.toList());
+		List<? extends Row> puts = l.stream().map(v -> v.v2()).collect(Collectors.toList());
+		Object[] results = new Object[puts.size()];
+		EnqueueException eex = new EnqueueException();
 		try {
 			s().statsOuts(enqs, c -> {
 				try {
