@@ -135,9 +135,9 @@ public class Message extends ConcurrentHashMap<String, Object> {
 	}
 
 	public void each(BiConsumer<String, Object> using) {
-		Streams.map(entrySet(), e -> {
+		assert 0 == entrySet().parallelStream().map(e -> {
 			using.accept(e.getKey(), e.getValue());
 			return null;
-		}, Collectors.counting());
+		}).filter(Streams.NOT_NULL).collect(Collectors.counting());
 	}
 }

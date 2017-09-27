@@ -14,7 +14,6 @@ import java.util.stream.Stream;
 
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Row;
-import org.apache.hadoop.hbase.util.Bytes;
 
 import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.utils.Exceptions;
@@ -34,17 +33,14 @@ public final class HbaseOutput extends Namedly implements KeyOutput<String, Mess
 	}
 
 	@Override
-	public void enqueue(String table, Stream<Message> msgs) {
-		Map<String, Message> map = new ConcurrentHashMap<>();
-		List<Pair<Message, ? extends Row>> l = map(incs(table, msgs), m -> new Pair<>(m, Hbases.Results.put(m)), p -> {
-			boolean b = null != p && null != p.v2();
-			if (b) map.put(Bytes.toString(p.v2().getRow()), p.v1());
-			return b;
-		}, Collectors.toList());
-		if (l.isEmpty()) return;
-		List<Message> vs = map(l, v -> v.v1(), Collectors.toList());
-		List<? extends Row> puts = map(l, v -> v.v2(), Collectors.toList());
-		Object[] results = new Object[l.size()];
+	public long enqueue(String table, Stream<Message> values) throws EnqueueException {
+		List<Pair<Message, ? extends Row>> l = values.parallel().filter(Streams.NOT_NULL).map(v -> new Pair<>(v, Hbases.Results.put(v)))
+				.filter(p -> null != p && null != p.v2()).collect(Collectors.toList());
+		if (l.isEmpty()) return 0;
+		List<Message> vs = l.stream().map(v -> v.v1()).collect(Collectors.toList());
+		List<? extends Row> puts = l.stream().map(v -> v.v2()).collect(Collectors.toList());
+		Object[] results = new Object[puts.size()];
+		EnqueueException eex = new EnqueueException();
 		try {
 			hconn.table(table).batchCallback(puts, results, (region, row, result) -> {
 				if (result instanceof Result) succeeded(1);
