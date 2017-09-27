@@ -27,8 +27,10 @@ import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.KeyValue.Type;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
+import org.apache.hadoop.hbase.client.Increment;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.Row;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import net.butfly.albacore.utils.IOs;
@@ -106,16 +108,6 @@ public final class Hbases extends Utils {
 						.cloneQualifier(c)), c -> CellUtil.cloneValue(c)));
 	}
 
-	public static Stream<Cell> cells(Message map) {
-		byte[] row = Bytes.toBytes(map.key());
-		return map.isEmpty() ? Stream.empty() : map.entrySet().stream().map(e -> {
-			byte[] v = (byte[]) e.getValue();
-			if (null == v || v.length == 0) return null;
-			byte[][] fq = Results.parseFQ(e.getKey());
-			return CellUtil.createCell(row, fq[0], fq[1], HConstants.LATEST_TIMESTAMP, Type.Put.getCode(), v);
-		}).filter(c -> null != c);
-	}
-
 	public static interface Results {
 		static byte[][] parseFQ(String name) {
 			String[] fq = name.split(":", 2);
@@ -157,20 +149,39 @@ public final class Hbases extends Utils {
 			return new Message(table, row, map);
 		}
 
-		static Put put(Message result) {
-			if (result.isEmpty()) return null;
-			String row = result.key();
+		static Row put(Message m) {
+			if (m.isEmpty()) return null;
+			String row = m.key();
 			if (row == null || row.isEmpty()) return null;
-			Put put = new Put(Bytes.toBytes(row));
-			Hbases.cells(result).forEach(c -> {
-				try {
-					put.add(c);
-				} catch (Exception e) {
-					logger.warn("Hbase cell converting failure, ignored and continued, row: " + row + ", cell: " + Bytes.toString(CellUtil
-							.cloneFamily(c)) + ":" + Bytes.toString(CellUtil.cloneQualifier(c)), e);
-				}
-			});
-			return put;
+			byte[] rowk = Bytes.toBytes(row);
+			switch (m.op()) {
+			case INSERT:
+			case UPSERT:
+				Put put = new Put(rowk);
+				m.each((k, v) -> {
+					byte[] data = (byte[]) v;
+					if (null == data || data.length == 0) return;
+					byte[][] fq = Results.parseFQ(k);
+					Cell c = CellUtil.createCell(rowk, fq[0], fq[1], HConstants.LATEST_TIMESTAMP, Type.Put.getCode(), data);
+					try {
+						put.add(c);
+					} catch (Exception ee) {
+						logger.warn("Hbase cell converting failure, ignored and continued, row: " + row + ", cell: " + Bytes.toString(
+								CellUtil.cloneFamily(c)) + ":" + Bytes.toString(CellUtil.cloneQualifier(c)), ee);
+					}
+				});
+				return put;
+			case INCREASE:
+				Increment inc = new Increment(rowk);
+				m.each((k, v) -> {
+					byte[][] fq = Results.parseFQ(k);
+					inc.addColumn(fq[0], fq[1], null == v ? 1 : ((Long) v).longValue());
+				});
+				return inc;
+			default:
+				logger.warn("Op not support: " + m.toString());
+				return null;
+			}
 		}
 	}
 

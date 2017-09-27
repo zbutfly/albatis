@@ -8,11 +8,14 @@ import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiConsumer;
+import java.util.stream.Collectors;
 
 import net.butfly.albacore.serder.BsonSerder;
 import net.butfly.albacore.utils.IOs;
 import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.collection.Maps;
+import net.butfly.albacore.utils.collection.Streams;
 
 public class Message extends ConcurrentHashMap<String, Object> {
 	private static final long serialVersionUID = 2316795812336748252L;
@@ -21,7 +24,7 @@ public class Message extends ConcurrentHashMap<String, Object> {
 	protected Op op;
 
 	public enum Op {
-		UPSERT, INSERT, UPDATE, DELETE; // DELETE must be 3
+		UPSERT, INSERT, UPDATE, DELETE, INCREASE; // DELETE must be 3
 		public static final Op DEFAULT_OP = Op.UPSERT;
 
 		public static Op parse(int op) {
@@ -124,5 +127,12 @@ public class Message extends ConcurrentHashMap<String, Object> {
 
 	public Map<String, Object> map() {
 		return new HashMap<>(this);
+	}
+
+	public void each(BiConsumer<String, Object> using) {
+		assert 0 == entrySet().parallelStream().map(e -> {
+			using.accept(e.getKey(), e.getValue());
+			return null;
+		}).filter(Streams.NOT_NULL).collect(Collectors.counting());
 	}
 }
