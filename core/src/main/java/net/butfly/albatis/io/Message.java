@@ -130,10 +130,9 @@ public class Message extends ConcurrentHashMap<String, Object> {
 	}
 
 	public void each(BiConsumer<String, Object> using) {
-		long c = entrySet().parallelStream().map(e -> {
+		assert 0 == entrySet().parallelStream().map(e -> {
 			using.accept(e.getKey(), e.getValue());
 			return null;
 		}).filter(Streams.NOT_NULL).collect(Collectors.counting());
-		assert c == 0;
 	}
 }
