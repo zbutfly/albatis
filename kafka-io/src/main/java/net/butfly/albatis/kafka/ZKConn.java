@@ -53,10 +53,10 @@ public class ZKConn implements AutoCloseable {
 			byte[] b = zk.getData(path, false, null);
 			return null == b ? null : new String(b);
 		} catch (KeeperException e) {
-			logger.error("ZK failure", e);
+			logger.error("ZK failure: " + e.getMessage());
 			return null;
 		} catch (InterruptedException e) {
-			logger.error("Kafka connecting [" + zk.toString() + "] path [" + path + "] interrupted.", e);
+			logger.error("Kafka connecting [" + zk.toString() + "] path [" + path + "] interrupted." + e.getMessage());
 			return null;
 		}
 	}
@@ -113,6 +113,7 @@ public class ZKConn implements AutoCloseable {
 
 	public long getLag(String topic, String group) {
 		SimpleConsumer c = getLeaderConsumer(topic, group);
+		if (null == c) return -1;
 		try {
 			return IntStream.of(getTopicPartitions(topic).get(topic)).mapToLong(p -> getLag(c, topic, group, p)).sum();
 		} finally {
@@ -157,7 +158,9 @@ public class ZKConn implements AutoCloseable {
 	}
 
 	private SimpleConsumer getLeaderConsumer(String topic, String group) {
-		int leader = ((Integer) fetchMap("/brokers/topics/" + topic + "/partitions/0/state").get("leader")).intValue();
+		Map<String, Object> m = fetchMap("/brokers/topics/" + topic + "/partitions/0/state");
+		if (null == m) return null;
+		int leader = ((Integer) m.get("leader")).intValue();
 		Pair<String, Integer> addr = getBorkerAddr(leader);
 		return new SimpleConsumer(addr.v1(), addr.v2(), 500, 64 * 1024, group);
 	}
