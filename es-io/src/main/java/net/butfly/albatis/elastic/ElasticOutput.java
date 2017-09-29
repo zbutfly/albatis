@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -26,6 +27,7 @@ import net.butfly.albacore.utils.Exceptions;
 import net.butfly.albacore.utils.Texts;
 import net.butfly.albacore.utils.collection.Streams;
 import net.butfly.albacore.utils.logger.Logger;
+import net.butfly.albacore.utils.parallel.Concurrents;
 import net.butfly.albatis.io.Message;
 import net.butfly.albatis.io.Output;
 
@@ -54,7 +56,7 @@ public final class ElasticOutput extends Namedly implements Output<Message> {
 	public final long enqueue(Stream<Message> msgs) throws EnqueueException {
 		ConcurrentMap<String, Message> origin = msgs.filter(Streams.NOT_NULL).collect(Collectors.toConcurrentMap(Message::key,
 				conn::fixTable, (m1, m2) -> {
-					logger.debug(() -> "Duplicated key [" + m1.key() + "], \n\t" + m1.toString() + "\ncoverd\n\t" + m2.toString());
+					logger.trace(() -> "Duplicated key [" + m1.key() + "], \n\t" + m1.toString() + "\ncoverd\n\t" + m2.toString());
 					return m1;
 				}));
 		if (origin.isEmpty()) return 0;
@@ -68,6 +70,7 @@ public final class ElasticOutput extends Namedly implements Output<Message> {
 			long bytes = logger().isTraceEnabled() ? req.estimatedSizeInBytes() : 0;
 			long now = System.currentTimeMillis();
 			int currentRetry = retry;
+			AtomicBoolean finished = new AtomicBoolean(false);
 			try {
 				conn.client().bulk(req, new ActionListener<BulkResponse>() {
 					@Override
@@ -87,49 +90,59 @@ public final class ElasticOutput extends Namedly implements Output<Message> {
 							// process failing and retry...
 							Map<Boolean, List<BulkItemResponse>> failOrRetry = of(failResps).collect(Collectors.partitioningBy(
 									ElasticOutput.this::failed));
-							failOrRetry.get(Boolean.TRUE).forEach(r -> {
+							failOrRetry.get(Boolean.FALSE).forEach(r -> {
 								Message m = origin.remove(r.getId());
 								Exception cause = r.getFailure().getCause();
 								if (null != m) eex.fail(m, cause);
-								else logger().debug("Message [" + r.getId() + "] could not failover for [" + cause.getMessage()
+								else logger().debug("Message [" + r.getId() + "] not found in origin, but failed for [" + cause.toString()
 										+ "], maybe processed or lost");
 							});
 							Set<String> failIds = collect(failOrRetry.get(Boolean.TRUE), r -> r.getFailure().getId(), Collectors.toSet());
-							if (logger().isDebugEnabled()) //
+							if (logger().isTraceEnabled()) //
 								failOrRetry.get(Boolean.TRUE).forEach(r -> logger().warn("Writing failed id [" + r.getId() + "] for: "
-										+ unwrap(r.getFailure().getCause()).getMessage()));
+										+ unwrap(r.getFailure().getCause()).toString()));
 
 							// process and stats success...
 							result = new Result(succResps.size(), failIds.size(), sample);
 						}
-						if (failResps.isEmpty()) return;
-						// process success: remove from origin
-						succResps.forEach(succ -> origin.remove(succ.getId()));
-						// process failing and retry...
-						Map<Boolean, List<BulkItemResponse>> failOrRetry = of(failResps).collect(Collectors.partitioningBy(r -> noRetry(r
-								.getFailure().getCause())));
-						failed(failOrRetry.get(Boolean.FALSE).parallelStream().map(r -> origin.remove(r.getId())));
-						if (logger().isTraceEnabled()) //
-							logger.warn(() -> "Some fails: \n" + failOrRetry.get(Boolean.TRUE).parallelStream().map(r -> "\tfailed id [" + r
-									.getFailure().getId() + "] for: " + unwrap(r.getFailure().getCause()).toString()).collect(Collectors
-											.joining("\n")));
+						if (result != null && logger().isTraceEnabled()) result.trace(origin.size(), bytes, currentRetry, origin.size(),
+								System.currentTimeMillis() - now);
+						finished.set(true);
 					}
 
 					@Override
 					public void onFailure(Exception e) {
 						Throwable t = Exceptions.unwrap(e);
-						if (noRetry(t)) logger().warn("Elastic connection op failed [" + t + "], [" + origin.size() + "] fails", t);
-						else failed(origin.values().parallelStream());
+						if (failed(t)) logger().warn("Elastic connection op failed [" + t + "], [" + origin.size() + "] fails", t);
+						else eex.fails(origin.values());
+						finished.set(true);
 					}
 				});
+				while (!finished.get())
+					Concurrents.waitSleep(100);
+
 			} catch (IllegalStateException ex) {
 				logger().error("Elastic client fail: [" + ex.toString() + "]");
-				// failed(origin.values().parallelStream());
+				eex.fails(origin.values());
 			}
 		}
 	}
 
 	private boolean noRetry(Throwable cause) {
+		while (RemoteTransportException.class.isAssignableFrom(cause.getClass()) && cause.getCause() != null)
+			cause = cause.getCause();
+		if (MapperException.class.isAssignableFrom(cause.getClass())) logger().error("ES mapper exception", cause);
+		return EsRejectedExecutionException.class.isAssignableFrom(cause.getClass())//
+				// || VersionConflictEngineException.class.isAssignableFrom(c)
+				|| MapperException.class.isAssignableFrom(cause.getClass());
+	}
+
+	private boolean failed(BulkItemResponse r) {
+		Throwable cause = r.getFailure().getCause();
+		return failed(cause);
+	}
+
+	private boolean failed(Throwable cause) {
 		while (RemoteTransportException.class.isAssignableFrom(cause.getClass()) && cause.getCause() != null)
 			cause = cause.getCause();
 		if (MapperException.class.isAssignableFrom(cause.getClass())) logger().error("ES mapper exception", cause);
