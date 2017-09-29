@@ -153,7 +153,8 @@ public class KuduConnection extends NoSqlConnection<KuduClient> {
 				if (null != (c = cols.get(f.toLowerCase())))//
 					KuduCommon.generateColumnData(c.getType(), ups.getRow(), c.getName(), m.get(f));
 			return ups;
+		default:
+			return null;
 		}
-		return null;
 	}
 }

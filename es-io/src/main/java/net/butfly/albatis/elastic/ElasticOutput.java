@@ -9,7 +9,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -24,10 +23,8 @@ import org.elasticsearch.transport.RemoteTransportException;
 
 import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.utils.Exceptions;
-import net.butfly.albacore.utils.Texts;
 import net.butfly.albacore.utils.collection.Streams;
 import net.butfly.albacore.utils.logger.Logger;
-import net.butfly.albacore.utils.parallel.Concurrents;
 import net.butfly.albatis.io.Message;
 import net.butfly.albatis.io.Output;
 
@@ -53,24 +50,19 @@ public final class ElasticOutput extends Namedly implements Output<Message> {
 	}
 
 	@Override
-	public final long enqueue(Stream<Message> msgs) throws EnqueueException {
+	public final void enqueue(Stream<Message> msgs) {
 		ConcurrentMap<String, Message> origin = msgs.filter(Streams.NOT_NULL).collect(Collectors.toConcurrentMap(Message::key,
 				conn::fixTable, (m1, m2) -> {
 					logger.trace(() -> "Duplicated key [" + m1.key() + "], \n\t" + m1.toString() + "\ncoverd\n\t" + m2.toString());
 					return m1;
 				}));
-		if (origin.isEmpty()) return 0;
-		int originSize = origin.size();
+		if (origin.isEmpty()) return;
 		int retry = 0;
 		while (!origin.isEmpty() && retry++ <= maxRetry) {
 			@SuppressWarnings("rawtypes")
 			List<DocWriteRequest> reqs = list(origin.values(), Elastics::forWrite);
-			if (reqs.isEmpty()) return 0;
+			if (reqs.isEmpty()) return;
 			BulkRequest req = new BulkRequest().add(reqs);
-			long bytes = logger().isTraceEnabled() ? req.estimatedSizeInBytes() : 0;
-			long now = System.currentTimeMillis();
-			int currentRetry = retry;
-			AtomicBoolean finished = new AtomicBoolean(false);
 			try {
 				conn.client().bulk(req, new ActionListener<BulkResponse>() {
 					@Override
@@ -78,52 +70,34 @@ public final class ElasticOutput extends Namedly implements Output<Message> {
 						Map<Boolean, List<BulkItemResponse>> resps = collect(response, Collectors.partitioningBy(r -> r.isFailed()));
 						List<BulkItemResponse> succResps = resps.get(Boolean.FALSE);
 						List<BulkItemResponse> failResps = resps.get(Boolean.TRUE);
-						String sample = succResps.isEmpty() ? null : succResps.get(0).getId();
-						Result result = null;
-						eex.success(succResps.size());
-						if (failResps.isEmpty()) {//
-							origin.clear();
-							result = new Result(succResps.size(), 0, sample);
-						} else {
-							// process success: remove from origin
-							succResps.forEach(succ -> origin.remove(succ.getId()));
-							// process failing and retry...
-							Map<Boolean, List<BulkItemResponse>> failOrRetry = of(failResps).collect(Collectors.partitioningBy(
-									ElasticOutput.this::failed));
-							failOrRetry.get(Boolean.FALSE).forEach(r -> {
-								Message m = origin.remove(r.getId());
-								Exception cause = r.getFailure().getCause();
-								if (null != m) eex.fail(m, cause);
-								else logger().debug("Message [" + r.getId() + "] not found in origin, but failed for [" + cause.toString()
-										+ "], maybe processed or lost");
-							});
-							Set<String> failIds = collect(failOrRetry.get(Boolean.TRUE), r -> r.getFailure().getId(), Collectors.toSet());
-							if (logger().isTraceEnabled()) //
-								failOrRetry.get(Boolean.TRUE).forEach(r -> logger().warn("Writing failed id [" + r.getId() + "] for: "
-										+ unwrap(r.getFailure().getCause()).toString()));
-
-							// process and stats success...
-							result = new Result(succResps.size(), failIds.size(), sample);
+						if (!succResps.isEmpty()) {
+							logger.trace(() -> "Elastic enqueue succeed [" + req.estimatedSizeInBytes() + " bytes], sample id: " + succResps
+									.get(0).getId());
+							succeeded(succResps.size());
 						}
-						if (result != null && logger().isTraceEnabled()) result.trace(origin.size(), bytes, currentRetry, origin.size(),
-								System.currentTimeMillis() - now);
-						finished.set(true);
+						if (failResps.isEmpty()) return;
+						// process success: remove from origin
+						succResps.forEach(succ -> origin.remove(succ.getId()));
+						// process failing and retry...
+						Map<Boolean, List<BulkItemResponse>> failOrRetry = of(failResps).collect(Collectors.partitioningBy(r -> noRetry(r
+								.getFailure().getCause())));
+						failed(failOrRetry.get(Boolean.FALSE).parallelStream().map(r -> origin.remove(r.getId())));
+						if (logger().isTraceEnabled()) //
+							logger.warn(() -> "Some fails: \n" + failOrRetry.get(Boolean.TRUE).parallelStream().map(r -> "\tfailed id [" + r
+									.getFailure().getId() + "] for: " + unwrap(r.getFailure().getCause()).toString()).collect(Collectors
+											.joining("\n")));
 					}
 
 					@Override
 					public void onFailure(Exception e) {
 						Throwable t = Exceptions.unwrap(e);
-						if (failed(t)) logger().warn("Elastic connection op failed [" + t + "], [" + origin.size() + "] fails", t);
-						else eex.fails(origin.values());
-						finished.set(true);
+						if (noRetry(t)) logger().warn("Elastic connection op failed [" + t + "], [" + origin.size() + "] fails", t);
+						else failed(origin.values().parallelStream());
 					}
 				});
-				while (!finished.get())
-					Concurrents.waitSleep(100);
-
 			} catch (IllegalStateException ex) {
 				logger().error("Elastic client fail: [" + ex.toString() + "]");
-				eex.fails(origin.values());
+				failed(origin.values().parallelStream());
 			}
 		}
 	}

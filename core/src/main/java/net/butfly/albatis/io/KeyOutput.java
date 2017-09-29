@@ -16,11 +16,9 @@ public interface KeyOutput<K, V> extends Output<V> {
 	void enqueue(K key, Stream<V> v);
 
 	@Override
-	public default long enqueue(Stream<V> s) throws EnqueueException {
+	public default void enqueue(Stream<V> s) {
 		Set<Entry<K, List<V>>> m = s.filter(Streams.NOT_NULL).collect(Collectors.groupingBy(v -> partition(v))).entrySet();
-		AtomicLong c = new AtomicLong();
-		Parals.eachs(m, e -> c.addAndGet(enqueue(e.getKey(), Streams.of(e.getValue()))));
-		return c.get();
+		Parals.eachs(m, e -> enqueue(e.getKey(), Streams.of(e.getValue())));
 	}
 
 	@Override
@@ -64,13 +62,8 @@ public interface KeyOutput<K, V> extends Output<V> {
 		}
 
 		@Override
-		public long enqueue(K key, Stream<V> v) throws EnqueueException {
-			try {
-				return ((KeyOutput<K, V>) base).enqueue(key, v);
-			} catch (EnqueueException ex) {
-				pool.enqueue(of(ex.fails()));
-				return ex.success();
-			}
+		public void enqueue(K key, Stream<V> v) {
+			((KeyOutput<K, V>) base).enqueue(key, v);
 		}
 	}
 }
