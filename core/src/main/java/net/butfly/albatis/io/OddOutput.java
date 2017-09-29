@@ -22,6 +22,10 @@ public abstract class OddOutput<V> extends Namedly implements Output<V> {
 	@Override
 	public final void enqueue(Stream<V> items) {
 		if (!Concurrents.waitSleep(() -> full())) return;
-		succeeded(map(items, t -> enqueue(t) ? 1 : 0, Collectors.summingLong(l -> l)));
+		AtomicLong c = new AtomicLong(0);
+		Streams.of(items).forEach(t -> {
+			if (enqueue(t)) c.incrementAndGet();
+		});
+		succeeded(c.get());
 	}
 }

@@ -47,7 +47,7 @@ public final class MongoOutput extends Namedly implements Output<Message> {
 
 	@Override
 	public void enqueue(Stream<Message> msgs) {
-		succeeded(upsert ? map(msgs, m -> collection.save(MongoConnection.dbobj(m)).getN(), Collectors.counting())
+		succeeded(upsert ? msgs.parallel().map(m -> collection.save(MongoConnection.dbobj(m)).getN()).collect(Collectors.counting())
 				: collection.insert(list(msgs, MongoConnection::dbobj)).getN());
 	}
 }

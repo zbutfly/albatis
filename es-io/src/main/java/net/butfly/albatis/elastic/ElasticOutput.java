@@ -8,9 +8,7 @@ import static net.butfly.albacore.utils.collection.Streams.of;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -24,12 +22,9 @@ import org.elasticsearch.index.mapper.MapperException;
 import org.elasticsearch.transport.RemoteTransportException;
 
 import net.butfly.albacore.base.Namedly;
-import net.butfly.albacore.io.EnqueueException;
 import net.butfly.albacore.utils.Exceptions;
-import net.butfly.albacore.utils.Texts;
 import net.butfly.albacore.utils.collection.Streams;
 import net.butfly.albacore.utils.logger.Logger;
-import net.butfly.albacore.utils.parallel.Concurrents;
 import net.butfly.albatis.io.Message;
 import net.butfly.albatis.io.Output;
 
@@ -55,25 +50,19 @@ public final class ElasticOutput extends Namedly implements Output<Message> {
 	}
 
 	@Override
-	public final long enqueue(Stream<Message> msgs) throws EnqueueException {
+	public final void enqueue(Stream<Message> msgs) {
 		ConcurrentMap<String, Message> origin = msgs.filter(Streams.NOT_NULL).collect(Collectors.toConcurrentMap(Message::key,
 				conn::fixTable, (m1, m2) -> {
 					logger.trace(() -> "Duplicated key [" + m1.key() + "], \n\t" + m1.toString() + "\ncoverd\n\t" + m2.toString());
 					return m1;
 				}));
-		if (origin.isEmpty()) return 0;
-		int originSize = origin.size();
+		if (origin.isEmpty()) return;
 		int retry = 0;
-		EnqueueException eex = new EnqueueException();
 		while (!origin.isEmpty() && retry++ <= maxRetry) {
 			@SuppressWarnings("rawtypes")
 			List<DocWriteRequest> reqs = list(origin.values(), Elastics::forWrite);
-			if (reqs.isEmpty()) return 0;
+			if (reqs.isEmpty()) return;
 			BulkRequest req = new BulkRequest().add(reqs);
-			long bytes = logger().isTraceEnabled() ? req.estimatedSizeInBytes() : 0;
-			long now = System.currentTimeMillis();
-			int currentRetry = retry;
-			AtomicBoolean finished = new AtomicBoolean(false);
 			try {
 				conn.client().bulk(req, new ActionListener<BulkResponse>() {
 					@Override
@@ -81,87 +70,39 @@ public final class ElasticOutput extends Namedly implements Output<Message> {
 						Map<Boolean, List<BulkItemResponse>> resps = collect(response, Collectors.partitioningBy(r -> r.isFailed()));
 						List<BulkItemResponse> succResps = resps.get(Boolean.FALSE);
 						List<BulkItemResponse> failResps = resps.get(Boolean.TRUE);
-						String sample = succResps.isEmpty() ? null : succResps.get(0).getId();
-						Result result = null;
-						eex.success(succResps.size());
-						if (failResps.isEmpty()) {//
-							origin.clear();
-							result = new Result(succResps.size(), 0, sample);
-						} else {
-							// process success: remove from origin
-							succResps.forEach(succ -> origin.remove(succ.getId()));
-							// process failing and retry...
-							Map<Boolean, List<BulkItemResponse>> failOrRetry = of(failResps).collect(Collectors.partitioningBy(
-									ElasticOutput.this::failed));
-							failOrRetry.get(Boolean.FALSE).forEach(r -> {
-								Message m = origin.remove(r.getId());
-								Exception cause = r.getFailure().getCause();
-								if (null != m) eex.fail(m, cause);
-								else logger().debug("Message [" + r.getId() + "] not found in origin, but failed for [" + cause.toString()
-										+ "], maybe processed or lost");
-							});
-							Set<String> failIds = collect(failOrRetry.get(Boolean.TRUE), r -> r.getFailure().getId(), Collectors.toSet());
-							if (logger().isTraceEnabled()) //
-								failOrRetry.get(Boolean.TRUE).forEach(r -> logger().warn("Writing failed id [" + r.getId() + "] for: "
-										+ unwrap(r.getFailure().getCause()).toString()));
-
-							// process and stats success...
-							result = new Result(succResps.size(), failIds.size(), sample);
+						if (!succResps.isEmpty()) {
+							logger.trace(() -> "Elastic enqueue succeed [" + req.estimatedSizeInBytes() + " bytes], sample id: " + succResps
+									.get(0).getId());
+							succeeded(succResps.size());
 						}
-						if (result != null && logger().isTraceEnabled()) result.trace(origin.size(), bytes, currentRetry, origin.size(),
-								System.currentTimeMillis() - now);
-						finished.set(true);
+						if (failResps.isEmpty()) return;
+						// process success: remove from origin
+						succResps.forEach(succ -> origin.remove(succ.getId()));
+						// process failing and retry...
+						Map<Boolean, List<BulkItemResponse>> failOrRetry = of(failResps).collect(Collectors.partitioningBy(r -> noRetry(r
+								.getFailure().getCause())));
+						failed(failOrRetry.get(Boolean.FALSE).parallelStream().map(r -> origin.remove(r.getId())));
+						if (logger().isTraceEnabled()) //
+							logger.warn(() -> "Some fails: \n" + failOrRetry.get(Boolean.TRUE).parallelStream().map(r -> "\tfailed id [" + r
+									.getFailure().getId() + "] for: " + unwrap(r.getFailure().getCause()).toString()).collect(Collectors
+											.joining("\n")));
 					}
 
 					@Override
 					public void onFailure(Exception e) {
 						Throwable t = Exceptions.unwrap(e);
-						if (failed(t)) logger().warn("Elastic connection op failed [" + t + "], [" + origin.size() + "] fails", t);
-						else eex.fails(origin.values());
-						finished.set(true);
+						if (noRetry(t)) logger().warn("Elastic connection op failed [" + t + "], [" + origin.size() + "] fails", t);
+						else failed(origin.values().parallelStream());
 					}
 				});
-				while (!finished.get())
-					Concurrents.waitSleep(100);
-
 			} catch (IllegalStateException ex) {
 				logger().error("Elastic client fail: [" + ex.toString() + "]");
-				eex.fails(origin.values());
+				failed(origin.values().parallelStream());
 			}
 		}
-		if (eex.empty()) return originSize;
-		else throw eex;
 	}
 
-	private final class Result {
-		final long succs;
-		final long fails;
-		final String sample;
-
-		Result(long succs, long fails, String sample) {
-			super();
-			this.succs = succs;
-			this.fails = fails;
-			this.sample = sample;
-		}
-
-		void trace(long total, long bytes, int retry, int remains, long ms) {
-			StringBuilder sb = new StringBuilder()//
-					.append("Try#").append(retry).append(" finished, total:[").append(total).append("/")//
-					.append(Texts.formatKilo(bytes, " bytes")).append("] in [").append(ms)//
-					.append("] ms, step successed:[" + succs + "], ");
-			if (remains > 0) sb.append("remained:[").append(remains).append("], ");
-			if (fails > 0) sb.append("failed:[").append(fails).append("], ");
-			logger().trace(sb.append("sample id: [").append(sample).append("]."));
-		}
-	}
-
-	private boolean failed(BulkItemResponse r) {
-		Throwable cause = r.getFailure().getCause();
-		return failed(cause);
-	}
-
-	private boolean failed(Throwable cause) {
+	private boolean noRetry(Throwable cause) {
 		while (RemoteTransportException.class.isAssignableFrom(cause.getClass()) && cause.getCause() != null)
 			cause = cause.getCause();
 		if (MapperException.class.isAssignableFrom(cause.getClass())) logger().error("ES mapper exception", cause);

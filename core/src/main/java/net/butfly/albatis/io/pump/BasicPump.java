@@ -9,8 +9,11 @@ public class BasicPump<V> extends PumpImpl<V, BasicPump<V>> {
 		super(input.name() + ">" + output.name(), parallelism);
 		Reflections.noneNull("Pump source/destination should not be null", input, output);
 		depend(input, output);
-		pumping(() -> input.empty(), () -> {
-			if (opened()) input.dequeue(s -> output.enqueue(stats(s)), batchSize);
-		});
+		logger().debug("Trace force on batch less than [" + forceTrace + "].");
+		pumping(() -> input.empty(), () -> pumpOne(input, output));
+	}
+
+	private void pumpOne(Input<V> input, Output<V> output) {
+		if (opened()) input.dequeue(s -> output.enqueue(stats(s)), batchSize);
 	}
 }

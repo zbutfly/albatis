@@ -21,8 +21,8 @@ public abstract class OddInput<V> extends Namedly implements Input<V>, Supplier<
 	protected abstract V dequeue();
 
 	@Override
-	public final long dequeue(Function<Stream<V>, Long> using, int batchSize) {
-		return using.apply(Streams.of(this::dequeue, batchSize, () -> empty() && opened()));
+	public final void dequeue(Consumer<Stream<V>> using, int batchSize) {
+		using.accept(Streams.of(this::dequeue, batchSize, () -> empty() && opened()));
 	}
 
 	@Override

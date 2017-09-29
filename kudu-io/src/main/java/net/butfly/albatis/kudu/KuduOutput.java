@@ -19,8 +19,9 @@ import org.apache.kudu.client.KuduTable;
 import org.apache.kudu.client.Operation;
 import org.apache.kudu.client.Upsert;
 
-import net.butfly.albacore.utils.Pair;
-import net.butfly.albacore.utils.parallel.Concurrents;
+import net.butfly.albacore.base.Namedly;
+import net.butfly.albacore.utils.collection.Streams;
+import net.butfly.albatis.io.KeyOutput;
 import net.butfly.albatis.io.Message;
 import net.butfly.albatis.io.OddOutput;
 
@@ -77,15 +78,12 @@ public class KuduOutput extends OddOutput<Message> {
 	private final AtomicLong working = new AtomicLong();
 
 	@Override
-	public long enqueue(String table, Stream<Message> msgs) throws EnqueueException {
-		EnqueueException ex = new EnqueueException();
+	public void enqueue(String table, Stream<Message> msgs) {
 		msgs.parallel().filter(Streams.NOT_EMPTY_MAP).forEach(m -> {
 			Throwable e = connect.apply(m);
-			if (null == e) ex.success(1);
-			else ex.fail(m, e);
+			if (null == e) succeeded(1);
+			else failed(Streams.of(new Message[] { m }));
 		});
-		if (!ex.empty()) throw ex;
-		else return ex.success();
 	}
 
 	public String status() {
