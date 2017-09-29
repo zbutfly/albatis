@@ -1,7 +1,6 @@
 package net.butfly.albatis.io.pump;
 
 import net.butfly.albacore.utils.Reflections;
-import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albatis.io.Input;
 import net.butfly.albatis.io.Output;
 
@@ -18,8 +17,7 @@ public class BasicPump<V> extends PumpImpl<V, BasicPump<V>> {
 		pumping(input::empty, this::p);
 	}
 
-	private void p() {
-		if (opened()) //
-			input.dequeue(output::enqueue);
+	private void pumpOne(Input<V> input, Output<V> output) {
+		if (opened()) input.dequeue(s -> output.enqueue(stats(s)), batchSize);
 	}
 }

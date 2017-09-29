@@ -5,13 +5,16 @@ import static net.butfly.albacore.utils.collection.Colls.list;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Row;
+import org.apache.hadoop.hbase.util.Bytes;
 
-import net.butfly.albacore.paral.Sdream;
+import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.utils.Exceptions;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
@@ -34,34 +37,33 @@ public final class HbaseOutput extends OutputBase<Message> {
 	}
 
 	@Override
-	public long enqueue(String table, Stream<Message> values) throws EnqueueException {
-		List<Pair<Message, ? extends Row>> l = incs(table, values).stream().filter(Streams.NOT_NULL).map(v -> new Pair<>(v, Hbases.Results
-				.put(v))).filter(p -> null != p && null != p.v2()).collect(Collectors.toList());
-		if (l.isEmpty()) return 0;
+	public void enqueue(String table, Stream<Message> msgs) {
+		Map<String, Message> map = new ConcurrentHashMap<>();
+		List<Pair<Message, ? extends Row>> l = incs(table, msgs).stream().filter(Streams.NOT_NULL).map(v -> new Pair<>(v, Hbases.Results
+				.put(v))).filter(p -> null != p && null != p.v2()).peek(p -> map.put(Bytes.toString(p.v2().getRow()), p.v1())).collect(
+						Collectors.toList());
+		if (l.isEmpty()) return;
 		List<Message> vs = l.stream().map(v -> v.v1()).collect(Collectors.toList());
 		List<? extends Row> puts = l.stream().map(v -> v.v2()).collect(Collectors.toList());
-		Object[] results = new Object[puts.size()];
-		EnqueueException eex = new EnqueueException();
+		Object[] results = new Object[l.size()];
 		try {
-			s().statsOuts(enqs, c -> {
-				try {
-					hconn.table(table).batch(enqs, results);
-				} catch (Exception e) {
-					String err = Exceptions.unwrap(e).getMessage();
-					err = err.replaceAll("\n\\s+at .*\\)\n", ""); // shink
-																	// stacktrace
-																	// in error
-																	// message
-					logger().debug(name() + " write failed [" + err + "], [" + enqs.size() + "] into fails.");
-					failed(Sdream.of(origins));
+			hconn.table(table).batchCallback(puts, results, (region, row, result) -> {
+				if (result instanceof Result) succeeded(1);
+				else {
+					Message m = map.get(Bytes.toString(row));
+					logger().debug(() -> "Hbase failed on: " + m.toString(), result instanceof Throwable ? (Throwable) result
+							: new RuntimeException("Unknown hbase return [" + result.getClass() + "]: " + result.toString()));
+					failed(Streams.of(new Message[] { m }));
 				}
 			});
-		} finally {
+		} catch (Exception ex) {
+			logger().warn(name() + " write failed [" + Exceptions.unwrap(ex).getMessage() + "], [" + l.size() + "] into fails.");
+			List<Message> fails = new CopyOnWriteArrayList<>();
 			for (int i = 0; i < results.length; i++)
-				if (results[i] instanceof Result) eex.success(1);
-				else eex.fail(vs.get(i), results[i] instanceof Throwable ? (Throwable) results[i]
-						: new RuntimeException("Unknown hbase return [" + results[i].getClass() + "]: " + results[i].toString()));
-		}
+				if (results[i] instanceof Result) succeeded(1);
+				else fails.add(vs.get(i));
+			failed(fails.parallelStream());
+		} finally {}
 	}
 
 	private List<Message> incs(String table, Stream<Message> values) {

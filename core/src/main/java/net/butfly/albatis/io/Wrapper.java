@@ -1,22 +1,20 @@
 package net.butfly.albatis.io;
 
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 
-import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.io.Dequeuer;
 import net.butfly.albacore.io.Enqueuer;
 import net.butfly.albacore.lambda.Runnable;
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.logger.Logger;
 
-public interface Wrapper<W extends IO> extends IO {
-	W bases();
-
+public interface Wrapper {
 	static <T, T1> WrapInput<T, T1> wrap(Input<T1> base, String suffix, Dequeuer<T> d) {
 		return new WrapInput<T, T1>(base, suffix) {
 			@Override
-			public void dequeue(Consumer<Sdream<T>> using) {
-				d.dequeue(using);
+			public void dequeue(Consumer<Stream<T>> using, int batchSize) {
+				d.dequeue(using, batchSize);
 			}
 		};
 	}
@@ -24,7 +22,7 @@ public interface Wrapper<W extends IO> extends IO {
 	static <T, T1> WrapOutput<T, T1> wrap(Output<T1> base, String suffix, Enqueuer<T> d) {
 		return new WrapOutput<T, T1>(base, suffix) {
 			@Override
-			public void enqueue(Sdream<T> items) {
+			public void enqueue(Stream<T> items) {
 				d.enqueue(items);
 			}
 
@@ -34,13 +32,16 @@ public interface Wrapper<W extends IO> extends IO {
 			}
 
 			@Override
-			public void failed(Sdream<T> failed) {
+			public void failed(Stream<T> failed) {
 				d.failed(failed);
 			}
 		};
 	}
 
-	abstract class WrapInput<V, V1> extends Namedly implements Input<V>, Wrapper<Input<?>> {
+	abstract class WrapInput<V, V1> implements Input<V> {
+		@Override
+		public abstract void dequeue(Consumer<Stream<V>> using, int batchSize);
+
 		protected final Input<? extends V1> base;
 
 		protected WrapInput(Input<? extends V1> origin, String suffix) {
@@ -112,7 +113,10 @@ public interface Wrapper<W extends IO> extends IO {
 		}
 	}
 
-	abstract class WrapOutput<V, V1> extends Namedly implements Output<V>, Wrapper<Output<?>> {
+	abstract class WrapOutput<V, V1> implements Output<V> {
+		@Override
+		public abstract void enqueue(Stream<V> items);
+
 		protected final Output<V1> base;
 
 		protected WrapOutput(Output<V1> origin, String suffix) {

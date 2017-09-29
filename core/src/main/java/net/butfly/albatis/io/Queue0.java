@@ -19,7 +19,8 @@ import net.butfly.albacore.paral.Sdream;
  * <ul>
  * <li>Instant</li>
  * <li>Memory (heap)</li>
- * <li>Local disk (off heap based on memory mapping), like {@link MapDB}/ {@link BigQueue} and so on</li>
+ * <li>Local disk (off heap based on memory mapping), like {@link MapDB}/
+ * {@link BigQueue} and so on</li>
  * <li>Remote, like Kafka/MQ and so on (Not now)</li>
  * </ul>
  * <li>Continuous or not</li>
@@ -45,17 +46,17 @@ public interface Queue0<I, O> extends Input<O>, Output<I> {
 	default <O1> Queue0<I, O1> then(Function<O, O1> conv) {
 		Queue0<I, O1> i = new Queue0<I, O1>() {
 			@Override
-			public void dequeue(Consumer<Sdream<O1>> using) {
-				Queue0.this.dequeue(s -> using.accept(s.map(conv)));
+			public void dequeue(Consumer<Stream<O1>> using, int batchSize) {
+				Queue0.this.dequeue(s -> using.accept(s.map(conv)), batchSize);
 			}
 
 			@Override
-			public void enqueue(Sdream<I> items) {
+			public void enqueue(Stream<I> items) {
 				Queue0.this.enqueue(items);
 			}
 
 			@Override
-			public void failed(Sdream<I> failed) {
+			public void failed(Stream<I> failed) {
 				Queue0.this.failed(failed);
 			}
 
@@ -84,17 +85,18 @@ public interface Queue0<I, O> extends Input<O>, Output<I> {
 	default <O1> Queue0<I, O1> thens(Function<Sdream<O>, Sdream<O1>> conv, int parallelism) {
 		Queue0<I, O1> i = new Queue0<I, O1>() {
 			@Override
-			public void dequeue(Consumer<Sdream<O1>> using) {
-				Queue0.this.dequeue(s -> s.partition(s1 -> using.accept(conv.apply(s1)), parallelism));
+			public void dequeue(Consumer<Stream<O1>> using, int batchSize) {
+				Queue0.this.dequeue(s -> Streams.spatialMap(s, parallelism, t -> conv.apply(() -> Its.it(t)).spliterator()).forEach(
+						s1 -> using.accept(s1)), batchSize);
 			}
 
 			@Override
-			public void enqueue(Sdream<I> items) {
+			public void enqueue(Stream<I> items) {
 				Queue0.this.enqueue(items);
 			}
 
 			@Override
-			public void failed(Sdream<I> failed) {
+			public void failed(Stream<I> failed) {
 				Queue0.this.failed(failed);
 			}
 
@@ -122,18 +124,18 @@ public interface Queue0<I, O> extends Input<O>, Output<I> {
 	default <I0> Queue0<I0, O> prior(Function<I0, I> conv) {
 		Queue0<I0, O> o = new Queue0<I0, O>() {
 			@Override
-			public void dequeue(Consumer<Sdream<O>> using) {
-				Queue0.this.dequeue(using);
+			public void dequeue(Consumer<Stream<O>> using, int batchSize) {
+				Queue0.this.dequeue(using, batchSize);
 			}
 
 			@Override
-			public void enqueue(Sdream<I0> s) {
-				Queue0.this.enqueue(s.map(conv));
+			public void enqueue(Stream<I0> items) {
+				Queue0.this.enqueue(Streams.of(items.map(conv)));
 			}
 
 			@Override
-			public void failed(Sdream<I0> failed) {
-				Queue0.this.failed(failed.map(conv));
+			public void failed(Stream<I0> failed) {
+				Queue0.this.failed(Streams.of(failed.map(conv)));
 			}
 
 			@Override
@@ -161,13 +163,14 @@ public interface Queue0<I, O> extends Input<O>, Output<I> {
 	default <I0> Queue0<I0, O> priors(Function<Sdream<I0>, Sdream<I>> conv, int parallelism) {
 		Queue0<I0, O> o = new Queue0<I0, O>() {
 			@Override
-			public void dequeue(Consumer<Sdream<O>> using) {
-				Queue0.this.dequeue(using);
+			public void dequeue(Consumer<Stream<O>> using, int batchSize) {
+				Queue0.this.dequeue(using, batchSize);
 			}
 
 			@Override
-			public void enqueue(Sdream<I0> s) {
-				s.partition(ss -> Queue0.this.enqueue(conv.apply(ss)), parallelism);
+			public void enqueue(Stream<I0> items) {
+				Parals.eachs(Streams.spatial(items, parallelism).values(), s0 -> Queue0.this.enqueue(Streams.of(conv.apply(
+						(Iterable<I0>) () -> Its.it(s0)))));
 			}
 
 			@Override
@@ -176,8 +179,8 @@ public interface Queue0<I, O> extends Input<O>, Output<I> {
 			}
 
 			@Override
-			public void failed(Sdream<I0> failed) {
-				failed.partition(ss -> Queue0.this.failed(conv.apply(failed)), parallelism);
+			public void failed(Stream<I0> failed) {
+				Queue0.this.failed(Streams.of(conv.apply((Iterable<I0>) () -> Its.it(failed.spliterator()))));
 			}
 
 			@Override

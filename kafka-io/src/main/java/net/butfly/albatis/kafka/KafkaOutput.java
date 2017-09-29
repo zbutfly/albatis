@@ -34,16 +34,14 @@ public final class KafkaOutput extends OutputBase<Message> {
 	}
 
 	@Override
-	protected void enqueue0(Sdream<Message> messages) {
-		List<Message> msgs = messages.list();
-		List<KeyedMessage<byte[], byte[]>> ms = of(msgs).map(m -> Kafkas.toKeyedMessage(m, coder)).nonNull().list();
+	public void enqueue(Stream<Message> messages) {
+		List<Message> msgs = list(messages);
+		List<KeyedMessage<byte[], byte[]>> ms = list(of(msgs).map(m -> Kafkas.toKeyedMessage(m, coder)));
 		if (!ms.isEmpty()) try {
-			int s = ms.size();
-			if (s == 1) producer.send(ms.get(0));
-			else producer.send(ms);
-			succeeded(s);
+			producer.send(ms);
+			succeeded(ms.size());
 		} catch (Exception e) {
-			failed(Sdream.of(msgs));
+			failed(msgs.parallelStream());
 		}
 	}
 

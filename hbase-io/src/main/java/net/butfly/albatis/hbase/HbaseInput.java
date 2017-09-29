@@ -3,13 +3,10 @@ package net.butfly.albatis.hbase;
 import static net.butfly.albacore.paral.Sdream.of;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
@@ -209,29 +206,20 @@ public class HbaseInput extends Namedly implements Input<Message> {
 	}
 
 	@Override
-	public void dequeue(Consumer<Sdream<Message>> using) {
-		TableScaner s;
-		while (opened() && !empty())
-			if (null != (s = scans.poll())) {
-				try {
-					Result[] results = s.next(batchSize());
-					if (null != results) {
-						if (results.length > 0) {
-							List<Message> ms = Colls.list();
-							for (Result r : results)
-								if (null != r) ms.add(Hbases.Results.result(s.name, r));
-							if (!ms.isEmpty()) {
-								using.accept(of(ms));
-								return;
-							}
-						} else {// end
-							s.close();
-							s = null;
-						}
-					}
-				} finally {
-					if (null != s) scans.offer(s);
-				}
+	public void dequeue(Consumer<Stream<Message>> using, int batchSize) {
+		if (!ended.get() && scanerLock.writeLock().tryLock()) {
+			Result[] rs = null;
+			try {
+				rs = scaner.next(batchSize);
+			} catch (Exception ex) {
+				logger().warn("Hbase failure", ex);
+			} finally {
+				scanerLock.writeLock().unlock();
 			}
+			if (null != rs) {
+				ended.set(rs.length == 0);
+				if (rs.length > 0) using.accept(Stream.of(rs).map(r -> Hbases.Results.result(htname, r)));
+			}
+		}
 	}
 }

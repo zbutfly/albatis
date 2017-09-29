@@ -6,9 +6,9 @@ import java.util.Map;
 
 import org.apache.solr.client.solrj.SolrServerException;
 
-import net.butfly.albacore.paral.Sdream;
-import net.butfly.albacore.utils.collection.Colls;
-import net.butfly.albacore.utils.collection.Maps;
+import net.butfly.albacore.base.Namedly;
+import net.butfly.albacore.utils.parallel.Parals;
+import net.butfly.albatis.io.KeyOutput;
 import net.butfly.albatis.io.Message;
 import net.butfly.albatis.io.Message.Op;
 import net.butfly.albatis.io.OutputBase;
@@ -48,35 +48,27 @@ public final class SolrOutput extends OutputBase<Message> {
 	}
 
 	@Override
-	protected void enqueue0(Sdream<Message> msgs) {
-		Map<String, Map<Integer, List<Message>>> map = Maps.of();
-		msgs.eachs(m -> map.compute(m.table(), (core, cores) -> {
-			if (null == cores) cores = Maps.of();
-			cores.compute(m.op(), (op, ops) -> {
-				if (null == ops) ops = Colls.list();
-				ops.add(m);
-				return ops;
-			});
-			return cores;
-		}));
-		for (String core : map.keySet())
-			for (int op : map.get(core).keySet()) {
-				List<Message> ms = map.get(core).get(op);
-				try {
-					switch (op) {
-					case Op.DELETE:
-						solr.client().deleteById(core, Sdream.of(map.get(core).get(op))//
-								.map(t -> null == t.key() ? null : t.key().toString()).list(), DEFAULT_AUTO_COMMIT_MS);
-						break;
-					default:
-						solr.client().add(core, Sdream.of(map.get(core).get(op)).map(m -> Solrs.input(m, keyFieldName)).list(),
-								DEFAULT_AUTO_COMMIT_MS);
-					}
-					succeeded(ms.size());
-				} catch (Exception ex) {
-					failed(Sdream.of(ms));
-				}
+	public void enqueue(String core, Stream<Message> msgs) {
+		ConcurrentMap<Boolean, List<Message>> ops = msgs.filter(NOT_NULL).collect(Collectors.groupingByConcurrent(m -> Op.DELETE == m
+				.op()));
+		List<Message> del;
+		if (null != (del = ops.get(Boolean.TRUE)) && !del.isEmpty()) Parals.listenRun(() -> {
+			try {
+				solr.client().deleteById(core, list(del, Message::key), DEFAULT_AUTO_COMMIT_MS);
+				succeeded(del.size());
+			} catch (Exception ex) {
+				failed(del.parallelStream());
 			}
+		});
+		List<Message> ins;
+		if (null != (ins = ops.get(Boolean.FALSE)) && !ins.isEmpty()) Parals.listenRun(() -> {
+			try {
+				solr.client().add(core, list(ins, t -> Solrs.input(t, keyFieldName)), DEFAULT_AUTO_COMMIT_MS);
+				succeeded(ins.size());
+			} catch (Exception ex) {
+				failed(ins.parallelStream());
+			}
+		});
 	}
 
 	@Override

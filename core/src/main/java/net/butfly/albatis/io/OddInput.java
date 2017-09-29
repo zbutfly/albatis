@@ -1,6 +1,6 @@
 package net.butfly.albatis.io;
 
-import java.util.Spliterator;
+import java.util.Iterator;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -19,8 +19,8 @@ public interface OddInput<V> extends Input<V> {
 		private final OddInput<V> input;
 
 	@Override
-	public final long dequeue(Function<Stream<V>, Long> using, int batchSize) {
-		return using.apply(Streams.of(this::dequeue, batchSize, () -> empty() && opened()));
+	public final void dequeue(Consumer<Stream<V>> using, int batchSize) {
+		using.accept(Streams.of(this::dequeue, batchSize, () -> empty() && opened()));
 	}
 
 		@Override

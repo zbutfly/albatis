@@ -3,7 +3,8 @@ package net.butfly.albatis.io.ext;
 import static net.butfly.albacore.paral.Sdream.of;
 
 import java.util.List;
-import java.util.function.Consumer;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.paral.Exeter;
@@ -44,7 +45,14 @@ public class FanOutput<V> extends Namedly implements Output<V> {
 	}
 
 	@Override
-	public void enqueue(Sdream<V> s) {
-		Exeter.of().join(s, tasks);
+	public void enqueue(Stream<V> items) {
+		List<V> values = list(items);
+		Task t = null;
+		for (Output<V> o : outputs) {
+			Task t0 = () -> o.enqueue(of(values));
+			if (null == t) t = t0;
+			else t = t.multiple(t0);
+		}
+		t.run();
 	}
 }

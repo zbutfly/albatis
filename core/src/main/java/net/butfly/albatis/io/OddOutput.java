@@ -17,8 +17,13 @@ public interface OddOutput<V> extends Output<V> {
 	}
 
 	@Override
-	public default void failed(Sdream<V> fails) {
-		fails.eachs(this::failed);
+	public final void enqueue(Stream<V> items) {
+		if (!Concurrents.waitSleep(() -> full())) return;
+		AtomicLong c = new AtomicLong(0);
+		Streams.of(items).forEach(t -> {
+			if (enqueue(t)) c.incrementAndGet();
+		});
+		succeeded(c.get());
 	}
 
 	default void failed(V v) {}

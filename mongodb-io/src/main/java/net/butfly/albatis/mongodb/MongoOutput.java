@@ -1,9 +1,8 @@
 package net.butfly.albatis.mongodb;
 
 import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
@@ -48,15 +47,8 @@ public final class MongoOutput extends OutputBase<Message> {
 	}
 
 	@Override
-	public void enqueue0(Sdream<Message> msgs) {
-		AtomicLong n = new AtomicLong();
-		if (upsert) n.set(msgs.map(m -> conn.collection(m.table()).save(MongoConnection.dbobj(m)).getN()).reduce(Lambdas.sumInt()));
-		else {
-			Map<String, List<Message>> l = Maps.of();
-			msgs.eachs(m -> l.computeIfAbsent(m.table(), t -> Colls.list()).add(m));
-			Exeter.of().join(e -> n.addAndGet(conn.collection(e.getKey()).insert(Sdream.of(e.getValue()).map(MongoConnection::dbobj).list()
-					.toArray(new BasicDBObject[0])).getN()), l.entrySet());
-		}
-		succeeded(n.get());
+	public void enqueue(Stream<Message> msgs) {
+		succeeded(upsert ? msgs.parallel().map(m -> collection.save(MongoConnection.dbobj(m)).getN()).collect(Collectors.counting())
+				: collection.insert(list(msgs, MongoConnection::dbobj)).getN());
 	}
 }
