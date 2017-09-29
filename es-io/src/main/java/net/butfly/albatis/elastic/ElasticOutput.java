@@ -97,7 +97,7 @@ public final class ElasticOutput extends Namedly implements Output<Message> {
 				});
 			} catch (IllegalStateException ex) {
 				logger().error("Elastic client fail: [" + ex.toString() + "]");
-				// failed(origin.values().parallelStream());
+				failed(origin.values().parallelStream());
 			}
 		}
 	}

@@ -9,7 +9,8 @@ import net.butfly.albatis.io.Wrapper;
 
 /**
  * Output with buffer and pool supporting.<br>
- * Parent class handle buffer, invoking really write/marshall op by callback provided by children classes.<br>
+ * Parent class handle buffer, invoking really write/marshall op by callback
+ * provided by children classes.<br>
  * Children classes define and implemented connection to datasource.
  * 
  * @author zx
