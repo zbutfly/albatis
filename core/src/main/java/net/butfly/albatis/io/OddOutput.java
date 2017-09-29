@@ -19,12 +19,12 @@ public abstract class OddOutput<V> extends Namedly implements Output<V> {
 	protected abstract boolean enqueue(V item);
 
 	@Override
-	public final long enqueue(Stream<V> items) {
-		if (!Concurrents.waitSleep(() -> full())) return 0;
+	public final void enqueue(Stream<V> items) {
+		if (!Concurrents.waitSleep(() -> full())) return;
 		AtomicLong c = new AtomicLong(0);
 		Streams.of(items).forEach(t -> {
 			if (enqueue(t)) c.incrementAndGet();
 		});
-		return c.get();
+		succeeded(c.get());
 	}
 }

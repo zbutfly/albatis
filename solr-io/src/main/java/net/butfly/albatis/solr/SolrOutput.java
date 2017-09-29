@@ -12,7 +12,7 @@ import java.util.stream.Stream;
 import org.apache.solr.client.solrj.SolrServerException;
 
 import net.butfly.albacore.base.Namedly;
-import net.butfly.albacore.io.EnqueueException;
+import net.butfly.albacore.utils.parallel.Parals;
 import net.butfly.albatis.io.KeyOutput;
 import net.butfly.albatis.io.Message;
 import net.butfly.albatis.io.Message.Op;
@@ -51,26 +51,27 @@ public final class SolrOutput extends Namedly implements KeyOutput<String, Messa
 	}
 
 	@Override
-	public long enqueue(String core, Stream<Message> msgs) {
+	public void enqueue(String core, Stream<Message> msgs) {
 		ConcurrentMap<Boolean, List<Message>> ops = msgs.filter(NOT_NULL).collect(Collectors.groupingByConcurrent(m -> Op.DELETE == m
 				.op()));
-		EnqueueException e = new EnqueueException();
 		List<Message> del;
-		if (null != (del = ops.get(Boolean.TRUE)) && !del.isEmpty()) try {
-			List<String> ids = list(del, Message::key);
-			logger().error("[DEBUG] Solr deleting on [" + core + "]: " + ids.toString());
-			solr.client().deleteById(core, ids, DEFAULT_AUTO_COMMIT_MS);
-		} catch (Exception ex) {
-			e.fails(del);
-		}
+		if (null != (del = ops.get(Boolean.TRUE)) && !del.isEmpty()) Parals.listenRun(() -> {
+			try {
+				solr.client().deleteById(core, list(del, Message::key), DEFAULT_AUTO_COMMIT_MS);
+				succeeded(del.size());
+			} catch (Exception ex) {
+				failed(del.parallelStream());
+			}
+		});
 		List<Message> ins;
-		if (null != (ins = ops.get(Boolean.FALSE)) && !ins.isEmpty()) try {
-			solr.client().add(core, list(ins, t -> Solrs.input(t, keyFieldName)), DEFAULT_AUTO_COMMIT_MS);
-		} catch (Exception ex) {
-			e.fails(ins);
-		}
-		if (!e.empty()) throw e;
-		return ins.size() + del.size();
+		if (null != (ins = ops.get(Boolean.FALSE)) && !ins.isEmpty()) Parals.listenRun(() -> {
+			try {
+				solr.client().add(core, list(ins, t -> Solrs.input(t, keyFieldName)), DEFAULT_AUTO_COMMIT_MS);
+				succeeded(ins.size());
+			} catch (Exception ex) {
+				failed(ins.parallelStream());
+			}
+		});
 	}
 
 	@Override

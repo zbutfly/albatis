@@ -1,10 +1,7 @@
 package net.butfly.albatis.io.ext;
 
-import static net.butfly.albacore.utils.collection.Streams.of;
-
 import java.util.stream.Stream;
 
-import net.butfly.albacore.io.EnqueueException;
 import net.butfly.albacore.utils.OpenableThread;
 import net.butfly.albatis.io.Output;
 import net.butfly.albatis.io.Queue;
@@ -12,7 +9,8 @@ import net.butfly.albatis.io.Wrapper;
 
 /**
  * Output with buffer and pool supporting.<br>
- * Parent class handle buffer, invoking really write/marshall op by callback provided by children classes.<br>
+ * Parent class handle buffer, invoking really write/marshall op by callback
+ * provided by children classes.<br>
  * Children classes define and implemented connection to datasource.
  * 
  * @author zx
@@ -40,13 +38,13 @@ public class FailoverOutput<M> extends Wrapper.WrapOutput<M, M> {
 	}
 
 	@Override
-	public final long enqueue(Stream<M> els) {
-		try {
-			return base.enqueue(els);
-		} catch (EnqueueException ex) {
-			pool.enqueue(of(ex.fails()));
-			return ex.success();
-		}
+	public final void enqueue(Stream<M> els) {
+		base.enqueue(els);
+	}
+
+	@Override
+	public void failed(Stream<M> failed) {
+		pool.enqueue(failed);
 	}
 
 	public final long fails() {

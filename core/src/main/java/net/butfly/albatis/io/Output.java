@@ -1,22 +1,20 @@
 package net.butfly.albatis.io;
 
 import java.util.Collection;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.BiFunction;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
-import net.butfly.albacore.io.Enqueue;
-import net.butfly.albacore.io.EnqueueException;
+import net.butfly.albacore.io.Enqueuer;
 import net.butfly.albacore.io.IO;
 import net.butfly.albacore.utils.collection.Its;
 import net.butfly.albacore.utils.collection.Streams;
 import net.butfly.albacore.utils.parallel.Parals;
 import net.butfly.albatis.io.ext.FailoverOutput;
 
-public interface Output<V> extends IO, Consumer<Stream<V>>, Enqueue<V> {
-	static Output<?> NULL = items -> 0;
+public interface Output<V> extends IO, Consumer<Stream<V>>, Enqueuer<V> {
+	static Output<?> NULL = items -> {};
 
 	@Override
 	default long size() {
@@ -38,7 +36,7 @@ public interface Output<V> extends IO, Consumer<Stream<V>>, Enqueue<V> {
 
 	default <V0> Output<V0> priors(Function<Iterable<V0>, Iterable<V>> conv, int parallelism) {
 		return Wrapper.wrap(this, "Priors", s -> Parals.eachs(Streams.spatial(s, parallelism).values(), s0 -> enqueue(Streams.of(conv.apply(
-				(Iterable<V0>) () -> Its.it(s0)))), Streams.LONG_SUM));
+				(Iterable<V0>) () -> Its.it(s0))))));
 	}
 
 	// more extends
@@ -49,14 +47,12 @@ public interface Output<V> extends IO, Consumer<Stream<V>>, Enqueue<V> {
 
 	default Output<V> batch(int batchSize) {
 		return Wrapper.wrap(this, "Batch", items -> {
-			AtomicLong c = new AtomicLong();
 			Stream<Stream<V>> ss = Streams.batching(items, batchSize);
-			ss.parallel().forEach(s -> c.addAndGet(enqueue(s)));
-			return c.get();
+			ss.parallel().forEach(this::enqueue);
 		});
 	}
 
-	default <K> KeyOutput<K, V> partitial(Function<V, K> partitier, BiFunction<K, Stream<V>, Long> enqueuing) {
+	default <K> KeyOutput<K, V> partitial(Function<V, K> partitier, BiConsumer<K, Stream<V>> enqueuing) {
 		return new KeyOutput<K, V>() {
 			@Override
 			public K partition(V v) {
@@ -64,8 +60,8 @@ public interface Output<V> extends IO, Consumer<Stream<V>>, Enqueue<V> {
 			}
 
 			@Override
-			public long enqueue(K key, Stream<V> v) throws EnqueueException {
-				return enqueuing.apply(key, v);
+			public void enqueue(K key, Stream<V> v) {
+				enqueuing.accept(key, v);
 			}
 		};
 
@@ -73,11 +69,7 @@ public interface Output<V> extends IO, Consumer<Stream<V>>, Enqueue<V> {
 
 	// constructor
 	public static <T> Output<T> of(Collection<? super T> underly) {
-		return items -> {
-			items.forEach(underly::add);
-			return underly.size();
-		};
-
+		return items -> items.forEach(underly::add);
 	}
 
 	default void commit() {}

@@ -1,6 +1,6 @@
 package net.butfly.albatis.io;
 
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -22,7 +22,8 @@ import net.butfly.albacore.utils.parallel.Parals;
  * <ul>
  * <li>Instant</li>
  * <li>Memory (heap)</li>
- * <li>Local disk (off heap based on memory mapping), like {@link MapDB}/ {@link BigQueue} and so on</li>
+ * <li>Local disk (off heap based on memory mapping), like {@link MapDB}/
+ * {@link BigQueue} and so on</li>
  * <li>Remote, like Kafka/MQ and so on (Not now)</li>
  * </ul>
  * <li>Continuous or not</li>
@@ -48,13 +49,23 @@ public interface Queue0<I, O> extends Input<O>, Output<I> {
 	default <O1> Queue0<I, O1> then(Function<O, O1> conv) {
 		Queue0<I, O1> i = new Queue0<I, O1>() {
 			@Override
-			public long dequeue(Function<Stream<O1>, Long> using, int batchSize) {
-				return Queue0.this.dequeue(s -> using.apply(s.map(conv)), batchSize);
+			public void dequeue(Consumer<Stream<O1>> using, int batchSize) {
+				Queue0.this.dequeue(s -> using.accept(s.map(conv)), batchSize);
 			}
 
 			@Override
-			public long enqueue(Stream<I> items) {
-				return Queue0.this.enqueue(items);
+			public void enqueue(Stream<I> items) {
+				Queue0.this.enqueue(items);
+			}
+
+			@Override
+			public void failed(Stream<I> failed) {
+				Queue0.this.failed(failed);
+			}
+
+			@Override
+			public void succeeded(long c) {
+				Queue0.this.succeeded(c);
 			}
 
 			@Override
@@ -70,18 +81,24 @@ public interface Queue0<I, O> extends Input<O>, Output<I> {
 	default <O1> Queue0<I, O1> thens(Function<Iterable<O>, Iterable<O1>> conv, int parallelism) {
 		Queue0<I, O1> i = new Queue0<I, O1>() {
 			@Override
-			public long dequeue(Function<Stream<O1>, Long> using, int batchSize) {
-				return Queue0.this.dequeue(s -> {
-					AtomicLong c = new AtomicLong();
-					Streams.spatialMap(s, parallelism, t -> conv.apply(() -> Its.it(t)).spliterator()).forEach(s1 -> c.addAndGet(using
-							.apply(s1)));
-					return c.get();
-				}, batchSize);
+			public void dequeue(Consumer<Stream<O1>> using, int batchSize) {
+				Queue0.this.dequeue(s -> Streams.spatialMap(s, parallelism, t -> conv.apply(() -> Its.it(t)).spliterator()).forEach(
+						s1 -> using.accept(s1)), batchSize);
 			}
 
 			@Override
-			public long enqueue(Stream<I> items) {
-				return Queue0.this.enqueue(items);
+			public void enqueue(Stream<I> items) {
+				Queue0.this.enqueue(items);
+			}
+
+			@Override
+			public void failed(Stream<I> failed) {
+				Queue0.this.failed(failed);
+			}
+
+			@Override
+			public void succeeded(long c) {
+				Queue0.this.succeeded(c);
 			}
 
 			@Override
@@ -97,13 +114,23 @@ public interface Queue0<I, O> extends Input<O>, Output<I> {
 	default <I0> Queue0<I0, O> prior(Function<I0, I> conv) {
 		Queue0<I0, O> o = new Queue0<I0, O>() {
 			@Override
-			public long dequeue(Function<Stream<O>, Long> using, int batchSize) {
-				return Queue0.this.dequeue(using, batchSize);
+			public void dequeue(Consumer<Stream<O>> using, int batchSize) {
+				Queue0.this.dequeue(using, batchSize);
 			}
 
 			@Override
-			public long enqueue(Stream<I0> items) {
-				return Queue0.this.enqueue(Streams.of(items.map(conv)));
+			public void enqueue(Stream<I0> items) {
+				Queue0.this.enqueue(Streams.of(items.map(conv)));
+			}
+
+			@Override
+			public void failed(Stream<I0> failed) {
+				Queue0.this.failed(Streams.of(failed.map(conv)));
+			}
+
+			@Override
+			public void succeeded(long c) {
+				Queue0.this.succeeded(c);
 			}
 
 			@Override
@@ -119,14 +146,24 @@ public interface Queue0<I, O> extends Input<O>, Output<I> {
 	default <I0> Queue0<I0, O> priors(Function<Iterable<I0>, Iterable<I>> conv, int parallelism) {
 		Queue0<I0, O> o = new Queue0<I0, O>() {
 			@Override
-			public long dequeue(Function<Stream<O>, Long> using, int batchSize) {
-				return Queue0.this.dequeue(using, batchSize);
+			public void dequeue(Consumer<Stream<O>> using, int batchSize) {
+				Queue0.this.dequeue(using, batchSize);
 			}
 
 			@Override
-			public long enqueue(Stream<I0> items) {
-				return Parals.eachs(Streams.spatial(items, parallelism).values(), s0 -> Queue0.this.enqueue(Streams.of(conv.apply(
-						(Iterable<I0>) () -> Its.it(s0)))), Streams.LONG_SUM);
+			public void enqueue(Stream<I0> items) {
+				Parals.eachs(Streams.spatial(items, parallelism).values(), s0 -> Queue0.this.enqueue(Streams.of(conv.apply(
+						(Iterable<I0>) () -> Its.it(s0)))));
+			}
+
+			@Override
+			public void succeeded(long c) {
+				Queue0.this.succeeded(c);
+			}
+
+			@Override
+			public void failed(Stream<I0> failed) {
+				Queue0.this.failed(Streams.of(conv.apply((Iterable<I0>) () -> Its.it(failed.spliterator()))));
 			}
 
 			@Override

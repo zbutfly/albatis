@@ -22,16 +22,15 @@ public class MetaTest {
 	public static void main(String[] args) {
 		Page page = new Page(15, 1);
 		Map<String, Object> map = Objects.toMap(page);
-		for (String k : map.keySet()) {
+		for (String k : map.keySet())
 			System.out.println(k + ":" + map.get(k).getClass().getName());
-		}
 
 		double d = 12345678.345;
 		assert (Double.class.cast(d) > 0);
 		assert ((byte) d > 0);
 		printMetaInfo(true);
 		printMetaInfo("sdfsfsdfdsf");
-		printMetaInfo(new Byte((byte) 12));
+		printMetaInfo(Byte.valueOf((byte) 12));
 		A a = new A();
 		a.a = "stringA";
 		printMetaInfo(a);

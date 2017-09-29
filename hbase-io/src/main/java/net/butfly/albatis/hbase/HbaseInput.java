@@ -3,7 +3,7 @@ package net.butfly.albatis.hbase;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.function.Function;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import org.apache.hadoop.hbase.client.Result;
@@ -81,7 +81,7 @@ public final class HbaseInput extends Namedly implements Input<Message> {
 	}
 
 	@Override
-	public long dequeue(Function<Stream<Message>, Long> using, int batchSize) {
+	public void dequeue(Consumer<Stream<Message>> using, int batchSize) {
 		if (!ended.get() && scanerLock.writeLock().tryLock()) {
 			Result[] rs = null;
 			try {
@@ -93,9 +93,8 @@ public final class HbaseInput extends Namedly implements Input<Message> {
 			}
 			if (null != rs) {
 				ended.set(rs.length == 0);
-				if (rs.length > 0) return using.apply(Stream.of(rs).map(r -> Hbases.Results.result(htname, r)));
+				if (rs.length > 0) using.accept(Stream.of(rs).map(r -> Hbases.Results.result(htname, r)));
 			}
 		}
-		return 0;
 	}
 }

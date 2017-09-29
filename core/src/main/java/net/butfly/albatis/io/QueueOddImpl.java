@@ -1,8 +1,7 @@
 package net.butfly.albatis.io;
 
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Function;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import net.butfly.albacore.base.Namedly;
@@ -24,27 +23,25 @@ public abstract class QueueOddImpl<V> extends Namedly implements Queue<V> {
 
 	protected abstract boolean enqueue(V item);
 
+	protected void failed(V t) {
+		failed(Streams.of(t));
+	}
+
 	@Override
-	public long enqueue(Stream<V> items) {
-		if (!Concurrents.waitSleep(() -> full())) return 0;
-		AtomicLong c = new AtomicLong(0);
+	public void enqueue(Stream<V> items) {
+		if (!Concurrents.waitSleep(() -> full())) return;
 		Streams.of(items).forEach(t -> {
-			if (enqueue(t)) c.incrementAndGet();
+			if (enqueue(t)) succeeded(1);
+			else failed(t);
 		});
-		return c.get();
+
 	}
 
-	protected V dequeue() {
-		AtomicReference<V> ref = new AtomicReference<>();
-		return 0 == dequeue(s -> {
-			ref.set(s.findFirst().orElse(null));
-			return 1L;
-		}, 1) ? null : ref.get();
-	}
+	protected abstract V dequeue();
 
 	@Override
-	public long dequeue(Function<Stream<V>, Long> using, int batchSize) {
-		return using.apply(Streams.of(() -> dequeue(), batchSize, () -> empty() && opened()));
+	public void dequeue(Consumer<Stream<V>> using, int batchSize) {
+		using.accept(Streams.of(() -> dequeue(), batchSize, () -> empty() && opened()));
 	}
 
 	@Override

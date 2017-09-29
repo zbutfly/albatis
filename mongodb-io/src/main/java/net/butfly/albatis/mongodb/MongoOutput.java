@@ -3,7 +3,7 @@ package net.butfly.albatis.mongodb;
 import static net.butfly.albacore.utils.collection.Streams.list;
 
 import java.io.IOException;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.mongodb.DBCollection;
@@ -45,13 +45,8 @@ public final class MongoOutput extends Namedly implements Output<Message> {
 	}
 
 	@Override
-	public long enqueue(Stream<Message> msgs) {
-		if (upsert) {
-			AtomicLong count = new AtomicLong();
-			msgs.forEach(m -> {
-				if (collection.save(MongoConnection.dbobj(m)).getN() == 1) count.incrementAndGet();
-			});
-			return count.get();
-		} else return collection.insert(list(msgs, MongoConnection::dbobj)).getN();
+	public void enqueue(Stream<Message> msgs) {
+		succeeded(upsert ? msgs.parallel().map(m -> collection.save(MongoConnection.dbobj(m)).getN()).collect(Collectors.counting())
+				: collection.insert(list(msgs, MongoConnection::dbobj)).getN());
 	}
 }

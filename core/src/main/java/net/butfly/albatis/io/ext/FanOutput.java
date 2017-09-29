@@ -5,7 +5,6 @@ import static net.butfly.albacore.utils.collection.Streams.list;
 import static net.butfly.albacore.utils.collection.Streams.of;
 
 import java.util.List;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -27,16 +26,14 @@ public class FanOutput<V> extends Namedly implements Output<V> {
 	}
 
 	@Override
-	public long enqueue(Stream<V> items) {
+	public void enqueue(Stream<V> items) {
 		List<V> values = list(items);
-		AtomicLong c = new AtomicLong();
 		Task t = null;
 		for (Output<V> o : outputs) {
-			Task t0 = () -> c.addAndGet(o.enqueue(of(values)));
+			Task t0 = () -> o.enqueue(of(values));
 			if (null == t) t = t0;
 			else t = t.multiple(t0);
 		}
 		t.run();
-		return c.get();
 	}
 }

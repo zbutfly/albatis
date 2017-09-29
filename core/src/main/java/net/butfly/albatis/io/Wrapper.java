@@ -1,35 +1,45 @@
 package net.butfly.albatis.io;
 
-import java.util.function.Function;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
-import net.butfly.albacore.io.Dequeue;
-import net.butfly.albacore.io.Enqueue;
+import net.butfly.albacore.io.Dequeuer;
+import net.butfly.albacore.io.Enqueuer;
 import net.butfly.albacore.lambda.Runnable;
 import net.butfly.albacore.utils.logger.Logger;
 
 public interface Wrapper {
-	static <T, T1> WrapInput<T, T1> wrap(Input<T1> base, String suffix, Dequeue<T> d) {
+	static <T, T1> WrapInput<T, T1> wrap(Input<T1> base, String suffix, Dequeuer<T> d) {
 		return new WrapInput<T, T1>(base, suffix) {
 			@Override
-			public long dequeue(Function<Stream<T>, Long> using, int batchSize) {
-				return d.dequeue(using, batchSize);
+			public void dequeue(Consumer<Stream<T>> using, int batchSize) {
+				d.dequeue(using, batchSize);
 			}
 		};
 	}
 
-	static <T, T1> WrapOutput<T, T1> wrap(Output<T1> base, String suffix, Enqueue<T> d) {
+	static <T, T1> WrapOutput<T, T1> wrap(Output<T1> base, String suffix, Enqueuer<T> d) {
 		return new WrapOutput<T, T1>(base, suffix) {
 			@Override
-			public long enqueue(Stream<T> items) {
-				return d.enqueue(items);
+			public void enqueue(Stream<T> items) {
+				d.enqueue(items);
+			}
+
+			@Override
+			public void succeeded(long c) {
+				d.succeeded(c);
+			}
+
+			@Override
+			public void failed(Stream<T> failed) {
+				d.failed(failed);
 			}
 		};
 	}
 
 	abstract class WrapInput<V, V1> implements Input<V> {
 		@Override
-		public abstract long dequeue(Function<Stream<V>, Long> using, int batchSize);
+		public abstract void dequeue(Consumer<Stream<V>> using, int batchSize);
 
 		protected final Input<? extends V1> base;
 		private String suffix;
@@ -107,7 +117,7 @@ public interface Wrapper {
 
 	abstract class WrapOutput<V, V1> implements Output<V> {
 		@Override
-		public abstract long enqueue(Stream<V> items);
+		public abstract void enqueue(Stream<V> items);
 
 		protected final Output<V1> base;
 		private String suffix;

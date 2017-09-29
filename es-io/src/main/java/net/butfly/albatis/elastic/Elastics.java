@@ -24,11 +24,12 @@ public class Elastics {
 			return new IndexRequest(it.v1(), it.v2(), m.key()).source(m);
 		case DELETE:
 			return new DeleteRequest(it.v1(), it.v2(), m.key());
+		default:
+			return null;
 		}
-		return null;
 	}
 
-	public static DocWriteRequest<?> forWrite(ElasticMessage m) {
+	public static DocWriteRequest<?> forScriptWrite(ElasticMessage m) {
 		if (m.script == null) return forWrite((Message) m);
 		Pair<String, String> it = dessemble(m.table());
 		switch (m.op()) {
@@ -45,8 +46,9 @@ public class Elastics {
 			throw new IllegalArgumentException("Script should only in UpdateRequest");
 		case DELETE:
 			return new DeleteRequest(it.v1(), it.v2(), m.key());
+		default:
+			return null;
 		}
-		return null;
 	}
 
 	public static Pair<String, String> dessemble(String indexAndType) {

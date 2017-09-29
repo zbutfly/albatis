@@ -12,7 +12,6 @@ import kafka.javaapi.producer.Producer;
 import kafka.producer.KeyedMessage;
 import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.exception.ConfigException;
-import net.butfly.albacore.io.EnqueueException;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albatis.io.Message;
 import net.butfly.albatis.io.Output;
@@ -38,16 +37,14 @@ public final class KafkaOutput extends Namedly implements Output<Message> {
 	}
 
 	@Override
-	public long enqueue(Stream<Message> messages) {
+	public void enqueue(Stream<Message> messages) {
 		List<Message> msgs = list(messages);
 		List<KeyedMessage<byte[], byte[]>> ms = list(of(msgs).map(m -> Kafkas.toKeyedMessage(m, coder)));
-		try {
-			if (!ms.isEmpty()) producer.send(ms);
-			return ms.size();
+		if (!ms.isEmpty()) try {
+			producer.send(ms);
+			succeeded(ms.size());
 		} catch (Exception e) {
-			EnqueueException ex = new EnqueueException();
-			of(msgs).forEach(m -> ex.fail(m, e));
-			throw ex;
+			failed(msgs.parallelStream());
 		}
 	}
 

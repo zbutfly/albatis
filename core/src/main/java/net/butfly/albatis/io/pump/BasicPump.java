@@ -1,7 +1,6 @@
 package net.butfly.albatis.io.pump;
 
 import net.butfly.albacore.utils.Reflections;
-import net.butfly.albacore.utils.parallel.Concurrents;
 import net.butfly.albatis.io.Input;
 import net.butfly.albatis.io.Output;
 
@@ -15,10 +14,6 @@ public class BasicPump<V> extends PumpImpl<V, BasicPump<V>> {
 	}
 
 	private void pumpOne(Input<V> input, Output<V> output) {
-		if (opened()) {
-			long cc;
-			if ((cc = input.dequeue(s -> output.enqueue(stats(s)), batchSize)) <= 0) Concurrents.waitSleep();
-			else if (logger().isDebugEnabled() && cc < forceTrace) traceForce(name() + " processing: [" + cc + " odds].");
-		}
+		if (opened()) input.dequeue(s -> output.enqueue(stats(s)), batchSize);
 	}
 }
