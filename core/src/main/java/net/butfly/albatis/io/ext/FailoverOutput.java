@@ -9,8 +9,7 @@ import net.butfly.albatis.io.Wrapper;
 
 /**
  * Output with buffer and pool supporting.<br>
- * Parent class handle buffer, invoking really write/marshall op by callback
- * provided by children classes.<br>
+ * Parent class handle buffer, invoking really write/marshall op by callback provided by children classes.<br>
  * Children classes define and implemented connection to datasource.
  * 
  * @author zx
@@ -25,11 +24,14 @@ public class FailoverOutput<M> extends Wrapper.WrapOutput<M, M> {
 		super(output, "Failover");
 		this.pool = failover;
 		failovering = new OpenableThread(() -> {
-			while (opened())
-				failover.dequeue(ms -> output.enqueue(ms), batchSize);
-		}, "Failovering");
+			while (output.opened() && opened())
+				failover.dequeue(output::enqueue, batchSize);
+			logger().info("Failovering stopped.");
+		}, name() + "Failovering");
 		closing(() -> {
 			failovering.close();
+			if (!pool.empty()) logger().warn("Failovering pool not empty [" + pool.size() + "], maybe lost.");
+			else logger().info("Failovering pool empty and closing.");
 			pool.close();
 		});
 		pool.open();
