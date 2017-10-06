@@ -86,35 +86,8 @@ public class KuduOutput extends OddOutput<Message> {
 		});
 	}
 
-	public String status() {
-		return connect.status() + "\n\tDistinct keys: " + keys.size() + ", max duplication times of key: " + maxDup.get();
-	}
-
-	private Operation op(Message m) {
-		KuduTable t = connect.table(m.table());
-		Map<String, ColumnSchema> cols = connect.schemas(m.table());
-		ColumnSchema c;
-		if (null == t) return null;
-		switch (m.op()) {
-		case DELETE:
-			for (ColumnSchema cs : cols.values())
-				if (cs.isKey()) {
-					Delete del = t.newDelete();
-					del.getRow().addString(cs.getName(), m.key());
-					return del;
-				}
-			return null;
-		case INSERT:
-		case UPDATE:
-		case UPSERT:
-			// regDups(m);
-			Upsert ups = connect.table(m.table()).newUpsert();
-			for (String f : m.keySet())
-				if (null != (c = cols.get(f.toLowerCase())))//
-					KuduCommon.generateColumnData(c.getType(), ups.getRow(), c.getName(), m.get(f));
-			return ups;
-		default:
-			return null;
-		}
+	@Override
+	public String partition(Message v) {
+		return v.table();
 	}
 }
