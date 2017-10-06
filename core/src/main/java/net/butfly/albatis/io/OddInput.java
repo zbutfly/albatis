@@ -20,7 +20,7 @@ public interface OddInput<V> extends Input<V> {
 
 	@Override
 	public final void dequeue(Consumer<Stream<V>> using, int batchSize) {
-		using.accept(Streams.of(this::dequeue, batchSize, () -> empty() && opened()));
+		using.accept(Streams.of(this::dequeue, batchSize, () -> empty() && opened()).filter(Streams.NOT_NULL));
 	}
 
 		@Override
