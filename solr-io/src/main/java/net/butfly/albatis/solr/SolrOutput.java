@@ -81,4 +81,9 @@ public final class SolrOutput extends OutputBase<Message> {
 			throw new RuntimeException(e);
 		}
 	}
+
+	@Override
+	public String partition(Message v) {
+		return v.table();
+	}
 }

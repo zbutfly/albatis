@@ -163,10 +163,9 @@ public final class Hbases extends Utils {
 			case UPSERT:
 				Put put = new Put(rowk);
 				m.each((k, v) -> {
-					byte[] data = (byte[]) v;
-					if (null == data || data.length == 0) return;
+					if (!(v instanceof byte[]) || null == ((byte[]) v) || ((byte[]) v).length == 0) return;
 					byte[][] fq = Results.parseFQ(k);
-					Cell c = CellUtil.createCell(rowk, fq[0], fq[1], HConstants.LATEST_TIMESTAMP, Type.Put.getCode(), data);
+					Cell c = CellUtil.createCell(rowk, fq[0], fq[1], HConstants.LATEST_TIMESTAMP, Type.Put.getCode(), (byte[]) v);
 					try {
 						put.add(c);
 					} catch (Exception ee) {

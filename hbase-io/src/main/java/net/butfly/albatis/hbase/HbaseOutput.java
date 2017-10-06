@@ -69,14 +69,16 @@ public final class HbaseOutput extends OutputBase<Message> {
 	private List<Message> incs(String table, Stream<Message> values) {
 		Map<Boolean, List<Message>> ms = values.parallel().filter(Streams.NOT_NULL).collect(Collectors.partitioningBy(m -> m
 				.op() == Op.INCREASE));
-		List<Message> alls = ms.remove(Boolean.FALSE);
+		List<Message> alls = ms.get(Boolean.FALSE);
 		Map<String, List<Message>> incByKeys = ms.get(Boolean.TRUE).parallelStream().collect(Collectors.groupingBy(m -> m.key()));
 		for (Map.Entry<String, List<Message>> e : incByKeys.entrySet()) {
-			Message merge = new Message(table, e.getKey());
+			Message merge = new Message(table, e.getKey()).op(Op.INCREASE);
 			for (Message m : e.getValue())
 				for (Map.Entry<String, Object> f : m.entrySet())
-					merge.compute(f.getKey(), (fn, v) -> lvalue(v) + lvalue(e.getValue()));
-			alls.add(merge);
+					merge.compute(f.getKey(), (fn, v) -> lvalue(v) + lvalue(f.getValue()));
+			for (String k : merge.keySet())
+				if (((Long) merge.get(k)).longValue() <= 0) merge.remove(k);
+			if (!merge.isEmpty()) alls.add(merge);
 		}
 		return alls;
 	}
@@ -87,6 +89,6 @@ public final class HbaseOutput extends OutputBase<Message> {
 
 	@Override
 	public String partition(Message v) {
-		return v.key();
+		return v.table();
 	}
 }
