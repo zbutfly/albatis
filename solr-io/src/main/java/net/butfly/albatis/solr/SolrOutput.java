@@ -87,6 +87,6 @@ public final class SolrOutput extends Namedly implements KeyOutput<String, Messa
 
 	@Override
 	public String partition(Message v) {
-		return v.key();
+		return v.table();
 	}
 }

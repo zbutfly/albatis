@@ -41,6 +41,6 @@ public class KuduOutput extends Namedly implements KeyOutput<String, Message> {
 
 	@Override
 	public String partition(Message v) {
-		return v.key();
+		return v.table();
 	}
 }
