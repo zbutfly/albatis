@@ -52,7 +52,7 @@ public final class SolrOutput extends OutputBase<Message> {
 		ConcurrentMap<Boolean, List<Message>> ops = msgs.filter(NOT_NULL).collect(Collectors.groupingByConcurrent(m -> Op.DELETE == m
 				.op()));
 		List<Message> del;
-		if (null != (del = ops.get(Boolean.TRUE)) && !del.isEmpty()) Parals.listenRun(() -> {
+		if (null != (del = ops.get(Boolean.TRUE)) && !del.isEmpty()) Parals.listen(() -> {
 			try {
 				solr.client().deleteById(core, list(del, Message::key), DEFAULT_AUTO_COMMIT_MS);
 				succeeded(del.size());
@@ -61,7 +61,7 @@ public final class SolrOutput extends OutputBase<Message> {
 			}
 		});
 		List<Message> ins;
-		if (null != (ins = ops.get(Boolean.FALSE)) && !ins.isEmpty()) Parals.listenRun(() -> {
+		if (null != (ins = ops.get(Boolean.FALSE)) && !ins.isEmpty()) Parals.listen(() -> {
 			try {
 				solr.client().add(core, list(ins, t -> Solrs.input(t, keyFieldName)), DEFAULT_AUTO_COMMIT_MS);
 				succeeded(ins.size());
