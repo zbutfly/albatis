@@ -49,6 +49,7 @@ public class MongoConnection extends NoSqlConnection<MongoClient> {
 		dbs = new ConcurrentHashMap<>();
 	}
 
+	@Deprecated
 	public MongoConnection(String urispec) throws IOException {
 		this(new URISpec(urispec));
 	}
