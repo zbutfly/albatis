@@ -4,7 +4,7 @@
 	<parent>
 		<groupId>net.butfly.albatis</groupId>
 		<artifactId>albatis</artifactId>
-		<version>1.4.0-SNAPSHOT</version>
+		<version>1.4.1-SNAPSHOT</version>
 	</parent>
 
 	<artifactId>albatis-jdbc-io</artifactId>
@@ -13,7 +13,7 @@
 		<dependency>
 			<groupId>net.butfly.albatis</groupId>
 			<artifactId>albatis-core</artifactId>
-			<version>1.4.0-SNAPSHOT</version>
+			<version>1.4.1-SNAPSHOT</version>
 		</dependency>
 	</dependencies>
 </project>
