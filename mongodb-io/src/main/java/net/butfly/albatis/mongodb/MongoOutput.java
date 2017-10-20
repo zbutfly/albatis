@@ -14,7 +14,9 @@ import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.parallel.Lambdas;
 import net.butfly.albatis.io.Message;
-import net.butfly.albatis.io.OutputBase;
+import net.butfly.albatis.io.Output;
+import static net.butfly.albacore.utils.parallel.Parals.*;
+import static net.butfly.albacore.utils.collection.Streams.*;
 
 public final class MongoOutput extends OutputBase<Message> {
 	private final boolean upsert;
@@ -48,7 +50,7 @@ public final class MongoOutput extends OutputBase<Message> {
 
 	@Override
 	public void enqueue(Stream<Message> msgs) {
-		succeeded(upsert ? msgs.parallel().map(m -> collection.save(MongoConnection.dbobj(m)).getN()).collect(Collectors.counting())
+		succeeded(upsert ? map(msgs, m -> collection.save(MongoConnection.dbobj(m)).getN(), Collectors.counting())
 				: collection.insert(list(msgs, MongoConnection::dbobj)).getN());
 	}
 }

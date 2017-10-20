@@ -1,6 +1,8 @@
 package net.butfly.albatis.hbase;
 
-import static net.butfly.albacore.utils.collection.Colls.list;
+import static net.butfly.albacore.utils.collection.Streams.collect;
+import static net.butfly.albacore.utils.collection.Streams.map;
+import static net.butfly.albacore.utils.collection.Streams.of;
 
 import java.io.IOException;
 import java.util.List;
@@ -16,9 +18,8 @@ import org.apache.hadoop.hbase.util.Bytes;
 
 import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.utils.Exceptions;
-import net.butfly.albacore.utils.collection.Colls;
-import net.butfly.albacore.utils.collection.Maps;
-import net.butfly.albacore.utils.logger.Statistic;
+import net.butfly.albacore.utils.Pair;
+import net.butfly.albatis.io.KeyOutput;
 import net.butfly.albatis.io.Message;
 import net.butfly.albatis.io.Message.Op;
 
@@ -39,12 +40,14 @@ public final class HbaseOutput extends OutputBase<Message> {
 	@Override
 	public void enqueue(String table, Stream<Message> msgs) {
 		Map<String, Message> map = new ConcurrentHashMap<>();
-		List<Pair<Message, ? extends Row>> l = incs(table, msgs).stream().filter(Streams.NOT_NULL).map(v -> new Pair<>(v, Hbases.Results
-				.put(v))).filter(p -> null != p && null != p.v2()).peek(p -> map.put(Bytes.toString(p.v2().getRow()), p.v1())).collect(
-						Collectors.toList());
+		List<Pair<Message, ? extends Row>> l = map(incs(table, msgs), m -> new Pair<>(m, Hbases.Results.put(m)), p -> {
+			boolean b = null != p && null != p.v2();
+			if (b) map.put(Bytes.toString(p.v2().getRow()), p.v1());
+			return b;
+		}, Collectors.toList());
 		if (l.isEmpty()) return;
-		List<Message> vs = l.stream().map(v -> v.v1()).collect(Collectors.toList());
-		List<? extends Row> puts = l.stream().map(v -> v.v2()).collect(Collectors.toList());
+		List<Message> vs = map(l, v -> v.v1(), Collectors.toList());
+		List<? extends Row> puts = map(l, v -> v.v2(), Collectors.toList());
 		Object[] results = new Object[l.size()];
 		try {
 			hconn.table(table).batchCallback(puts, results, (region, row, result) -> {
@@ -53,7 +56,7 @@ public final class HbaseOutput extends OutputBase<Message> {
 					Message m = map.get(Bytes.toString(row));
 					logger().debug(() -> "Hbase failed on: " + m.toString(), result instanceof Throwable ? (Throwable) result
 							: new RuntimeException("Unknown hbase return [" + result.getClass() + "]: " + result.toString()));
-					failed(Streams.of(new Message[] { m }));
+					failed(of(new Message[] { m }));
 				}
 			});
 		} catch (Exception ex) {
@@ -67,8 +70,7 @@ public final class HbaseOutput extends OutputBase<Message> {
 	}
 
 	private List<Message> incs(String table, Stream<Message> values) {
-		Map<Boolean, List<Message>> ms = values.parallel().filter(Streams.NOT_NULL).collect(Collectors.partitioningBy(m -> m
-				.op() == Op.INCREASE));
+		Map<Boolean, List<Message>> ms = collect(values, Collectors.partitioningBy(m -> m.op() == Op.INCREASE));
 		List<Message> alls = ms.get(Boolean.FALSE);
 		Map<String, List<Message>> incByKeys = ms.get(Boolean.TRUE).parallelStream().collect(Collectors.groupingBy(m -> m.key()));
 		for (Map.Entry<String, List<Message>> e : incByKeys.entrySet()) {

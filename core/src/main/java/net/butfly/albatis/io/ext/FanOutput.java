@@ -1,6 +1,8 @@
 package net.butfly.albatis.io.ext;
 
-import static net.butfly.albacore.paral.Sdream.of;
+import static net.butfly.albacore.utils.collection.Streams.list;
+import static net.butfly.albacore.utils.collection.Streams.map;
+import static net.butfly.albacore.utils.collection.Streams.of;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -17,21 +19,8 @@ public class FanOutput<V> extends Namedly implements Output<V> {
 	private final List<? extends Output<V>> outputs;
 
 	public FanOutput(Iterable<? extends Output<V>> outputs) {
-		this("FanOutTo" + ":" + of(outputs).joinAsString(Output::name, "&"), outputs);
-	}
-
-	@Override
-	public void open() {
-		for (int i = outputs.size() - 1; i >= 0; i--)
-			outputs.get(i).open();
-		Output.super.open();
-	}
-
-	@Override
-	public void close() {
-		Output.super.close();
-		for (Output<V> o : outputs)
-			o.close();
+		this("FanOutTo" + ":" + map(outputs, o -> o.name(), Collectors.joining("&")), outputs);
+		open();
 	}
 
 	public FanOutput(String name, Iterable<? extends Output<V>> outputs) {

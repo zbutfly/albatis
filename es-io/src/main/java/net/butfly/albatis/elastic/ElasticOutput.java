@@ -3,6 +3,7 @@ package net.butfly.albatis.elastic;
 import static net.butfly.albacore.utils.Exceptions.unwrap;
 import static net.butfly.albacore.utils.collection.Streams.collect;
 import static net.butfly.albacore.utils.collection.Streams.list;
+import static net.butfly.albacore.utils.collection.Streams.map;
 import static net.butfly.albacore.utils.collection.Streams.of;
 
 import java.io.IOException;
@@ -23,7 +24,6 @@ import org.elasticsearch.transport.RemoteTransportException;
 
 import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.utils.Exceptions;
-import net.butfly.albacore.utils.collection.Streams;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.io.Message;
 import net.butfly.albatis.io.Output;
@@ -51,11 +51,10 @@ public final class ElasticOutput extends Namedly implements Output<Message> {
 
 	@Override
 	public final void enqueue(Stream<Message> msgs) {
-		ConcurrentMap<String, Message> origin = msgs.filter(Streams.NOT_NULL).collect(Collectors.toConcurrentMap(Message::key,
-				conn::fixTable, (m1, m2) -> {
-					logger.trace(() -> "Duplicated key [" + m1.key() + "], \n\t" + m1.toString() + "\ncoverd\n\t" + m2.toString());
-					return m1;
-				}));
+		ConcurrentMap<String, Message> origin = collect(msgs, Collectors.toConcurrentMap(Message::key, conn::fixTable, (m1, m2) -> {
+			logger.trace(() -> "Duplicated key [" + m1.key() + "], \n\t" + m1.toString() + "\ncoverd\n\t" + m2.toString());
+			return m1;
+		}));
 		if (origin.isEmpty()) return;
 		int retry = 0;
 		while (!origin.isEmpty() && retry++ <= maxRetry) {
@@ -81,11 +80,11 @@ public final class ElasticOutput extends Namedly implements Output<Message> {
 						// process failing and retry...
 						Map<Boolean, List<BulkItemResponse>> failOrRetry = of(failResps).collect(Collectors.partitioningBy(r -> noRetry(r
 								.getFailure().getCause())));
-						failed(failOrRetry.get(Boolean.FALSE).parallelStream().map(r -> origin.remove(r.getId())));
-						if (logger().isTraceEnabled()) //
-							logger.warn(() -> "Some fails: \n" + failOrRetry.get(Boolean.TRUE).parallelStream().map(r -> "\tfailed id [" + r
-									.getFailure().getId() + "] for: " + unwrap(r.getFailure().getCause()).toString()).collect(Collectors
-											.joining("\n")));
+						List<BulkItemResponse> ll = failOrRetry.get(Boolean.FALSE);
+						failed(map(ll, r -> origin.remove(r.getId())));
+						if (logger().isTraceEnabled()) logger.warn(() -> "Some fails: \n" + map(failOrRetry.get(Boolean.TRUE),
+								r -> "\tfailed id [" + r.getFailure().getId() + "] for: " + unwrap(r.getFailure().getCause()).toString(),
+								Collectors.joining("\n")));
 					}
 
 					@Override

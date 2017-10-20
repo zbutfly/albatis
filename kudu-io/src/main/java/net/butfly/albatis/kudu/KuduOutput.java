@@ -1,27 +1,13 @@
 package net.butfly.albatis.kudu;
 
-import static net.butfly.albacore.paral.Sdream.of;
-import static net.butfly.albatis.io.Message.Op.DELETE;
-import static net.butfly.albatis.io.Message.Op.INSERT;
-import static net.butfly.albatis.io.Message.Op.UPDATE;
-import static net.butfly.albatis.io.Message.Op.UPSERT;
+import static net.butfly.albacore.utils.collection.Streams.map;
+import static net.butfly.albacore.utils.collection.Streams.of;
 
-import java.io.BufferedWriter;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.concurrent.atomic.AtomicReference;
-
-import org.apache.kudu.ColumnSchema;
-import org.apache.kudu.client.Delete;
-import org.apache.kudu.client.KuduTable;
-import org.apache.kudu.client.Operation;
-import org.apache.kudu.client.Upsert;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import net.butfly.albacore.base.Namedly;
-import net.butfly.albacore.utils.collection.Streams;
 import net.butfly.albatis.io.KeyOutput;
 import net.butfly.albatis.io.Message;
 import net.butfly.albatis.io.OddOutputBase;
@@ -74,11 +60,14 @@ public class KuduOutput extends OddOutputBase<Message> {
 
 	@Override
 	public void enqueue(String table, Stream<Message> msgs) {
-		msgs.parallel().filter(Streams.NOT_EMPTY_MAP).forEach(m -> {
+		failed(of(map(msgs, m -> {
+			if (m.isEmpty()) return null;
 			Throwable e = connect.apply(m);
-			if (null == e) succeeded(1);
-			else failed(Streams.of(new Message[] { m }));
-		});
+			if (null == e) {
+				succeeded(1);
+				return null;
+			} else return m;
+		}, Collectors.toList())));
 	}
 
 	@Override

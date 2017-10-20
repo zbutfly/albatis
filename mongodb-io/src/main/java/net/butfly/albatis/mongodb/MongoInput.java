@@ -1,13 +1,14 @@
 package net.butfly.albatis.mongodb;
 
-import static net.butfly.albatis.mongodb.MongoConnection.dbobj;
+import static net.butfly.albacore.utils.parallel.Parals.eachs;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
 
 import com.mongodb.Bytes;
 import com.mongodb.DBCursor;
@@ -39,7 +40,7 @@ public class MongoInput extends net.butfly.albacore.base.Namedly implements OddI
 		this.conn = conn;
 		logger.debug("[" + name + "] find begin...");
 		cursors = new LinkedBlockingQueue<>(tables.length);
-		Parals.run((Runnable[]) Arrays.asList(tables).parallelStream().map(t -> (Runnable) () -> {
+		eachs(Stream.of(tables), t -> {
 			try {
 				cursors.put(new Pair<>(t, conn.cursor(t).batchSize(conn.getBatchSize()).addOption(Bytes.QUERYOPTION_NOTIMEOUT)));
 			} catch (Exception e) {
@@ -47,7 +48,7 @@ public class MongoInput extends net.butfly.albacore.base.Namedly implements OddI
 			} finally {
 				queryings.decrementAndGet();
 			}
-		}).toArray(c -> new Runnable[c]));
+		});
 		closing(this::closeMongo);
 	}
 
@@ -63,7 +64,7 @@ public class MongoInput extends net.butfly.albacore.base.Namedly implements OddI
 		this.conn = conn;
 		logger.debug("[" + name + "] find begin...");
 		cursors = new LinkedBlockingQueue<>(tablesAndQueries.size());
-		Parals.run((Runnable[]) tablesAndQueries.entrySet().parallelStream().map(e -> (Runnable) () -> {
+		eachs(tablesAndQueries.entrySet(), e -> {
 			try {
 				c = conn.cursor(col, q).batchSize(conn.getBatchSize()).addOption(Bytes.QUERYOPTION_NOTIMEOUT);
 				if (c.hasNext()) {
@@ -87,8 +88,9 @@ public class MongoInput extends net.butfly.albacore.base.Namedly implements OddI
 			} finally {
 				cursorsMap.remove(col);
 			}
-		}
-
+		});
+		closing(this::closeMongo);
+		open();
 	}
 
 	private void closeMongo() {

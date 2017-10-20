@@ -1,13 +1,14 @@
 package net.butfly.albatis.io;
 
-import java.util.List;
-import java.util.Map.Entry;
-import java.util.Set;
+import static net.butfly.albacore.utils.collection.Streams.batching;
+import static net.butfly.albacore.utils.collection.Streams.collect;
+import static net.butfly.albacore.utils.collection.Streams.of;
+import static net.butfly.albacore.utils.parallel.Parals.eachs;
+import static net.butfly.albacore.utils.parallel.Parals.run;
+
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import net.butfly.albacore.utils.collection.Streams;
-import net.butfly.albacore.utils.parallel.Parals;
 import net.butfly.albatis.io.ext.FailoverOutput;
 
 public interface KeyOutput<K, V> extends Output<V> {
@@ -17,8 +18,7 @@ public interface KeyOutput<K, V> extends Output<V> {
 
 	@Override
 	public default void enqueue(Stream<V> s) {
-		Set<Entry<K, List<V>>> m = s.filter(Streams.NOT_NULL).collect(Collectors.groupingBy(v -> partition(v))).entrySet();
-		Parals.eachs(m, e -> enqueue(e.getKey(), Streams.of(e.getValue())));
+		run(() -> eachs(collect(s, Collectors.groupingBy(v -> partition(v))).entrySet(), e -> enqueue(e.getKey(), of(e.getValue()))));
 	}
 
 	@Override
@@ -37,8 +37,7 @@ public interface KeyOutput<K, V> extends Output<V> {
 
 			@Override
 			public void enqueue(K key, Stream<V> v) {
-				Stream<Stream<V>> ss = Streams.batching(v, batchSize);
-				ss.parallel().forEach(s -> enqueue(key, s));
+				eachs(batching(v, batchSize), s -> enqueue(key, s));
 			}
 		};
 		ko.opening(() -> origin.open());
