@@ -8,7 +8,7 @@
 	</parent>
 	<groupId>net.butfly.albatis</groupId>
 	<artifactId>albatis</artifactId>
-	<version>1.4.0</version>
+	<version>1.4.1-SNAPSHOT</version>
 	<packaging>pom</packaging>
 	<properties>
 		<!-- <version.kafka>0.8.2.2</version.kafka> -->
@@ -37,16 +37,16 @@
 		<module>hbase-io</module>
 		<module>kudu-io</module>
 		<module>kafka-io</module>
-		<!--<module>neo4j-io</module>-->
-		<!--<module>arangodb-io</module>-->
+<!-- 		<module>neo4j-io</module> -->
+<!-- 		<module>arangodb-io</module> -->
 		<module>demo</module>
-		<!--<module>util</module>-->
+<!-- 		<module>util</module> -->
 	</modules>
 	<dependencies>
 		<dependency>
 			<groupId>net.butfly.albacore</groupId>
 			<artifactId>albacore-test</artifactId>
-			<version>3.0.1</version>
+			<version>3.0.2-SNAPSHOT</version>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
