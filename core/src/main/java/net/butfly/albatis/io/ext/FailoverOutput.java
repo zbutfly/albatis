@@ -6,10 +6,12 @@ import net.butfly.albacore.utils.OpenableThread;
 import net.butfly.albatis.io.Output;
 import net.butfly.albatis.io.Queue;
 import net.butfly.albatis.io.Wrapper;
+import static net.butfly.albacore.utils.parallel.Parals.run;
 
 /**
  * Output with buffer and pool supporting.<br>
- * Parent class handle buffer, invoking really write/marshall op by callback provided by children classes.<br>
+ * Parent class handle buffer, invoking really write/marshall op by callback
+ * provided by children classes.<br>
  * Children classes define and implemented connection to datasource.
  * 
  * @author zx
@@ -41,7 +43,7 @@ public class FailoverOutput<M> extends Wrapper.WrapOutput<M, M> {
 
 	@Override
 	public final void enqueue(Stream<M> els) {
-		base.enqueue(els);
+		run(() -> base.enqueue(els));
 	}
 
 	@Override

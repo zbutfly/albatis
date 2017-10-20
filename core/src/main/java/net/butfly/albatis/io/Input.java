@@ -15,7 +15,6 @@ import java.util.stream.Stream;
 import net.butfly.albacore.io.Dequeuer;
 import net.butfly.albacore.io.IO;
 import net.butfly.albacore.utils.collection.Its;
-import net.butfly.albacore.utils.collection.Streams;
 import net.butfly.albatis.io.ext.PrefetchInput;
 
 public interface Input<V> extends IO, Dequeuer<V>, Supplier<V>, Iterator<V> {
@@ -32,8 +31,7 @@ public interface Input<V> extends IO, Dequeuer<V>, Supplier<V>, Iterator<V> {
 	}
 
 	default <V1> Input<V1> then(Function<V, V1> conv) {
-		return Wrapper.wrap(this, "Then", (using, batchSize) -> dequeue(s -> using.accept(s.filter(Streams.NOT_NULL).map(conv)),
-				batchSize));
+		return Wrapper.wrap(this, "Then", (using, batchSize) -> dequeue(s -> using.accept(map(s, conv)), batchSize));
 	}
 
 	default <V1> Input<V1> thens(Function<Iterable<V>, Iterable<V1>> conv) {

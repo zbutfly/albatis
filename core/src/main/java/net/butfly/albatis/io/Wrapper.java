@@ -7,13 +7,14 @@ import net.butfly.albacore.io.Dequeuer;
 import net.butfly.albacore.io.Enqueuer;
 import net.butfly.albacore.lambda.Runnable;
 import net.butfly.albacore.utils.logger.Logger;
+import static net.butfly.albacore.utils.parallel.Parals.run;
 
 public interface Wrapper {
 	static <T, T1> WrapInput<T, T1> wrap(Input<T1> base, String suffix, Dequeuer<T> d) {
 		return new WrapInput<T, T1>(base, suffix) {
 			@Override
 			public void dequeue(Consumer<Stream<T>> using, int batchSize) {
-				d.dequeue(using, batchSize);
+				run(() -> d.dequeue(using, batchSize));
 			}
 		};
 	}
@@ -22,7 +23,7 @@ public interface Wrapper {
 		return new WrapOutput<T, T1>(base, suffix) {
 			@Override
 			public void enqueue(Stream<T> items) {
-				d.enqueue(items);
+				run(() -> d.enqueue(items));
 			}
 
 			@Override

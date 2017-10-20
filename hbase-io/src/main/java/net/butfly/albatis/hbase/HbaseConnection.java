@@ -9,6 +9,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.TableName;
@@ -26,6 +28,8 @@ import com.hzcominfo.albatis.nosql.NoSqlConnection;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.io.Message;
+import static net.butfly.albacore.utils.parallel.Parals.*;
+import static net.butfly.albacore.utils.collection.Streams.*;
 
 public class HbaseConnection extends NoSqlConnection<org.apache.hadoop.hbase.client.Connection> {
 	private final static Logger logger = Logger.getLogger(HbaseConnection.class);
@@ -64,7 +68,23 @@ public class HbaseConnection extends NoSqlConnection<Connection> {
 			} catch (Exception e) {
 				throw new RuntimeException(e);
 			}
-		} , "hbase");
+		});
+	}
+
+	public <T> T table(String name, Function<Table, T> using) {
+		return using.apply(table(name));
+	}
+
+	public List<Message> get(String table, List<Get> gets) {
+		if (gets == null || gets.isEmpty()) return new ArrayList<>();
+		if (gets.size() == 1) return Arrays.asList(scan(table, gets.get(0)));
+		return table(table, t -> {
+			try {
+				return map(Stream.of(t.get(gets)), r -> Hbases.Results.result(table, r), Collectors.toList());
+			} catch (Exception ex) {
+				return map(gets, g -> scan(table, g), r -> null != r, Collectors.toList());
+			}
+		});
 	}
 
 	@Override

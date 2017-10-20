@@ -95,7 +95,7 @@ public final class HbaseInput extends Namedly implements Input<Message> {
 			}
 			if (null != rs) {
 				ended.set(rs.length == 0);
-				if (rs.length > 0) using.accept(Stream.of(rs).map(r -> Hbases.Results.result(htname, r)));
+				if (rs.length > 0) using.accept(map(Stream.of(rs), r -> Hbases.Results.result(htname, r)));
 			}
 		}
 	}

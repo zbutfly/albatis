@@ -93,8 +93,8 @@ public class KafkaInput extends OddInput<Message> {
 		while (temp == null);
 		connect = c;
 		logger().info("[" + name() + "] connected.");
-		consumers = new LinkedBlockingQueue<>(temp.entrySet().stream().flatMap(e -> e.getValue().stream().map(s -> s.iterator())).collect(
-				Collectors.toList()));
+		consumers = new LinkedBlockingQueue<>(maps(temp.entrySet(), s -> s.flatMap(e -> map(e.getValue(),
+				KafkaStream<byte[], byte[]>::iterator)), Collectors.toList()));
 		closing(this::closeKafka);
 		open();
 	}
