@@ -1,5 +1,7 @@
 package net.butfly.albatis.solr;
 
+import static net.butfly.albacore.utils.collection.Streams.map;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -245,11 +247,11 @@ public final class Solrs extends Utils {
 	public static SolrInputDocument input(Message m, String keyFieldName) {
 		if (null == m) return null;
 		if (m.isEmpty() && null == m.key()) return null;
-		SolrInputDocument doc = new SolrInputDocument(m.entrySet().parallelStream().map(e -> {
+		SolrInputDocument doc = new SolrInputDocument(map(m.entrySet(), e -> {
 			SolrInputField f = new SolrInputField(e.getKey());
 			f.setValue(e.getValue(), 1f);
 			return f;
-		}).collect(Collectors.toConcurrentMap(f -> f.getName(), f -> f)));
+		}, Collectors.toConcurrentMap(f -> f.getName(), f -> f)));
 		doc.addField(keyFieldName, m.key());
 		return doc;
 	}

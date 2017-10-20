@@ -12,6 +12,8 @@ import com.mongodb.DBObject;
 import net.butfly.albacore.base.Namedly;
 import net.butfly.albatis.io.Message;
 import net.butfly.albatis.io.Output;
+import static net.butfly.albacore.utils.parallel.Parals.*;
+import static net.butfly.albacore.utils.collection.Streams.*;
 
 public final class MongoOutput extends Namedly implements Output<Message> {
 	private final boolean upsert;
@@ -46,7 +48,7 @@ public final class MongoOutput extends Namedly implements Output<Message> {
 
 	@Override
 	public void enqueue(Stream<Message> msgs) {
-		succeeded(upsert ? msgs.parallel().map(m -> collection.save(MongoConnection.dbobj(m)).getN()).collect(Collectors.counting())
+		succeeded(upsert ? map(msgs, m -> collection.save(MongoConnection.dbobj(m)).getN(), Collectors.counting())
 				: collection.insert(list(msgs, MongoConnection::dbobj)).getN());
 	}
 }

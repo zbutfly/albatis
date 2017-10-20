@@ -1,7 +1,7 @@
 package net.butfly.albatis.kafka;
 
-import static net.butfly.albacore.utils.collection.Streams.map;
-import static net.butfly.albacore.utils.collection.Streams.mapping;
+import static net.butfly.albacore.utils.collection.Streams.toMap;
+import static net.butfly.albacore.utils.collection.Streams.maps;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -92,12 +92,12 @@ public class ZKConn implements AutoCloseable {
 					.collect(Collectors.toSet()));
 			return t;
 		});
-		return map(s, t -> t._1, t -> t._2.stream().mapToInt(i -> null == i ? 0 : i.intValue()).sorted().toArray());
+		return toMap(s, t -> t._1, t -> t._2.stream().mapToInt(i -> null == i ? 0 : i.intValue()).sorted().toArray());
 	}
 
 	public Map<String, int[]> getTopicPartitions(String... topics) {
 		if (topics == null || topics.length == 0) return getTopicPartitions();
-		return map(Stream.of(topics), t -> t, t -> {
+		return toMap(Stream.of(topics), t -> t, t -> {
 			Map<String, Object> info = fetchMap(ZkUtils.getTopicPath(t));
 			if (null == info) return new int[0];
 			else {
@@ -141,7 +141,7 @@ public class ZKConn implements AutoCloseable {
 		if (null == nodes || nodes.isEmpty()) {
 			Map<String, Object> map = fetchMap(path);
 			return null == map ? fetchValue(path, cl) : (T) map;
-		} else return (T) mapping(nodes, s -> s.map(node -> {
+		} else return (T) maps(nodes, s -> s.map(node -> {
 			String subpath = "/".equals(path) ? "/" + node : path + "/" + node;
 			System.err.println("Scan zk: " + subpath);
 			Object sub = fetchTree(subpath, cl);

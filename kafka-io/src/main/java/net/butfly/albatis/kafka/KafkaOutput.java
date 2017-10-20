@@ -1,11 +1,12 @@
 package net.butfly.albatis.kafka;
 
 import static net.butfly.albacore.utils.collection.Streams.list;
-import static net.butfly.albacore.utils.collection.Streams.of;
+import static net.butfly.albacore.utils.collection.Streams.map;
 
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import kafka.javaapi.producer.Producer;
@@ -39,7 +40,7 @@ public final class KafkaOutput extends Namedly implements Output<Message> {
 	@Override
 	public void enqueue(Stream<Message> messages) {
 		List<Message> msgs = list(messages);
-		List<KeyedMessage<byte[], byte[]>> ms = list(of(msgs).map(m -> Kafkas.toKeyedMessage(m, coder)));
+		List<KeyedMessage<byte[], byte[]>> ms = map(msgs, m -> Kafkas.toKeyedMessage(m, coder), Collectors.toList());
 		if (!ms.isEmpty()) try {
 			producer.send(ms);
 			succeeded(ms.size());

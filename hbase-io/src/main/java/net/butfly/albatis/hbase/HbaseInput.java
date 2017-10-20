@@ -1,5 +1,7 @@
 package net.butfly.albatis.hbase;
 
+import static net.butfly.albacore.utils.collection.Streams.map;
+
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -93,7 +95,7 @@ public final class HbaseInput extends Namedly implements Input<Message> {
 			}
 			if (null != rs) {
 				ended.set(rs.length == 0);
-				if (rs.length > 0) using.accept(Stream.of(rs).map(r -> Hbases.Results.result(htname, r)));
+				if (rs.length > 0) using.accept(map(Stream.of(rs), r -> Hbases.Results.result(htname, r)));
 			}
 		}
 	}

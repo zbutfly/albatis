@@ -1,7 +1,7 @@
 package net.butfly.albatis.io.ext;
 
-import static net.butfly.albacore.utils.collection.Streams.collect;
 import static net.butfly.albacore.utils.collection.Streams.list;
+import static net.butfly.albacore.utils.collection.Streams.map;
 import static net.butfly.albacore.utils.collection.Streams.of;
 
 import java.util.List;
@@ -16,7 +16,7 @@ public class FanOutput<V> extends Namedly implements Output<V> {
 	private final Iterable<? extends Output<V>> outputs;
 
 	public FanOutput(Iterable<? extends Output<V>> outputs) {
-		this("FanOutTo" + ":" + collect(of(outputs).map(o -> o.name()), Collectors.joining("&")), outputs);
+		this("FanOutTo" + ":" + map(outputs, o -> o.name(), Collectors.joining("&")), outputs);
 		open();
 	}
 

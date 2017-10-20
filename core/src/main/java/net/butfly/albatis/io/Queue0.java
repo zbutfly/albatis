@@ -1,5 +1,9 @@
 package net.butfly.albatis.io;
 
+import static net.butfly.albacore.utils.collection.Streams.*;
+import static net.butfly.albacore.utils.collection.Streams.spatial;
+import static net.butfly.albacore.utils.collection.Streams.spatialMap;
+
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Stream;
@@ -7,7 +11,6 @@ import java.util.stream.Stream;
 import com.bluejeans.bigqueue.BigQueue;
 
 import net.butfly.albacore.utils.collection.Its;
-import net.butfly.albacore.utils.collection.Streams;
 import net.butfly.albacore.utils.parallel.Parals;
 
 /**
@@ -50,7 +53,7 @@ public interface Queue0<I, O> extends Input<O>, Output<I> {
 		Queue0<I, O1> i = new Queue0<I, O1>() {
 			@Override
 			public void dequeue(Consumer<Stream<O1>> using, int batchSize) {
-				Queue0.this.dequeue(s -> using.accept(s.map(conv)), batchSize);
+				Queue0.this.dequeue(s -> using.accept(map(s, conv)), batchSize);
 			}
 
 			@Override
@@ -82,8 +85,8 @@ public interface Queue0<I, O> extends Input<O>, Output<I> {
 		Queue0<I, O1> i = new Queue0<I, O1>() {
 			@Override
 			public void dequeue(Consumer<Stream<O1>> using, int batchSize) {
-				Queue0.this.dequeue(s -> Streams.spatialMap(s, parallelism, t -> conv.apply(() -> Its.it(t)).spliterator()).forEach(
-						s1 -> using.accept(s1)), batchSize);
+				Queue0.this.dequeue(s -> spatialMap(s, parallelism, t -> conv.apply(() -> Its.it(t)).spliterator()).forEach(s1 -> using
+						.accept(s1)), batchSize);
 			}
 
 			@Override
@@ -120,12 +123,12 @@ public interface Queue0<I, O> extends Input<O>, Output<I> {
 
 			@Override
 			public void enqueue(Stream<I0> items) {
-				Queue0.this.enqueue(Streams.of(items.map(conv)));
+				Queue0.this.enqueue(map(items, conv));
 			}
 
 			@Override
 			public void failed(Stream<I0> failed) {
-				Queue0.this.failed(Streams.of(failed.map(conv)));
+				Queue0.this.failed(map(failed, conv));
 			}
 
 			@Override
@@ -152,8 +155,8 @@ public interface Queue0<I, O> extends Input<O>, Output<I> {
 
 			@Override
 			public void enqueue(Stream<I0> items) {
-				Parals.eachs(Streams.spatial(items, parallelism).values(), s0 -> Queue0.this.enqueue(Streams.of(conv.apply(
-						(Iterable<I0>) () -> Its.it(s0)))));
+				Parals.eachs(spatial(items, parallelism).values(), s0 -> Queue0.this.enqueue(of(conv.apply((Iterable<I0>) () -> Its.it(
+						s0)))));
 			}
 
 			@Override
@@ -163,7 +166,7 @@ public interface Queue0<I, O> extends Input<O>, Output<I> {
 
 			@Override
 			public void failed(Stream<I0> failed) {
-				Queue0.this.failed(Streams.of(conv.apply((Iterable<I0>) () -> Its.it(failed.spliterator()))));
+				Queue0.this.failed(of(conv.apply((Iterable<I0>) () -> Its.it(failed.spliterator()))));
 			}
 
 			@Override
