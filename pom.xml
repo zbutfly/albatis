@@ -8,7 +8,7 @@
 	</parent>
 	<groupId>net.butfly.albatis</groupId>
 	<artifactId>albatis</artifactId>
-	<version>1.4.0-SNAPSHOT</version>
+	<version>1.4.1-SNAPSHOT</version>
 	<packaging>pom</packaging>
 	<properties>
 		<version.albacore>3.0.2</version.albacore>
@@ -48,7 +48,7 @@
 		<dependency>
 			<groupId>net.butfly.albacore</groupId>
 			<artifactId>albacore-test</artifactId>
-			<version>${version.albacore}</version>
+			<version>3.0.2-SNAPSHOT</version>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
