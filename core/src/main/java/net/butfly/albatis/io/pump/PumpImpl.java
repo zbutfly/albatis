@@ -21,8 +21,7 @@ public abstract class PumpImpl<V, P extends PumpImpl<V, P>> extends Namedly impl
 	protected final String name;
 	private final int parallelism;
 
-	private final List<OpenableThread> tasks = new ArrayList<>();
-	protected final List<Openable> dependencies;
+	protected final List<AutoCloseable> dependencies;
 
 	protected PumpImpl(String name, int parallelism) {
 		super(name);
@@ -30,7 +29,7 @@ public abstract class PumpImpl<V, P extends PumpImpl<V, P>> extends Namedly impl
 		if (parallelism < 0) this.parallelism = (int) Math.floor(Math.sqrt(Exeter.of().parallelism())) - parallelism;
 		else if (parallelism == 0) this.parallelism = 16;
 		else this.parallelism = parallelism;
-		dependencies = Colls.list();
+		dependencies = new ArrayList<>();
 		logger().info("Pump [" + name + "] created with parallelism: " + parallelism);
 	}
 
