@@ -1,9 +1,12 @@
 package net.butfly.albatis.io;
 
-import static net.butfly.albacore.utils.collection.Streams.*;
+import static net.butfly.albacore.utils.collection.Streams.map;
+import static net.butfly.albacore.utils.collection.Streams.of;
 import static net.butfly.albacore.utils.collection.Streams.spatial;
 import static net.butfly.albacore.utils.collection.Streams.spatialMap;
+import static net.butfly.albacore.utils.parallel.Parals.eachs;
 
+import java.util.Spliterator;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Stream;
@@ -11,7 +14,6 @@ import java.util.stream.Stream;
 import com.bluejeans.bigqueue.BigQueue;
 
 import net.butfly.albacore.utils.collection.Its;
-import net.butfly.albacore.utils.parallel.Parals;
 
 /**
  * Rich feature queue for big data processing, supporting:
@@ -155,8 +157,8 @@ public interface Queue0<I, O> extends Input<O>, Output<I> {
 
 			@Override
 			public void enqueue(Stream<I0> items) {
-				Parals.eachs(spatial(items, parallelism).values(), s0 -> Queue0.this.enqueue(of(conv.apply((Iterable<I0>) () -> Its.it(
-						s0)))));
+				eachs(spatial(items, parallelism).values(), //
+						(Consumer<Spliterator<I0>>) s0 -> Queue0.this.enqueue(of(conv.apply((Iterable<I0>) () -> Its.it(s0)))));
 			}
 
 			@Override

@@ -6,6 +6,7 @@ import static net.butfly.albacore.utils.collection.Streams.spatial;
 import static net.butfly.albacore.utils.parallel.Parals.eachs;
 
 import java.util.Collection;
+import java.util.Spliterator;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -39,8 +40,8 @@ public interface Output<V> extends IO, Consumer<Stream<V>>, Enqueuer<V> {
 	}
 
 	default <V0> Output<V0> priors(Function<Iterable<V0>, Iterable<V>> conv, int parallelism) {
-		return Wrapper.wrap(this, "Priors", s -> eachs(spatial(s, parallelism).values(), s0 -> enqueue(Streams.of(conv.apply(
-				(Iterable<V0>) () -> Its.it(s0))))));
+		return Wrapper.wrap(this, "Priors", s -> eachs(spatial(s, parallelism).values(), //
+				(Consumer<Spliterator<V0>>) s0 -> enqueue(Streams.of(conv.apply((Iterable<V0>) () -> Its.it(s0))))));
 	}
 
 	// more extends
@@ -50,10 +51,7 @@ public interface Output<V> extends IO, Consumer<Stream<V>>, Enqueuer<V> {
 	}
 
 	default Output<V> batch(int batchSize) {
-		return Wrapper.wrap(this, "Batch", items -> map(batching(items, batchSize), s -> {
-			this.enqueue(s);
-			return null;
-		}));
+		return Wrapper.wrap(this, "Batch", items -> batching(items, this::enqueue, batchSize));
 	}
 
 	default <K> KeyOutput<K, V> partitial(Function<V, K> partitier, BiConsumer<K, Stream<V>> enqueuing) {

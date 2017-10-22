@@ -40,8 +40,8 @@ public interface Input<V> extends IO, Dequeuer<V>, Supplier<V>, Iterator<V> {
 
 	default <V1> Input<V1> thens(Function<Iterable<V>, Iterable<V1>> conv, int parallelism) {
 		return Wrapper.wrap(this, "Thens", (using, batchSize) -> dequeue(//
-				s -> eachs(list(spatialMap(s, parallelism, t -> conv.apply(() -> Its.it(t)).spliterator())), s1 -> using.accept(s1)),
-				batchSize));
+				s -> eachs(list(spatialMap(s, parallelism, t -> conv.apply(() -> Its.it(t)).spliterator())),
+						(Consumer<Stream<V1>>) using::accept), batchSize));
 	}
 
 	// more extends
