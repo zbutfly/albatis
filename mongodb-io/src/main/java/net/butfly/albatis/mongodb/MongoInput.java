@@ -18,7 +18,6 @@ import com.mongodb.MongoException;
 
 import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.logger.Logger;
-import net.butfly.albacore.utils.parallel.Parals;
 import net.butfly.albatis.io.Message;
 import net.butfly.albatis.io.OddInput;
 

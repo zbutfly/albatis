@@ -1,7 +1,6 @@
 package net.butfly.albatis.io;
 
 import static net.butfly.albacore.utils.collection.Streams.of;
-import static net.butfly.albacore.utils.parallel.Parals.run;
 
 import java.util.Iterator;
 import java.util.function.Consumer;
@@ -23,7 +22,7 @@ public abstract class OddInput<V> extends Namedly implements Input<V>, Supplier<
 
 	@Override
 	public final void dequeue(Consumer<Stream<V>> using, int batchSize) {
-		run(() -> using.accept(of(this::dequeue, batchSize, () -> empty() && opened())));
+		using.accept(of(this::dequeue, batchSize, () -> empty() && opened()));
 	}
 
 	@Override

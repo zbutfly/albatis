@@ -6,7 +6,6 @@ import net.butfly.albacore.utils.OpenableThread;
 import net.butfly.albatis.io.Output;
 import net.butfly.albatis.io.Queue;
 import net.butfly.albatis.io.Wrapper;
-import static net.butfly.albacore.utils.parallel.Parals.run;
 
 /**
  * Output with buffer and pool supporting.<br>
@@ -43,7 +42,7 @@ public class FailoverOutput<M> extends Wrapper.WrapOutput<M, M> {
 
 	@Override
 	public final void enqueue(Stream<M> els) {
-		run(() -> base.enqueue(els));
+		base.enqueue(els);
 	}
 
 	@Override
