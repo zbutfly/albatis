@@ -4,8 +4,10 @@ import static net.butfly.albacore.utils.collection.Streams.batching;
 import static net.butfly.albacore.utils.collection.Streams.collect;
 import static net.butfly.albacore.utils.collection.Streams.of;
 import static net.butfly.albacore.utils.parallel.Parals.eachs;
-import static net.butfly.albacore.utils.parallel.Parals.run;
 
+import java.util.List;
+import java.util.Map.Entry;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -18,7 +20,8 @@ public interface KeyOutput<K, V> extends Output<V> {
 
 	@Override
 	public default void enqueue(Stream<V> s) {
-		run(() -> eachs(collect(s, Collectors.groupingBy(v -> partition(v))).entrySet(), e -> enqueue(e.getKey(), of(e.getValue()))));
+		eachs(collect(s, Collectors.groupingBy(v -> partition(v))).entrySet(), //
+				(Consumer<Entry<K, List<V>>>) e -> enqueue(e.getKey(), of(e.getValue())));
 	}
 
 	@Override
@@ -37,7 +40,7 @@ public interface KeyOutput<K, V> extends Output<V> {
 
 			@Override
 			public void enqueue(K key, Stream<V> v) {
-				eachs(batching(v, batchSize), s -> enqueue(key, s));
+				batching(v, s -> enqueue(key, s), batchSize);
 			}
 		};
 		ko.opening(() -> origin.open());

@@ -1,5 +1,8 @@
 package net.butfly.albatis.mongodb;
 
+import static net.butfly.albacore.utils.collection.Streams.list;
+import static net.butfly.albacore.utils.collection.Streams.map;
+
 import java.io.IOException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -15,8 +18,6 @@ import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.parallel.Lambdas;
 import net.butfly.albatis.io.Message;
 import net.butfly.albatis.io.Output;
-import static net.butfly.albacore.utils.parallel.Parals.*;
-import static net.butfly.albacore.utils.collection.Streams.*;
 
 public final class MongoOutput extends OutputBase<Message> {
 	private final boolean upsert;

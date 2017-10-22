@@ -1,5 +1,7 @@
 package net.butfly.albatis.hbase;
 
+import static net.butfly.albacore.utils.collection.Streams.map;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
@@ -28,8 +30,6 @@ import com.hzcominfo.albatis.nosql.NoSqlConnection;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.io.Message;
-import static net.butfly.albacore.utils.parallel.Parals.*;
-import static net.butfly.albacore.utils.collection.Streams.*;
 
 public class HbaseConnection extends NoSqlConnection<org.apache.hadoop.hbase.client.Connection> {
 	private final static Logger logger = Logger.getLogger(HbaseConnection.class);
