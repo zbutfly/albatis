@@ -112,10 +112,10 @@ public class Message extends ConcurrentHashMap<String, Object> {
 
 	@Override
 	public String toString() {
-		return "[Table: " + table + ", Key: " + key + ", Op: " + opname(op) + "] => " + super.toString();
+		return "[Table: " + table + ", Key: " + key + ", Op: " + op.name() + "] => " + super.toString();
 	}
 
-	public final byte[] toBytes(Function<Map<String, Object>, byte[]> conv) {
+	public final byte[] toBytes() {
 		try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
 			write(baos, conv);
 			return baos.toByteArray();
