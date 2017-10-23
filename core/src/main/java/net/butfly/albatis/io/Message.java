@@ -111,6 +111,11 @@ public class Message extends ConcurrentHashMap<String, Object> {
 		op = Op.values()[attrs[3][0]];
 	}
 
+	@Override
+	public String toString() {
+		return "[Table: " + table + ", Key: " + key + ", Op: " + op.name() + "] => " + super.toString();
+	}
+
 	public final byte[] toBytes() {
 		try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
 			write(baos);
