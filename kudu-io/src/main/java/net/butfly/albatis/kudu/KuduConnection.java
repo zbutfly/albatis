@@ -1,23 +1,23 @@
 package net.butfly.albatis.kudu;
 
-import static net.butfly.albacore.paral.Sdream.of;
+import static net.butfly.albacore.utils.collection.Streams.of;
+import static net.butfly.albacore.utils.parallel.Parals.listen;
 
 import java.io.IOException;
-import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiConsumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.kudu.ColumnSchema;
-import org.apache.kudu.client.Delete;
-import org.apache.kudu.client.KuduClient;
 import org.apache.kudu.client.KuduException;
-import org.apache.kudu.client.KuduSession;
 import org.apache.kudu.client.KuduTable;
 import org.apache.kudu.client.Operation;
 import org.apache.kudu.client.OperationResponse;
-import org.apache.kudu.client.SessionConfiguration.FlushMode;
-import org.apache.kudu.client.Upsert;
+import org.apache.kudu.client.SessionConfiguration;
 
 import com.hzcominfo.albatis.nosql.Connection;
 import com.hzcominfo.albatis.nosql.NoSqlConnection;
@@ -25,89 +25,70 @@ import com.hzcominfo.albatis.nosql.NoSqlConnection;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albacore.utils.parallel.Concurrents;
-import net.butfly.albatis.io.Message;
+import net.butfly.albacore.utils.parallel.Parals;
 
 @SuppressWarnings("unchecked")
-public class KuduConnection extends NoSqlConnection<KuduClient> {
-	private static final Logger logger = Logger.getLogger(KuduConnection.class);
-	private final KuduSession session;
-	private Thread failHandler;
+public abstract class KuduConnection<C extends KuduConnection<C, KC, S>, KC extends AutoCloseable, S extends SessionConfiguration> extends
+		NoSqlConnection<KC> {
+	protected static final Logger logger = Logger.getLogger(KuduConnection.class);
+	private static final Map<String, KuduTable> tables = new ConcurrentHashMap<>();
+	private static final Map<String, Map<String, ColumnSchema>> SCHEMAS_CI = new ConcurrentHashMap<>();
+	private final Thread failHandler;
+	protected S session;
 
-	public KuduConnection(URISpec kuduUri, Map<String, String> props) throws IOException {
-		super(kuduUri, r -> new KuduClient.KuduClientBuilder(kuduUri.getHost()).build(), "kudu", "kudu");
-		session = client().newSession();
-		session.setFlushMode(FlushMode.AUTO_FLUSH_BACKGROUND);
-		session.setTimeoutMillis(10000);
+	protected KuduConnection(URISpec kuduUri, Function<URISpec, KC> clienting) throws IOException {
+		super(kuduUri, clienting, "kudu");
+
 		failHandler = new Thread(() -> {
 			do {
-				processError();
+				errors();
 			} while (Concurrents.waitSleep());
 		} , "KuduErrorHandler[" + kuduUri.toString() + "]");
 		failHandler.setDaemon(true);
 		failHandler.start();
 	}
 
-	public KuduConnection(String kuduUri, Map<String, String> props) throws IOException {
-		this(new URISpec(kuduUri), props);
+	public abstract void apply(Operation op, BiConsumer<Operation, Throwable> error);
+
+	public void apply(Stream<Operation> op, BiConsumer<Operation, Throwable> error) {
+		Parals.eachs(op, o -> apply(op, error));
 	}
 
-	private void processError() {
-		if (session.getPendingErrors() != null)
-			Arrays.asList(session.getPendingErrors().getRowErrors()).forEach(p -> {
-				try {
-					session.apply(p.getOperation());
-				} catch (KuduException e) {
-					throw new RuntimeException("retry apply operation fail.");
-				}
-			});
+	protected final void errors() {
+		if (session.getPendingErrors() != null) apply(of(session.getPendingErrors().getRowErrors()).map(e -> e.getOperation()),
+				this::error);
+	}
+
+	protected final void error(Operation op, Throwable cause) {
+		listen(() -> apply(op, this::error));
+
+	}
+
+	protected final void error(OperationResponse r) {
+		error(r.getRowError().getOperation(), new IOException(r.getRowError().getErrorStatus().toString()));
 	}
 
 	@Override
 	protected KuduTable openTable(String table) {
 		try {
-			return client().openTable(table);
-		} catch (KuduException e) {
-			logger().error("Kudu table open fail", e);
-			return null;
+			super.close();
+		} catch (IOException e) {
+			logger.error("Close failure", e);
 		}
-	}
-
-	private static final Class<? extends KuduException> c;
-	static {
-		Class<? extends KuduException> cc = null;
 		try {
-			cc = (Class<? extends KuduException>) Class.forName("org.apache.kudu.client.NonRecoverableException");
-		} catch (ClassNotFoundException e) {} finally {
-			c = cc;
+			client().close();
+		} catch (Exception e) {
+			logger.error("Close failure", e);
 		}
 	}
 
-	public static boolean isNonRecoverable(KuduException e) {
-		return null != c && c.isAssignableFrom(e.getClass());
+	public final KuduTable table(String table) {
+		return tables.computeIfAbsent(table, this::openTable);
 	}
 
-	private static final Map<String, KuduTable> tables = new ConcurrentHashMap<>();
+	protected abstract KuduTable openTable(String table);
 
-	public KuduTable table(String table) {
-		return tables.computeIfAbsent(table, t -> {
-			try {
-				return client().openTable(t);
-			} catch (KuduException e) {
-				if (isNonRecoverable(e)) logger.error("Kudu apply fail non-recoverable: " + e.getMessage());
-				else error.accept(op, e);
-				return (r = false);
-			}
-			if (null == or) return (r = true);
-			if (!(r = !or.hasRowError())) error.accept(op, new IOException(or.getRowError().toString()));
-			return r;
-		} finally {
-			// (r ? succCount : failCount).incrementAndGet();
-		}
-	}
-
-	private static final Map<String, Map<String, ColumnSchema>> SCHEMAS_CI = new ConcurrentHashMap<>();
-
-	private Map<String, ColumnSchema> schemas(String table) {
+	Map<String, ColumnSchema> schemas(String table) {
 		return SCHEMAS_CI.computeIfAbsent(table, t -> {
 			Map<String, ColumnSchema> m = table(t).getSchema().getColumns().parallelStream()//
 					.collect(Collectors.toConcurrentMap(c -> c.getName().toLowerCase(), c -> c));
@@ -115,23 +96,6 @@ public class KuduConnection extends NoSqlConnection<KuduClient> {
 		});
 	}
 
-	public Throwable apply(Message m) {
-		Operation op = op(m);
-		if (null != op) {
-			OperationResponse or;
-			try {
-				or = session.apply(op);
-			} catch (KuduException e) {
-				if (isNonRecoverable(e)) {
-					logger.error("Kudu apply fail non-recoverable: " + e.getMessage());
-					return null;
-				} else return e;
-			}
-			if (or != null && or.hasRowError()) return new IOException(or.getRowError().toString());
-		}
-		return null;
-	}
-
 	private static final Class<? extends KuduException> c;
 	static {
 		Class<? extends KuduException> cc = null;
@@ -146,30 +110,7 @@ public class KuduConnection extends NoSqlConnection<KuduClient> {
 		return null != c && c.isAssignableFrom(e.getClass());
 	}
 
-	private Operation op(Message m) {
-		KuduTable t = table(m.table());
-		Map<String, ColumnSchema> cols = schemas(m.table());
-		ColumnSchema c;
-		if (null == t) return null;
-		switch (m.op()) {
-		case DELETE:
-			for (ColumnSchema cs : cols.values())
-				if (cs.isKey()) {
-					Delete del = t.newDelete();
-					del.getRow().addString(cs.getName(), m.key());
-					return del;
-				}
-			return null;
-		case INSERT:
-		case UPDATE:
-		case UPSERT:
-			Upsert ups = table(m.table()).newUpsert();
-			for (String f : m.keySet())
-				if (null != (c = cols.get(f.toLowerCase())))//
-					KuduCommon.generateColumnData(c.getType(), ups.getRow(), c.getName(), m.get(f));
-			return ups;
-		default:
-			return null;
-		}
-	}
+	public abstract void commit();
+
+	public abstract void table(String name, List<ColumnSchema> cols, boolean autoKey);
 }
