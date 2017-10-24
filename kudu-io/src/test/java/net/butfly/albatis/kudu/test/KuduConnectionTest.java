@@ -9,15 +9,15 @@ import org.junit.Test;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albatis.io.Message;
-import net.butfly.albatis.kudu.KuduConnectionAsync;
-import net.butfly.albatis.kudu.KuduConnBase;
+import net.butfly.albatis.kudu.KuduAsyncConnection;
+import net.butfly.albatis.kudu.KuduConnection;
 
 public class KuduConnectionTest {
 	@Test
 	public void test() {
 		String kuduUri = "kudu://10.60.70.234:7051";
 		try (@SuppressWarnings("rawtypes")
-		KuduConnBase connection = new KuduConnectionAsync(new URISpec(kuduUri));) {
+		KuduConnection connection = new KuduAsyncConnection(new URISpec(kuduUri));) {
 			// KuduOutput output = new KuduOutput("", new URISpec(kuduUri), "");
 			Map<String, Object> o = new HashMap<>();
 			o.put("id", 123456789);
