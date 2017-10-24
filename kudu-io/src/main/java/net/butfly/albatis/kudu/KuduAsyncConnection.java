@@ -2,11 +2,15 @@ package net.butfly.albatis.kudu;
 
 import static net.butfly.albacore.utils.collection.Streams.of;
 import static net.butfly.albacore.utils.parallel.Parals.eachs;
-import static net.butfly.albacore.utils.parallel.Parals.listen;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
 
 import org.apache.kudu.ColumnSchema;
@@ -25,22 +29,32 @@ import com.hzcominfo.albatis.Albatis;
 import com.stumbleupon.async.Deferred;
 
 import net.butfly.albacore.io.URISpec;
+import net.butfly.albacore.utils.Configs;
+import net.butfly.albacore.utils.Pair;
+import net.butfly.albacore.utils.parallel.Concurrents;
 
 public class KuduAsyncConnection extends KuduConnection<KuduAsyncConnection, AsyncKuduClient, AsyncKuduSession> {
+	private BlockingQueue<Pair<Operation, Deferred<OperationResponse>>> PENDINGS = new LinkedBlockingQueue<>(1000);
+	private final Thread pendingHandler;
+
 	public KuduAsyncConnection(URISpec kuduUri) throws IOException {
 		super(kuduUri, r -> new AsyncKuduClient.AsyncKuduClientBuilder(kuduUri.getHost()).build());
 		session = client().newSession();
 		session.setFlushMode(FlushMode.AUTO_FLUSH_BACKGROUND);
-		session.setTimeoutMillis(10000);
-	}
+		session.setTimeoutMillis(Long.parseLong(Configs.get(Albatis.Props.PROP_KUDU_TIMEOUT, "2000")));
+		session.setFlushInterval(1000);
+		session.setMutationBufferSpace(5);
 
-	@Override
-	public void commit() {
-		try {
-			eachs(of(session.flush().join()), r -> error(r));
-		} catch (Exception e) {
-			logger.error("Kudu commit fail", e);
-		}
+		pendingHandler = new Thread(() -> {
+			List<Pair<Operation, Deferred<OperationResponse>>> m = new CopyOnWriteArrayList<Pair<Operation, Deferred<OperationResponse>>>();
+			do {
+				while (PENDINGS.drainTo(m, 1000) > 0)
+					for (Pair<Operation, Deferred<OperationResponse>> d : m)
+						process(d.v1(), d.v2(), this::error);
+			} while (Concurrents.waitSleep());
+		}, "KuduErrorHandler[" + kuduUri.toString() + "]");
+		pendingHandler.setDaemon(true);
+		pendingHandler.start();
 	}
 
 	@Override
@@ -64,17 +78,32 @@ public class KuduAsyncConnection extends KuduConnection<KuduAsyncConnection, Asy
 			else error.accept(op, e);
 			return;
 		}
-		listen(() -> {
-			OperationResponse r;
-			try {
-				r = or.join();
-			} catch (Exception e) {
-				error.accept(op, e);
-				return;
-			}
-			if (r != null && r.hasRowError()) error.accept(op, new IOException(r.getRowError().getErrorStatus().toString()));
-		});
+		process(op, or, error);
+	}
 
+	private final AtomicLong millis = new AtomicLong(), ops = new AtomicLong();
+
+	private void process(Operation op, Deferred<OperationResponse> or, BiConsumer<Operation, Throwable> error) {
+		OperationResponse r;
+		try {
+			r = or.joinUninterruptibly(500);
+		} catch (TimeoutException e) {
+			if (!PENDINGS.offer(new Pair<>(op, or))) //
+				logger.warn("Kudu op response timeout and pending queue full, dropped: \n\t" + op.toString());
+			return;
+		} catch (Exception e) {
+			error.accept(op, e);
+			return;
+		}
+		if (r != null && r.hasRowError()) error.accept(op, new IOException(r.getRowError().getErrorStatus().toString()));
+		else {
+			if (logger.isTraceEnabled()) {
+				long ms = millis.addAndGet(r.getElapsedMillis());
+				long c = ops.incrementAndGet();
+				if (c % 1000 == 0) //
+					logger.trace("Avg row kudu op spent: " + c + " objs, " + ms + " ms, " + (c * 1000.0 / ms) + " avg objs/ms.");
+			}
+		}
 	}
 
 	@Override
@@ -98,6 +127,15 @@ public class KuduAsyncConnection extends KuduConnection<KuduAsyncConnection, Asy
 		} catch (Exception e) {
 			logger.error("Build kudu table fail.", e);
 			throw new RuntimeException(e);
+		}
+	}
+
+	@Override
+	public void commit() {
+		try {
+			eachs(of(session.flush().join()), r -> error(r));
+		} catch (Exception e) {
+			logger.error("Kudu commit fail", e);
 		}
 	}
 }

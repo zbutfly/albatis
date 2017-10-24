@@ -12,9 +12,7 @@ import net.butfly.albatis.io.Output;
 import net.butfly.albatis.io.ext.FanOutput;
 
 public interface Pump<V> extends Statistical<Pump<V>>, Openable {
-	default Pump<V> batch(int batchSize) {
-		return this;
-	}
+	Pump<V> batch(int batchSize);
 
 	@Override
 	default void open() {

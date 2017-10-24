@@ -5,6 +5,7 @@ import static net.butfly.albacore.utils.collection.Streams.toMap;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
 
 import org.apache.kudu.ColumnSchema;
@@ -14,6 +15,7 @@ import org.apache.kudu.client.Operation;
 import org.apache.kudu.client.Upsert;
 
 import net.butfly.albacore.base.Namedly;
+import net.butfly.albacore.utils.parallel.Concurrents;
 import net.butfly.albatis.io.Message;
 import net.butfly.albatis.io.Output;
 
@@ -29,8 +31,10 @@ public class KuduOutput extends Namedly implements Output<Message> {
 
 	@Override
 	public void close() {
+		long w = 0;
+		while ((w = working.get()) > 0 && logger().info("Waiting for working: " + w) && Concurrents.waitSleep());
 		commit();
-		connect.close();
+		Output.super.close();
 	}
 
 	@Override
@@ -38,10 +42,20 @@ public class KuduOutput extends Namedly implements Output<Message> {
 		connect.commit();
 	}
 
+	private final AtomicLong working = new AtomicLong();
+
 	@Override
 	public void enqueue(Stream<Message> msgs) {
 		Map<Operation, Message> ops = toMap(msgs, m -> op(m), m -> m);
-		connect.apply(of(ops.keySet()), (op, e) -> failed(of(ops.get(op))));
+		if (!ops.isEmpty()) {
+			long s = ops.size();
+			working.addAndGet(s);
+			try {
+				connect.apply(of(ops.keySet()), (op, e) -> failed(of(ops.get(op))));
+			} finally {
+				working.addAndGet(-s);
+			}
+		}
 	}
 
 	private Operation op(Message m) {
