@@ -17,6 +17,8 @@ import org.apache.kudu.client.KuduException;
 import org.apache.kudu.client.KuduTable;
 import org.apache.kudu.client.Operation;
 import org.apache.kudu.client.OperationResponse;
+import org.apache.kudu.client.RowError;
+import org.apache.kudu.client.RowErrorsAndOverflowStatus;
 import org.apache.kudu.client.SessionConfiguration;
 
 import com.hzcominfo.albatis.nosql.Connection;
@@ -51,12 +53,16 @@ public abstract class KuduConnection<C extends KuduConnection<C, KC, S>, KC exte
 	public abstract void apply(Operation op, BiConsumer<Operation, Throwable> error);
 
 	public void apply(Stream<Operation> op, BiConsumer<Operation, Throwable> error) {
-		Parals.eachs(op, o -> apply(op, error));
+		Parals.eachs(op, o -> apply(o, error));
 	}
 
 	protected final void errors() {
-		if (session.getPendingErrors() != null) apply(of(session.getPendingErrors().getRowErrors()).map(e -> e.getOperation()),
-				this::error);
+		if (null == session) return;
+		RowErrorsAndOverflowStatus errs = session.getPendingErrors();
+		if (null == errs) return;
+		RowError[] rows = session.getPendingErrors().getRowErrors();
+		if (null == rows || rows.length == 0) return;
+		apply(of(rows).map(e -> e.getOperation()), this::error);
 	}
 
 	protected final void error(Operation op, Throwable cause) {
