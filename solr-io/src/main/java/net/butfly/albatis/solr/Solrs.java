@@ -245,7 +245,7 @@ public final class Solrs extends Utils {
 
 	public static SolrInputDocument input(Message m, String keyFieldName) {
 		if (null == m) return null;
-		if (m.isEmpty() && null == m.key()) return null;
+		if (m.isEmpty() || null == m.key()) return null;
 		SolrInputDocument doc = new SolrInputDocument(map(m.entrySet(), e -> {
 			SolrInputField f = new SolrInputField(e.getKey());
 			f.setValue(e.getValue());
