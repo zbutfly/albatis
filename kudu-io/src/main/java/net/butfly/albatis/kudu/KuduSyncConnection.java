@@ -23,6 +23,7 @@ import com.google.common.base.Joiner;
 import com.hzcominfo.albatis.Albatis;
 
 import net.butfly.albacore.io.URISpec;
+import net.butfly.albacore.utils.Configs;
 
 @SuppressWarnings("unchecked")
 public class KuduSyncConnection extends KuduConnection<KuduSyncConnection, KuduClient, KuduSession> {
@@ -30,13 +31,15 @@ public class KuduSyncConnection extends KuduConnection<KuduSyncConnection, KuduC
 		super(kuduUri, r -> new KuduClient.KuduClientBuilder(kuduUri.getHost()).build());
 		session = client().newSession();
 		session.setFlushMode(FlushMode.AUTO_FLUSH_BACKGROUND);
-		session.setTimeoutMillis(10000);
+		session.setTimeoutMillis(Long.parseLong(Configs.get(Albatis.Props.PROP_KUDU_TIMEOUT, "2000")));
 	}
 
 	@Override
 	public void commit() {
 		try {
-			eachs(of(session.flush()), r -> error(r));
+			eachs(of(session.flush()), r -> {
+				if (r.hasRowError()) error(r);
+			});
 		} catch (KuduException e) {
 			logger.error("Kudu commit fail", e);
 		}

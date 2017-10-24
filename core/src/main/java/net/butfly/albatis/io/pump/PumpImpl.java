@@ -22,6 +22,7 @@ abstract class PumpImpl<V, P extends PumpImpl<V, P>> extends Namedly implements 
 	private final int parallelism;
 	protected int batchSize;
 
+	private final List<OpenableThread> tasks = new ArrayList<>();
 	protected final List<AutoCloseable> dependencies;
 
 	protected PumpImpl(String name, int parallelism) {
