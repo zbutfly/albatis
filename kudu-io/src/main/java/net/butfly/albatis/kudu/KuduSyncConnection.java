@@ -70,16 +70,25 @@ public class KuduSyncConnection extends KuduConnection<KuduSyncConnection, KuduC
 	}
 
 	@Override
-	public void apply(Operation op, BiConsumer<Operation, Throwable> error) {
-		if (null == op) return;
+	public boolean apply(Operation op, BiConsumer<Operation, Throwable> error) {
+		if (null == op) return false;
+		opCount.incrementAndGet();
+		boolean r = true;
 		OperationResponse or = null;
 		try {
-			or = session.apply(op);
-		} catch (KuduException e) {
-			if (isNonRecoverable(e)) logger.error("Kudu apply fail non-recoverable: " + e.getMessage());
-			else error.accept(op, e);
+			try {
+				or = session.apply(op);
+			} catch (KuduException e) {
+				if (isNonRecoverable(e)) logger.error("Kudu apply fail non-recoverable: " + e.getMessage());
+				else error.accept(op, e);
+				return (r = false);
+			}
+			if (null == or) return (r = true);
+			if (!(r = !or.hasRowError())) error.accept(op, new IOException(or.getRowError().toString()));
+			return r;
+		} finally {
+			(r ? succCount : failCount).incrementAndGet();
 		}
-		if (or != null && or.hasRowError()) error.accept(op, new IOException(or.getRowError().toString()));
 	}
 
 	@Override

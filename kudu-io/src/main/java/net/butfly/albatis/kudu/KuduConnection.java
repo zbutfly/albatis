@@ -1,16 +1,17 @@
 package net.butfly.albatis.kudu;
 
 import static net.butfly.albacore.utils.collection.Streams.of;
+import static net.butfly.albacore.utils.parallel.Parals.eachs;
 import static net.butfly.albacore.utils.parallel.Parals.listen;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.apache.kudu.ColumnSchema;
 import org.apache.kudu.client.KuduException;
@@ -26,7 +27,6 @@ import com.hzcominfo.albatis.nosql.NoSqlConnection;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albacore.utils.parallel.Concurrents;
-import net.butfly.albacore.utils.parallel.Parals;
 
 @SuppressWarnings("unchecked")
 public abstract class KuduConnection<C extends KuduConnection<C, KC, S>, KC extends AutoCloseable, S extends SessionConfiguration> extends
@@ -49,10 +49,12 @@ public abstract class KuduConnection<C extends KuduConnection<C, KC, S>, KC exte
 		failHandler.start();
 	}
 
-	public abstract void apply(Operation op, BiConsumer<Operation, Throwable> error);
+	protected final AtomicLong opCount = new AtomicLong(), succCount = new AtomicLong(), failCount = new AtomicLong();
 
-	public void apply(Stream<Operation> op, BiConsumer<Operation, Throwable> error) {
-		Parals.eachs(op, o -> apply(o, error));
+	public abstract boolean apply(Operation op, BiConsumer<Operation, Throwable> error);
+
+	public String status() {
+		return "[Kudu Status]: " + opCount.get() + " input, " + succCount + " success, " + failCount + " failed.";
 	}
 
 	protected final void errors() {
@@ -61,7 +63,7 @@ public abstract class KuduConnection<C extends KuduConnection<C, KC, S>, KC exte
 		if (null == errs) return;
 		RowError[] rows = session.getPendingErrors().getRowErrors();
 		if (null == rows || rows.length == 0) return;
-		apply(of(rows).map(e -> e.getOperation()), this::error);
+		eachs(of(rows).map(e -> e.getOperation()), op -> this.apply(op, this::error));
 	}
 
 	protected final void error(Operation op, Throwable cause) {
