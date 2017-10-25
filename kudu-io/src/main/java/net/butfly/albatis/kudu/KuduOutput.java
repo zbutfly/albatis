@@ -1,12 +1,17 @@
 package net.butfly.albatis.kudu;
 
 import static net.butfly.albacore.utils.collection.Streams.of;
-import static net.butfly.albacore.utils.collection.Streams.toMap;
+import static net.butfly.albacore.utils.collection.Streams.ofMap;
 
+import java.io.BufferedWriter;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.util.Map;
+import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Stream;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 import org.apache.kudu.ColumnSchema;
 import org.apache.kudu.client.Delete;
@@ -14,12 +19,12 @@ import org.apache.kudu.client.KuduTable;
 import org.apache.kudu.client.Operation;
 import org.apache.kudu.client.Upsert;
 
-import net.butfly.albacore.base.Namedly;
+import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.parallel.Concurrents;
 import net.butfly.albatis.io.Message;
-import net.butfly.albatis.io.Output;
+import net.butfly.albatis.io.OddOutput;
 
-public class KuduOutput extends Namedly implements Output<Message> {
+public class KuduOutput extends OddOutput<Message> {
 	public static final int SUGGEST_BATCH_SIZE = 200;
 	private final KuduConnection<?, ?, ?> connect;
 
@@ -33,7 +38,18 @@ public class KuduOutput extends Namedly implements Output<Message> {
 		long w = 0;
 		while ((w = working.get()) > 0 && logger().info("Waiting for working: " + w) && Concurrents.waitSleep());
 		commit();
-		Output.super.close();
+		super.close();
+		if (keys.isEmpty()) return;
+		Map<String, Long> dups = ofMap(keys).filter(e -> e.getValue() > 1).collect(Collectors.toConcurrentMap(e -> e.getKey(), e -> e
+				.getValue()));
+		try (FileOutputStream fs = new FileOutputStream("duplicated-keys.dump");
+				OutputStreamWriter ow = new OutputStreamWriter(fs);
+				BufferedWriter ww = new BufferedWriter(ow);) {
+			for (Map.Entry<String, Long> e : dups.entrySet())
+				ww.write(e.getKey() + ": " + e.getValue() + "\n");
+		} catch (IOException e) {
+			logger().error("Duplicated keys dump file open failed", e);
+		}
 	}
 
 	@Override
@@ -44,18 +60,23 @@ public class KuduOutput extends Namedly implements Output<Message> {
 	private final AtomicLong working = new AtomicLong();
 
 	@Override
-	public void enqueue(Stream<Message> msgs) {
-		Map<Operation, Message> ops = toMap(msgs, m -> op(m), m -> m);
-		if (!ops.isEmpty()) {
-			long s = ops.size();
-			working.addAndGet(s);
-			try {
-				connect.apply(of(ops.keySet()), (op, e) -> failed(of(ops.get(op))));
-			} finally {
-				working.addAndGet(-s);
-			}
+	public boolean enqueue(Message m) {
+		if (null == m || m.isEmpty()) return false;
+		working.incrementAndGet();
+		try {
+			connect.apply(op(m), (op, e) -> failed(of(m)));
+		} finally {
+			working.decrementAndGet();
 		}
+		return true;
 	}
+
+	public String status() {
+		return connect.status() + "\n\tDistinct keys: " + keys.size() + ", max duplication times of key: " + maxDup.get();
+	}
+
+	private Map<String, Long> keys = new ConcurrentSkipListMap<>();
+	private AtomicReference<Pair<String, Long>> maxDup = new AtomicReference<>();
 
 	private Operation op(Message m) {
 		KuduTable t = connect.table(m.table());
@@ -74,6 +95,12 @@ public class KuduOutput extends Namedly implements Output<Message> {
 		case INSERT:
 		case UPDATE:
 		case UPSERT:
+			long ccc = keys.compute(m.key(), (k, cc) -> null == cc ? 1L : cc + 1);
+			maxDup.accumulateAndGet(new Pair<>(m.key(), ccc), (origin, get) -> {
+				if (get.v2() <= 1) return origin;
+				if (null == origin || get.v2().longValue() > origin.v2().longValue()) return get;
+				return origin;
+			});
 			Upsert ups = connect.table(m.table()).newUpsert();
 			for (String f : m.keySet())
 				if (null != (c = cols.get(f.toLowerCase())))//

@@ -68,41 +68,44 @@ public class KuduAsyncConnection extends KuduConnection<KuduAsyncConnection, Asy
 	}
 
 	@Override
-	public void apply(Operation op, BiConsumer<Operation, Throwable> error) {
-		if (null == op) return;
+	public boolean apply(Operation op, BiConsumer<Operation, Throwable> error) {
+		if (null == op) return false;
 		Deferred<OperationResponse> or;
 		try {
 			or = session.apply(op);
 		} catch (KuduException e) {
 			if (isNonRecoverable(e)) logger.error("Kudu apply fail non-recoverable: " + e.getMessage());
 			else error.accept(op, e);
-			return;
+			return false;
 		}
-		process(op, or, error);
+		return process(op, or, error);
 	}
 
 	private final AtomicLong millis = new AtomicLong(), ops = new AtomicLong();
 
-	private void process(Operation op, Deferred<OperationResponse> or, BiConsumer<Operation, Throwable> error) {
+	private boolean process(Operation op, Deferred<OperationResponse> or, BiConsumer<Operation, Throwable> error) {
 		OperationResponse r;
 		try {
 			r = or.joinUninterruptibly(500);
 		} catch (TimeoutException e) {
 			if (!PENDINGS.offer(new Pair<>(op, or))) //
 				logger.warn("Kudu op response timeout and pending queue full, dropped: \n\t" + op.toString());
-			return;
+			return true;
 		} catch (Exception e) {
 			error.accept(op, e);
-			return;
+			return false;
 		}
-		if (r != null && r.hasRowError()) error.accept(op, new IOException(r.getRowError().getErrorStatus().toString()));
-		else {
+		if (r != null && r.hasRowError()) {
+			error.accept(op, new IOException(r.getRowError().getErrorStatus().toString()));
+			return false;
+		} else {
 			if (logger.isTraceEnabled()) {
 				long ms = millis.addAndGet(r.getElapsedMillis());
 				long c = ops.incrementAndGet();
 				if (c % 1000 == 0) //
 					logger.trace("Avg row kudu op spent: " + c + " objs, " + ms + " ms, " + (c * 1000.0 / ms) + " avg objs/ms.");
 			}
+			return true;
 		}
 	}
 
