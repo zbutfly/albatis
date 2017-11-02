@@ -39,6 +39,13 @@ public class KuduOutput extends OddOutput<Message> {
 		while ((w = working.get()) > 0 && logger().info("Waiting for working: " + w) && Concurrents.waitSleep()) {}
 		commit();
 		super.close();
+		// sdumpDups();
+	}
+
+	protected final Map<String, Long> keys = new ConcurrentSkipListMap<>();
+	protected final AtomicReference<Pair<String, Long>> maxDup = new AtomicReference<>();
+
+	protected void dumpDups() {
 		if (keys.isEmpty()) return;
 		Map<String, Long> dups = ofMap(keys).filter(e -> e.getValue() > 1).collect(Collectors.toConcurrentMap(e -> e.getKey(), e -> e
 				.getValue()));
@@ -50,6 +57,15 @@ public class KuduOutput extends OddOutput<Message> {
 		} catch (IOException e) {
 			logger().error("Duplicated keys dump file open failed", e);
 		}
+	}
+
+	protected void regDups(Message m) {
+		long ccc = keys.compute(m.key(), (k, cc) -> null == cc ? 1L : cc + 1);
+		maxDup.accumulateAndGet(new Pair<>(m.key(), ccc), (origin, get) -> {
+			if (get.v2() <= 1) return origin;
+			if (null == origin || get.v2().longValue() > origin.v2().longValue()) return get;
+			return origin;
+		});
 	}
 
 	@Override
@@ -71,12 +87,9 @@ public class KuduOutput extends OddOutput<Message> {
 		return true;
 	}
 
-//	public String status() {
-//		return connect.status() + "\n\tDistinct keys: " + keys.size() + ", max duplication times of key: " + maxDup.get();
-//	}
-
-	private Map<String, Long> keys = new ConcurrentSkipListMap<>();
-	private AtomicReference<Pair<String, Long>> maxDup = new AtomicReference<>();
+	public String status() {
+		return connect.status() + "\n\tDistinct keys: " + keys.size() + ", max duplication times of key: " + maxDup.get();
+	}
 
 	private Operation op(Message m) {
 		KuduTable t = connect.table(m.table());
@@ -95,12 +108,7 @@ public class KuduOutput extends OddOutput<Message> {
 		case INSERT:
 		case UPDATE:
 		case UPSERT:
-			long ccc = keys.compute(m.key(), (k, cc) -> null == cc ? 1L : cc + 1);
-			maxDup.accumulateAndGet(new Pair<>(m.key(), ccc), (origin, get) -> {
-				if (get.v2() <= 1) return origin;
-				if (null == origin || get.v2().longValue() > origin.v2().longValue()) return get;
-				return origin;
-			});
+			// regDups(m);
 			Upsert ups = connect.table(m.table()).newUpsert();
 			for (String f : m.keySet())
 				if (null != (c = cols.get(f.toLowerCase())))//
