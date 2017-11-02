@@ -61,26 +61,27 @@ public final class ElasticOutput extends Namedly implements Output<Message> {
 		Parals.listen(() -> {
 			int retry = 0;
 			while (!origin.isEmpty() && retry++ < maxRetry)
-				proess(origin);
+				tryEnqueue(origin);
 		});
 	}
-	private void proess(Map<String, Message> origin) {
+
+	private void tryEnqueue(Map<String, Message> origin) {
 		@SuppressWarnings("rawtypes")
 		List<DocWriteRequest> reqs = list(origin.values(), Elastics::forWrite);
 		if (reqs.isEmpty()) return;
 		BulkRequest req = new BulkRequest().add(reqs);
 		try {
-			conn.client().bulk(req, new Listener(origin, req));
+			conn.client().bulk(req, new EnqueueListener(origin, req));
 		} catch (IllegalStateException ex) {
 			logger().error("Elastic client fail: [" + ex.toString() + "]");
 		}
 	}
 
-	private class Listener implements ActionListener<BulkResponse> {
+	private class EnqueueListener implements ActionListener<BulkResponse> {
 		private final BulkRequest req;
 		private final Map<String, Message> origin;
 
-		private Listener(Map<String, Message> origin, BulkRequest req) {
+		private EnqueueListener(Map<String, Message> origin, BulkRequest req) {
 			this.origin = origin;
 			this.req = req;
 		}
