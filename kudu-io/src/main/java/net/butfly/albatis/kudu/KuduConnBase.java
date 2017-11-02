@@ -48,16 +48,13 @@ public abstract class KuduConnBase<C extends KuduConnBase<C, KC, S>, KC extends 
 		failHandler.start();
 	}
 
-	// protected final AtomicLong opCount = new AtomicLong(), succCount = new
-	// AtomicLong(), failCount = new AtomicLong();
+//	protected final AtomicLong opCount = new AtomicLong(), succCount = new AtomicLong(), failCount = new AtomicLong();
 
 	public abstract boolean apply(Operation op, BiConsumer<Operation, Throwable> error);
 
-	public String status() {
-		return "[Kudu Status]: ";
-		// + opCount.get() + " input, " + succCount + " success, " + failCount +
-		// " failed.";
-	}
+//	public String status() {
+//		return "[Kudu Status]: " + opCount.get() + " input, " + succCount + " success, " + failCount + " failed.";
+//	}
 
 	protected final void errors() {
 		if (null == session) return;
