@@ -1,10 +1,10 @@
 package net.butfly.albatis.kudu;
 
-import static net.butfly.albacore.paral.Sdream.of;
+import static net.butfly.albacore.utils.collection.Streams.of;
+import static net.butfly.albacore.utils.parallel.Parals.eachs;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -25,15 +25,16 @@ import org.apache.kudu.client.OperationResponse;
 import org.apache.kudu.client.SessionConfiguration.FlushMode;
 
 import com.google.common.base.Joiner;
+import com.hzcominfo.albatis.Albatis;
 import com.stumbleupon.async.Deferred;
 
 import net.butfly.albacore.io.URISpec;
-import net.butfly.albacore.paral.Task;
 import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.Pair;
+import net.butfly.albacore.utils.parallel.Concurrents;
 
 @Deprecated
-public class KuduConnectionAsync extends KuduConnectionBase<KuduConnectionAsync, AsyncKuduClient, AsyncKuduSession> {
+public class KuduConnectionAsync extends KuduConnBase<KuduConnectionAsync, AsyncKuduClient, AsyncKuduSession> {
 	private BlockingQueue<Pair<Operation, Deferred<OperationResponse>>> PENDINGS = new LinkedBlockingQueue<>(1000);
 	private final Thread pendingHandler;
 
@@ -41,7 +42,7 @@ public class KuduConnectionAsync extends KuduConnectionBase<KuduConnectionAsync,
 		super(kuduUri, r -> new AsyncKuduClient.AsyncKuduClientBuilder(kuduUri.getHost()).build());
 		session = client().newSession();
 		session.setFlushMode(FlushMode.AUTO_FLUSH_BACKGROUND);
-		session.setTimeoutMillis(Long.parseLong(Configs.get(KuduProps.TIMEOUT, "2000")));
+		session.setTimeoutMillis(Long.parseLong(Configs.get(Albatis.Props.PROP_KUDU_TIMEOUT, "2000")));
 		session.setFlushInterval(1000);
 		session.setMutationBufferSpace(5);
 
@@ -51,7 +52,7 @@ public class KuduConnectionAsync extends KuduConnectionBase<KuduConnectionAsync,
 				while (PENDINGS.drainTo(m, 1000) > 0)
 					for (Pair<Operation, Deferred<OperationResponse>> d : m)
 						process(d.v1(), d.v2(), this::error);
-			} while (Task.waitSleep());
+			} while (Concurrents.waitSleep());
 		}, "KuduErrorHandler[" + kuduUri.toString() + "]");
 		pendingHandler.setDaemon(true);
 		pendingHandler.start();
@@ -110,58 +111,35 @@ public class KuduConnectionAsync extends KuduConnectionBase<KuduConnectionAsync,
 	}
 
 	@Override
-	public void destruct(String table) {
+	public void table(String name, List<ColumnSchema> cols, boolean autoKey) {
+		int buckets = Integer.parseInt(System.getProperty(Albatis.Props.PROP_KUDU_TABLE_BUCKETS, "24"));
+		logger.info("Kudu table constructing, with bucket [" + buckets + "], can be defined by [-D" + Albatis.Props.PROP_KUDU_TABLE_BUCKETS
+				+ "=400]");
 		try {
-			if (client().tableExists(table).join()) {
-				logger.warn("Kudu table [" + table + "] exised and dropped.");
-				client().deleteTable(table);
+			if (client().tableExists(name).join()) {
+				logger.info("Kudu table [" + name + "] existed, will be droped.");
+				client().deleteTable(name).join();
 			}
-		} catch (Exception ex) {}
-	}
-
-	@Override
-	public void construct(String table, ColumnSchema... cols) {
-		try {
-			if (client().tableExists(table).join()) {
-				logger.warn("Ask for creating new table but existed and not droped, ignore");
-				return;
-			}
+			List<String> keys = new ArrayList<>();
+			for (ColumnSchema c : cols)
+				if (c.isKey()) keys.add(c.getName());
+				else break;
+			logger.info("Kudu table [" + name + "] will be created with keys: [" + Joiner.on(',').join(keys) + "].");
+			CreateTableOptions opts = new CreateTableOptions().addHashPartitions(keys, buckets);
+			client().createTable(name, new Schema(cols), opts).join();
+			logger.info("Kudu table [" + name + "] created successfully.");
 		} catch (Exception e) {
+			logger.error("Build kudu table fail.", e);
 			throw new RuntimeException(e);
 		}
-		List<String> keys = new ArrayList<>();
-		for (ColumnSchema c : cols)
-			if (c.isKey()) keys.add(c.getName());
-			else break;
-
-		int buckets = Integer.parseInt(System.getProperty(KuduProps.TABLE_BUCKETS, "24"));
-		String v = Configs.get(KuduProps.TABLE_REPLICAS);
-		int replicas = null == v ? -1 : Integer.parseInt(v);
-		String info = "with bucket [" + buckets + "], can be defined by [-D" + KuduProps.TABLE_BUCKETS + "=8(default value)]";
-		if (replicas > 0) info = info + ", with replicas [" + replicas + "], can be defined by [-D" + KuduProps.TABLE_REPLICAS
-				+ "=xx(no default value)]";
-		logger.info("Kudu table [" + table + "] will be created with keys: [" + Joiner.on(',').join(keys) + "], " + info);
-		CreateTableOptions opts = new CreateTableOptions().addHashPartitions(keys, buckets);
-		if (replicas > 0) opts = opts.setNumReplicas(replicas);
-		try {
-			client().createTable(table, new Schema(Arrays.asList(cols)), opts).join();
-		} catch (Exception e) {
-			throw new RuntimeException(e);
-		}
-		logger.info("Kudu table [" + table + "] created successfully.");
 	}
 
 	@Override
 	public void commit() {
-		List<OperationResponse> v;
 		try {
-			v = session.flush().join();
+			eachs(of(session.flush().join()), r -> error(r));
 		} catch (Exception e) {
 			logger.error("Kudu commit fail", e);
-			return;
 		}
-		of(v).eachs(r -> {
-			if (r.hasRowError()) error(r);
-		});
 	}
 }

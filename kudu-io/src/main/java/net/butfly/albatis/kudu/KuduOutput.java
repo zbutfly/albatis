@@ -26,9 +26,9 @@ import net.butfly.albatis.io.OddOutput;
 
 public class KuduOutput extends OddOutput<Message> {
 	public static final int SUGGEST_BATCH_SIZE = 200;
-	private final KuduConnection<?, ?, ?> connect;
+	private final KuduConnBase<?, ?, ?> connect;
 
-	public KuduOutput(String name, KuduConnection<?, ?, ?> conn) throws IOException {
+	public KuduOutput(String name, KuduConnBase<?, ?, ?> conn) throws IOException {
 		super(name);
 		connect = conn;
 	}
@@ -36,7 +36,7 @@ public class KuduOutput extends OddOutput<Message> {
 	@Override
 	public void close() {
 		long w = 0;
-		while ((w = working.get()) > 0 && logger().info("Waiting for working: " + w) && Concurrents.waitSleep());
+		while ((w = working.get()) > 0 && logger().info("Waiting for working: " + w) && Concurrents.waitSleep()) {}
 		commit();
 		super.close();
 		if (keys.isEmpty()) return;
@@ -71,9 +71,9 @@ public class KuduOutput extends OddOutput<Message> {
 		return true;
 	}
 
-	public String status() {
-		return connect.status() + "\n\tDistinct keys: " + keys.size() + ", max duplication times of key: " + maxDup.get();
-	}
+//	public String status() {
+//		return connect.status() + "\n\tDistinct keys: " + keys.size() + ", max duplication times of key: " + maxDup.get();
+//	}
 
 	private Map<String, Long> keys = new ConcurrentSkipListMap<>();
 	private AtomicReference<Pair<String, Long>> maxDup = new AtomicReference<>();
