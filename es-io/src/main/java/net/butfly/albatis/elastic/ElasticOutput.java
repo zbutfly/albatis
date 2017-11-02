@@ -48,6 +48,7 @@ public final class ElasticOutput extends Namedly implements Output<Message> {
 		try {
 			conn.close();
 		} catch (Exception e) {}
+		Output.super.close();
 	}
 
 	@Override
@@ -57,63 +58,70 @@ public final class ElasticOutput extends Namedly implements Output<Message> {
 			return m1;
 		}));
 		if (origin.isEmpty()) return;
-		Parals.listen(() -> retry(origin));
-	}
-
-	private void retry(Map<String, Message> origin) {
-		{
+		Parals.listen(() -> {
 			int retry = 0;
-			while (!origin.isEmpty() && retry++ <= maxRetry) {
-				@SuppressWarnings("rawtypes")
-				List<DocWriteRequest> reqs = list(origin.values(), Elastics::forWrite);
-				if (reqs.isEmpty()) return;
-				BulkRequest req = new BulkRequest().add(reqs);
-				try {
-					conn.client().bulk(req, new ActionListener<BulkResponse>() {
-						@Override
-						public void onResponse(BulkResponse response) {
-							Map<Boolean, List<BulkItemResponse>> resps = collect(response, Collectors.partitioningBy(r -> r.isFailed()));
-							List<BulkItemResponse> succResps = resps.get(Boolean.FALSE);
-							List<BulkItemResponse> failResps = resps.get(Boolean.TRUE);
-							if (!succResps.isEmpty()) {
-								logger.trace(() -> "Elastic enqueue succeed [" + req.estimatedSizeInBytes() + " bytes], sample id: "
-										+ succResps.get(0).getId());
-								succeeded(succResps.size());
-							}
-							if (failResps.isEmpty()) return;
-							// process success: remove from origin
-							succResps.forEach(succ -> origin.remove(succ.getId()));
-							// process failing and retry...
-							Map<Boolean, List<BulkItemResponse>> failOrRetry = of(failResps).collect(Collectors.partitioningBy(r -> noRetry(
-									r.getFailure().getCause())));
-							List<BulkItemResponse> ll = failOrRetry.get(Boolean.FALSE);
-							failed(map(ll, r -> origin.remove(r.getId())));
-							if (logger().isTraceEnabled()) logger.warn(() -> "Some fails: \n" + map(failOrRetry.get(Boolean.TRUE),
-									r -> "\tfailed id [" + r.getFailure().getId() + "] for: " + unwrap(r.getFailure().getCause())
-											.toString(), Collectors.joining("\n")));
-						}
-
-						@Override
-						public void onFailure(Exception e) {
-							Throwable t = Exceptions.unwrap(e);
-							if (noRetry(t)) logger().warn("Elastic connection op failed [" + t + "], [" + origin.size() + "] fails", t);
-							else failed(origin.values().parallelStream());
-						}
-					});
-				} catch (IllegalStateException ex) {
-					logger().error("Elastic client fail: [" + ex.toString() + "]");
-				}
-			}
+			while (!origin.isEmpty() && retry++ < maxRetry)
+				proess(origin);
+		});
+	}
+	private void proess(Map<String, Message> origin) {
+		@SuppressWarnings("rawtypes")
+		List<DocWriteRequest> reqs = list(origin.values(), Elastics::forWrite);
+		if (reqs.isEmpty()) return;
+		BulkRequest req = new BulkRequest().add(reqs);
+		try {
+			conn.client().bulk(req, new Listener(origin, req));
+		} catch (IllegalStateException ex) {
+			logger().error("Elastic client fail: [" + ex.toString() + "]");
 		}
 	}
 
-	private boolean noRetry(Throwable cause) {
-		while (RemoteTransportException.class.isAssignableFrom(cause.getClass()) && cause.getCause() != null)
-			cause = cause.getCause();
-		if (MapperException.class.isAssignableFrom(cause.getClass())) logger().error("ES mapper exception", cause);
-		return EsRejectedExecutionException.class.isAssignableFrom(cause.getClass())//
-				// || VersionConflictEngineException.class.isAssignableFrom(c)
-				|| MapperException.class.isAssignableFrom(cause.getClass());
+	private class Listener implements ActionListener<BulkResponse> {
+		private final BulkRequest req;
+		private final Map<String, Message> origin;
+
+		private Listener(Map<String, Message> origin, BulkRequest req) {
+			this.origin = origin;
+			this.req = req;
+		}
+
+		@Override
+		public void onResponse(BulkResponse response) {
+			Map<Boolean, List<BulkItemResponse>> resps = collect(response, Collectors.partitioningBy(r -> r.isFailed()));
+			List<BulkItemResponse> succs = resps.get(Boolean.FALSE);
+			List<BulkItemResponse> fails = resps.get(Boolean.TRUE);
+			if (!succs.isEmpty()) {
+				logger.trace(() -> "Elastic enqueue succeed [" + req.estimatedSizeInBytes() + " bytes], sample id: " + succs.get(0)
+						.getId());
+				succeeded(succs.size());
+			}
+			if (fails.isEmpty()) return;
+			// process success: remove from origin
+			succs.forEach(succ -> origin.remove(succ.getId()));
+			// process failing and retry...
+			Map<Boolean, List<BulkItemResponse>> failOrRetry = of(fails).collect(Collectors.partitioningBy(r -> noRetry(r.getFailure()
+					.getCause())));
+			failed(of(of(failOrRetry.get(Boolean.FALSE)).map(r -> origin.remove(r.getId()))));
+			if (logger().isTraceEnabled()) logger.warn(() -> "Some fails: \n" + map(failOrRetry.get(Boolean.TRUE), r -> "\tfailed id [" + r
+					.getFailure().getId() + "] for: " + unwrap(r.getFailure().getCause()).toString(), Collectors.joining("\n")));
+		}
+
+		@Override
+		public void onFailure(Exception e) {
+			Throwable t = Exceptions.unwrap(e);
+			if (noRetry(t)) logger().warn("Elastic connection op failed [" + t + "], [" + origin.size() + "] fails", t);
+			else failed(origin.values().parallelStream());
+		}
+
+		private boolean noRetry(Throwable cause) {
+			while (RemoteTransportException.class.isAssignableFrom(cause.getClass()) && cause.getCause() != null)
+				cause = cause.getCause();
+			if (MapperException.class.isAssignableFrom(cause.getClass())) logger().error("ES mapper exception", cause);
+			return EsRejectedExecutionException.class.isAssignableFrom(cause.getClass())//
+					// ||
+					// VersionConflictEngineException.class.isAssignableFrom(c)
+					|| MapperException.class.isAssignableFrom(cause.getClass());
+		}
 	}
 
 	private boolean failed(BulkItemResponse r) {
