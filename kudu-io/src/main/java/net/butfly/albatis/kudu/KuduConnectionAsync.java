@@ -33,11 +33,12 @@ import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.parallel.Concurrents;
 
-public class KuduAsyncConnection extends KuduConnection<KuduAsyncConnection, AsyncKuduClient, AsyncKuduSession> {
+@Deprecated
+public class KuduConnectionAsync extends KuduConnBase<KuduConnectionAsync, AsyncKuduClient, AsyncKuduSession> {
 	private BlockingQueue<Pair<Operation, Deferred<OperationResponse>>> PENDINGS = new LinkedBlockingQueue<>(1000);
 	private final Thread pendingHandler;
 
-	public KuduAsyncConnection(URISpec kuduUri) throws IOException {
+	public KuduConnectionAsync(URISpec kuduUri) throws IOException {
 		super(kuduUri, r -> new AsyncKuduClient.AsyncKuduClientBuilder(kuduUri.getHost()).build());
 		session = client().newSession();
 		session.setFlushMode(FlushMode.AUTO_FLUSH_BACKGROUND);
