@@ -72,7 +72,7 @@ public class KuduConnection extends KuduConnBase<KuduConnection, KuduClient, Kud
 	@Override
 	public boolean apply(Operation op, BiConsumer<Operation, Throwable> error) {
 		if (null == op) return false;
-//		opCount.incrementAndGet();
+		// opCount.incrementAndGet();
 		boolean r = true;
 		OperationResponse or = null;
 		try {
@@ -87,15 +87,20 @@ public class KuduConnection extends KuduConnBase<KuduConnection, KuduClient, Kud
 			if (!(r = !or.hasRowError())) error.accept(op, new IOException(or.getRowError().toString()));
 			return r;
 		} finally {
-//			(r ? succCount : failCount).incrementAndGet();
+			// (r ? succCount : failCount).incrementAndGet();
 		}
 	}
 
 	@Override
 	public void table(String name, List<ColumnSchema> cols, boolean autoKey) {
-		int buckets = Integer.parseInt(System.getProperty(Albatis.Props.PROP_KUDU_TABLE_BUCKETS, "24"));
-		logger.info("Kudu table constructing, with bucket [" + buckets + "], can be defined by [-D" + Albatis.Props.PROP_KUDU_TABLE_BUCKETS
-				+ "=400]");
+		int buckets = Integer.parseInt(System.getProperty(Albatis.Props.PROP_KUDU_TABLE_BUCKETS, "8"));
+		String v = Configs.get(Albatis.Props.PROP_KUDU_TABLE_REPLICAS);
+		int replicas = null == v ? -1 : Integer.parseInt(v);
+		String info = "Kudu table constructing, with bucket [" + buckets + "], can be defined by [-D"
+				+ Albatis.Props.PROP_KUDU_TABLE_BUCKETS + "=8(default value)]";
+		if (replicas > 0) info = info + ", with replicas [" + replicas + "], can be defined by [-D" + Albatis.Props.PROP_KUDU_TABLE_REPLICAS
+				+ "=xx(no default value)]";
+		logger.info(info + ".");
 		try {
 			if (client().tableExists(name)) {
 				logger.info("Kudu table [" + name + "] existed, will be droped.");
@@ -107,6 +112,7 @@ public class KuduConnection extends KuduConnBase<KuduConnection, KuduClient, Kud
 				else break;
 			logger.info("Kudu table [" + name + "] will be created with keys: [" + Joiner.on(',').join(keys) + "].");
 			CreateTableOptions opts = new CreateTableOptions().addHashPartitions(keys, buckets);
+			if (replicas > 0) opts = opts.setNumReplicas(replicas);
 			client().createTable(name, new Schema(cols), opts);
 			logger.info("Kudu table [" + name + "] created successfully.");
 		} catch (KuduException e) {
