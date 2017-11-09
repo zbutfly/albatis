@@ -93,4 +93,4 @@
 
 ## 技术架构
 
-![技术架构《arch.vsdx》](arch.jpg)
+![技术架构《arch.vsdx》](docs/arch-large.jpg)
