@@ -19,8 +19,8 @@
 				// 资源释放
 				protected void releaseClient(Client client) {...};
 			}
-		~~~
-		1. 客户端接口
+		~~~	
+		1. 客户端接口	
 		~~~java
 			interface Client {
 				// 创建client
@@ -34,7 +34,7 @@
 				// 关闭client
 				public void close();
 			}
-		~~~
+		~~~	
 	1. SQL解析
 		1. 适配器接口
 		~~~java
@@ -42,11 +42,11 @@
 				// 根据sql得到组装类
 				Translation translate(String sql);
 			}
-		~~~
+		~~~	
 		1. 组装类 （翻译类）
 		~~~java
 			class Translation {...} 
-		~~~
+		~~~	
 		
 #### uniquery-solr 
 1. 说明 
@@ -66,13 +66,13 @@
 			// 关闭client
 			public void close() {...};
 		}
-	~~~
+	~~~	
 	1. 适配器
 	~~~java
 		class SolrAdapter implements Adapter {
 			Translation translate(String sql) {...};
 		}
-	~~~
+	~~~	
 
 #### uniquery-es2
 1. 说明 
