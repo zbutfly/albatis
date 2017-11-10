@@ -5,82 +5,91 @@
 
 ####	uniquery-core 
 1.	说明
-	统一搜索核心代码块。
+	统一搜索核心代码块。实现资源管理、SQL解析。
 
 1.	模块
 	1.	数据资源
-		1.	客户端管理类
+		1.	数据资源管理类
 			~~~java
-				class ClientManager {
+				class ConnectionManager {
+					
 					// 资源创建
-					public static Client getClient(URISpec uriSpec) {...};
-					// 资源管理
-					private void cacheClient(URISpec uriSpec, Client client) {...};
+					public static Connection getConnection(URISpec uriSpec) {...};
+					// 资源池
+					private void cacheConnection(URISpec uriSpec, Connection conn) {...};
 					// 资源释放
-					protected void releaseClient(Client client) {...};
+					protected void releaseConnection(Connection conn) {...};
 				}
 			~~~
-		1.	客户端接口	
+		1.	数据资源接口	
 			~~~java
-				interface Client {
-					// 创建client
-					public Client getInstance(URISpec uriSpec);
-					// 查询
-					List<Map<String, Object>> select(String sql);
-					// 查询一条
-					Map<String, Object> selectOne(String sql);
-					// 统计
-					Long count(String sql);
-					// 关闭client
+				interface Connection {
+					
+					// 创建资源连接
+					public static Connection getInstance(URISpec uriSpec);
+					// 执行sql并返回结果
+					<T> T execute(String sql, Object... params);
+					// 关闭资源连接
 					public void close();
 				}
 			~~~
 	1.	SQL解析
+		1.	SQL解析类
+			~~~java
+				class SqlExplainer {
+					
+					// 解析SQL
+					public static SqlNode explain(String sql) {...};
+				}
+			~~~
 		1.	适配器接口
 			~~~java
 				interface Adapter {
-					// 根据sql得到组装类
-					Translation translate(String sql);
+					
+					// 查询组装
+					public static <T> T queryAssemble(SqlNode sqlNode);
+					// 查询执行
+					public static <T> T queryExecute(Object query);
+					// 结果组装
+					public static <T> T resultAssemble(Object result);
 				}
 			~~~
-		1.	组装类 （翻译类）
-			~~~java
-				class Translation {...} 
-			~~~
-		
 ####	uniquery-solr 
 1.	说明 
-	实现solr的适配解析和查询返回。
+	solr搜索模块。实现创建资源连接、查询组装、查询执行、结果组装、关闭资源连接。
 1.	模块 
-	1.	客户端
+	1.	数据资源类
 		~~~java
-			class SolrClient implements Client {
-				// 创建client
-				public Client getInstance(URISpec uriSpec) {...};
-				// 查询
-				List<Map<String, Object>> select(String sql) {...};
-				// 查询一条
-				Map<String, Object> selectOne(String sql) {...};
-				// 统计
-				Long count(String sql) {...};
-				// 关闭client
-				public void close() {...};
+			class SolrConnection extends NosqlConnection<SolrClient> implements Connection {
+				
+				// 创建资源连接
+				public static Connection getInstance(URISpec uriSpec);
+				// 查询执行
+				<T> T execute(String sql, Object... params);
+				// 关闭资源连接
+				public void close();
 			}
 		~~~
 	1.	适配器
 		~~~java
 			class SolrAdapter implements Adapter {
-				Translation translate(String sql) {...};
+				
+				// 查询组装
+				public static SolrParams queryAssemble(SqlNode sqlNode);
+				// 查询执行
+				public static QueryResponse queryExecute(Object solrParams);
+				// 结果组装
+				public static <T> T resultAssemble(Object queryResponse);
 			}
 		~~~
 
 ####	uniquery-es2
 1.	说明 
-	实现es2的适配解析和查询返回。
+	es2搜索模块。实现创建资源连接、查询组装、查询执行、结果组装、关闭资源连接。
 1.	模块
 ####	uniquery-es5
 1.	说明 
-	实现es5的适配解析和查询返回。
+	es5搜索模块。实现创建资源连接、查询组装、查询执行、结果组装、关闭资源连接。
 1.	模块
 ####	uniquery-auth
 1.	说明 
