@@ -16,12 +16,12 @@
     <packaging>pom</packaging>
 
     <modules>
-        <module>adaptor-es2</module>
-        <module>adaptor-es5</module>
-        <module>adaptor-solr</module>
+        <module>auth</module>
         <module>core</module>
-        <module>uniquery-itcpt-auth</module>
-        <module>uniquery-itcpt-field-mask</module>
+        <module>es2</module>
+        <module>es5</module>
+        <module>field-mask</module>
+        <module>solr</module>
     </modules>
 
     <properties>

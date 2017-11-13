@@ -10,12 +10,12 @@
         <version>0.0.1-SNAPSHOT</version>
     </parent>
 
-    <artifactId>adaptor-solr</artifactId>
+    <artifactId>uniquery-field-mask</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <properties>
-        <solr.version>6.6.1</solr.version>
+        <calcite.version>1.14.0</calcite.version>
     </properties>
 
     <dependencies>
