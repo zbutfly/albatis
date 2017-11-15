@@ -23,14 +23,16 @@
 			~~~
 		1.	数据资源接口	
 			~~~java
-				interface Connection {
+				interface Connection extends com.hzcominfo.albatis.nosql.Connection {
 					
-					// 创建资源连接
-					public static Connection getInstance(URISpec uriSpec);
 					// 执行sql并返回结果
-					<T> T execute(String sql, Object... params);
-					// 关闭资源连接
-					public void close();
+					default <T> T execute(String sql, Object... params) {
+						SqlNode sqlNode = SqlExplainer.explain(sql);
+						return execute(sqlNode, params);
+					}
+					
+					// 执行sqlNode并返回结果
+					<T> T execute(SqlNode sqlNode, Object... params);
 				}
 			~~~
 	1.	SQL解析
@@ -47,11 +49,13 @@
 				interface Adapter {
 					
 					// 查询组装
-					public static <T> T queryAssemble(SqlNode sqlNode);
-					// 查询执行
-					public static <T> T queryExecute(Object query);
-					// 结果组装
-					public static <T> T resultAssemble(Object result);
+				    public <T> T queryAssemble(SqlNode sqlNode, Object...params);
+				    
+				    // 查询执行
+				    public <T> T queryExecute(Connection connection, Object query);
+				    
+				    // 结果组装
+				    public <T> T resultAssemble(Object result);
 				}
 			~~~
 ####	uniquery-solr 
@@ -60,14 +64,12 @@
 1.	模块 
 	1.	数据资源类
 		~~~java
-			class SolrConnection extends NosqlConnection<SolrClient> implements Connection {
+			class SolrConnection extends net.butfly.albatis.solr.SolrConnection implements Connection {
 				
 				// 创建资源连接
-				public static Connection getInstance(URISpec uriSpec);
+				public SolrConnection(String connection) throws IOException {...}
 				// 查询执行
-				<T> T execute(String sql, Object... params);
-				// 关闭资源连接
-				public void close();
+				public <T> T execute(SqlNode sqlNode, Object... params) {...}
 			}
 		~~~
 	1.	适配器
@@ -75,11 +77,13 @@
 			class SolrAdapter implements Adapter {
 				
 				// 查询组装
-				public static SolrParams queryAssemble(SqlNode sqlNode);
+				public SolrParams queryAssemble(SqlNode sqlNode, Object...params) {...}
+				
 				// 查询执行
-				public static QueryResponse queryExecute(Object solrParams);
+				public QueryResponse queryExecute(Connection connection, Object solrParams) {...}
+				
 				// 结果组装
-				public static <T> T resultAssemble(Object queryResponse);
+				public <T> T resultAssemble(Object queryResponse) {...}
 			}
 		~~~
 
