@@ -11,28 +11,25 @@
 	1.	数据资源
 		1.	数据资源管理类
 			~~~java
-				class ConnectionManager {
+				class ClientManager {
 					
 					// 资源创建
-					public static Connection getConnection(URISpec uriSpec) {...};
+					public static Client getConnection(URISpec uriSpec) {...};
 					// 资源池
-					private void cacheConnection(URISpec uriSpec, Connection conn) {...};
+					private void cacheConnection(URISpec uriSpec, Client client) {...};
 					// 资源释放
-					protected void releaseConnection(Connection conn) {...};
+					public void releaseConnection(Connection conn) {...};
 				}
 			~~~
-		1.	数据资源接口	
+		1.	数据资源客户端	
 			~~~java
-				interface Connection extends com.hzcominfo.albatis.nosql.Connection {
-					
-					// 执行sql并返回结果
-					default <T> T execute(String sql, Object... params) {
-						SqlNode sqlNode = SqlExplainer.explain(sql);
-						return execute(sqlNode, params);
-					}
-					
-					// 执行sqlNode并返回结果
-					<T> T execute(SqlNode sqlNode, Object... params);
+				class Client implements AutoCloseable {
+					// 创建客户端
+					public Client(URISpec uriSpec) {...}
+					// 执行sql
+					public <T> T execute(String sql, Object...params) {...}
+					// 关闭客户端
+					public void close() throws Exception {...}
 				}
 			~~~
 	1.	SQL解析
@@ -47,6 +44,8 @@
 		1.	适配器接口
 			~~~java
 				interface Adapter {
+					// 根据uriSpec获取对应的适配器实现
+					public static Adapter adapt(URISpec uriSpec) {...}
 					
 					// 查询组装
 				    public <T> T queryAssemble(SqlNode sqlNode, Object...params);
@@ -62,16 +61,6 @@
 1.	说明 
 	solr搜索模块。实现创建资源连接、查询组装、查询执行、结果组装、关闭资源连接。
 1.	模块 
-	1.	数据资源类
-		~~~java
-			class SolrConnection extends net.butfly.albatis.solr.SolrConnection implements Connection {
-				
-				// 创建资源连接
-				public SolrConnection(String connection) throws IOException {...}
-				// 查询执行
-				public <T> T execute(SqlNode sqlNode, Object... params) {...}
-			}
-		~~~
 	1.	适配器
 		~~~java
 			class SolrAdapter implements Adapter {
