@@ -109,7 +109,7 @@ public class SqlExplainer {
 
     private static Map<String, SqlNode> cache = new HashMap<>();
 
-    public static JsonObject parseSql(String sql, Object... params) throws Exception {
+    public static JsonObject explain(String sql, Object... params) throws Exception {
         if (null == sql || sql.isEmpty()) return null;
         SqlNode node = cache.get(sql);
         if (null == node) {
@@ -148,6 +148,10 @@ public class SqlExplainer {
         return json;
     }
 
+    public static String explainAsJsonString(String sql, Object... params) throws Exception {
+        return explain(sql, params).toString();
+    }
+
     private static void analysisSqlSelect(SqlSelect select, JsonObject json) {
         //keywordList
         analysisKeywords(select, json);
@@ -175,8 +179,7 @@ public class SqlExplainer {
 
     private static void analysisFields(List<SqlNode> selectList, JsonObject json) {
         JsonArray fields = new JsonArray();
-        for (int i = 0; i < selectList.size(); i++) {
-            SqlNode n = selectList.get(i);
+        for (SqlNode n : selectList) {
             SqlIdentifier identifier;
             JsonObject field = new JsonObject();
             switch (n.getKind()) {
@@ -288,8 +291,8 @@ public class SqlExplainer {
 
     /**
      * 复合表达式解析
-     * @param sc
-     * @param array
+     * @param sc SqlCall
+     * @param array result
      */
     private static void analysisCompoundConditionExpression(SqlCall sc, JsonArray array) {
         JsonObject lj = new JsonObject(), rj = new JsonObject();
@@ -302,8 +305,8 @@ public class SqlExplainer {
 
     /**
      * 一元表达式解析
-     * @param sc
-     * @param object
+     * @param sc SqlCall
+     * @param object result
      */
     private static void analysisUnaryConditionExpression(SqlCall sc, JsonObject object) {
         String snn = ((SqlIdentifier) sc.operand(0)).getSimple();
@@ -314,8 +317,8 @@ public class SqlExplainer {
 
     /**
      * 二元表达式解析
-     * @param sc
-     * @param json
+     * @param sc SqlCall
+     * @param json result
      */
     private static void analysisBinaryConditionExpression(SqlCall sc, JsonObject json) {
         String field = ((SqlIdentifier) sc.operand(0)).getSimple();
@@ -330,8 +333,8 @@ public class SqlExplainer {
 
     /**
      * 多元表达式解析
-     * @param sc
-     * @param json
+     * @param sc SqlCall
+     * @param json result
      */
     private static void analysisMultipleConditionExpression(SqlCall sc, JsonObject json) {
         System.out.println(sc);

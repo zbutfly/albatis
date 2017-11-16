@@ -40,26 +40,26 @@ public class SqlExplainerTest {
     @Test
     public void t3() throws Exception {
         String sql = "INSERT INTO Persons VALUES ('Gates', 'Bill', 'Xuanwumen 10', 'Beijing')";
-//        SqlNode query = SqlExplainer.parseSql(sql);
+//        SqlNode query = SqlExplainer.explain(sql);
 //        query.accept(SqlExplainer.visitor);
     }
 
     @Test
     public void t4() throws Exception {
         String sql = "UPDATE Person SET FirstName = 'Fred' WHERE LastName = 'Wilson'";
-//        SqlNode update = SqlExplainer.parseSql(sql);
+//        SqlNode update = SqlExplainer.explain(sql);
 //        update.accept(SqlExplainer.visitor);
     }
 
     @Test
     public void t5() throws Exception {
         String sql = "select p.name AS n, p.age As a, p.address from people p where age > 30  and name like '%姓名%' order by age, name desc limit 1000 offset 100";
-//        SqlNode query = SqlExplainer.parseSql(sql, "Lucy", 27, "W");
+//        SqlNode query = SqlExplainer.explain(sql, "Lucy", 27, "W");
 //        System.out.println(query);
 //        System.out.println();
 //        String s = query.accept(SqlExplainer.visitor);
 //        System.out.println("s===" + s);
-        JsonObject object = SqlExplainer.parseSql(sql);
+        JsonObject object = SqlExplainer.explain(sql);
     }
 
     @Test
@@ -69,41 +69,41 @@ public class SqlExplainerTest {
         String sql = "select name, age, *, sex as s from tbl where name like '%tdl%'";
 //        String sql = "select * from tbl AS t, wsy as w, abc where name like '%tdl%'";
 //        String sql = "select * from tbl1 as x, tbl2 as y, tbl3 where name like '%tdl%'";
-        JsonObject object = SqlExplainer.parseSql(sql);
+        JsonObject object = SqlExplainer.explain(sql);
     }
 
     @Test
     public void p2() throws Exception {
         String sql = "SELECT Customer, OrderDate, SUM(OrderPrice) FROM Orders GROUP BY Customer,OrderDate";
-        JsonObject object = SqlExplainer.parseSql(sql);
+        JsonObject object = SqlExplainer.explain(sql);
         System.out.println(object);
     }
 
     @Test
     public void p3() throws Exception {
         String sql = "SELECT Customer,SUM(OrderPrice) FROM Orders GROUP BY Customer HAVING SUM(OrderPrice)<2000 limit 1000 offset 100";
-        JsonObject object = SqlExplainer.parseSql(sql);
+        JsonObject object = SqlExplainer.explain(sql);
         System.out.println(object);
     }
 
     @Test
     public void p4() throws Exception {
         String sql = "SELECT Company, OrderNumber FROM Orders,tbl2,tbl3 ORDER BY Company desc, xxx desc limit 1000 offset 100";
-        JsonObject object = SqlExplainer.parseSql(sql);
+        JsonObject object = SqlExplainer.explain(sql);
         System.out.println(object);
     }
 
     @Test
     public void p5() throws Exception {
         String sql = "SELECT DISTINCT Company, name FROM Orders order by xxx limit 1000 offset 100";
-        JsonObject object = SqlExplainer.parseSql(sql);
+        JsonObject object = SqlExplainer.explain(sql);
         System.out.println(object);
     }
 
     @Test
     public void p6() throws Exception {
         String sql = "SELECT name as n, Company as c, pure FROM Orders order by xxx limit 1000 offset 100";
-        JsonObject object = SqlExplainer.parseSql(sql);
+        JsonObject object = SqlExplainer.explain(sql);
         System.out.println(object);
     }
 
@@ -121,7 +121,7 @@ public class SqlExplainerTest {
 //        String sql = "select * from t where name in (a, b, c, d, e)"; //todo wrong syntax
         String sql = "select * from t where name not in ('a', 'b', 'c', 'd', 'e') and (name is NULL or age < 20) or (name = 'xx' or age >= 20) and (name like '%yy%' or age <> 10)";
 //        String sql = "select * from t where name in ('a', 'b', 'c', 'd', 'e')";
-        JsonObject object = SqlExplainer.parseSql(sql);
+        JsonObject object = SqlExplainer.explain(sql);
         JsonObject o = object.getAsJsonObject("where").getAsJsonArray("and").get(0).getAsJsonObject()
                 .getAsJsonArray("and").get(0).getAsJsonObject().getAsJsonArray("or")
                 .get(0).getAsJsonObject().getAsJsonObject("equals");
@@ -138,7 +138,7 @@ public class SqlExplainerTest {
     @Test
     public void g1() throws Exception {
         String sql = "SELECT Customer,OrderPrice FROM Orders GROUP BY Customer, xxxx";
-        JsonObject object = SqlExplainer.parseSql(sql);
+        JsonObject object = SqlExplainer.explain(sql);
     }
 
     /**
@@ -148,7 +148,7 @@ public class SqlExplainerTest {
     @Test
     public void h1() throws Exception {
         String sql = "SELECT Customer,OrderPrice FROM Orders GROUP BY Customer HAVING SUM(OrderPrice)<2000";
-        JsonObject object = SqlExplainer.parseSql(sql);
+        JsonObject object = SqlExplainer.explain(sql);
     }
 
     /**
@@ -162,7 +162,7 @@ public class SqlExplainerTest {
         String sql = "SELECT Company, OrderNumber FROM Orders ORDER BY Company DESC, ABC DESC";
 //        String sql = "SELECT Company, OrderNumber FROM Orders ORDER BY Company DESC, OrderNumber ASC";
 //        String sql = "SELECT Company, OrderNumber FROM Orders ORDER BY Company Asc, OrderNumber desc";
-        JsonObject object = SqlExplainer.parseSql(sql);
+        JsonObject object = SqlExplainer.explain(sql);
     }
 
     /**
@@ -175,7 +175,7 @@ public class SqlExplainerTest {
         String sql = "SELECT Customer,OrderPrice FROM Orders limit 99887766";
 //        String sql = "SELECT Customer,OrderPrice FROM Orders limit 92233720368547758070 offset 9223372036854775807";
 //        String sql = "SELECT Customer,OrderPrice FROM Orders limit 9223372036854775807 offset 1024";
-        JsonObject object = SqlExplainer.parseSql(sql);
+        JsonObject object = SqlExplainer.explain(sql);
     }
 
     /**
@@ -186,7 +186,7 @@ public class SqlExplainerTest {
     public void l1() throws Exception {
 //        String sql = "SELECT Customer,OrderPrice FROM Orders limit 92233720368547758070 offset 9223372036854775807";
         String sql = "SELECT Customer,OrderPrice FROM Orders limit 9223372036854775807 offset 1024";
-        JsonObject object = SqlExplainer.parseSql(sql);
+        JsonObject object = SqlExplainer.explain(sql);
     }
 }
 
