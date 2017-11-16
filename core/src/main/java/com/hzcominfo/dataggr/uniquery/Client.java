@@ -1,7 +1,6 @@
 package com.hzcominfo.dataggr.uniquery;
 
-import org.apache.calcite.sql.SqlNode;
-
+import com.google.gson.JsonObject;
 import com.hzcominfo.albatis.nosql.Connection;
 import com.hzcominfo.dataggr.uniquery.utils.ExceptionUtil;
 
@@ -19,8 +18,8 @@ public class Client implements AutoCloseable {
 		try {
 			Connection conn = Connection.connect(uriSpec);
 			Adapter adapter = Adapter.adapt(uriSpec);
-			SqlNode sqlNode = SqlExplainer.explain(sql);
-			Object query = adapter.queryAssemble(sqlNode, params);
+			JsonObject sqlJson = SqlExplainer.explain(sql);
+			Object query = adapter.queryAssemble(sqlJson, params);
 			Object result = adapter.queryExecute(conn, query);
 			return adapter.resultAssemble(result);
 		} catch (Exception e) {

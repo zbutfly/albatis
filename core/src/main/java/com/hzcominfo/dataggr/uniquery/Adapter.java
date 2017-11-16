@@ -5,8 +5,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.calcite.sql.SqlNode;
-
+import com.google.gson.JsonObject;
 import com.hzcominfo.albatis.nosql.Connection;
 
 import net.butfly.albacore.io.URISpec;
@@ -48,7 +47,7 @@ public interface Adapter {
 	}
 	
 	// 查询组装
-    public <T> T queryAssemble(SqlNode sqlNode, Object...params);
+    public <T> T queryAssemble(JsonObject sqlJson, Object...params);
     
     // 查询执行
     public <T> T queryExecute(Connection connection, Object query);
