@@ -12,19 +12,21 @@ public class AppTest {
 
 	public static void main(String[] args) {
 		//建立连接
-		String uri = "";
+		String uri = "solr:http://172.16.17.11:10180/solr/tdl_c1";
 		URISpec uriSpec = new URISpec(uri);
-		Client client = ClientManager.getConnection(uriSpec);
+		Client conn = ClientManager.getConnection(uriSpec);
 		
 		//执行查询
-		String sql = "";
-		Map r1 = client.execute(sql, "");
-		List<Map> r2 = client.execute(sql, "");
-		long r3 = client.execute(sql, "");
+		String sql = "select * from tdl_c1";
+		List<Map<String, Object>> result = conn.execute(sql, "");
+		System.out.println(result);
+//				Map r1 = conn.execute(sql, "");
+//				List<Map> r2 = conn.execute(sql, "");
+//				long r3 = conn.execute(sql, "");
 		
 		//释放连接
 		try {
-			client.close();
+			conn.close();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
