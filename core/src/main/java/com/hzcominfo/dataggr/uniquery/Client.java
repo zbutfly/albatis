@@ -46,7 +46,7 @@ public class Client implements AutoCloseable {
 
 	public <T> T execute(String sql, Object...params) {
 		try {
-			JsonObject sqlJson = SqlExplainer.explain(sql); // TODO cache
+			JsonObject sqlJson = SqlExplainer.explain(sql);
 			JsonObject tableJson = sqlJson.has("tables") ? sqlJson.getAsJsonObject("tables"):null;
 			String table = tableJson != null && tableJson.has("table") ? tableJson.get("table").getAsString():null;
 			Object query = adapter.queryAssemble(sqlJson, params); // TODO params
