@@ -14,7 +14,8 @@
 1. 本地调用代码实例
 	1. 根据url串创建URISpec实例
 		~~~java
-			String uri = "solr:http://172.16.17.11:10180/solr/tdl_c1";
+			String uri = "solr:http://cdh001:10180/solr";
+			//String uri = "zk:solr://cdh001:12181,cdh002:12181,cdh003:12181";
 			URISpec uriSpec = new URISpec(uri);
 		~~~
 		
