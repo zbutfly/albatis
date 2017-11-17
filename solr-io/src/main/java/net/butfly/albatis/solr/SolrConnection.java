@@ -95,7 +95,8 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 
 	public SolrConnection(URISpec uri, Class<? extends ResponseParser> parserClass, boolean parsing) throws IOException {
 		super(uri, u -> create(u, parserClass), "solr", "zookeeper", "zk", "http", "zk:solr", "solr:http");
-		meta = parsing ? parse() : null;
+//		meta = parsing ? parse() : null;
+		meta = null;
 	}
 
 	private static SolrClient create(URISpec uri, Class<? extends ResponseParser> parserClass) {
@@ -103,27 +104,29 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 			parserClass = XMLResponseParser.class;
 		ResponseParser p = PARSER_POOL.computeIfAbsent(parserClass, clz -> Reflections.construct(clz));
 		switch (uri.getScheme()) {
-			case "http":
-				logger.debug("Solr client create: " + uri);
-				Builder hb = new HttpSolrClient.Builder(uri.toString()).allowCompression(true)
-						.withHttpClient(HTTP_CLIENT)//
-						.withResponseParser(p);
-				return hb.build();
-			case "solr":
-			case "zookeeper":
-			case "zk":
-			case "zk:solr":
-				logger.debug("Solr client create by zookeeper: " + uri);
-				CloudSolrClient.Builder cb = new CloudSolrClient.Builder();
-				CloudSolrClient c = cb.withZkHost(Arrays.asList(uri.getHost().split(","))).withHttpClient(HTTP_CLIENT)
-						.build();
-				c.setZkClientTimeout(Integer.parseInt(System.getProperty("albatis.io.zkclient.timeout", "30000")));
-				c.setZkConnectTimeout(Integer.parseInt(System.getProperty("albatis.io.zkconnect.timeout", "30000")));
-				c.setParallelUpdates(true);
-				c.setParser(p);
-				return c;
-			default:
-				throw new RuntimeException("Solr open failure, invalid uri: " + uri);
+		case "http":
+			logger.debug("Solr client create: " + uri);
+			Builder hb = new HttpSolrClient.Builder(uri.toString()).allowCompression(true).withHttpClient(HTTP_CLIENT)//
+					.withResponseParser(p);
+			return hb.build();
+		case "solr:http":
+			logger.debug("Solr client create: " + uri);
+			return new HttpSolrClient.Builder(uri.toString().replace("solr:", "")).allowCompression(true).withHttpClient(HTTP_CLIENT)//
+					.withResponseParser(p).build();
+		case "solr":
+		case "zookeeper":
+		case "zk":
+		case "zk:solr":
+			logger.debug("Solr client create by zookeeper: " + uri);
+			CloudSolrClient.Builder cb = new CloudSolrClient.Builder();
+			CloudSolrClient c = cb.withZkHost(Arrays.asList(uri.getHost().split(","))).withHttpClient(HTTP_CLIENT).build();
+			c.setZkClientTimeout(Integer.parseInt(System.getProperty("albatis.io.zkclient.timeout", "30000")));
+			c.setZkConnectTimeout(Integer.parseInt(System.getProperty("albatis.io.zkconnect.timeout", "30000")));
+			c.setParallelUpdates(true);
+			c.setParser(p);
+			return c;
+		default:
+			throw new RuntimeException("Solr open failure, invalid uri: " + uri);
 		}
 	}
 
