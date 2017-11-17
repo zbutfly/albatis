@@ -28,3 +28,8 @@
 			String sql = "select * from tdl_c1 where id='593fb635c00282f4af41bdd0' and XB_FORMAT_s='男'";
 			List<Map<String, Object>> result = conn.execute(sql, "");
 		~~~
+	
+	1. 关闭客户端
+		~~~java
+			client.close();
+		~~~
