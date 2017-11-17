@@ -10,6 +10,10 @@
   {"sql":"SELECT Company, OrderNumber FROM Orders ORDER BY Company DESC, ABC DESC","distinct":false,"fields":[{"field":"Company"},{"field":"OrderNumber"}],"tables":{"table":"Orders"},"groupBy":[],"having":{},"orderBy":[{"Company":"DESC"},{"ABC":"DESC"}],"offset":0,"limit":-1}
 ,
   {"sql":"SELECT Customer,OrderPrice FROM Orders limit 9223372036854775807 offset 1024","distinct":false,"fields":[{"field":"Customer"},{"field":"OrderPrice"}],"tables":{"table":"Orders"},"groupBy":[],"having":{},"orderBy":[],"offset":1024,"limit":9223372036854775807}
+,
+  {"sql":"select * from t where name not in ('a', 'b', 'c', 'd', 'e') and (name is NULL or age < 20) or (name = 'xx' or age >= 20) and (name like '%yy%' or age <> 10)","distinct":false,"fields":[{"field":"*"}],"tables":{"table":"t"},"where":{"or":[{"and":[{"not_in":{"name":["a","b","c","d","e"]}},{"or":[{"is_null":"name"},{"less_than":{"age":20}}]}]},{"and":[{"or":[{"equals":{"name":"xx"}},{"greater_than_or_equal":{"age":20}}]},{"or":[{"like":{"name":"%yy%"}},{"not_equals":{"age":10}}]}]}]},"groupBy":[],"having":{},"orderBy":[],"offset":0,"limit":-1}
+,
+  {"sql":"SELECT * FROM tttt where age between 10 and 100","distinct":false,"fields":[{"field":"*"}],"tables":{"table":"tttt"},"where":{"between":{"age":["10","100"]}},"groupBy":[],"having":{},"orderBy":[],"offset":0,"limit":-1}
 
 
 ]

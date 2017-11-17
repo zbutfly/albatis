@@ -191,6 +191,15 @@ public class SqlExplainerTest {
         String sql = "SELECT Customer,OrderPrice FROM Orders limit 9223372036854775807 offset 1024";
         JsonObject object = SqlExplainer.explain(sql);
     }
+
+    @Test
+    public void b1() throws Exception {
+//        String sql = "SELECT Customer,OrderPrice FROM Orders limit 92233720368547758070 offset 9223372036854775807";
+        String sql = "SELECT * FROM tttt where age between 10 and 100";
+        JsonObject object = SqlExplainer.explain(sql);
+        System.out.println(object);
+    }
+
 }
 
 

@@ -281,12 +281,11 @@ public class SqlExplainer {
                 tree.add(kind.lowerName, o);
                 break;
             case BETWEEN:
+                analysisTernaryConditionExpression(sc, tree);
                 break;
             case IN:
-//                JsonObject ij =
             case NOT_IN:
                 analysisMultipleConditionExpression(sc, tree);
-//                throw new RuntimeException("Condition " + kind.lowerName + " NOT supported");
                 break;
             default:
                 throw new RuntimeException("Unsupported Condition kind: " + kind.name());
@@ -344,12 +343,29 @@ public class SqlExplainer {
     }
 
     /**
+     * 三元表达式解析 目前只解析  BETWEEN
+     * @param sc SqlCall
+     * @param json result
+     */
+    private static void analysisTernaryConditionExpression(SqlCall sc, JsonObject json) {
+        List<SqlNode> operands = sc.getOperandList();
+        String field = ((SqlIdentifier) operands.get(0)).getSimple();
+        String start = ((SqlLiteral) operands.get(1)).toValue();
+        String end = ((SqlLiteral) operands.get(2)).toValue();
+        JsonArray array = new JsonArray();
+        array.add(start);
+        array.add(end);
+        JsonObject object = new JsonObject();
+        object.add(field, array);
+        json.add(sc.getKind().lowerName, object);
+    }
+
+    /**
      * 多元表达式解析
      * @param sc SqlCall
      * @param json result
      */
     private static void analysisMultipleConditionExpression(SqlCall sc, JsonObject json) {
-        System.out.println(sc);
 //        String operator = sc.getOperator().getName();
         String operator = sc.getKind().lowerName;
         String field = ((SqlIdentifier) sc.operand(0)).getSimple();
