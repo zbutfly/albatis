@@ -9,18 +9,6 @@
 
 1.	模块
 	1.	数据资源
-		1.	数据资源管理类
-			~~~java
-				class ClientManager {
-					
-					// 资源创建
-					public static Client getConnection(URISpec uriSpec) {...};
-					// 资源池
-					private void cacheConnection(URISpec uriSpec, Client client) {...};
-					// 资源释放
-					public void releaseConnection(Connection conn) {...};
-				}
-			~~~
 		1.	数据资源客户端	
 			~~~java
 				class Client implements AutoCloseable {
@@ -38,7 +26,7 @@
 				class SqlExplainer {
 					
 					// 解析SQL
-					public static SqlNode explain(String sql) {...};
+					public static JsonObject explain(String sql) {...};
 				}
 			~~~
 		1.	适配器接口
@@ -48,7 +36,7 @@
 					public static Adapter adapt(URISpec uriSpec) {...}
 					
 					// 查询组装
-				    public <T> T queryAssemble(SqlNode sqlNode, Object...params);
+				    public <T> T queryAssemble(JsonObject sqlJson, Object...params);
 				    
 				    // 查询执行
 				    public <T> T queryExecute(Connection connection, Object query);
@@ -66,7 +54,7 @@
 			class SolrAdapter implements Adapter {
 				
 				// 查询组装
-				public SolrParams queryAssemble(SqlNode sqlNode, Object...params) {...}
+				public SolrParams queryAssemble(JsonObject sqlJson, Object...params) {...}
 				
 				// 查询执行
 				public QueryResponse queryExecute(Connection connection, Object solrParams) {...}
