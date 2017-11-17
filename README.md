@@ -1,26 +1,30 @@
-# ALBATIS
-数据框架组件，抽象外部数据访问（读/写）业务逻辑，提供数据访问接口支持。
+# 统一查询
+## 使用说明
 
-	当前版本：3.0.0-SNAPSHOT
-## [开发线路图](!resources/ROADMAP.md)
-## 子模块
-### albatis-core
-	当前版本：3.0.0-SNAPSHOT
-### albatis-jdbc
-	当前版本：1.0.0-SNAPSHOT
-### albatis-mongodb
-	当前版本：1.0.0-SNAPSHOT
-### [albatis-kafka](kafka)
-	当前版本：3.0.0-SNAPSHOT
-## Demo
-- [Demo项目](demo)
-	- DAO Demo
-		- [DAO Interface](http://git.corp.hzcominfo.com:6082/projects/ALB/repos/albatis/browse/demo/src/main/java/net/butfly/albacore/demo/dao/UserDAO.java)
-		- [DAO Implementation](http://git.corp.hzcominfo.com:6082/projects/ALB/repos/albatis/browse/demo/src/main/java/net/butfly/albacore/demo/dao/UserDAOImpl.java)
-		- [Dual Key](http://git.corp.hzcominfo.com:6082/projects/ALB/repos/albatis/browse/demo/src/main/java/net/butfly/albacore/demo/mapper/PermitKey.java)
+#### 本地调用 （以solr为例）
+1. mvn 依赖
+	~~~xml
+		<dependency>
+			<groupId>com.hzcominfo.dataggr.uniquery</groupId>
+			<artifactId>uniquery-solr</artifactId>
+			<version>0.0.1-SNAPSHOT</version>
+		</dependency>
+	~~~
 
-```java
-public static final void main(String... args) {
-	System.out.println("Hello, world!");
-}
-```
+1. 本地调用代码实例
+	1. 根据url串创建URISpec实例
+		~~~java
+			String uri = "solr:http://172.16.17.11:10180/solr/tdl_c1";
+			URISpec uriSpec = new URISpec(uri);
+		~~~
+		
+	1. 创建统一搜索客户端
+		~~~java
+			Client client = new Client(uriSpec);
+		~~~
+		
+	1. 执行sql并得到结果
+		~~~java
+			String sql = "select * from tdl_c1 where id='593fb635c00282f4af41bdd0' and XB_FORMAT_s='男'";
+			List<Map<String, Object>> result = conn.execute(sql, "");
+		~~~
