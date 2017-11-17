@@ -314,9 +314,10 @@ public class SqlExplainer {
      */
     private static void analysisUnaryConditionExpression(SqlCall sc, JsonObject object) {
         String snn = ((SqlIdentifier) sc.operand(0)).getSimple();
-        JsonObject nnj = new JsonObject();
+/*        JsonObject nnj = new JsonObject();
         nnj.add(snn, null);
-        object.add(sc.getKind() == SqlKind.IS_NULL ? SqlKind.EQUALS.lowerName : SqlKind.NOT_EQUALS.lowerName, nnj);
+        object.add(sc.getKind() == SqlKind.IS_NULL ? SqlKind.EQUALS.lowerName : SqlKind.NOT_EQUALS.lowerName, nnj);*/
+        object.addProperty(sc.getKind().lowerName, snn);
     }
 
     /**

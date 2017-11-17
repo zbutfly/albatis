@@ -121,9 +121,10 @@ public class SqlExplainerTest {
 //        String sql = "select * from t where name is null";
 //        String sql = "select * from t where age >= 10";
 //        String sql = "select * from t where name in (a, b, c, d, e)"; //todo wrong syntax
-        String sql = "select * from t where name not in ('a', 'b', 'c', 'd', 'e') and (name is NULL or age < 20) or (name = 'xx' or age >= 20) and (name like '%yy%' or age <> 10)";
+        String sql = "select * from t where name not in ('a', 'b', 'c', 'd', 'e') and (name is NOT NULL or age < 20) or (name = 'xx' or age >= 20) and (name like '%yy%' or age <> 10)";
 //        String sql = "select * from t where name in ('a', 'b', 'c', 'd', 'e')";
         JsonObject object = SqlExplainer.explain(sql);
+        System.out.println(object);
         JsonObject o = object.getAsJsonObject("where").getAsJsonArray("and").get(0).getAsJsonObject()
                 .getAsJsonArray("and").get(0).getAsJsonObject().getAsJsonArray("or")
                 .get(0).getAsJsonObject().getAsJsonObject("equals");
