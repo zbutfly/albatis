@@ -44,6 +44,7 @@ import net.butfly.albatis.io.Input;
 import net.butfly.albatis.io.Message;
 
 public class SolrConnection extends NoSqlConnection<SolrClient> {
+	final static String schema = "solr,zk:solr,solr:http";
 	private static final Logger logger = Logger.getLogger(SolrConnection.class);
 	private static final CloseableHttpClient HTTP_CLIENT = SolrHttpContext.createDefaultHttpclient();
 	private static final Map<Class<? extends ResponseParser>, ResponseParser> PARSER_POOL = Maps.of();
@@ -92,9 +93,8 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 		this(uri, ResponseFormat.parse(uri.getParameter("parser", "XML")), parsing);
 	}
 
-	public SolrConnection(URISpec uri, Class<? extends ResponseParser> parserClass, boolean parsing)
-			throws IOException {
-		super(uri, u -> create(u, parserClass), "solr", "zookeeper", "zk", "http", "zk:solr");
+	public SolrConnection(URISpec uri, Class<? extends ResponseParser> parserClass, boolean parsing) throws IOException {
+		super(uri, u -> create(u, parserClass), "solr", "zookeeper", "zk", "http", "zk:solr", "solr:http");
 		meta = parsing ? parse() : null;
 	}
 
