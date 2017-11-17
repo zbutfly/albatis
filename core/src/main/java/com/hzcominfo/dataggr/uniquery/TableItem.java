@@ -17,7 +17,7 @@ public class TableItem {
         JsonElement element;
         element = json.get("table");
         if (null == element) throw new IllegalArgumentException(json.toString() + " has no ```table```");
-        names.addAll(Arrays.asList(element.getAsString().split(".")));
+        names.addAll(Arrays.asList(element.getAsString().split("\\.")));
         element = json.get("alias");
         alias = null == element ? null : element.getAsString();
     }
@@ -40,6 +40,6 @@ public class TableItem {
 
     @Override
     public String toString() {
-        return full() + " AS " + alias;
+        return full() + (null == alias ? "" : (" AS " + alias));
     }
 }

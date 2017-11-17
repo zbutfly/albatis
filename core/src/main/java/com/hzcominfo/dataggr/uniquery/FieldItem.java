@@ -44,6 +44,6 @@ public class FieldItem {
 
     @Override
     public String toString() {
-        return full() + " AS " + alias;
+        return full() + (null == alias ? "" : (" AS " + alias));
     }
 }
