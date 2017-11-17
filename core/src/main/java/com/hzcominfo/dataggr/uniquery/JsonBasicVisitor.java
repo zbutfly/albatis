@@ -13,7 +13,7 @@ public abstract class JsonBasicVisitor<V> implements JsonVisiter<V> {
     public JsonBasicVisitor(V v, JsonObject json) {
         assert json != null;
         this.v = v;
-        visit(json);
+//        visit(json);
     }
 
     @Override
@@ -21,7 +21,7 @@ public abstract class JsonBasicVisitor<V> implements JsonVisiter<V> {
         return v;
     }
 
-    private void visit(JsonObject json) {
+    protected void visit(JsonObject json) {
         JsonElement element;
         element = json.get("distinct");
         boolean distinct = null != element && element.getAsBoolean();
