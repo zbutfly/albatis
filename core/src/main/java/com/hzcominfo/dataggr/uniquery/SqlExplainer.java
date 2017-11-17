@@ -1,22 +1,39 @@
 package com.hzcominfo.dataggr.uniquery;
 
-import com.google.common.collect.ImmutableList;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
+import java.math.BigDecimal;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
+
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.Quoting;
-import org.apache.calcite.sql.*;
+import org.apache.calcite.sql.SqlBasicCall;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlDataTypeSpec;
+import org.apache.calcite.sql.SqlDynamicParam;
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlIntervalQualifier;
+import org.apache.calcite.sql.SqlJoin;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlLiteral;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlNumericLiteral;
+import org.apache.calcite.sql.SqlOrderBy;
+import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.impl.SqlParserImpl;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.util.NlsString;
 
-import java.math.BigDecimal;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import com.google.common.collect.ImmutableList;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.hzcominfo.dataggr.uniquery.utils.ExceptionUtil;
 
 public class SqlExplainer {
 
@@ -108,13 +125,27 @@ public class SqlExplainer {
     };
 
     private static Map<String, SqlNode> cache = new HashMap<>();
-
-    public static JsonObject explain(String sql, Object... params) throws Exception {
+    private static Map<String, JsonObject> explains = new ConcurrentHashMap<>();
+    
+    public static JsonObject explain(String sql) {
+    	return explains.compute(sql, (s, e) -> null == e ? newExplain(s):e);
+    }
+    
+    public static JsonObject newExplain(String sql, Object... params) {
         if (null == sql || sql.isEmpty()) return null;
         SqlNode node = cache.get(sql);
         if (null == node) {
-            node = SqlParser.create(sql, DEFAULT_PARSER_CONFIG.build()).parseQuery();
-            if (!node.isA(SqlKind.QUERY)) throw new Exception("Non-query expression ```" + sql + "``` is NOT supported.");
+            try {
+				node = SqlParser.create(sql, DEFAULT_PARSER_CONFIG.build()).parseQuery();
+			} catch (SqlParseException e1) {
+				ExceptionUtil.runtime("sql parse error: ", e1);
+			}
+            if (!node.isA(SqlKind.QUERY))
+				try {
+					throw new Exception("Non-query expression ```" + sql + "``` is NOT supported.");
+				} catch (Exception e) {
+					ExceptionUtil.runtime("throw exception error: ", e);
+				}
             cache.put(sql, node);
         }
 
@@ -149,7 +180,7 @@ public class SqlExplainer {
     }
 
     public static String explainAsJsonString(String sql, Object... params) throws Exception {
-        return explain(sql, params).toString();
+        return explain(sql).toString();
     }
 
     private static void analysisSqlSelect(SqlSelect select, JsonObject json) {

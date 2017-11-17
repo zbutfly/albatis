@@ -46,10 +46,10 @@ public class Client implements AutoCloseable {
 
 	public <T> T execute(String sql, Object...params) {
 		try {
-			JsonObject sqlJson = SqlExplainer.explain(sql);
+			JsonObject sqlJson = SqlExplainer.explain(sql); // TODO cache
 			JsonObject tableJson = sqlJson.has("tables") ? sqlJson.getAsJsonObject("tables"):null;
 			String table = tableJson != null && tableJson.has("table") ? tableJson.get("table").getAsString():null;
-			Object query = adapter.queryAssemble(sqlJson, params);
+			Object query = adapter.queryAssemble(sqlJson, params); // TODO params
 			long start = System.currentTimeMillis();
 			Object result = adapter.queryExecute(conn, query, table);
 			System.out.println("query spends: " + (System.currentTimeMillis() - start) + "ms");
