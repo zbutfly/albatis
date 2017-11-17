@@ -77,7 +77,8 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 	}
 
 	public SolrConnection(URISpec uri) throws IOException {
-		this(uri, ResponseFormat.parse(uri.getParameter("parser", "XML")));
+		this(uri.getScheme().startsWith("solr:http") ? new URISpec(uri.toString().replace("solr:", "")):uri,
+				ResponseFormat.parse(uri.getParameter("parser", "XML")));
 	}
 
 	public SolrConnection(URISpec uri, Class<? extends ResponseParser> parserClass) throws IOException {
@@ -89,9 +90,8 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 	}
 
 	public SolrConnection(URISpec uri, Class<? extends ResponseParser> parserClass, boolean parsing) throws IOException {
-		super(uri, u -> create(u, parserClass), "solr", "zookeeper", "zk", "http", "zk:solr", "solr:http");
-//		meta = parsing ? parse() : null;
-		meta = null;
+		super(uri, u -> create(u, parserClass), "solr", "zookeeper", "zk", "http", "zk:solr");
+		meta = parsing ? parse() : null;
 	}
 
 	private static SolrClient create(URISpec uri, Class<? extends ResponseParser> parserClass) {
@@ -104,10 +104,6 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 			Builder hb = new HttpSolrClient.Builder(uri.toString()).allowCompression(true).withHttpClient(HTTP_CLIENT)//
 					.withResponseParser(p);
 			return hb.build();
-		case "solr:http":
-			logger.debug("Solr client create: " + uri);
-			return new HttpSolrClient.Builder(uri.toString().replace("solr:", "")).allowCompression(true).withHttpClient(HTTP_CLIENT)//
-					.withResponseParser(p).build();
 		case "solr":
 		case "zookeeper":
 		case "zk":
