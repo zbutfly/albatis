@@ -50,7 +50,9 @@ public class Client implements AutoCloseable {
 			JsonObject tableJson = sqlJson.has("tables") ? sqlJson.getAsJsonObject("tables"):null;
 			String table = tableJson != null && tableJson.has("table") ? tableJson.get("table").getAsString():null;
 			Object query = adapter.queryAssemble(sqlJson, params);
+			long start = System.currentTimeMillis();
 			Object result = adapter.queryExecute(conn, query, table);
+			System.out.println("query spends: " + (System.currentTimeMillis() - start) + "ms");
 			return adapter.resultAssemble(result);
 		} catch (Exception e) {
 			ExceptionUtil.runtime("connect error", e);
