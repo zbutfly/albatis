@@ -124,30 +124,21 @@ public class SqlExplainer {
         }
     };
 
-    private static Map<String, SqlNode> cache = new HashMap<>();
     private static Map<String, JsonObject> explains = new ConcurrentHashMap<>();
     
-    public static JsonObject explain(String sql) {
-    	return explains.compute(sql, (s, e) -> null == e ? newExplain(s):e);
+    public static JsonObject explain(String sql, Object... params) {
+    	return explains.compute(sql, (s, e) -> null == e ? newExplain(s, params) : e);
     }
     
-    public static JsonObject newExplain(String sql, Object... params) {
+    private static JsonObject newExplain(String sql, Object... params) {
         if (null == sql || sql.isEmpty()) return null;
-        SqlNode node = cache.get(sql);
-        if (null == node) {
-            try {
-				node = SqlParser.create(sql, DEFAULT_PARSER_CONFIG.build()).parseQuery();
-			} catch (SqlParseException e1) {
-				ExceptionUtil.runtime("sql parse error: ", e1);
-			}
-            if (!node.isA(SqlKind.QUERY))
-				try {
-					throw new Exception("Non-query expression ```" + sql + "``` is NOT supported.");
-				} catch (Exception e) {
-					ExceptionUtil.runtime("throw exception error: ", e);
-				}
-            cache.put(sql, node);
+        SqlNode node = null;
+        try {
+            node = SqlParser.create(sql, DEFAULT_PARSER_CONFIG.build()).parseQuery();
+        } catch (SqlParseException e1) {
+            ExceptionUtil.runtime("sql parse error: ", e1);
         }
+        if (!node.isA(SqlKind.QUERY)) throw new RuntimeException("Non-query expression ```" + sql + "``` is NOT supported.");
 
         JsonObject json = new JsonObject();
         json.addProperty("sql", sql);
@@ -180,7 +171,7 @@ public class SqlExplainer {
     }
 
     public static String explainAsJsonString(String sql, Object... params) throws Exception {
-        return explain(sql).toString();
+        return explain(sql, params).toString();
     }
 
     private static void analysisSqlSelect(SqlSelect select, JsonObject json) {
