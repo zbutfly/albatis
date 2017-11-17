@@ -160,7 +160,7 @@ public class SqlExplainer {
         //from ok
         analysisTables(select, json);
         //where //todo not finished
-        if (select.hasWhere()) analysisConditions(select.getWhere(), json);
+        analysisConditions(select.getWhere(), json);
         //groupBy
         analysisGroupBy(select.getGroup(), json);
         //having
@@ -208,9 +208,10 @@ public class SqlExplainer {
 
     private static void identifier2Json(SqlIdentifier identifier, JsonObject json) {
         ImmutableList<String> names = identifier.names.reverse();
-        if (names.size() >= 3) json.addProperty("namespace", names.get(2));
-        if (names.size() >= 2) json.addProperty("table", names.get(1));
-        if (names.size() >= 1) json.addProperty("field", identifier.isStar() ? "*" : names.get(0));
+//        if (names.size() >= 3) json.addProperty("namespace", names.get(2));
+//        if (names.size() >= 2) json.addProperty("table", names.get(1));
+//        if (names.size() >= 1) json.addProperty("field", identifier.isStar() ? "*" : names.get(0));
+        json.addProperty("field", identifier.toString());
     }
 
     private static void analysisTables(SqlSelect select, JsonObject json) {
@@ -224,10 +225,10 @@ public class SqlExplainer {
         switch (join.getKind()) {
             case IDENTIFIER:
                 SqlIdentifier identifier = (SqlIdentifier) join;
-                tree.addProperty("table", identifier.getSimple());
+                tree.addProperty("table", identifier.toString());
                 break;
             case AS:
-                tree.addProperty("table", ((SqlIdentifier) ((SqlCall) join).operand(0)).getSimple());
+                tree.addProperty("table", ((SqlIdentifier) ((SqlCall) join).operand(0)).toString());
                 tree.addProperty("alias", ((SqlIdentifier) ((SqlCall) join).operand(1)).getSimple());
                 break;
             case JOIN:
@@ -252,6 +253,7 @@ public class SqlExplainer {
 
     private static void analysisConditionExpression(SqlNode condition, JsonObject tree) {
 //        System.out.println("\n" + condition);
+        if (null == condition) return;
         SqlKind kind = condition.getKind();
         SqlCall sc = (SqlCall) condition;
 
@@ -277,6 +279,8 @@ public class SqlExplainer {
                 JsonObject o = new JsonObject();
                 analysisBinaryConditionExpression(sc, o);
                 tree.add(kind.lowerName, o);
+                break;
+            case BETWEEN:
                 break;
             case IN:
 //                JsonObject ij =
@@ -327,8 +331,15 @@ public class SqlExplainer {
             throw new RuntimeException("if " + ((SqlIdentifier) v).getSimple() + " (" + v.getParserPosition().toString() + ") is literal, please mark them by single quote");
         }
 //        Object value = ((SqlLiteral) sc.operand(1)).getValue();
-        String value = ((SqlLiteral) sc.operand(1)).toValue();
-        json.addProperty(field, value);
+        //todo 这种写法导致不支持浮点数, 还有一处类似的
+        Object value = ((SqlLiteral) sc.operand(1)).getValue();
+        if (value instanceof NlsString) {
+            json.addProperty(field, ((NlsString) value).getValue());
+        } else if (value instanceof BigDecimal) {
+            json.addProperty(field, ((BigDecimal) value).intValue());
+        } else {
+            System.out.println("===============WRONG===================");
+        }
     }
 
     /**

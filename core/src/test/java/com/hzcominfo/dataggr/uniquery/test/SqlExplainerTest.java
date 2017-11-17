@@ -32,8 +32,10 @@ public class SqlExplainerTest {
     }
 
     @Test
-    public void t2() {
-        String sql = "select p.name AS n, p.age As a, p.address from people p where age > 30  and name like '%姓名%' order by age desc, name asc limit 1000 offset 10";
+    public void t2() throws Exception {
+        String sql = "select a.p.name AS n, b.p.age As a, p.address from a.people p where age > 30  and name like '%姓名%' order by age desc, name asc limit 1000 offset 10";
+        JsonObject object = SqlExplainer.explain(sql);
+        System.out.println(object);
         CalcitePrepare.Query query = CalcitePrepare.Query.of(sql);
     }
 
