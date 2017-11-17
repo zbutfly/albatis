@@ -9,6 +9,9 @@ import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.junit.Test;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 public class SqlExplainerTest {
 
     private SqlParser.ConfigBuilder parserConfig = SqlExplainer.DEFAULT_PARSER_CONFIG;
@@ -198,6 +201,38 @@ public class SqlExplainerTest {
         String sql = "SELECT * FROM tttt where age between 10 and 100";
         JsonObject object = SqlExplainer.explain(sql);
         System.out.println(object);
+    }
+
+    @Test
+    public void q1() {
+        String sql = "select * from student where ? in (?,?)";
+//        String sql = "select name, ?, age from people where ? is not null and age > ? or name = ? or age between ? and ?";
+        JsonObject object = SqlExplainer.explain(sql, "name", "小明", "小芳");
+        System.out.println(object);
+
+        String str = object.toString();
+
+    }
+
+    @Test
+    public void n1() {
+        String sql = "select * from student where age > 27";
+        CalcitePrepare.Query query = CalcitePrepare.Query.of(sql);
+        System.out.println(query);
+    }
+
+    @Test
+    public void r1() {
+        String s = "name: $${1}, age: $${2}, girl: $${3}";
+        Object[] params = {"孙露", 27, true};
+        Pattern pattern = Pattern.compile("\\$\\$\\{\\d+}");
+        Matcher matcher = pattern.matcher(s);
+        while (matcher.find()) {
+            String group = matcher.group();
+            int index = Integer.valueOf(group.substring(0, group.length() - 1).substring(3));
+            s = s.replace(group, params[index-1].toString());
+        }
+        System.out.println(s);
     }
 
 }

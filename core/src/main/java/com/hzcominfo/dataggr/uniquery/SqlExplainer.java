@@ -6,7 +6,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import com.google.gson.JsonParser;
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.sql.SqlBasicCall;
@@ -36,7 +40,6 @@ import com.google.gson.JsonObject;
 import com.hzcominfo.dataggr.uniquery.utils.ExceptionUtil;
 
 public class SqlExplainer {
-
     public static SqlParser.ConfigBuilder DEFAULT_PARSER_CONFIG = SqlParser
             .configBuilder()
             .setParserFactory(SqlParserImpl.FACTORY)
@@ -125,9 +128,11 @@ public class SqlExplainer {
     };
 
     private static Map<String, JsonObject> explains = new ConcurrentHashMap<>();
-    
+    private static final AtomicInteger DYNAMIC_PARAM_INDEX = new AtomicInteger(0);
+
     public static JsonObject explain(String sql, Object... params) {
-    	return explains.compute(sql, (s, e) -> null == e ? newExplain(s, params) : e);
+    	JsonObject json =  explains.compute(sql, (s, e) -> null == e ? newExplain(s, params) : e);
+        return replaceJsonDynamicParams(json, params);
     }
     
     private static JsonObject newExplain(String sql, Object... params) {
@@ -167,7 +172,19 @@ public class SqlExplainer {
             case EXPLICIT_TABLE:
             default:
         }
+
+        json.addProperty("dynamic_param_size", DYNAMIC_PARAM_INDEX.get());
+        DYNAMIC_PARAM_INDEX.set(0);
         return json;
+    }
+
+    private JsonObject setParameters(JsonObject orig, Object... params) {
+
+        return orig;
+    }
+
+    private static String newDynamicParamMark() {
+        return "$${" + DYNAMIC_PARAM_INDEX.incrementAndGet() + "}";
     }
 
     public static String explainAsJsonString(String sql, Object... params) throws Exception {
@@ -214,6 +231,9 @@ public class SqlExplainer {
                     identifier = (SqlIdentifier) n;
                     identifier2Json(identifier, field);
 //                    field.addProperty("field", identifier.isStar() ? "*" : identifier.getSimple());
+                    break;
+                case DYNAMIC_PARAM:
+                    field.addProperty("field", newDynamicParamMark());
                     break;
                 case SUM:
                 case AVG:
@@ -334,11 +354,11 @@ public class SqlExplainer {
      * @param object result
      */
     private static void analysisUnaryConditionExpression(SqlCall sc, JsonObject object) {
-        String snn = ((SqlIdentifier) sc.operand(0)).getSimple();
-/*        JsonObject nnj = new JsonObject();
-        nnj.add(snn, null);
-        object.add(sc.getKind() == SqlKind.IS_NULL ? SqlKind.EQUALS.lowerName : SqlKind.NOT_EQUALS.lowerName, nnj);*/
-        object.addProperty(sc.getKind().lowerName, snn);
+        String value = null;
+        SqlNode node = sc.operand(0);
+        if (node instanceof SqlDynamicParam) value = newDynamicParamMark();
+        else if (node instanceof SqlIdentifier) value = ((SqlIdentifier) node).getSimple();
+        object.addProperty(sc.getKind().lowerName, value);
     }
 
     /**
@@ -353,6 +373,11 @@ public class SqlExplainer {
             throw new RuntimeException("if " + ((SqlIdentifier) v).getSimple() + " (" + v.getParserPosition().toString() + ") is literal, please mark them by single quote");
         }
 //        Object value = ((SqlLiteral) sc.operand(1)).getValue();
+        SqlNode node = sc.operand(1);
+        if (node.getKind() == SqlKind.DYNAMIC_PARAM) {
+            json.addProperty(field, newDynamicParamMark());
+            return;
+        }
         //todo 这种写法导致不支持浮点数, 还有一处类似的
         Object value = ((SqlLiteral) sc.operand(1)).getValue();
         if (value instanceof NlsString) {
@@ -371,9 +396,13 @@ public class SqlExplainer {
      */
     private static void analysisTernaryConditionExpression(SqlCall sc, JsonObject json) {
         List<SqlNode> operands = sc.getOperandList();
-        String field = ((SqlIdentifier) operands.get(0)).getSimple();
-        String start = ((SqlLiteral) operands.get(1)).toValue();
-        String end = ((SqlLiteral) operands.get(2)).toValue();
+        SqlNode node;
+        node = operands.get(0);
+        String field = ((node instanceof SqlDynamicParam) ? newDynamicParamMark() : ((SqlIdentifier) node).getSimple());
+        node = operands.get(1);
+        String start = ((node instanceof SqlDynamicParam) ? newDynamicParamMark() : ((SqlLiteral) node).toValue());
+        node = operands.get(2);
+        String end = ((node instanceof SqlDynamicParam) ? newDynamicParamMark() : ((SqlLiteral) node).toValue());
         JsonArray array = new JsonArray();
         array.add(start);
         array.add(end);
@@ -390,17 +419,23 @@ public class SqlExplainer {
     private static void analysisMultipleConditionExpression(SqlCall sc, JsonObject json) {
 //        String operator = sc.getOperator().getName();
         String operator = sc.getKind().lowerName;
-        String field = ((SqlIdentifier) sc.operand(0)).getSimple();
+        String field;
+        if (sc.operand(0) instanceof SqlDynamicParam) field = newDynamicParamMark();
+        else field = ((SqlIdentifier) sc.operand(0)).getSimple();
         SqlNode nodes = sc.operand(1);
         JsonObject object = new JsonObject();
         JsonArray array = new JsonArray();
         object.add(field, array);
         json.add(operator, object);
         for (SqlNode node : ((SqlNodeList) nodes).getList()) {
-            if (!( node instanceof SqlLiteral)) throw new RuntimeException(node + " is NOT a literal");
-            Object value = ((SqlLiteral) node).getValue();
-            if (value instanceof BigDecimal) array.add(((BigDecimal) value).longValue());
-            else if (value instanceof NlsString) array.add(((NlsString) value).getValue());
+            if (node instanceof SqlDynamicParam) {
+                array.add(newDynamicParamMark());
+            } else {
+                if (!( node instanceof SqlLiteral)) throw new RuntimeException(node + " is NOT a literal");
+                Object value = ((SqlLiteral) node).getValue();
+                if (value instanceof BigDecimal) array.add(((BigDecimal) value).longValue());
+                else if (value instanceof NlsString) array.add(((NlsString) value).getValue());
+            }
         }
     }
 
@@ -464,7 +499,22 @@ public class SqlExplainer {
         json.addProperty("limit", limit);
     }
 
-
+    private static JsonObject replaceJsonDynamicParams(JsonObject json, Object... params) {
+        assert null != json;
+        int paramSize = json.get("dynamic_param_size").getAsInt();
+        if (0 == paramSize) return json;
+        if (null == params || params.length != paramSize)
+            ExceptionUtil.runtime("Dynamic Param Size: " + paramSize + ", params Size: " + (null == params ? null : params.length));
+        Pattern pattern = Pattern.compile("\\$\\$\\{\\d+}");
+        String source = json.toString();
+        Matcher matcher = pattern.matcher(source);
+        while (matcher.find()) {
+            String group = matcher.group();
+            int index = Integer.valueOf(group.substring(0, group.length() - 1).substring(3));
+            source = source.replace(group, params[index-1].toString());
+        }
+        return new JsonParser().parse(source).getAsJsonObject();
+    }
 
 }
 

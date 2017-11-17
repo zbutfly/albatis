@@ -14,6 +14,38 @@
   {"sql":"select * from t where name not in ('a', 'b', 'c', 'd', 'e') and (name is NULL or age < 20) or (name = 'xx' or age >= 20) and (name like '%yy%' or age <> 10)","distinct":false,"fields":[{"field":"*"}],"tables":{"table":"t"},"where":{"or":[{"and":[{"not_in":{"name":["a","b","c","d","e"]}},{"or":[{"is_null":"name"},{"less_than":{"age":20}}]}]},{"and":[{"or":[{"equals":{"name":"xx"}},{"greater_than_or_equal":{"age":20}}]},{"or":[{"like":{"name":"%yy%"}},{"not_equals":{"age":10}}]}]}]},"groupBy":[],"having":{},"orderBy":[],"offset":0,"limit":-1}
 ,
   {"sql":"SELECT * FROM tttt where age between 10 and 100","distinct":false,"fields":[{"field":"*"}],"tables":{"table":"tttt"},"where":{"between":{"age":["10","100"]}},"groupBy":[],"having":{},"orderBy":[],"offset":0,"limit":-1}
+,
+  {
+    "sql" : "select * from student where age > ? or name = ? ",
+    "distinct" : false,
+    "fields" : [
+      {
+        "field" : "*"
+      }
+    ],
+    "tables" : {
+      "table" : "student"
+    },
+    "where" : {
+      "or" : [
+        {
+          "greater_than" : {
+            "age" : "${1}"
+          }
+        },
+        {
+          "equals" : {
+            "name" : "${2}"
+          }
+        }
+      ]
+    },
+    "groupBy" : [],
+    "having" : {},
+    "orderBy" : [],
+    "offset" : 0,
+    "limit" : -1
+  }
 
 
 ]
