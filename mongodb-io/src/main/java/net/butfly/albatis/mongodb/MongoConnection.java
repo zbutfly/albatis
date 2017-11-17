@@ -27,6 +27,7 @@ import net.butfly.albacore.utils.logger.Logger;
  *
  */
 public class MongoConnection extends NoSqlConnection<MongoClient> {
+	final static String schema = "mongodb";
 	private static final Logger logger = Logger.getLogger(MongoConnection.class);
 	private final Map<String, DB> dbs;
 	private final String defaultDB;
