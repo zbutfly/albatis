@@ -33,3 +33,25 @@
 		~~~java
 			client.close();
 		~~~
+		
+1. SQL功能支持
+	1. 只支持查询语句，不支持插入、更新、修改、删除等操作
+	
+	1. 暂不支持函数
+	
+	1. 字段支持情况：
+	    1. *, field_a, field_b[, field_c ...]
+	    
+	1. 表支持情况：
+	    1. 能解析多表，但暂时只支持单表操作。
+	    
+	1. 过滤条件支持情况：
+	    1. AND, OR, IS NULL, IS NOT NULL, >, >=, <, <=, =, <>, LIKE, BETWEEN, IN, NOT IN.
+	    
+	1. 排序支持情况
+	    1. ORDER BY field_a ASC/DESC[, field_b ASC, DESC ...]
+	    
+	1. 查询数量支持情况
+	    1. 支持 LIMIT 关键字(可选，不填则默认为 Integer.MAX_VALUE)
+	    2. 支持 OFFSET 关键字(可选，不填则默认为 0)
+	    3. OFFSET 需要在 LIMIT 之后出现 (如果有)
