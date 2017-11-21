@@ -153,8 +153,11 @@ public class SqlExplainerTest {
      */
     @Test
     public void h1() throws Exception {
-        String sql = "SELECT Customer,OrderPrice FROM Orders GROUP BY Customer HAVING SUM(OrderPrice)<2000";
+//        String sql = "SELECT name_s, sell_i FROM saleroom GROUP BY name_s, year_i HAVING year_i = 2017";
+//        String sql = "SELECT name_s, sell_i FROM saleroom GROUP BY name_s, year_i HAVING count(sell_i) > 2000 and name like '%Jam%'";
+        String sql = "SELECT name_s, sell_i FROM saleroom GROUP BY name_s, year_i HAVING count(sell_i) is not null and name like '%Jam%'";
         JsonObject object = SqlExplainer.explain(sql);
+        System.out.println(object);
     }
 
     /**

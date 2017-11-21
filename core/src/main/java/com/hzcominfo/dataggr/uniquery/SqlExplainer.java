@@ -13,20 +13,7 @@ import java.util.regex.Pattern;
 import com.google.gson.JsonParser;
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.Quoting;
-import org.apache.calcite.sql.SqlBasicCall;
-import org.apache.calcite.sql.SqlCall;
-import org.apache.calcite.sql.SqlDataTypeSpec;
-import org.apache.calcite.sql.SqlDynamicParam;
-import org.apache.calcite.sql.SqlIdentifier;
-import org.apache.calcite.sql.SqlIntervalQualifier;
-import org.apache.calcite.sql.SqlJoin;
-import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.SqlLiteral;
-import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.SqlNodeList;
-import org.apache.calcite.sql.SqlNumericLiteral;
-import org.apache.calcite.sql.SqlOrderBy;
-import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.*;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.impl.SqlParserImpl;
@@ -236,10 +223,12 @@ public class SqlExplainer {
                     field.addProperty("field", newDynamicParamMark());
                     break;
                 case SUM:
+                case SUM0:
                 case AVG:
                 case COUNT:
                 case MAX:
                 case MIN:
+                    System.out.println(n);
                 default:
                     throw new RuntimeException("Unsupported kind: " + n.getKind());
             }
@@ -329,6 +318,14 @@ public class SqlExplainer {
             case NOT_IN:
                 analysisMultipleConditionExpression(sc, tree);
                 break;
+            // agg func can use in `having` but can't use in `where`
+            case SUM:
+            case SUM0:
+            case AVG:
+            case COUNT:
+            case MAX:
+            case MIN:
+                break;
             default:
                 throw new RuntimeException("Unsupported Condition kind: " + kind.name());
         }
@@ -358,6 +355,11 @@ public class SqlExplainer {
         SqlNode node = sc.operand(0);
         if (node instanceof SqlDynamicParam) value = newDynamicParamMark();
         else if (node instanceof SqlIdentifier) value = ((SqlIdentifier) node).getSimple();
+        else if (node instanceof SqlBasicCall) {
+            String operator = ((SqlBasicCall) node).getOperator().getName();
+            String identifier = ((SqlIdentifier) ((SqlBasicCall) node).operand(0)).getSimple();
+            value = operator + "(" + identifier + ")";
+        }
         object.addProperty(sc.getKind().lowerName, value);
     }
 
@@ -367,13 +369,27 @@ public class SqlExplainer {
      * @param json result
      */
     private static void analysisBinaryConditionExpression(SqlCall sc, JsonObject json) {
-        String field = ((SqlIdentifier) sc.operand(0)).getSimple();
+        SqlNode node;
+        node = sc.operand(0);
+        String field = null;
+        if (node instanceof  SqlIdentifier)
+            field = ((SqlIdentifier) node).getSimple();
+        else if (node instanceof SqlBasicCall) {
+            SqlCall sbc = (SqlCall) node;
+            SqlOperator operator = sbc.getOperator();
+            String operatorName = sbc.toString();
+            if (operator instanceof SqlAggFunction) {
+                operatorName = operator.getName();
+                String identifier = ((SqlIdentifier) sbc.operand(0)).getSimple();
+                field = operatorName + "(" + identifier + ")";
+            } else throw new RuntimeException("operator : " + operator + " is not a agg func");
+        }
         SqlNode v = sc.operand(1);
         if (v instanceof SqlIdentifier) {
             throw new RuntimeException("if " + ((SqlIdentifier) v).getSimple() + " (" + v.getParserPosition().toString() + ") is literal, please mark them by single quote");
         }
 //        Object value = ((SqlLiteral) sc.operand(1)).getValue();
-        SqlNode node = sc.operand(1);
+        node = sc.operand(1);
         if (node.getKind() == SqlKind.DYNAMIC_PARAM) {
             json.addProperty(field, newDynamicParamMark());
             return;
@@ -453,11 +469,11 @@ public class SqlExplainer {
     }
 
     private static void analysisHaving(SqlNode having, JsonObject json) {
-        JsonObject array = new JsonObject();
-        json.add("having", array);
         if (null == having) return;
         System.out.println(having);
-        throw new RuntimeException(having.getKind().name() + " is NOT supported");
+        JsonObject object = new JsonObject();
+        analysisConditionExpression(having, object);
+        json.add("having", object);
     }
 
     private static void analysisOrderBy(SqlNodeList orderList, JsonObject json) {
