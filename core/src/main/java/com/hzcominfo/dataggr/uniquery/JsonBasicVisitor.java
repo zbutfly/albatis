@@ -30,7 +30,7 @@ public abstract class JsonBasicVisitor<V> implements JsonVisiter<V> {
         // TODO: 2017/11/16 visit table
 
         visitConditions(json.get("where").getAsJsonObject());
-
+        
         List<OrderItem> orders = ordersJsonArray2List(json.getAsJsonArray("orderBy"));
         visitOrderBy(orders);
 
@@ -44,6 +44,12 @@ public abstract class JsonBasicVisitor<V> implements JsonVisiter<V> {
         if (null != element) {
             long limit = element.getAsLong();
             visitLimit(limit);
+        }
+        
+        element = json.get("groupBy");
+        if (null != element) {
+        	List<GroupItem> groups = groupsJsonArray2List(element.getAsJsonArray());
+    		visitGroupBy(groups);
         }
     }
 
@@ -64,5 +70,14 @@ public abstract class JsonBasicVisitor<V> implements JsonVisiter<V> {
             orders.add(OrderItem.of(element.getAsJsonObject()));
         }
         return orders;
+    }
+    
+    private static List<GroupItem> groupsJsonArray2List(JsonArray array) {
+        List<GroupItem> groups = new ArrayList<>();
+        if (null == array) return groups;
+        for (JsonElement element : array) {
+        	groups.add(GroupItem.of(element.getAsString()));
+        }
+        return groups;
     }
 }

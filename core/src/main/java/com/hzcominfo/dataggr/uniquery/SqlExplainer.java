@@ -228,7 +228,10 @@ public class SqlExplainer {
                 case COUNT:
                 case MAX:
                 case MIN:
-                    System.out.println(n);
+                	identifier = ((SqlCall) n).operand(0);
+                	String name = identifier.isStar() ? "*":identifier.getSimple();
+                	field.addProperty("field", ((SqlCall) n).getOperator().getName().toLowerCase() + "(" + name + ")");
+                	break;
                 default:
                     throw new RuntimeException("Unsupported kind: " + n.getKind());
             }
