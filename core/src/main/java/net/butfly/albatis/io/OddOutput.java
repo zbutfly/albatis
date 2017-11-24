@@ -1,12 +1,9 @@
 package net.butfly.albatis.io;
 
-import static net.butfly.albacore.utils.collection.Streams.map;
-
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import static net.butfly.albacore.paral.Task.waitSleep;
 
 import net.butfly.albacore.base.Namedly;
-import net.butfly.albacore.utils.parallel.Concurrents;
+import net.butfly.albacore.paral.steam.Steam;
 
 public interface OddOutput<V> extends Output<V> {
 	boolean enqueue(V v);
@@ -20,10 +17,14 @@ public interface OddOutput<V> extends Output<V> {
 		});
 	}
 
+	protected abstract boolean enqueue(V v);
+
 	@Override
-	public final void enqueue(Stream<V> items) {
-		if (!Concurrents.waitSleep(() -> full())) return;
-		succeeded(map(items, t -> enqueue(t) ? 1 : 0, Collectors.summingLong(l -> l)));
+	public final void enqueue(Steam<V> s) {
+		if (!waitSleep(() -> full())) return;
+		s.each(v -> {
+			if (enqueue(v)) succeeded(1);
+		});
 	}
 
 	default void failed(V v) {}

@@ -21,7 +21,7 @@ public class MetaTest {
 
 	public static void main(String[] args) {
 		Page page = new Page(15, 1);
-		Map<String, Object> map = Objects.toMap(page);
+		Map<String, Object> map = MetaUtils.toMap(page);
 		for (String k : map.keySet())
 			System.out.println(k + ":" + map.get(k).getClass().getName());
 

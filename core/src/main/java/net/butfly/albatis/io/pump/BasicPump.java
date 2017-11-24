@@ -12,7 +12,7 @@ public class BasicPump<V> extends PumpImpl<V, BasicPump<V>> {
 		Reflections.noneNull("Pump source/destination should not be null", input, output);
 		depend(input, output);
 		pumping(() -> input.empty(), () -> {
-			if (opened()) input.dequeue(s -> output.enqueue(stats(s)), batchSize);
+			if (opened()) input.dequeue(s -> output.enqueue(s.map(this::stats)), batchSize);
 		});
 	}
 }

@@ -1,12 +1,11 @@
 package net.butfly.albatis.io;
 
-import static net.butfly.albacore.utils.collection.Streams.of;
-
 import java.util.Iterator;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import net.butfly.albacore.base.Namedly;
+import net.butfly.albacore.paral.steam.Steam;
 
 public interface OddInput<V> extends Input<V> {
 	V dequeue();
@@ -21,8 +20,8 @@ public interface OddInput<V> extends Input<V> {
 		private final OddInput<V> input;
 
 	@Override
-	public final void dequeue(Consumer<Stream<V>> using, int batchSize) {
-		using.accept(of(this::dequeue, batchSize, () -> empty() && opened()));
+	public final void dequeue(Consumer<Steam<V>> using, int batchSize) {
+		using.accept(Steam.of(this::dequeue, batchSize, () -> empty() && opened()));
 	}
 
 		@Override

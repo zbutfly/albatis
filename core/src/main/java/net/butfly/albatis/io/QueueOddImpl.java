@@ -1,12 +1,13 @@
 package net.butfly.albatis.io;
 
+import static net.butfly.albacore.paral.Task.waitSleep;
+
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
-import java.util.stream.Stream;
 
 import net.butfly.albacore.base.Namedly;
+import net.butfly.albacore.paral.steam.Steam;
 import net.butfly.albacore.utils.collection.Streams;
-import net.butfly.albacore.utils.parallel.Concurrents;
 
 public abstract class QueueOddImpl<V> extends Namedly implements Queue<V> {
 	private final AtomicLong capacity;
@@ -24,12 +25,12 @@ public abstract class QueueOddImpl<V> extends Namedly implements Queue<V> {
 	protected abstract boolean enqueue(V item);
 
 	protected void failed(V t) {
-		failed(Streams.of(t));
+		failed(Steam.of(t));
 	}
 
 	@Override
-	public void enqueue(Stream<V> items) {
-		if (!Concurrents.waitSleep(() -> full())) return;
+	public void enqueue(Steam<V> items) {
+		if (!waitSleep(() -> full())) return;
 		Streams.of(items).forEach(t -> {
 			if (enqueue(t)) succeeded(1);
 			else failed(t);
@@ -40,8 +41,8 @@ public abstract class QueueOddImpl<V> extends Namedly implements Queue<V> {
 	protected abstract V dequeue();
 
 	@Override
-	public void dequeue(Consumer<Stream<V>> using, int batchSize) {
-		using.accept(Streams.of(() -> dequeue(), batchSize, () -> empty() && opened()));
+	public void dequeue(Consumer<Steam<V>> using, int batchSize) {
+		using.accept(Steam.of(() -> dequeue(), batchSize, () -> empty() && opened()));
 	}
 
 	@Override
