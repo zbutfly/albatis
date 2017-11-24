@@ -6,7 +6,7 @@
 	<parent>
 		<groupId>net.butfly.albatis</groupId>
 		<artifactId>albatis</artifactId>
-		<version>1.4.1-lilz-ALPHA-SNAPSHOT</version>
+		<version>1.5.0-SNAPSHOT</version>
 	</parent>
 
 	<artifactId>uniquery-core</artifactId>
@@ -19,14 +19,14 @@
 
 	<dependencies>
 		<dependency>
-			<groupId>org.apache.calcite</groupId>
-			<artifactId>calcite-core</artifactId>
-			<version>${calcite.version}</version>
+			<groupId>net.butfly.albacore</groupId>
+			<artifactId>albacore-core</artifactId>
+			<version>${version.albacore}</version>
 		</dependency>
 		<dependency>
 			<groupId>net.butfly.albacore</groupId>
 			<artifactId>albacore-meta</artifactId>
-			<version>3.0.2-SNAPSHOT</version>
+			<version>${version.albacore}</version>
 		</dependency>
 		<dependency>
 			<groupId>net.butfly.albacore</groupId>
