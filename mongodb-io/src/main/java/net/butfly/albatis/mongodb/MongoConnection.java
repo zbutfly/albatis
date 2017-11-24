@@ -20,7 +20,6 @@ import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 
 import net.butfly.albacore.io.URISpec;
-import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
 
@@ -49,7 +48,7 @@ public class MongoConnection extends NoSqlConnection<MongoClient> {
 		} , "mongodb");
 		defaultDB = uri.getPathAt(0);
 		defaultCollection = uri.getPathAt(1);
-		dbs = new ConcurrentHashMap<>();
+		dbs = Maps.of();
 	}
 
 	@Deprecated

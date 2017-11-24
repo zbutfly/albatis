@@ -1,19 +1,17 @@
 package net.butfly.albatis.kafka;
 
-import static net.butfly.albacore.utils.collection.Streams.list;
 import static net.butfly.albacore.utils.collection.Streams.map;
 
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import kafka.javaapi.producer.Producer;
 import kafka.producer.KeyedMessage;
 import net.butfly.albacore.exception.ConfigException;
 import net.butfly.albacore.io.URISpec;
-import net.butfly.albacore.paral.Sdream;
+import net.butfly.albacore.paral.steam.Steam;
 import net.butfly.albatis.io.Message;
 import net.butfly.albatis.io.OutputBase;
 import net.butfly.albatis.kafka.config.KafkaOutputConfig;
@@ -37,15 +35,13 @@ public final class KafkaOutput extends OutputBase<Message> {
 	}
 
 	@Override
-	public void enqueue(Stream<Message> messages) {
-		List<Message> msgs = list(messages);
+	public void enqueue(Steam<Message> messages) {
+		List<Message> msgs = messages.list();
 		List<KeyedMessage<byte[], byte[]>> ms = map(msgs, m -> Kafkas.toKeyedMessage(m, coder), Collectors.toList());
 		if (!ms.isEmpty()) try {
 			producer.send(ms);
 			succeeded(ms.size());
-		} catch (Exception e) {
-			failed(msgs.parallelStream());
-		}
+		} catch (Exception e) {}
 	}
 
 	public String getDefaultTopic() {

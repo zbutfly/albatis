@@ -25,8 +25,7 @@ public class MongoIOTest {
 		final AtomicDouble total = new AtomicDouble(0);
 		final long begin = new Date().getTime();// 10.118.159.44
 		try (MongoConnection c = new MongoConnection(new URISpec("mongodb://hzga:hzga5678@127.0.0.1:30012/hzga"));
-				MongoInput in = new MongoInput("TestMongoInput", c);) {
-			in.table("gazhk_KDSJ_2015");
+				MongoInput in = new MongoInput("TestMongoInput", c, "gazhk_KDSJ_2015");) {
 			for (int i = 0; i < parallelism; i++) {
 				final int ii = i;
 				new Thread(() -> {
@@ -38,7 +37,7 @@ public class MongoIOTest {
 						in.dequeue(s -> size.addAndGet(s.map(m -> {
 							count.incrementAndGet();
 							return m.toString().length();
-						}).reduce((i1, i2) -> i1 + i2)));
+						}).reduce((i1, i2) -> i1 + i2)), 1000);
 						long curr = new Date().getTime();
 						total.addAndGet(size.get() / 1024.0 / 1024);
 						System.out.println(df.format(new Date()) + ii //

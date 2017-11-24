@@ -1,15 +1,12 @@
 package net.butfly.albatis.solr;
 
-import static net.butfly.albacore.utils.collection.Streams.NOT_NULL;
-
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.solr.client.solrj.SolrServerException;
 
 import net.butfly.albacore.base.Namedly;
-import net.butfly.albacore.paral.Exeters;
+import net.butfly.albacore.paral.steam.Steam;
 import net.butfly.albatis.io.KeyOutput;
 import net.butfly.albatis.io.Message;
 import net.butfly.albatis.io.Message.Op;
@@ -50,27 +47,17 @@ public final class SolrOutput extends OutputBase<Message> {
 	}
 
 	@Override
-	public void enqueue(String core, Stream<Message> msgs) {
-		ConcurrentMap<Boolean, List<Message>> ops = msgs.filter(NOT_NULL).collect(Collectors.groupingByConcurrent(m -> Op.DELETE == m
-				.op()));
-		List<Message> del;
-		if (null != (del = ops.get(Boolean.TRUE)) && !del.isEmpty()) Exeters.DEFEX.submit(() -> {
+	public void enqueue(String core, Steam<Message> msgs) {
+		msgs.nonNull().partition((del, s) -> {
+			List<Message> ms = s.list();
 			try {
-				solr.client().deleteById(core, list(del, Message::key), DEFAULT_AUTO_COMMIT_MS);
-				succeeded(del.size());
+				if (del.booleanValue()) solr.client().deleteById(core, Steam.of(ms).map(Message::key).list(), DEFAULT_AUTO_COMMIT_MS);
+				else solr.client().add(core, Steam.of(ms).map(m -> Solrs.input(m, keyFieldName)).list(), DEFAULT_AUTO_COMMIT_MS);
+				succeeded(ms.size());
 			} catch (Exception ex) {
-				failed(del.parallelStream());
+				failed(Steam.of(ms));
 			}
-		});
-		List<Message> ins;
-		if (null != (ins = ops.get(Boolean.FALSE)) && !ins.isEmpty()) Exeters.DEFEX.submit(() -> {
-			try {
-				solr.client().add(core, list(ins, t -> Solrs.input(t, keyFieldName)), DEFAULT_AUTO_COMMIT_MS);
-				succeeded(ins.size());
-			} catch (Exception ex) {
-				failed(ins.parallelStream());
-			}
-		});
+		}, m -> Op.DELETE == m.op(), Integer.MAX_VALUE);
 	}
 
 	@Override

@@ -1,6 +1,5 @@
 package net.butfly.albatis.kudu;
 
-import static net.butfly.albacore.utils.collection.Streams.of;
 import static net.butfly.albacore.utils.collection.Streams.ofMap;
 
 import java.io.BufferedWriter;
@@ -19,8 +18,9 @@ import org.apache.kudu.client.KuduTable;
 import org.apache.kudu.client.Operation;
 import org.apache.kudu.client.Upsert;
 
+import net.butfly.albacore.paral.Task;
+import net.butfly.albacore.paral.steam.Steam;
 import net.butfly.albacore.utils.Pair;
-import net.butfly.albacore.utils.parallel.Concurrents;
 import net.butfly.albatis.io.Message;
 import net.butfly.albatis.io.OddOutput;
 
@@ -36,7 +36,7 @@ public class KuduOutput extends OddOutput<Message> {
 	@Override
 	public void close() {
 		long w = 0;
-		while ((w = working.get()) > 0 && logger().info("Waiting for working: " + w) && Concurrents.waitSleep()) {}
+		while ((w = working.get()) > 0 && logger().info("Waiting for working: " + w) && Task.waitSleep()) {}
 		commit();
 		super.close();
 		// sdumpDups();
@@ -80,7 +80,7 @@ public class KuduOutput extends OddOutput<Message> {
 		if (null == m || m.isEmpty()) return false;
 		working.incrementAndGet();
 		try {
-			connect.apply(op(m), (op, e) -> failed(of(m)));
+			connect.apply(op(m), (op, e) -> failed(Steam.of(m)));
 		} finally {
 			working.decrementAndGet();
 		}

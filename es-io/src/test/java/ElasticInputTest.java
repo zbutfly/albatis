@@ -3,7 +3,7 @@ import java.io.IOException;
 import org.elasticsearch.action.search.SearchResponse;
 import org.junit.Test;
 
-import net.butfly.albacore.paral.Sdream;
+import net.butfly.albacore.paral.steam.Steam;
 import net.butfly.albatis.elastic.ElasticConnection;
 import net.butfly.albatis.elastic.ElasticInput;
 
@@ -22,7 +22,7 @@ public class ElasticInputTest {
 		}
 	}
 
-	private static long t(Sdream<SearchResponse> a) {
+	private static long t(Steam<SearchResponse> a) {
 		System.out.print(a);
 		return 1;
 	}
