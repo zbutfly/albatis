@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
@@ -32,12 +31,13 @@ import com.google.common.util.concurrent.MoreExecutors;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.Utils;
+import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.io.Message;
 
 public final class Solrs extends Utils {
 	protected static final Logger logger = Logger.getLogger(Solrs.class);
-	private static final Map<String, SolrClient> clients = new ConcurrentHashMap<>();
+	private static final Map<String, SolrClient> clients = Maps.of();
 
 	private Solrs() {}
 

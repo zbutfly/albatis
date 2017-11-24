@@ -1,16 +1,13 @@
 package net.butfly.albatis.mongodb;
 
-import static net.butfly.albacore.utils.collection.Streams.list;
-import static net.butfly.albacore.utils.collection.Streams.map;
-
 import java.io.IOException;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
+import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 
 import net.butfly.albacore.base.Namedly;
+import net.butfly.albacore.paral.steam.Steam;
 import net.butfly.albatis.io.Message;
 import net.butfly.albatis.io.Output;
 
@@ -46,8 +43,8 @@ public final class MongoOutput extends Namedly implements Output<Message> {
 	}
 
 	@Override
-	public void enqueue(Stream<Message> msgs) {
-		succeeded(upsert ? map(msgs, m -> collection.save(MongoConnection.dbobj(m)).getN(), Collectors.counting())
-				: collection.insert(list(msgs, MongoConnection::dbobj)).getN());
+	public void enqueue(Steam<Message> msgs) {
+		succeeded(upsert ? msgs.map(m -> collection.save(MongoConnection.dbobj(m)).getN()).reduce((i1, i2) -> i1 + i2)
+				: collection.insert(msgs.map(MongoConnection::dbobj).list().toArray(new BasicDBObject[0])).getN());
 	}
 }

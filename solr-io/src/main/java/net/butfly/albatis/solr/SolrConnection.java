@@ -5,7 +5,6 @@ import java.io.Serializable;
 import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.http.HttpRequestInterceptor;
 import org.apache.http.client.config.RequestConfig;
@@ -37,13 +36,14 @@ import com.hzcominfo.albatis.nosql.NoSqlConnection;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.Reflections;
+import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
 
 public class SolrConnection extends NoSqlConnection<SolrClient> {
 	final static String schema = "solr,zk:solr,solr:http";
 	private static final Logger logger = Logger.getLogger(SolrConnection.class);
 	private static final CloseableHttpClient HTTP_CLIENT = SolrHttpContext.createDefaultHttpclient();
-	private static final Map<Class<? extends ResponseParser>, ResponseParser> PARSER_POOL = new ConcurrentHashMap<>();
+	private static final Map<Class<? extends ResponseParser>, ResponseParser> PARSER_POOL = Maps.of();
 	private final SolrMeta meta;
 
 	public enum ResponseFormat {

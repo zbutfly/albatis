@@ -1,12 +1,9 @@
 package net.butfly.albatis.hbase;
 
-import static net.butfly.albacore.utils.collection.Streams.map;
-
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
-import java.util.stream.Stream;
 
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
@@ -16,6 +13,7 @@ import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterList;
 
 import net.butfly.albacore.base.Namedly;
+import net.butfly.albacore.paral.steam.Steam;
 import net.butfly.albatis.io.Input;
 import net.butfly.albatis.io.Message;
 
@@ -83,7 +81,7 @@ public final class HbaseInput extends Namedly implements Input<Message> {
 	}
 
 	@Override
-	public void dequeue(Consumer<Stream<Message>> using, int batchSize) {
+	public void dequeue(Consumer<Steam<Message>> using, int batchSize) {
 		if (!ended.get() && scanerLock.writeLock().tryLock()) {
 			Result[] rs = null;
 			try {
@@ -95,7 +93,7 @@ public final class HbaseInput extends Namedly implements Input<Message> {
 			}
 			if (null != rs) {
 				ended.set(rs.length == 0);
-				if (rs.length > 0) using.accept(map(Stream.of(rs), r -> Hbases.Results.result(htname, r)));
+				if (rs.length > 0) using.accept(Steam.of(rs).map(r -> Hbases.Results.result(htname, r)));
 			}
 		}
 	}

@@ -103,7 +103,7 @@ public final class Hbases extends Utils {
 	}
 
 	public static Map<String, byte[]> map(Stream<Cell> cells) {
-		return null == cells ? new ConcurrentHashMap<>()
+		return null == cells ? Maps.of()
 				: cells.collect(Collectors.toConcurrentMap(c -> Bytes.toString(CellUtil.cloneFamily(c)) + ":" + Bytes.toString(CellUtil
 						.cloneQualifier(c)), c -> CellUtil.cloneValue(c)));
 	}

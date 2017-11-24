@@ -5,7 +5,6 @@ import static net.butfly.albacore.utils.parallel.Parals.eachs;
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
@@ -17,6 +16,7 @@ import com.mongodb.DBObject;
 import com.mongodb.MongoException;
 
 import net.butfly.albacore.utils.Pair;
+import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.io.Message;
 import net.butfly.albatis.io.OddInput;
@@ -59,7 +59,7 @@ public class MongoInput extends OddInput<Message> {
 		super(name);
 		if (null == tablesAndQueries) {
 			if (conn.defaultCollection() == null) throw new IOException("MongoDB could not input whith non or null table.");
-			tablesAndQueries = new ConcurrentHashMap<>();
+			tablesAndQueries = Maps.of();
 			tablesAndQueries.put(conn.defaultCollection(), MongoConnection.dbobj());
 		}
 		logger.info("[" + name + "] from [" + conn.toString() + "], collection [" + tablesAndQueries.toString() + "]");

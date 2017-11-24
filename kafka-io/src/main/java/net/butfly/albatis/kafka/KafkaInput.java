@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
@@ -24,15 +23,16 @@ import kafka.javaapi.consumer.ConsumerConnector;
 import kafka.message.MessageAndMetadata;
 import net.butfly.albacore.exception.ConfigException;
 import net.butfly.albacore.io.URISpec;
+import net.butfly.albacore.paral.Task;
 import net.butfly.albacore.utils.Texts;
-import net.butfly.albacore.utils.parallel.Concurrents;
+import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albatis.io.Message;
 import net.butfly.albatis.io.OddInput;
 import net.butfly.albatis.kafka.config.KafkaInputConfig;
 
 public class KafkaInput extends OddInput<Message> {
 	private final KafkaInputConfig config;
-	private final Map<String, Integer> allTopics = new ConcurrentHashMap<>();
+	private final Map<String, Integer> allTopics = Maps.of();
 	private final ConsumerConnector connect;
 	private final BlockingQueue<ConsumerIterator<byte[], byte[]>> consumers;
 	// for debug
@@ -88,7 +88,7 @@ public class KafkaInput extends OddInput<Message> {
 				logger().warn("[" + name() + "] reopen too quickly, wait 10 seconds and retry");
 				if (c != null) c.shutdown();
 				temp = null;
-				if (!Concurrents.waitSleep(1000 * 10)) throw e;
+				if (!Task.waitSleep(1000 * 10)) throw e;
 			}
 		while (temp == null);
 		connect = c;

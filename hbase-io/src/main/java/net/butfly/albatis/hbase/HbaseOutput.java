@@ -1,24 +1,23 @@
 package net.butfly.albatis.hbase;
 
-import static net.butfly.albacore.utils.collection.Streams.collect;
+import static net.butfly.albacore.paral.split.SplitEx.list;
 import static net.butfly.albacore.utils.collection.Streams.map;
-import static net.butfly.albacore.utils.collection.Streams.of;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Row;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import net.butfly.albacore.base.Namedly;
+import net.butfly.albacore.paral.steam.Steam;
 import net.butfly.albacore.utils.Exceptions;
 import net.butfly.albacore.utils.Pair;
+import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albatis.io.KeyOutput;
 import net.butfly.albatis.io.Message;
 import net.butfly.albatis.io.Message.Op;
@@ -34,8 +33,8 @@ public final class HbaseOutput extends Namedly implements KeyOutput<String, Mess
 	}
 
 	@Override
-	public void enqueue(String table, Stream<Message> msgs) {
-		Map<String, Message> map = new ConcurrentHashMap<>();
+	public void enqueue(String table, Steam<Message> msgs) {
+		Map<String, Message> map = Maps.of();
 		List<Pair<Message, ? extends Row>> l = map(incs(table, msgs), m -> new Pair<>(m, Hbases.Results.put(m)), p -> {
 			boolean b = null != p && null != p.v2();
 			if (b) map.put(Bytes.toString(p.v2().getRow()), p.v1());
@@ -52,7 +51,7 @@ public final class HbaseOutput extends Namedly implements KeyOutput<String, Mess
 					Message m = map.get(Bytes.toString(row));
 					logger().debug(() -> "Hbase failed on: " + m.toString(), result instanceof Throwable ? (Throwable) result
 							: new RuntimeException("Unknown hbase return [" + result.getClass() + "]: " + result.toString()));
-					failed(of(new Message[] { m }));
+					failed(Steam.of(m));
 				}
 			});
 		} catch (Exception ex) {
@@ -61,14 +60,21 @@ public final class HbaseOutput extends Namedly implements KeyOutput<String, Mess
 			for (int i = 0; i < results.length; i++)
 				if (results[i] instanceof Result) succeeded(1);
 				else fails.add(vs.get(i));
-			failed(fails.parallelStream());
+			failed(Steam.of(fails));
 		} finally {}
 	}
 
-	private List<Message> incs(String table, Stream<Message> values) {
-		Map<Boolean, List<Message>> ms = collect(values, Collectors.partitioningBy(m -> m.op() == Op.INCREASE));
-		List<Message> alls = ms.get(Boolean.FALSE);
-		Map<String, List<Message>> incByKeys = ms.get(Boolean.TRUE).parallelStream().collect(Collectors.groupingBy(m -> m.key()));
+	private List<Message> incs(String table, Steam<Message> values) {
+		List<Message> upds = list();
+		Map<String, List<Message>> incByKeys = Maps.of();
+		for (Message m : values.list())
+			if (m.op() == Op.INCREASE) {
+				incByKeys.compute(m.key(), (k, l) -> {
+					if (null == l) l = list();
+					l.add(m);
+					return l;
+				});
+			} else upds.add(m);
 		for (Map.Entry<String, List<Message>> e : incByKeys.entrySet()) {
 			Message merge = new Message(table, e.getKey()).op(Op.INCREASE);
 			for (Message m : e.getValue())
@@ -76,9 +82,9 @@ public final class HbaseOutput extends Namedly implements KeyOutput<String, Mess
 					merge.compute(f.getKey(), (fn, v) -> lvalue(v) + lvalue(f.getValue()));
 			for (String k : merge.keySet())
 				if (((Long) merge.get(k)).longValue() <= 0) merge.remove(k);
-			if (!merge.isEmpty()) alls.add(merge);
+			if (!merge.isEmpty()) upds.add(merge);
 		}
-		return alls;
+		return upds;
 	}
 
 	private long lvalue(Object o) {

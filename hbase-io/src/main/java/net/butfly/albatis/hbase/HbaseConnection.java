@@ -28,6 +28,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import com.hzcominfo.albatis.nosql.NoSqlConnection;
 
 import net.butfly.albacore.io.URISpec;
+import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.io.Message;
 
@@ -64,7 +65,38 @@ public class HbaseConnection extends NoSqlConnection<Connection> {
 				}
 			}
 			try {
-				return Hbases.connect();
+				return Hbases.connect(params);
+			} catch (IOException e) {
+				return null;
+			}
+		}, "hbase");
+		tables = Maps.of();
+	}
+
+	@Override
+	public void close() throws IOException {
+		super.close();
+		for (String k : tables.keySet())
+			try {
+				Table t = tables.remove(k);
+				if (null != t) t.close();
+			} catch (IOException e) {
+				logger().error("Hbase table [" + k + "] close failure", e);
+			}
+		try {
+			synchronized (this) {
+				if (!client().isClosed()) client().close();
+			}
+		} catch (IOException e) {
+			logger().error("Hbase close failure", e);
+		}
+	}
+
+	public Message get(String table, Get get) {
+		return table(table, t -> {
+			Result r;
+			try {
+				r = t.get(get);
 			} catch (Exception e) {
 				throw new RuntimeException(e);
 			}

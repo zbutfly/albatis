@@ -7,7 +7,6 @@ import static net.butfly.albacore.utils.parallel.Parals.eachs;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -25,14 +24,15 @@ import com.hzcominfo.albatis.nosql.NoSqlConnection;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.paral.Exeters;
+import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
 
 @SuppressWarnings("unchecked")
 public abstract class KuduConnBase<C extends KuduConnBase<C, KC, S>, KC extends AutoCloseable, S extends SessionConfiguration> extends
 		NoSqlConnection<KC> {
 	protected static final Logger logger = Logger.getLogger(KuduConnBase.class);
-	private static final Map<String, KuduTable> tables = new ConcurrentHashMap<>();
-	private static final Map<String, Map<String, ColumnSchema>> SCHEMAS_CI = new ConcurrentHashMap<>();
+	private static final Map<String, KuduTable> tables = Maps.of();
+	private static final Map<String, Map<String, ColumnSchema>> SCHEMAS_CI = Maps.of();
 	private final Thread failHandler;
 	protected S session;
 

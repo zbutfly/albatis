@@ -29,11 +29,11 @@ public class KafkaTest {
 			do {
 				AtomicInteger count = new AtomicInteger(0);
 				AtomicLong size = new AtomicLong();
-				in.dequeue(s -> size.addAndGet(s.mapToInt(m -> {
+				in.dequeue(s -> size.addAndGet(s.map(m -> {
 					count.incrementAndGet();
 					counts.compute(m.table(), (k, v) -> v + 1);
 					return m.toBytes().length;
-				}).sum()), batchSize);
+				}).reduce((i1, i2) -> i1 + i2)), batchSize);
 				long curr = new Date().getTime();
 				total += (size.get() / 1024.0 / 1024);
 				System.out.println(df.format(new Date()) + "<Count: " + count.get() + ">: <" + nf.format((curr - now) / 1000.0) + " secs>, "//
