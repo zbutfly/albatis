@@ -1,15 +1,11 @@
 package net.butfly.albatis.io.ext;
 
-import static net.butfly.albacore.utils.collection.Streams.list;
 import static net.butfly.albacore.utils.collection.Streams.map;
-import static net.butfly.albacore.utils.collection.Streams.of;
 
-import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import net.butfly.albacore.base.Namedly;
-import net.butfly.albacore.utils.parallel.Task;
+import net.butfly.albacore.paral.steam.Steam;
 import net.butfly.albatis.io.Output;
 
 public class FanOutput<V> extends Namedly implements Output<V> {
@@ -26,14 +22,8 @@ public class FanOutput<V> extends Namedly implements Output<V> {
 	}
 
 	@Override
-	public void enqueue(Stream<V> items) {
-		List<V> values = list(items);
-		Task t = null;
-		for (Output<V> o : outputs) {
-			Task t0 = () -> o.enqueue(of(values));
-			if (null == t) t = t0;
-			else t = t.multiple(t0);
-		}
-		t.run();
+	public void enqueue(Steam<V> s) {
+		for (Output<V> o : outputs)
+			o.enqueue(s);
 	}
 }

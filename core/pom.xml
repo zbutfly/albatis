@@ -15,6 +15,11 @@
 		</dependency>
 		<dependency>
 			<groupId>net.butfly.albacore</groupId>
+			<artifactId>albacore-meta</artifactId>
+			<version>3.0.2-SNAPSHOT</version>
+		</dependency>
+		<dependency>
+			<groupId>net.butfly.albacore</groupId>
 			<artifactId>albacore-serder-json</artifactId>
 			<version>1.0.2-SNAPSHOT</version>
 		</dependency>

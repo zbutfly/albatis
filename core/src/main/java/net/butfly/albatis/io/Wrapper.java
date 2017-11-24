@@ -1,18 +1,18 @@
 package net.butfly.albatis.io;
 
 import java.util.function.Consumer;
-import java.util.stream.Stream;
 
 import net.butfly.albacore.io.Dequeuer;
 import net.butfly.albacore.io.Enqueuer;
 import net.butfly.albacore.lambda.Runnable;
+import net.butfly.albacore.paral.steam.Steam;
 import net.butfly.albacore.utils.logger.Logger;
 
 public interface Wrapper {
 	static <T, T1> WrapInput<T, T1> wrap(Input<T1> base, String suffix, Dequeuer<T> d) {
 		return new WrapInput<T, T1>(base, suffix) {
 			@Override
-			public void dequeue(Consumer<Stream<T>> using, int batchSize) {
+			public void dequeue(Consumer<Steam<T>> using, int batchSize) {
 				d.dequeue(using, batchSize);
 			}
 		};
@@ -21,7 +21,7 @@ public interface Wrapper {
 	static <T, T1> WrapOutput<T, T1> wrap(Output<T1> base, String suffix, Enqueuer<T> d) {
 		return new WrapOutput<T, T1>(base, suffix) {
 			@Override
-			public void enqueue(Stream<T> items) {
+			public void enqueue(Steam<T> items) {
 				d.enqueue(items);
 			}
 
@@ -31,7 +31,7 @@ public interface Wrapper {
 			}
 
 			@Override
-			public void failed(Stream<T> failed) {
+			public void failed(Steam<T> failed) {
 				d.failed(failed);
 			}
 		};
@@ -39,7 +39,7 @@ public interface Wrapper {
 
 	abstract class WrapInput<V, V1> implements Input<V> {
 		@Override
-		public abstract void dequeue(Consumer<Stream<V>> using, int batchSize);
+		public abstract void dequeue(Consumer<Steam<V>> using, int batchSize);
 
 		protected final Input<? extends V1> base;
 		private String suffix;
@@ -117,7 +117,7 @@ public interface Wrapper {
 
 	abstract class WrapOutput<V, V1> implements Output<V> {
 		@Override
-		public abstract void enqueue(Stream<V> items);
+		public abstract void enqueue(Steam<V> items);
 
 		protected final Output<V1> base;
 		private String suffix;

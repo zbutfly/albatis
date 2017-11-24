@@ -41,14 +41,14 @@ package net.butfly.albatis.io.ext;
 //			} catch (NoSuchElementException e) {
 //				return null;
 //			}
-//		} while ((null == (buf = impl.remove(k)) || (null != (v = unconv.apply(buf)))) && opened() && !empty() && Concurrents.waitSleep());
+//		} while ((null == (buf = impl.remove(k)) || (null != (v = unconv.apply(buf)))) && opened() && !empty() && waitSleep());
 //		return v;
 //	}
 //
 //	@Override
 //	protected boolean enqueue(V item) {
 //		if (null == item) return false;
-//		do {} while (opened() && full() && Concurrents.waitSleep());
+//		do {} while (opened() && full() && waitSleep());
 //		byte[] v = conv.apply(item);
 //		String k = keying.apply(item);
 //		if (null == k || "".equals(k)) return false;

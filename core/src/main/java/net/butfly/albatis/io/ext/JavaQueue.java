@@ -1,9 +1,9 @@
 package net.butfly.albatis.io.ext;
 
+import static net.butfly.albacore.paral.Task.waitSleep;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
-import net.butfly.albacore.utils.parallel.Concurrents;
 import net.butfly.albatis.io.QueueOddImpl;
 
 public class JavaQueue<V> extends QueueOddImpl<V> {
@@ -36,7 +36,7 @@ public class JavaQueue<V> extends QueueOddImpl<V> {
 	@Override
 	protected final boolean enqueue(V e) {
 		if (null == e) return false;
-		do {} while (opened() && !impl.offer(e) && Concurrents.waitSleep());
+		do {} while (opened() && !impl.offer(e) && waitSleep());
 		return false;
 	}
 
@@ -44,7 +44,7 @@ public class JavaQueue<V> extends QueueOddImpl<V> {
 	protected V dequeue() {
 		if (!opened()) return null;
 		V v = null;
-		do {} while (opened() && (v = impl.poll()) == null && Concurrents.waitSleep());
+		do {} while (opened() && (v = impl.poll()) == null && waitSleep());
 		return v;
 	}
 

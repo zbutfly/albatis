@@ -31,6 +31,6 @@ public interface Connection extends java.sql.Connection, com.hzcominfo.albatis.n
 	void setUri(URI uri);
 
 	void setProperties(Properties properties);
-	
+
 	Result execute(Action action, Describe describe) throws SearchAPIException;
 }

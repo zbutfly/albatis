@@ -1,19 +1,11 @@
 package net.butfly.albatis.io;
 
-import static net.butfly.albacore.utils.collection.Streams.map;
-import static net.butfly.albacore.utils.collection.Streams.of;
-import static net.butfly.albacore.utils.collection.Streams.spatial;
-import static net.butfly.albacore.utils.collection.Streams.spatialMap;
-import static net.butfly.albacore.utils.parallel.Parals.eachs;
-
-import java.util.Spliterator;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.stream.Stream;
 
 import com.bluejeans.bigqueue.BigQueue;
 
-import net.butfly.albacore.utils.collection.Its;
+import net.butfly.albacore.paral.steam.Steam;
 
 /**
  * Rich feature queue for big data processing, supporting:
@@ -27,8 +19,7 @@ import net.butfly.albacore.utils.collection.Its;
  * <ul>
  * <li>Instant</li>
  * <li>Memory (heap)</li>
- * <li>Local disk (off heap based on memory mapping), like {@link MapDB}/
- * {@link BigQueue} and so on</li>
+ * <li>Local disk (off heap based on memory mapping), like {@link MapDB}/ {@link BigQueue} and so on</li>
  * <li>Remote, like Kafka/MQ and so on (Not now)</li>
  * </ul>
  * <li>Continuous or not</li>
@@ -54,17 +45,17 @@ public interface Queue0<I, O> extends Input<O>, Output<I> {
 	default <O1> Queue0<I, O1> then(Function<O, O1> conv) {
 		Queue0<I, O1> i = new Queue0<I, O1>() {
 			@Override
-			public void dequeue(Consumer<Stream<O1>> using, int batchSize) {
-				Queue0.this.dequeue(s -> using.accept(map(s, conv)), batchSize);
+			public void dequeue(Consumer<Steam<O1>> using, int batchSize) {
+				Queue0.this.dequeue(s -> using.accept(s.map(conv)), batchSize);
 			}
 
 			@Override
-			public void enqueue(Stream<I> items) {
+			public void enqueue(Steam<I> items) {
 				Queue0.this.enqueue(items);
 			}
 
 			@Override
-			public void failed(Stream<I> failed) {
+			public void failed(Steam<I> failed) {
 				Queue0.this.failed(failed);
 			}
 
@@ -83,21 +74,20 @@ public interface Queue0<I, O> extends Input<O>, Output<I> {
 	}
 
 	@Override
-	default <O1> Queue0<I, O1> thens(Function<Iterable<O>, Iterable<O1>> conv, int parallelism) {
+	default <O1> Queue0<I, O1> thens(Function<Steam<O>, Steam<O1>> conv, int parallelism) {
 		Queue0<I, O1> i = new Queue0<I, O1>() {
 			@Override
-			public void dequeue(Consumer<Stream<O1>> using, int batchSize) {
-				Queue0.this.dequeue(s -> spatialMap(s, parallelism, t -> conv.apply(() -> Its.it(t)).spliterator()).forEach(s1 -> using
-						.accept(s1)), batchSize);
+			public void dequeue(Consumer<Steam<O1>> using, int batchSize) {
+				Queue0.this.dequeue(s -> s.partition(s1 -> using.accept(conv.apply(s1)), parallelism), batchSize);
 			}
 
 			@Override
-			public void enqueue(Stream<I> items) {
+			public void enqueue(Steam<I> items) {
 				Queue0.this.enqueue(items);
 			}
 
 			@Override
-			public void failed(Stream<I> failed) {
+			public void failed(Steam<I> failed) {
 				Queue0.this.failed(failed);
 			}
 
@@ -119,18 +109,18 @@ public interface Queue0<I, O> extends Input<O>, Output<I> {
 	default <I0> Queue0<I0, O> prior(Function<I0, I> conv) {
 		Queue0<I0, O> o = new Queue0<I0, O>() {
 			@Override
-			public void dequeue(Consumer<Stream<O>> using, int batchSize) {
+			public void dequeue(Consumer<Steam<O>> using, int batchSize) {
 				Queue0.this.dequeue(using, batchSize);
 			}
 
 			@Override
-			public void enqueue(Stream<I0> items) {
-				Queue0.this.enqueue(map(items, conv));
+			public void enqueue(Steam<I0> s) {
+				Queue0.this.enqueue(s.map(conv));
 			}
 
 			@Override
-			public void failed(Stream<I0> failed) {
-				Queue0.this.failed(map(failed, conv));
+			public void failed(Steam<I0> failed) {
+				Queue0.this.failed(failed.map(conv));
 			}
 
 			@Override
@@ -148,17 +138,16 @@ public interface Queue0<I, O> extends Input<O>, Output<I> {
 	}
 
 	@Override
-	default <I0> Queue0<I0, O> priors(Function<Iterable<I0>, Iterable<I>> conv, int parallelism) {
+	default <I0> Queue0<I0, O> priors(Function<Steam<I0>, Steam<I>> conv, int parallelism) {
 		Queue0<I0, O> o = new Queue0<I0, O>() {
 			@Override
-			public void dequeue(Consumer<Stream<O>> using, int batchSize) {
+			public void dequeue(Consumer<Steam<O>> using, int batchSize) {
 				Queue0.this.dequeue(using, batchSize);
 			}
 
 			@Override
-			public void enqueue(Stream<I0> items) {
-				eachs(spatial(items, parallelism).values(), //
-						(Consumer<Spliterator<I0>>) s0 -> Queue0.this.enqueue(of(conv.apply((Iterable<I0>) () -> Its.it(s0)))));
+			public void enqueue(Steam<I0> s) {
+				s.partition(ss -> Queue0.this.enqueue(conv.apply(ss)), parallelism);
 			}
 
 			@Override
@@ -167,8 +156,8 @@ public interface Queue0<I, O> extends Input<O>, Output<I> {
 			}
 
 			@Override
-			public void failed(Stream<I0> failed) {
-				Queue0.this.failed(of(conv.apply((Iterable<I0>) () -> Its.it(failed.spliterator()))));
+			public void failed(Steam<I0> failed) {
+				failed.partition(ss -> Queue0.this.failed(conv.apply(failed)), parallelism);
 			}
 
 			@Override

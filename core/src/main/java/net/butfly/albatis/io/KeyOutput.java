@@ -1,27 +1,16 @@
 package net.butfly.albatis.io;
 
-import static net.butfly.albacore.utils.collection.Streams.batching;
-import static net.butfly.albacore.utils.collection.Streams.collect;
-import static net.butfly.albacore.utils.collection.Streams.of;
-import static net.butfly.albacore.utils.parallel.Parals.eachs;
-
-import java.util.List;
-import java.util.Map.Entry;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
+import net.butfly.albacore.paral.steam.Steam;
 import net.butfly.albatis.io.ext.FailoverOutput;
 
 public interface KeyOutput<K, V> extends Output<V> {
 	K partition(V v);
 
-	void enqueue(K key, Stream<V> v);
+	void enqueue(K key, Steam<V> v);
 
 	@Override
-	public default void enqueue(Stream<V> s) {
-		eachs(collect(s, Collectors.groupingBy(v -> partition(v))).entrySet(), //
-				(Consumer<Entry<K, List<V>>>) e -> enqueue(e.getKey(), of(e.getValue())));
+	public default void enqueue(Steam<V> s) {
+		s.partition((k, v) -> enqueue(Steam.of(v)), v -> partition(v));
 	}
 
 	@Override
@@ -39,8 +28,8 @@ public interface KeyOutput<K, V> extends Output<V> {
 			}
 
 			@Override
-			public void enqueue(K key, Stream<V> v) {
-				batching(v, s -> enqueue(key, s), batchSize);
+			public void enqueue(K key, Steam<V> s) {
+				s.batch(ss -> origin.enqueue(key, ss), batchSize);
 			}
 		};
 		ko.opening(() -> origin.open());
@@ -64,7 +53,7 @@ public interface KeyOutput<K, V> extends Output<V> {
 		}
 
 		@Override
-		public void enqueue(K key, Stream<V> v) {
+		public void enqueue(K key, Steam<V> v) {
 			((KeyOutput<K, V>) base).enqueue(key, v);
 		}
 	}

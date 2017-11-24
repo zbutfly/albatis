@@ -1,20 +1,19 @@
 package net.butfly.albatis.io;
 
-import static net.butfly.albacore.utils.collection.Streams.list;
-import static net.butfly.albacore.utils.collection.Streams.map;
-import static net.butfly.albacore.utils.collection.Streams.spatialMap;
-import static net.butfly.albacore.utils.parallel.Parals.eachs;
-
+import java.util.Collection;
 import java.util.Iterator;
+import java.util.List;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.stream.Stream;
 
 import net.butfly.albacore.io.Dequeuer;
 import net.butfly.albacore.io.IO;
-import net.butfly.albacore.utils.collection.Its;
+import net.butfly.albacore.paral.split.SplitEx;
+import net.butfly.albacore.paral.steam.Steam;
 import net.butfly.albatis.io.ext.PrefetchInput;
 
 public interface Input<V> extends IO, Dequeuer<V>, Supplier<V>, Iterator<V> {
@@ -31,17 +30,16 @@ public interface Input<V> extends IO, Dequeuer<V>, Supplier<V>, Iterator<V> {
 	}
 
 	default <V1> Input<V1> then(Function<V, V1> conv) {
-		return Wrapper.wrap(this, "Then", (using, batchSize) -> dequeue(s -> using.accept(map(s, conv)), batchSize));
+		return Wrapper.wrap(this, "Then", (using, batchSize) -> dequeue(s -> using.accept(s.map(conv)), batchSize));
 	}
 
-	default <V1> Input<V1> thens(Function<Iterable<V>, Iterable<V1>> conv) {
-		return thens(conv, 1);
+	default <V1> Input<V1> thens(Function<Steam<V>, Steam<V1>> conv) {
+		return Wrapper.wrap(this, "Thens", (using, batchSize) -> dequeue(s -> using.accept(conv.apply(s)), batchSize));
 	}
 
-	default <V1> Input<V1> thens(Function<Iterable<V>, Iterable<V1>> conv, int parallelism) {
-		return Wrapper.wrap(this, "Thens", (using, batchSize) -> dequeue(//
-				s -> eachs(list(spatialMap(s, parallelism, t -> conv.apply(() -> Its.it(t)).spliterator())),
-						(Consumer<Stream<V1>>) using::accept), batchSize));
+	default <V1> Input<V1> thens(Function<Steam<V>, Steam<V1>> conv, int parallelism) {
+		return Wrapper.wrap(this, "Thens", (using, batchSize) -> //
+		dequeue(s -> s.partition(v -> using.accept(conv.apply(v)), parallelism), batchSize));
 	}
 
 	// more extends
@@ -50,33 +48,33 @@ public interface Input<V> extends IO, Dequeuer<V>, Supplier<V>, Iterator<V> {
 	}
 
 	// constructor
-	public static <T> Input<T> of(Iterator<? extends T> it) {
-		return (using, batchSize) -> {
-			Stream.Builder<T> b = Stream.builder();
-			long count = 0;
-			T t = null;
-			while (it.hasNext()) {
-				if ((t = it.next()) != null) {
-					b.add(t);
-					if (++count > batchSize) break;
-				}
+	public static <T> Input<T> of(Collection<? extends T> collection) {
+		return new Input<T>() {
+			private final BlockingQueue<T> undly = new LinkedBlockingQueue<>(collection);
+
+			@Override
+			public void dequeue(final Consumer<Steam<T>> using, final int batchSize) {
+				final List<T> l = SplitEx.list();
+				undly.drainTo(l, batchSize);
+				if (!l.isEmpty()) using.accept(Steam.of(l));
 			}
-			using.accept(b.build());
 		};
 	}
 
-	public static <T> Input<T> of(Iterable<? extends T> collection) {
-		return of(collection.iterator());
-	}
-
 	public static <T> Input<T> of(Supplier<? extends T> next, Supplier<Boolean> ending) {
-		return of(Its.it(next, ending));
+		return (using, batchSize) -> {
+			final List<T> l = SplitEx.list();
+			T t;
+			while (!ending.get() && null != (t = next.get()) && l.size() < batchSize)
+				l.add(t);
+			using.accept(Steam.of(l));
+		};
 	}
 
 	@Override
 	default V get() {
 		AtomicReference<V> ref = new AtomicReference<>();
-		dequeue(s -> ref.lazySet(s.findFirst().orElse(null)), 1);
+		dequeue(s -> s.next(v -> ref.set(v)), 1);
 		return ref.get();
 	}
 

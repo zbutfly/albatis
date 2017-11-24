@@ -1,11 +1,12 @@
 package net.butfly.albatis.io.ext;
 
+import static net.butfly.albacore.paral.Task.waitSleep;
+
 import java.io.IOException;
 
 import com.bluejeans.bigqueue.BigQueue;
 
 import net.butfly.albacore.utils.logger.Logger;
-import net.butfly.albacore.utils.parallel.Concurrents;
 import net.butfly.albatis.io.QueueOddImpl;
 
 public class BigqQueue<V> extends QueueOddImpl<V> {
@@ -36,7 +37,7 @@ public class BigqQueue<V> extends QueueOddImpl<V> {
 				} catch (Throwable t) {
 					logger().error("BigQueue gc fail", t);
 				}
-			} while (opened() && Concurrents.waitSleep(GC_INTV));
+			} while (opened() && waitSleep(GC_INTV));
 		}, "BigQueue-Maintainancer-Daemon-Thread");
 		gc.setDaemon(true);
 		gc.start();
@@ -59,7 +60,7 @@ public class BigqQueue<V> extends QueueOddImpl<V> {
 		}
 		if (null == v) return false;
 		while (full())
-			Concurrents.waitSleep();
+			waitSleep();
 		queue.enqueue(v);
 		return true;
 	}

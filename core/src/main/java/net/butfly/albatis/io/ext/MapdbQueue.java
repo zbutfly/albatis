@@ -26,7 +26,7 @@ package net.butfly.albatis.io.ext;
 //		if (null == e) return false;
 //		byte[] buf = conv.apply(e);
 //		if (buf == null) return false;
-//		do {} while (opened() && !impl.offer(buf) && Concurrents.waitSleep());
+//		do {} while (opened() && !impl.offer(buf) && waitSleep());
 //		return false;
 //	}
 //
@@ -34,7 +34,7 @@ package net.butfly.albatis.io.ext;
 //	protected V dequeue() {
 //		if (!opened()) return null;
 //		byte[] buf = null;
-//		do {} while (opened() && (buf = impl.poll()) == null && Concurrents.waitSleep());
+//		do {} while (opened() && (buf = impl.poll()) == null && waitSleep());
 //		return buf == null ? null : unconv.apply(buf);
 //	}
 //

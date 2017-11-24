@@ -1,8 +1,8 @@
 package net.butfly.albatis.io.ext;
 
 import java.util.function.Consumer;
-import java.util.stream.Stream;
 
+import net.butfly.albacore.paral.steam.Steam;
 import net.butfly.albacore.utils.OpenableThread;
 import net.butfly.albatis.io.Input;
 import net.butfly.albatis.io.Queue;
@@ -29,7 +29,7 @@ public class PrefetchInput<V> extends Wrapper.WrapInput<V, V> {
 	}
 
 	@Override
-	public void dequeue(Consumer<Stream<V>> using, int batchSize) {
+	public void dequeue(Consumer<Steam<V>> using, int batchSize) {
 		pool.dequeue(using, batchSize);
 	}
 }
