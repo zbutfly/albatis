@@ -34,8 +34,8 @@ public class SqlExplainer {
             .setUnquotedCasing(Casing.UNCHANGED)
             .setQuotedCasing(Casing.UNCHANGED)
             .setConformance(SqlConformanceEnum.DEFAULT)
-//                .setConformance(SqlConformanceEnum.LENIENT) // allow everything
-//            .setConformance(SqlConformanceEnum.MYSQL_5) // allow Limit start,count ,,,start is from 1
+                .setConformance(SqlConformanceEnum.LENIENT) // allow everything
+//            .setConformance(SqlConformanceEnum.MYSQL_5) // 默认sql标准为mysql_5 allow Limit start,count ,,,start is from 1
             .setCaseSensitive(true);
 
     public static final SqlBasicVisitor<String> visitor = new SqlBasicVisitor<String>() {
@@ -308,11 +308,14 @@ public class SqlExplainer {
             case LESS_THAN_OR_EQUAL:
             case EQUALS:
             case NOT_EQUALS:
-            case LIKE:
-//            case NOT:
                 JsonObject o = new JsonObject();
                 analysisBinaryConditionExpression(sc, o);
                 tree.add(kind.lowerName, o);
+                break;
+            case LIKE:
+                JsonObject j = new JsonObject();
+                analysisBinaryConditionExpression(sc, j);
+                tree.add((sc.getOperator().getName().toLowerCase().startsWith("not") ? "not_" : "") + sc.getKind().lowerName, j); // for support not like
                 break;
             case BETWEEN:
                 analysisTernaryConditionExpression(sc, tree);
@@ -427,7 +430,7 @@ public class SqlExplainer {
         array.add(end);
         JsonObject object = new JsonObject();
         object.add(field, array);
-        json.add(sc.getKind().lowerName, object);
+        json.add((sc.getOperator().getName().toLowerCase().startsWith("not") ? "not_" : "") + sc.getKind().lowerName, object);
     }
 
     /**

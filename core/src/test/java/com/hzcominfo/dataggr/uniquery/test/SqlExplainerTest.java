@@ -207,6 +207,14 @@ public class SqlExplainerTest {
     }
 
     @Test
+    public void b2() throws Exception {
+//        String sql = "SELECT Customer,OrderPrice FROM Orders limit 92233720368547758070 offset 9223372036854775807";
+        String sql = "SELECT * FROM tttt where name >= 'haha' ";
+        JsonObject object = SqlExplainer.explain(sql);
+        System.out.println(object);
+    }
+
+    @Test
     public void q1() {
         String sql = "select * from student where ? in (?,?)";
 //        String sql = "select name, ?, age from people where ? is not null and age > ? or name = ? or age between ? and ?";
