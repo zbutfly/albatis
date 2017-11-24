@@ -64,7 +64,7 @@
 	    1. 能解析多表，但暂时只支持单表操作。
 	    
 	5. 过滤条件支持情况：
-	    1. AND, OR, IS NULL, IS NOT NULL, >, >=, <, <=, =, <>, LIKE, BETWEEN, IN, NOT IN.
+	    1. 不指定, AND, OR, IS NULL, IS NOT NULL, >, >=, <, <=, =, <>, LIKE, NOT LIKE, BETWEEN AND, NOT BETWEEN AND, IN, NOT IN.
 	    
 	6. 排序支持情况
 	    1. ORDER BY field_a ASC/DESC[, field_b ASC, DESC ...]
