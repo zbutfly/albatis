@@ -1,11 +1,9 @@
 package net.butfly.albatis.io;
 
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -16,7 +14,7 @@ import net.butfly.albacore.paral.split.SplitEx;
 import net.butfly.albacore.paral.steam.Steam;
 import net.butfly.albatis.io.ext.PrefetchInput;
 
-public interface Input<V> extends IO, Dequeuer<V>, Supplier<V>, Iterator<V> {
+public interface Input<V> extends IO, Dequeuer<V> {
 	static Input<?> NULL = (using, batchSize) -> {};
 
 	@Override
@@ -69,22 +67,5 @@ public interface Input<V> extends IO, Dequeuer<V>, Supplier<V>, Iterator<V> {
 				l.add(t);
 			using.accept(Steam.of(l));
 		};
-	}
-
-	@Override
-	default V get() {
-		AtomicReference<V> ref = new AtomicReference<>();
-		dequeue(s -> s.next(v -> ref.set(v)), 1);
-		return ref.get();
-	}
-
-	@Override
-	default boolean hasNext() {
-		return !empty();
-	}
-
-	@Override
-	default V next() {
-		return get();
 	}
 }

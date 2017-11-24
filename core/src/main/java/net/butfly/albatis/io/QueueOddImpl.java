@@ -7,7 +7,6 @@ import java.util.function.Consumer;
 
 import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.paral.steam.Steam;
-import net.butfly.albacore.utils.collection.Streams;
 
 public abstract class QueueOddImpl<V> extends Namedly implements Queue<V> {
 	private final AtomicLong capacity;
@@ -29,13 +28,11 @@ public abstract class QueueOddImpl<V> extends Namedly implements Queue<V> {
 	}
 
 	@Override
-	public void enqueue(Steam<V> items) {
+	public void enqueue(Steam<V> s) {
 		if (!waitSleep(() -> full())) return;
-		Streams.of(items).forEach(t -> {
-			if (enqueue(t)) succeeded(1);
-			else failed(t);
+		s.each(v -> {
+			if (enqueue(v)) succeeded(1);
 		});
-
 	}
 
 	protected abstract V dequeue();
