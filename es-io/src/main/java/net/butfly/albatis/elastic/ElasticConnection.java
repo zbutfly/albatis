@@ -17,6 +17,8 @@ import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.serder.JsonSerder;
 
 
+public class ElasticConnection extends NoSqlConnection<TransportClient> implements ElasticConnect {
+
 	public ElasticConnection(URISpec uri, Map<String, String> props) throws IOException {
 		super(uri, u -> ElasticConnect.Builder.buildTransportClient(u, props), 39300, "es", "elasticsearch");
 	}
@@ -77,28 +79,5 @@ import net.butfly.albacore.serder.JsonSerder;
 				closed = true;
 			}
 		logger().debug("ES connection thread pool terminated...");
-	}
-
-	public static void main(String[] args) {
-		String uri = "es://cominfo@hzga152:39300/";
-		URISpec uriSpec = new URISpec(uri);
-		
-		try {
-			Connection connection = Connection.connect(uriSpec, null);
-			ElasticConnection ec = (ElasticConnection) connection;
-			List<DiscoveryNode> nodes = ec.client().connectedNodes();
-			for (DiscoveryNode node : nodes) {
-				System.out.println(node.getHostAddress());
-			}
-			String source = "{\"hello\":\"world\"}";
-			IndexResponse indexResponse = ec.client().prepareIndex("test_search", "hello", "0").setSource(source).get();
-//			XContentBuilder builder = XContentFactory.jsonBuilder().startObject().field("hello", "world").endObject();
-//			UpdateResponse updateResponse = ec.client().prepareUpdate("test_search", "hello", "0").setDoc(builder)
-//					.get();
-			System.out.println(indexResponse.getVersion());
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 	}
 }

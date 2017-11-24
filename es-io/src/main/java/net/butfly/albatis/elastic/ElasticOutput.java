@@ -125,20 +125,6 @@ public final class ElasticOutput extends Namedly implements Output<Message> {
 		}
 	}
 
-	private boolean failed(BulkItemResponse r) {
-		Throwable cause = r.getFailure().getCause();
-		return failed(cause);
-	}
-
-	private boolean failed(Throwable cause) {
-		while (RemoteTransportException.class.isAssignableFrom(cause.getClass()) && cause.getCause() != null)
-			cause = cause.getCause();
-		if (MapperException.class.isAssignableFrom(cause.getClass())) logger().error("ES mapper exception", cause);
-		return EsRejectedExecutionException.class.isAssignableFrom(cause.getClass())//
-				// || VersionConflictEngineException.class.isAssignableFrom(c)
-				|| MapperException.class.isAssignableFrom(cause.getClass());
-	}
-
 	static {
 		unwrap(RemoteTransportException.class, "getCause");
 	}

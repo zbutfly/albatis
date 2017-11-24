@@ -21,11 +21,11 @@ public interface Connection extends AutoCloseable {
 	}
 
 	public static <T extends Connection> T connect(String url, Class<T> clazz, String... params) throws Exception {
-		return connect(new URISpec(url), clazz, Maps.of(params));
+		Pair<String, Object[]> p = Maps.parseFirstKey((Object[]) params);
+		return connect(new URISpec(url), clazz, Maps.of(p.v1(), p.v2()));
 	}
 
-	public static <T extends Connection> T connect(String url, Class<T> clazz, Map<String, String> props)
-			throws Exception {
+	public static <T extends Connection> T connect(String url, Class<T> clazz, Map<String, String> props) throws Exception {
 		return connect(new URISpec(url), clazz, props);
 	}
 
@@ -34,11 +34,11 @@ public interface Connection extends AutoCloseable {
 	}
 
 	public static <T extends Connection> T connect(URISpec uri, Class<T> clazz, String... params) throws Exception {
-		return connect(uri, clazz, Maps.of(params));
+		Pair<String, Object[]> p = Maps.parseFirstKey((Object[]) params);
+		return connect(uri, clazz, Maps.of(p.v1(), p.v2()));
 	}
 
-	public static <T extends Connection> T connect(URISpec uriSpec, Class<T> clazz, Map<String, String> props)
-			throws Exception {
+	public static <T extends Connection> T connect(URISpec uriSpec, Class<T> clazz, Map<String, String> props) throws Exception {
 		Constructor<T> con = clazz.getConstructor(new Class[] { URISpec.class });
 		return con.newInstance(uriSpec);
 	}

@@ -4,14 +4,14 @@
 	<parent>
 		<groupId>net.butfly.albatis</groupId>
 		<artifactId>albatis</artifactId>
-		<version>1.4.1-SNAPSHOT</version>
+		<version>1.4.1</version>
 	</parent>
 	<artifactId>albatis-solr-io</artifactId>
 	<dependencies>
 		<dependency>
 			<groupId>net.butfly.albatis</groupId>
 			<artifactId>albatis-core</artifactId>
-			<version>1.4.1-SNAPSHOT</version>
+			<version>${project.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.solr</groupId>
