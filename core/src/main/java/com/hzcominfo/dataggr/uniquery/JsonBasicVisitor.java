@@ -51,6 +51,12 @@ public abstract class JsonBasicVisitor<V> implements JsonVisiter<V> {
         	List<GroupItem> groups = groupsJsonArray2List(element.getAsJsonArray());
     		visitGroupBy(groups);
         }
+        
+        element = json.get("multiGroupBy");
+        if (null != element) {
+        	List<List<GroupItem>> groupsList = multiGroupsJsonArray2List(element.getAsJsonArray());
+        	visitMultiGroupBy(groupsList);
+        }
     }
 
 
@@ -79,5 +85,21 @@ public abstract class JsonBasicVisitor<V> implements JsonVisiter<V> {
         	groups.add(GroupItem.of(element.getAsString()));
         }
         return groups;
+    }
+    
+    private static List<List<GroupItem>> multiGroupsJsonArray2List(JsonArray array) {
+    	List<List<GroupItem>> groupsList = new ArrayList<>();
+        if (null == array) return groupsList;
+        for (JsonElement element : array) {
+        	List<GroupItem> groups = new ArrayList<>();
+        	String fields = element.getAsString();
+        	if (fields.contains(",")) {
+        		for (String f : fields.split(",")) {
+        			groups.add(GroupItem.of(f));
+        		}
+        	} else groups.add(GroupItem.of(fields));
+        	groupsList.add(groups);
+        }
+        return groupsList;
     }
 }

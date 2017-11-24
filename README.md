@@ -25,10 +25,27 @@
 		~~~
 		
 	1. 执行sql并得到结果
-		~~~java
-			String sql = "select * from tdl_c1 where id='593fb635c00282f4af41bdd0' and XB_FORMAT_s='男'";
-			List<Map<String, Object>> result = client.execute(sql, "");
-		~~~
+		1. common query
+			~~~java
+				String sql = "select * from tdl_c1 where id=? and XB_FORMAT_s=?";
+				Object[] params = {"593fb635c00282f4af41bdd0","男"}; //动态参数
+				List<Map<String, Object>> result = client.execute(sql, params);			
+			~~~
+		
+		2. facet 
+			~~~java
+				String sql = "select XB_FORMAT_s,MZ_FORMAT_s from tdl_c1 group by XB_FORMAT_s,MZ_FORMAT_s";
+				Object[] params = {};
+				List<Map<String, Object>> result = client.execute(sql, params);			
+			~~~
+			
+		1. multi facet
+			~~~java
+				String sql = "select * from tdl_c1";
+				String[] facets = {"XB_FORMAT_s", "MZ_FORMAT_s", "MZ_i"}; //facet字段 一个数组元素可包含多个facet字段,用  , 隔开
+				Object[] params = {};
+				List<List<Map<String, Object>>> result = conn.execute(sql, facets, params);	
+			~~~
 	
 	1. 关闭客户端
 		~~~java

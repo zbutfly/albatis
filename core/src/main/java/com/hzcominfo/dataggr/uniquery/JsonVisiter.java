@@ -15,6 +15,8 @@ public interface JsonVisiter<V> {
     void visitConditions(JsonObject json);
 
     void visitGroupBy(List<GroupItem> groups);
+    
+    void visitMultiGroupBy(List<List<GroupItem>> groupsList);
 
     void visitOrderBy(List<OrderItem> orders);
 

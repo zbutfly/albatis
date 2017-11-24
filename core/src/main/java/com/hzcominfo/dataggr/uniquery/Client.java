@@ -1,8 +1,11 @@
 package com.hzcominfo.dataggr.uniquery;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.hzcominfo.albatis.nosql.Connection;
 import com.hzcominfo.dataggr.uniquery.utils.ExceptionUtil;
@@ -44,12 +47,44 @@ public class Client implements AutoCloseable {
 		return adapters.compute(uriSpec, (u, a) -> null == a ? Adapter.adapt(uriSpec):a);
 	}
 
+	/**
+	 * common query and facet
+	 * @param sql 
+	 * @param params sql dynamic parameter
+	 * @return
+	 */
 	public <T> T execute(String sql, Object...params) {
 		try {
-			JsonObject sqlJson = SqlExplainer.explain(sql);
+			JsonObject sqlJson = SqlExplainer.explain(sql, params);
 			JsonObject tableJson = sqlJson.has("tables") ? sqlJson.getAsJsonObject("tables"):null;
 			String table = tableJson != null && tableJson.has("table") ? tableJson.get("table").getAsString():null;
-			Object query = adapter.queryAssemble(sqlJson, params); // TODO params
+			Object query = adapter.queryAssemble(sqlJson, params); 
+			long start = System.currentTimeMillis();
+			Object result = adapter.queryExecute(conn, query, table);
+			System.out.println("query spends: " + (System.currentTimeMillis() - start) + "ms");
+			return adapter.resultAssemble(result);
+		} catch (Exception e) {
+			ExceptionUtil.runtime("connect error", e);
+		}
+		return null;
+	}
+	
+	/**
+	 * multi facet
+	 * @param sql
+	 * @param facets group fields list
+	 * @param params sql dynamic parameter
+	 * @return
+	 */
+	public List<List<Map<String, Object>>> execute(String sql, String[] facets, Object...params) {
+		try {
+			JsonObject sqlJson = SqlExplainer.explain(sql, params);
+			JsonObject tableJson = sqlJson.has("tables") ? sqlJson.getAsJsonObject("tables"):null;
+			String table = tableJson != null && tableJson.has("table") ? tableJson.get("table").getAsString():null;
+			JsonArray facetArr = new JsonArray();
+			Arrays.asList(facets).forEach(f -> facetArr.add(f));
+			sqlJson.add("multiGroupBy", facetArr);
+			Object query = adapter.queryAssemble(sqlJson, params); 
 			long start = System.currentTimeMillis();
 			Object result = adapter.queryExecute(conn, query, table);
 			System.out.println("query spends: " + (System.currentTimeMillis() - start) + "ms");
