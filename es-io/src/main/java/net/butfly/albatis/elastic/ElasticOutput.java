@@ -23,6 +23,7 @@ import org.elasticsearch.index.mapper.MapperException;
 import org.elasticsearch.transport.RemoteTransportException;
 
 import net.butfly.albacore.base.Namedly;
+import net.butfly.albacore.paral.Exeters;
 import net.butfly.albacore.utils.Exceptions;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albacore.utils.parallel.Parals;
@@ -58,7 +59,7 @@ public final class ElasticOutput extends Namedly implements Output<Message> {
 			return m1;
 		}));
 		if (origin.isEmpty()) return;
-		Parals.listen(() -> {
+		Exeters.DEFEX.submit(() -> {
 			int retry = 0;
 			while (!origin.isEmpty() && retry++ < maxRetry)
 				tryEnqueue(origin);
