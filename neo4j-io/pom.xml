@@ -4,14 +4,14 @@
 	<parent>
 		<groupId>net.butfly.albatis</groupId>
 		<artifactId>albatis</artifactId>
-		<version>1.3.1-SNAPSHOT</version>
+		<version>1.5.0-SNAPSHOT</version>
 	</parent>
 	<artifactId>albatis-neo4j-io</artifactId>
 	<dependencies>
 		<dependency>
 			<groupId>net.butfly.albatis</groupId>
 			<artifactId>albatis-core</artifactId>
-			<version>1.3.1-SNAPSHOT</version>
+			<version>${project.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.neo4j.driver</groupId>

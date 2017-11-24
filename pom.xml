@@ -8,11 +8,10 @@
 	</parent>
 	<groupId>net.butfly.albatis</groupId>
 	<artifactId>albatis</artifactId>
-	<version>1.4.1-lilz-ALPHA-SNAPSHOT</version>
+	<version>1.5.0-SNAPSHOT</version>
 	<packaging>pom</packaging>
 	<properties>
-		<version.albacore>3.0.2</version.albacore>
-		<version.albacore.serder>1.0.2-SNAPSHOT</version.albacore.serder>
+		<version.albacore>3.0.3-SNAPSHOT</version.albacore>
 		<!-- <version.kafka>0.8.2.2</version.kafka> -->
 		<version.kafka>0.9.0.1</version.kafka>
 		<!-- <version.kafka>0.10.2.1</version.kafka> -->
@@ -48,7 +47,7 @@
 		<dependency>
 			<groupId>net.butfly.albacore</groupId>
 			<artifactId>albacore-test</artifactId>
-			<version>3.0.2-SNAPSHOT</version>
+			<version>${version.albacore}</version>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
