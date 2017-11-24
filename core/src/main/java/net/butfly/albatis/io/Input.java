@@ -1,11 +1,9 @@
 package net.butfly.albatis.io;
 
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -17,7 +15,7 @@ import net.butfly.albacore.paral.split.SplitEx;
 import net.butfly.albacore.paral.steam.Steam;
 import net.butfly.albatis.io.ext.PrefetchInput;
 
-public interface Input<V> extends IO, Dequeuer<V>, Supplier<V>, Iterator<V> {
+public interface Input<V> extends IO, Dequeuer<V> {
 	static Input<?> NULL = (using, batchSize) -> {};
 
 	@Override
@@ -68,37 +66,6 @@ public interface Input<V> extends IO, Dequeuer<V>, Supplier<V>, Iterator<V> {
 			while (!ending.get() && null != (t = next.get()) && l.size() < batchSize)
 				l.add(t);
 			using.accept(Steam.of(l));
-		};
-	}
-
-	@Override
-	default V get() {
-		AtomicReference<V> ref = new AtomicReference<>();
-		dequeue(s -> s.next(v -> ref.set(v)), 1);
-		return ref.get();
-	}
-
-	// constructor
-	public static <T> Input<T> of(Collection<? extends T> collection, int batchSize) {
-		return new Input<T>() {
-			private final BlockingQueue<T> undly = new LinkedBlockingQueue<>(collection);
-
-			@Override
-			public void dequeue(Consumer<Sdream<T>> using) {
-				final List<T> l = Colls.list();
-				undly.drainTo(l, batchSize);
-				if (!l.isEmpty()) using.accept(Sdream.of(l));
-			}
-		};
-	}
-
-	public static <T> Input<T> of(Supplier<? extends T> next, Supplier<Boolean> ending, int batchSize) {
-		return using -> {
-			final List<T> l = Colls.list();
-			T t;
-			while (!ending.get() && null != (t = next.get()) && l.size() < batchSize)
-				l.add(t);
-			using.accept(Sdream.of(l));
 		};
 	}
 }

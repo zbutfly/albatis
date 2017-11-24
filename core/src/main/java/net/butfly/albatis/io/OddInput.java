@@ -1,14 +1,14 @@
 package net.butfly.albatis.io;
 
-import java.util.Iterator;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 
 import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.paral.steam.Steam;
 
-public interface OddInput<V> extends Input<V> {
-	V dequeue();
+public abstract class OddInput<V> extends Namedly implements Input<V> {
+	protected OddInput() {
+		super();
+	}
 
 	@Override
 	public default void dequeue(Consumer<Sdream<V>> using) {
@@ -22,37 +22,5 @@ public interface OddInput<V> extends Input<V> {
 	@Override
 	public final void dequeue(Consumer<Steam<V>> using, int batchSize) {
 		using.accept(Steam.of(this::dequeue, batchSize, () -> empty() && opened()));
-	}
-
-		@Override
-		public int characteristics() {
-			return CONCURRENT | SIZED | SUBSIZED | IMMUTABLE | NONNULL;
-		}
-
-		@Override
-		public long estimateSize() {
-			return est;
-		}
-
-		@Override
-		public boolean tryAdvance(Consumer<? super V> using1) {
-			V v = null;
-			while (input.opened() && !input.empty() && est > 0) {
-				v = input.dequeue();
-				if (null != v) {
-					est--;
-					using1.accept(v);
-					return true;
-				} else break;
-			}
-			est = 0;
-			return false;
-		}
-
-		@Override
-		public Spliterator<V> trySplit() {
-			// TODO not split now
-			return null;
-		}
 	}
 }
