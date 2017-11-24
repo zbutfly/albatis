@@ -1,8 +1,8 @@
 package net.butfly.albatis.kudu;
 
+import static net.butfly.albacore.paral.Task.waitSleep;
 import static net.butfly.albacore.utils.collection.Streams.of;
 import static net.butfly.albacore.utils.parallel.Parals.eachs;
-import static net.butfly.albacore.utils.parallel.Parals.listen;
 
 import java.io.IOException;
 import java.util.List;
@@ -24,8 +24,8 @@ import org.apache.kudu.client.SessionConfiguration;
 import com.hzcominfo.albatis.nosql.NoSqlConnection;
 
 import net.butfly.albacore.io.URISpec;
+import net.butfly.albacore.paral.Exeters;
 import net.butfly.albacore.utils.logger.Logger;
-import net.butfly.albacore.utils.parallel.Concurrents;
 
 @SuppressWarnings("unchecked")
 public abstract class KuduConnBase<C extends KuduConnBase<C, KC, S>, KC extends AutoCloseable, S extends SessionConfiguration> extends
@@ -42,7 +42,7 @@ public abstract class KuduConnBase<C extends KuduConnBase<C, KC, S>, KC extends 
 		failHandler = new Thread(() -> {
 			do {
 				errors();
-			} while (Concurrents.waitSleep());
+			} while (waitSleep());
 		}, "KuduErrorHandler[" + kuduUri.toString() + "]");
 		failHandler.setDaemon(true);
 		failHandler.start();
@@ -69,8 +69,7 @@ public abstract class KuduConnBase<C extends KuduConnBase<C, KC, S>, KC extends 
 	}
 
 	protected final void error(Operation op, Throwable cause) {
-		listen(() -> apply(op, this::error));
-
+		Exeters.DEFEX.submit((Runnable) () -> apply(op, this::error));
 	}
 
 	protected final void error(OperationResponse r) {

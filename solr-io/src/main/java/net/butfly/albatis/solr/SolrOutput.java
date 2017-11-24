@@ -1,5 +1,7 @@
 package net.butfly.albatis.solr;
 
+import static net.butfly.albacore.utils.collection.Streams.NOT_NULL;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -7,7 +9,7 @@ import java.util.Map;
 import org.apache.solr.client.solrj.SolrServerException;
 
 import net.butfly.albacore.base.Namedly;
-import net.butfly.albacore.utils.parallel.Parals;
+import net.butfly.albacore.paral.Exeters;
 import net.butfly.albatis.io.KeyOutput;
 import net.butfly.albatis.io.Message;
 import net.butfly.albatis.io.Message.Op;
@@ -52,7 +54,7 @@ public final class SolrOutput extends OutputBase<Message> {
 		ConcurrentMap<Boolean, List<Message>> ops = msgs.filter(NOT_NULL).collect(Collectors.groupingByConcurrent(m -> Op.DELETE == m
 				.op()));
 		List<Message> del;
-		if (null != (del = ops.get(Boolean.TRUE)) && !del.isEmpty()) Parals.listen(() -> {
+		if (null != (del = ops.get(Boolean.TRUE)) && !del.isEmpty()) Exeters.DEFEX.submit(() -> {
 			try {
 				solr.client().deleteById(core, list(del, Message::key), DEFAULT_AUTO_COMMIT_MS);
 				succeeded(del.size());
@@ -61,7 +63,7 @@ public final class SolrOutput extends OutputBase<Message> {
 			}
 		});
 		List<Message> ins;
-		if (null != (ins = ops.get(Boolean.FALSE)) && !ins.isEmpty()) Parals.listen(() -> {
+		if (null != (ins = ops.get(Boolean.FALSE)) && !ins.isEmpty()) Exeters.DEFEX.submit(() -> {
 			try {
 				solr.client().add(core, list(ins, t -> Solrs.input(t, keyFieldName)), DEFAULT_AUTO_COMMIT_MS);
 				succeeded(ins.size());
