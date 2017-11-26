@@ -7,8 +7,6 @@ package net.butfly.albatis.io.ext;
 //
 //import org.mapdb.Serializer;
 //
-//import net.butfly.albacore.utils.parallel.Concurrents;
-//
 //public class MdbMapQueue<V> extends MapdbQueueImpl<V> {
 //	private final Function<V, String> keying;
 //	private Map<String, byte[]> impl;

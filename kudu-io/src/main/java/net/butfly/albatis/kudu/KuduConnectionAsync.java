@@ -1,7 +1,7 @@
 package net.butfly.albatis.kudu;
 
+import static net.butfly.albacore.paral.Parals.eachs;
 import static net.butfly.albacore.utils.collection.Streams.of;
-import static net.butfly.albacore.utils.parallel.Parals.eachs;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -29,9 +29,9 @@ import com.hzcominfo.albatis.Albatis;
 import com.stumbleupon.async.Deferred;
 
 import net.butfly.albacore.io.URISpec;
+import net.butfly.albacore.paral.Task;
 import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.Pair;
-import net.butfly.albacore.utils.parallel.Concurrents;
 
 @Deprecated
 public class KuduConnectionAsync extends KuduConnBase<KuduConnectionAsync, AsyncKuduClient, AsyncKuduSession> {
@@ -52,7 +52,7 @@ public class KuduConnectionAsync extends KuduConnBase<KuduConnectionAsync, Async
 				while (PENDINGS.drainTo(m, 1000) > 0)
 					for (Pair<Operation, Deferred<OperationResponse>> d : m)
 						process(d.v1(), d.v2(), this::error);
-			} while (Concurrents.waitSleep());
+			} while (Task.waitSleep());
 		}, "KuduErrorHandler[" + kuduUri.toString() + "]");
 		pendingHandler.setDaemon(true);
 		pendingHandler.start();

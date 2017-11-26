@@ -1,6 +1,6 @@
 package net.butfly.albatis.mongodb;
 
-import static net.butfly.albacore.utils.parallel.Parals.eachs;
+import static net.butfly.albacore.paral.Parals.eachs;
 
 import java.io.IOException;
 import java.util.Map;
