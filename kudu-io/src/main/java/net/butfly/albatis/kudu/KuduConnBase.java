@@ -2,7 +2,7 @@ package net.butfly.albatis.kudu;
 
 import static net.butfly.albacore.paral.Task.waitSleep;
 import static net.butfly.albacore.utils.collection.Streams.of;
-import static net.butfly.albacore.utils.parallel.Parals.eachs;
+import static net.butfly.albacore.paral.Parals.eachs;
 
 import java.io.IOException;
 import java.util.List;
@@ -23,7 +23,7 @@ import org.apache.kudu.client.SessionConfiguration;
 import com.hzcominfo.albatis.nosql.NoSqlConnection;
 
 import net.butfly.albacore.io.URISpec;
-import net.butfly.albacore.paral.Exeters;
+import net.butfly.albacore.paral.Parals;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
 
@@ -69,7 +69,7 @@ public abstract class KuduConnBase<C extends KuduConnBase<C, KC, S>, KC extends 
 	}
 
 	protected final void error(Operation op, Throwable cause) {
-		Exeters.DEFEX.submit((Runnable) () -> apply(op, this::error));
+		Parals.submit((Runnable) () -> apply(op, this::error));
 	}
 
 	protected final void error(OperationResponse r) {

@@ -1,7 +1,7 @@
 package net.butfly.albatis.kudu;
 
 import static net.butfly.albacore.utils.collection.Streams.of;
-import static net.butfly.albacore.utils.parallel.Parals.eachs;
+import static net.butfly.albacore.paral.Parals.eachs;
 
 import java.io.IOException;
 import java.util.ArrayList;

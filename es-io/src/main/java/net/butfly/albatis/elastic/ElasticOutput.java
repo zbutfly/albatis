@@ -22,6 +22,7 @@ import com.google.common.base.Joiner;
 
 import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.paral.Exeters;
+import net.butfly.albacore.paral.Parals;
 import net.butfly.albacore.paral.steam.Steam;
 import net.butfly.albacore.utils.Exceptions;
 import net.butfly.albacore.utils.logger.Logger;
@@ -57,7 +58,7 @@ public final class ElasticOutput extends Namedly implements Output<Message> {
 		Map<String, Message> remains = maps(ol, Message::key, conn::fixTable);
 		for (Message m : ol)
 			remains.computeIfAbsent(m.key(), k -> conn.fixTable(m));
-		Exeters.DEFEX.submit(() -> {
+		Parals.submit(() -> {
 			int retry = 0;
 			while (!remains.isEmpty() && retry++ < maxRetry) {
 				@SuppressWarnings("rawtypes")
