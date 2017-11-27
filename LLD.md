@@ -16,6 +16,8 @@
 					public Client(URISpec uriSpec) {...}
 					// 执行sql
 					public <T> T execute(String sql, Object...params) {...}
+					// multi-facet
+					public <T> T execute(String sql, String[] facets, Object...params) {...}
 					// 关闭客户端
 					public void close() throws Exception {...}
 				}
@@ -26,20 +28,20 @@
 				class SqlExplainer {
 					
 					// 解析SQL
-					public static JsonObject explain(String sql) {...};
+					public static JsonObject explain(String sql, Object... params) {...};
 				}
 			~~~
 		1.	适配器接口
 			~~~java
 				interface Adapter {
 					// 根据uriSpec获取对应的适配器实现
-					public static Adapter adapt(URISpec uriSpec) {...}
+					public static <T extends Adapter> T adapt(URISpec uriSpec) {...}
 					
 					// 查询组装
 				    public <T> T queryAssemble(JsonObject sqlJson, Object...params);
 				    
 				    // 查询执行
-				    public <T> T queryExecute(Connection connection, Object query);
+    				public abstract <T> T queryExecute(Connection connection, Object query, String table);
 				    
 				    // 结果组装
 				    public <T> T resultAssemble(Object result);
@@ -57,7 +59,7 @@
 				public SolrParams queryAssemble(JsonObject sqlJson, Object...params) {...}
 				
 				// 查询执行
-				public QueryResponse queryExecute(Connection connection, Object solrParams) {...}
+				public QueryResponse queryExecute(Connection connection, Object solrParams, String table) {...}
 				
 				// 结果组装
 				public <T> T resultAssemble(Object queryResponse) {...}
