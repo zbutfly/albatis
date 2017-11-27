@@ -50,6 +50,7 @@ public abstract class Adapter {
 		return map;
 	};
 
+	// 根据uriSpec获取对应的适配器实现
 	@SuppressWarnings("unchecked")
 	public static <T extends Adapter> T adapt(URISpec uriSpec) {
 		for (String schema : ADAPTER_MAP.keySet()) {
