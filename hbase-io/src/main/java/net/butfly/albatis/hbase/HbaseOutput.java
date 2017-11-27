@@ -1,13 +1,11 @@
 package net.butfly.albatis.hbase;
 
-import static net.butfly.albacore.paral.split.SplitEx.list;
-import static net.butfly.albacore.utils.collection.Streams.map;
+import static net.butfly.albacore.paral.Parals.list;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.stream.Collectors;
 
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Row;
@@ -39,14 +37,14 @@ public final class HbaseOutput extends OutputBase<Message> {
 	@Override
 	public void enqueue(String table, Steam<Message> msgs) {
 		Map<String, Message> map = Maps.of();
-		List<Pair<Message, ? extends Row>> l = map(incs(table, msgs), m -> new Pair<>(m, Hbases.Results.put(m)), p -> {
+		List<Pair<Message, Row>> l = Steam.of(incs(table, msgs)).map(m -> new Pair<>(m, Hbases.Results.put(m))).filter(p -> {
 			boolean b = null != p && null != p.v2();
 			if (b) map.put(Bytes.toString(p.v2().getRow()), p.v1());
 			return b;
-		}, Collectors.toList());
-		if (l.isEmpty()) return;
-		List<Message> vs = map(l, v -> v.v1(), Collectors.toList());
-		List<? extends Row> puts = map(l, v -> v.v2(), Collectors.toList());
+		}).list();
+
+		List<Message> vs = Steam.of(l).map(v -> v.v1()).list();
+		List<? extends Row> puts = Steam.of(l).map(v -> v.v2()).list();
 		Object[] results = new Object[l.size()];
 		try {
 			hconn.table(table).batchCallback(puts, results, (region, row, result) -> {

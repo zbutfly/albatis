@@ -9,7 +9,7 @@ import com.hzcominfo.albatis.Albatis;
 import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.io.Openable;
 import net.butfly.albacore.lambda.Runnable;
-import net.butfly.albacore.paral.Parals;
+import net.butfly.albacore.paral.Exeter;
 import net.butfly.albacore.utils.OpenableThread;
 
 public abstract class PumpImpl<V, P extends PumpImpl<V, P>> extends Namedly implements Pump<V> {

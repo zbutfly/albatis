@@ -9,8 +9,8 @@ import org.junit.Test;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albatis.io.Message;
-import net.butfly.albatis.kudu.KuduConnectionAsync;
 import net.butfly.albatis.kudu.KuduConnBase;
+import net.butfly.albatis.kudu.KuduConnectionAsync;
 
 @SuppressWarnings("deprecation")
 public class KuduConnectionTest {

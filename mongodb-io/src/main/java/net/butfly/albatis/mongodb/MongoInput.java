@@ -1,13 +1,12 @@
 package net.butfly.albatis.mongodb;
 
-import static net.butfly.albacore.paral.Parals.eachs;
+import static net.butfly.albacore.paral.steam.Steam.of;
 
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Stream;
 
 import com.mongodb.Bytes;
 import com.mongodb.DBCursor;
@@ -37,7 +36,7 @@ public class MongoInput extends net.butfly.albacore.base.Namedly implements OddI
 		this.conn = conn;
 		logger.debug("[" + name + "] find begin...");
 		cursors = new LinkedBlockingQueue<>(tables.length);
-		eachs(Stream.of(tables), t -> {
+		of(tables).setWait(true).each(t -> {
 			try {
 				cursors.put(new Pair<>(t, conn.cursor(t).batchSize(conn.getBatchSize()).addOption(Bytes.QUERYOPTION_NOTIMEOUT)));
 			} catch (Exception e) {
@@ -61,7 +60,7 @@ public class MongoInput extends net.butfly.albacore.base.Namedly implements OddI
 		this.conn = conn;
 		logger.debug("[" + name + "] find begin...");
 		cursors = new LinkedBlockingQueue<>(tablesAndQueries.size());
-		eachs(tablesAndQueries.entrySet(), e -> {
+		of(tablesAndQueries.entrySet()).setWait(true).each(e -> {
 			try {
 				c = conn.cursor(col, q).batchSize(conn.getBatchSize()).addOption(Bytes.QUERYOPTION_NOTIMEOUT);
 				if (c.hasNext()) {

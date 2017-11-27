@@ -1,7 +1,5 @@
 package net.butfly.albatis.elastic;
 
-import static net.butfly.albacore.paral.split.SplitEx.map;
-import static net.butfly.albacore.paral.split.SplitEx.maps;
 import static net.butfly.albacore.paral.steam.Steam.of;
 import static net.butfly.albacore.utils.Exceptions.unwrap;
 
@@ -18,14 +16,12 @@ import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.mapper.MapperException;
 import org.elasticsearch.transport.RemoteTransportException;
 
-import com.google.common.base.Joiner;
-
 import net.butfly.albacore.base.Namedly;
-import net.butfly.albacore.paral.Exeters;
-import net.butfly.albacore.paral.Parals;
+import net.butfly.albacore.paral.Exeter;
 import net.butfly.albacore.paral.steam.Steam;
 import net.butfly.albacore.utils.Exceptions;
 import net.butfly.albacore.utils.logger.Logger;
+import net.butfly.albacore.utils.parallel.Lambdas;
 import net.butfly.albatis.io.Message;
 import net.butfly.albatis.io.Output;
 
@@ -55,14 +51,14 @@ public final class ElasticOutput extends Namedly implements Output<Message> {
 	public final void enqueue(Steam<Message> msgs) {
 		List<Message> ol = msgs.list();
 		if (ol.isEmpty()) return;
-		Map<String, Message> remains = maps(ol, Message::key, conn::fixTable);
+		Map<String, Message> remains = of(ol).partition(Message::key, conn::fixTable, Lambdas.nullOr());
 		for (Message m : ol)
 			remains.computeIfAbsent(m.key(), k -> conn.fixTable(m));
-		Parals.submit(() -> {
+		Exeter.of().submit(() -> {
 			int retry = 0;
 			while (!remains.isEmpty() && retry++ < maxRetry) {
 				@SuppressWarnings("rawtypes")
-				List<DocWriteRequest> reqs = map(remains.values(), Elastics::forWrite);
+				List<DocWriteRequest> reqs = of(remains.values()).map(Elastics::forWrite).list();
 				if (reqs.isEmpty()) return;
 				BulkRequest req = new BulkRequest().add(reqs);
 				try {
@@ -85,8 +81,8 @@ public final class ElasticOutput extends Namedly implements Output<Message> {
 
 		@Override
 		public void onResponse(BulkResponse response) {
-			Map<Integer, List<BulkItemResponse>> resps = map(response, r -> r.isFailed() ? (noRetry(r.getFailure().getCause()) ? 1 : 2) : 0,
-					r -> r);
+			Map<Integer, List<BulkItemResponse>> resps = of(response).partition(r -> r.isFailed() ? //
+					(noRetry(r.getFailure().getCause()) ? 1 : 2) : 0, r -> r);
 			List<BulkItemResponse> succs = resps.get(0);
 			List<BulkItemResponse> fails = resps.get(1);
 			List<BulkItemResponse> retries = resps.get(2);
@@ -99,9 +95,11 @@ public final class ElasticOutput extends Namedly implements Output<Message> {
 			// process success: remove from remains
 			succs.forEach(succ -> remains.remove(succ.getId()));
 			// process failing and retry...
-			if (!retries.isEmpty()) failed(of(map(retries, r -> remains.remove(r.getId()))));
-			if (!fails.isEmpty() && logger().isTraceEnabled()) logger.warn(() -> "Some fails: \n" + Joiner.on("\n").join(//
-					map(fails, r -> "\tfailed id [" + r.getFailure().getId() + "] for: " + unwrap(r.getFailure().getCause()).toString())));
+			if (!retries.isEmpty()) failed(of(retries).map(r -> remains.remove(r.getId())));
+			if (!fails.isEmpty() && logger().isTraceEnabled()) {
+				logger.warn(() -> of(fails).joinAsString("Some fails: \n", //
+						r -> "\tfailed id [" + r.getFailure().getId() + "] for: " + unwrap(r.getFailure().getCause()).toString(), "\n"));
+			}
 
 		}
 
