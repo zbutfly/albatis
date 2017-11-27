@@ -1,8 +1,7 @@
 package net.butfly.albatis.kudu;
 
 import static net.butfly.albacore.paral.Task.waitSleep;
-import static net.butfly.albacore.utils.collection.Streams.of;
-import static net.butfly.albacore.paral.Parals.eachs;
+import static net.butfly.albacore.paral.steam.Steam.of;
 
 import java.io.IOException;
 import java.util.List;
@@ -23,7 +22,7 @@ import org.apache.kudu.client.SessionConfiguration;
 import com.hzcominfo.albatis.nosql.NoSqlConnection;
 
 import net.butfly.albacore.io.URISpec;
-import net.butfly.albacore.paral.Parals;
+import net.butfly.albacore.paral.Exeter;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
 
@@ -65,11 +64,11 @@ public abstract class KuduConnBase<C extends KuduConnBase<C, KC, S>, KC extends 
 		if (null == errs) return;
 		RowError[] rows = session.getPendingErrors().getRowErrors();
 		if (null == rows || rows.length == 0) return;
-		eachs(of(rows).map(e -> e.getOperation()), op -> this.apply(op, this::error));
+		of(rows).map(e -> e.getOperation()).each(op -> this.apply(op, this::error));
 	}
 
 	protected final void error(Operation op, Throwable cause) {
-		Parals.submit((Runnable) () -> apply(op, this::error));
+		Exeter.of().submit((Runnable) () -> apply(op, this::error));
 	}
 
 	protected final void error(OperationResponse r) {

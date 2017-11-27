@@ -9,7 +9,8 @@ import net.butfly.albacore.utils.Pair;
 import net.butfly.albatis.io.Message;
 
 public class Elastics {
-	public static DocWriteRequest<?> forWrite(Message m) {
+	@SuppressWarnings("rawtypes")
+	public static DocWriteRequest forWrite(Message m) {
 		Pair<String, String> it = dessemble(m.table());
 		switch (m.op()) {
 		case UPDATE:

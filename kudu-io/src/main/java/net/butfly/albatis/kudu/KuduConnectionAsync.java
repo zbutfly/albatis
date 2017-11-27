@@ -1,7 +1,6 @@
 package net.butfly.albatis.kudu;
 
-import static net.butfly.albacore.paral.Parals.eachs;
-import static net.butfly.albacore.utils.collection.Streams.of;
+import static net.butfly.albacore.paral.steam.Steam.of;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -136,10 +135,15 @@ public class KuduConnectionAsync extends KuduConnBase<KuduConnectionAsync, Async
 
 	@Override
 	public void commit() {
+		List<OperationResponse> v;
 		try {
-			eachs(of(session.flush().join()), r -> error(r));
+			v = session.flush().join();
 		} catch (Exception e) {
 			logger.error("Kudu commit fail", e);
+			return;
 		}
+		of(v).each(r -> {
+			if (r.hasRowError()) error(r);
+		});
 	}
 }

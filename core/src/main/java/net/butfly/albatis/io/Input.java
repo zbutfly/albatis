@@ -10,7 +10,7 @@ import java.util.function.Supplier;
 
 import net.butfly.albacore.io.Dequeuer;
 import net.butfly.albacore.io.IO;
-import net.butfly.albacore.paral.split.SplitEx;
+import net.butfly.albacore.paral.Parals;
 import net.butfly.albacore.paral.steam.Steam;
 import net.butfly.albatis.io.ext.PrefetchInput;
 
@@ -52,7 +52,7 @@ public interface Input<V> extends IO, Dequeuer<V> {
 
 			@Override
 			public void dequeue(final Consumer<Steam<T>> using, final int batchSize) {
-				final List<T> l = SplitEx.list();
+				final List<T> l = Parals.list();
 				undly.drainTo(l, batchSize);
 				if (!l.isEmpty()) using.accept(Steam.of(l));
 			}
@@ -61,7 +61,7 @@ public interface Input<V> extends IO, Dequeuer<V> {
 
 	public static <T> Input<T> of(Supplier<? extends T> next, Supplier<Boolean> ending) {
 		return (using, batchSize) -> {
-			final List<T> l = SplitEx.list();
+			final List<T> l = Parals.list();
 			T t;
 			while (!ending.get() && null != (t = next.get()) && l.size() < batchSize)
 				l.add(t);
