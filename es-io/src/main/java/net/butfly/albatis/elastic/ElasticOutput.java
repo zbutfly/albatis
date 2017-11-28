@@ -1,6 +1,6 @@
 package net.butfly.albatis.elastic;
 
-import static net.butfly.albacore.paral.steam.Steam.of;
+import static net.butfly.albacore.paral.steam.Sdream.of;
 import static net.butfly.albacore.utils.Exceptions.unwrap;
 
 import java.io.IOException;
@@ -18,7 +18,7 @@ import org.elasticsearch.transport.RemoteTransportException;
 
 import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.paral.Exeter;
-import net.butfly.albacore.paral.steam.Steam;
+import net.butfly.albacore.paral.steam.Sdream;
 import net.butfly.albacore.utils.Exceptions;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albacore.utils.parallel.Lambdas;
@@ -48,7 +48,7 @@ public final class ElasticOutput extends Namedly implements Output<Message> {
 	}
 
 	@Override
-	public final void enqueue(Steam<Message> msgs) {
+	public final void enqueue(Sdream<Message> msgs) {
 		List<Message> ol = msgs.list();
 		if (ol.isEmpty()) return;
 		Map<String, Message> remains = of(ol).partition(Message::key, conn::fixTable, Lambdas.nullOr());

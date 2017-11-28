@@ -6,7 +6,7 @@ import java.util.List;
 import org.apache.solr.client.solrj.SolrServerException;
 
 import net.butfly.albacore.base.Namedly;
-import net.butfly.albacore.paral.steam.Steam;
+import net.butfly.albacore.paral.steam.Sdream;
 import net.butfly.albatis.io.KeyOutput;
 import net.butfly.albatis.io.Message;
 import net.butfly.albatis.io.Message.Op;
@@ -47,15 +47,15 @@ public final class SolrOutput extends OutputBase<Message> {
 	}
 
 	@Override
-	public void enqueue(String core, Steam<Message> msgs) {
+	public void enqueue(String core, Sdream<Message> msgs) {
 		msgs.nonNull().partition((del, s) -> {
 			List<Message> ms = s.list();
 			try {
-				if (del.booleanValue()) solr.client().deleteById(core, Steam.of(ms).map(Message::key).list(), DEFAULT_AUTO_COMMIT_MS);
-				else solr.client().add(core, Steam.of(ms).map(m -> Solrs.input(m, keyFieldName)).list(), DEFAULT_AUTO_COMMIT_MS);
+				if (del.booleanValue()) solr.client().deleteById(core, Sdream.of(ms).map(Message::key).list(), DEFAULT_AUTO_COMMIT_MS);
+				else solr.client().add(core, Sdream.of(ms).map(m -> Solrs.input(m, keyFieldName)).list(), DEFAULT_AUTO_COMMIT_MS);
 				succeeded(ms.size());
 			} catch (Exception ex) {
-				failed(Steam.of(ms));
+				failed(Sdream.of(ms));
 			}
 		}, m -> Op.DELETE == m.op(), Integer.MAX_VALUE);
 	}

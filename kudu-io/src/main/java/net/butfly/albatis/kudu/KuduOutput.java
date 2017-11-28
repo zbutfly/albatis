@@ -19,7 +19,7 @@ import org.apache.kudu.client.Operation;
 import org.apache.kudu.client.Upsert;
 
 import net.butfly.albacore.paral.Task;
-import net.butfly.albacore.paral.steam.Steam;
+import net.butfly.albacore.paral.steam.Sdream;
 import net.butfly.albacore.utils.Pair;
 import net.butfly.albatis.io.Message;
 import net.butfly.albatis.io.OddOutput;
@@ -80,7 +80,7 @@ public class KuduOutput extends OddOutput<Message> {
 		if (null == m || m.isEmpty()) return false;
 		working.incrementAndGet();
 		try {
-			connect.apply(op(m), (op, e) -> failed(Steam.of(m)));
+			connect.apply(op(m), (op, e) -> failed(Sdream.of(m)));
 		} finally {
 			working.decrementAndGet();
 		}

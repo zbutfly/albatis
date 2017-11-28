@@ -12,7 +12,7 @@ import org.apache.hadoop.hbase.client.Row;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import net.butfly.albacore.base.Namedly;
-import net.butfly.albacore.paral.steam.Steam;
+import net.butfly.albacore.paral.steam.Sdream;
 import net.butfly.albacore.utils.Exceptions;
 import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.collection.Maps;
@@ -35,16 +35,16 @@ public final class HbaseOutput extends OutputBase<Message> {
 	}
 
 	@Override
-	public void enqueue(String table, Steam<Message> msgs) {
+	public void enqueue(String table, Sdream<Message> msgs) {
 		Map<String, Message> map = Maps.of();
-		List<Pair<Message, Row>> l = Steam.of(incs(table, msgs)).map(m -> new Pair<>(m, Hbases.Results.put(m))).filter(p -> {
+		List<Pair<Message, Row>> l = Sdream.of(incs(table, msgs)).map(m -> new Pair<>(m, Hbases.Results.put(m))).filter(p -> {
 			boolean b = null != p && null != p.v2();
 			if (b) map.put(Bytes.toString(p.v2().getRow()), p.v1());
 			return b;
 		}).list();
 
-		List<Message> vs = Steam.of(l).map(v -> v.v1()).list();
-		List<? extends Row> puts = Steam.of(l).map(v -> v.v2()).list();
+		List<Message> vs = Sdream.of(l).map(v -> v.v1()).list();
+		List<? extends Row> puts = Sdream.of(l).map(v -> v.v2()).list();
 		Object[] results = new Object[l.size()];
 		try {
 			hconn.table(table).batchCallback(puts, results, (region, row, result) -> {
@@ -53,7 +53,7 @@ public final class HbaseOutput extends OutputBase<Message> {
 					Message m = map.get(Bytes.toString(row));
 					logger().debug(() -> "Hbase failed on: " + m.toString(), result instanceof Throwable ? (Throwable) result
 							: new RuntimeException("Unknown hbase return [" + result.getClass() + "]: " + result.toString()));
-					failed(Steam.of(m));
+					failed(Sdream.of(m));
 				}
 			});
 		} catch (Exception ex) {
@@ -62,11 +62,11 @@ public final class HbaseOutput extends OutputBase<Message> {
 			for (int i = 0; i < results.length; i++)
 				if (results[i] instanceof Result) succeeded(1);
 				else fails.add(vs.get(i));
-			failed(Steam.of(fails));
+			failed(Sdream.of(fails));
 		} finally {}
 	}
 
-	private List<Message> incs(String table, Steam<Message> values) {
+	private List<Message> incs(String table, Sdream<Message> values) {
 		List<Message> upds = list();
 		Map<String, List<Message>> incByKeys = Maps.of();
 		for (Message m : values.list())

@@ -7,10 +7,10 @@ import java.util.function.Function;
 
 import net.butfly.albacore.io.Enqueuer;
 import net.butfly.albacore.io.IO;
-import net.butfly.albacore.paral.steam.Steam;
+import net.butfly.albacore.paral.steam.Sdream;
 import net.butfly.albatis.io.ext.FailoverOutput;
 
-public interface Output<V> extends IO, Consumer<Steam<V>>, Enqueuer<V> {
+public interface Output<V> extends IO, Consumer<Sdream<V>>, Enqueuer<V> {
 	static Output<?> NULL = items -> {};
 
 	@Override
@@ -19,7 +19,7 @@ public interface Output<V> extends IO, Consumer<Steam<V>>, Enqueuer<V> {
 	}
 
 	@Override
-	default void accept(Steam<V> items) {
+	default void accept(Sdream<V> items) {
 		enqueue(items);
 	}
 
@@ -27,11 +27,11 @@ public interface Output<V> extends IO, Consumer<Steam<V>>, Enqueuer<V> {
 		return Wrapper.wrap(this, "Prior", s -> enqueue(s.map(conv)));
 	}
 
-	default <V0> Output<V0> priors(Function<Steam<V0>, Steam<V>> conv) {
+	default <V0> Output<V0> priors(Function<Sdream<V0>, Sdream<V>> conv) {
 		return priors(conv, 1);
 	}
 
-	default <V0> Output<V0> priors(Function<Steam<V0>, Steam<V>> conv, int parallelism) {
+	default <V0> Output<V0> priors(Function<Sdream<V0>, Sdream<V>> conv, int parallelism) {
 		return Wrapper.wrap(this, "Priors", (Enqueuer<V0>) s -> s.partition(ss -> enqueue(conv.apply(ss)), parallelism));
 	}
 
@@ -44,7 +44,7 @@ public interface Output<V> extends IO, Consumer<Steam<V>>, Enqueuer<V> {
 		return Wrapper.wrap(this, "Batch", s -> s.batch(this::enqueue, batchSize));
 	}
 
-	default <K> KeyOutput<K, V> partitial(Function<V, K> partitier, BiConsumer<K, Steam<V>> enqueuing) {
+	default <K> KeyOutput<K, V> partitial(Function<V, K> partitier, BiConsumer<K, Sdream<V>> enqueuing) {
 
 		return new KeyOutput<K, V>() {
 			@Override
@@ -53,7 +53,7 @@ public interface Output<V> extends IO, Consumer<Steam<V>>, Enqueuer<V> {
 			}
 
 			@Override
-			public void enqueue(K key, Steam<V> v) {
+			public void enqueue(K key, Sdream<V> v) {
 				enqueuing.accept(key, v);
 			}
 		};

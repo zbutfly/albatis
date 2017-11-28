@@ -1,16 +1,16 @@
 package net.butfly.albatis.io;
 
-import net.butfly.albacore.paral.steam.Steam;
+import net.butfly.albacore.paral.steam.Sdream;
 import net.butfly.albatis.io.ext.FailoverOutput;
 
 public interface KeyOutput<K, V> extends Output<V> {
 	K partition(V v);
 
-	void enqueue(K key, Steam<V> v);
+	void enqueue(K key, Sdream<V> v);
 
 	@Override
-	public default void enqueue(Steam<V> s) {
-		s.partition((k, v) -> enqueue(Steam.of(v)), v -> partition(v));
+	public default void enqueue(Sdream<V> s) {
+		s.partition((k, v) -> enqueue(Sdream.of(v)), v -> partition(v));
 	}
 
 	@Override
@@ -28,7 +28,7 @@ public interface KeyOutput<K, V> extends Output<V> {
 			}
 
 			@Override
-			public void enqueue(K key, Steam<V> s) {
+			public void enqueue(K key, Sdream<V> s) {
 				s.batch(ss -> origin.enqueue(key, ss), batchSize);
 			}
 		};
@@ -53,7 +53,7 @@ public interface KeyOutput<K, V> extends Output<V> {
 		}
 
 		@Override
-		public void enqueue(K key, Steam<V> v) {
+		public void enqueue(K key, Sdream<V> v) {
 			((KeyOutput<K, V>) base).enqueue(key, v);
 		}
 	}

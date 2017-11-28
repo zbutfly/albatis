@@ -18,7 +18,7 @@ import org.apache.hadoop.hbase.filter.MultipleColumnPrefixFilter;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import net.butfly.albacore.base.Namedly;
-import net.butfly.albacore.paral.steam.Steam;
+import net.butfly.albacore.paral.steam.Sdream;
 import net.butfly.albatis.io.Input;
 import net.butfly.albatis.io.Message;
 
@@ -200,7 +200,7 @@ public class HbaseInput extends Namedly implements Input<Message> {
 	}
 
 	@Override
-	public void dequeue(Consumer<Steam<Message>> using, int batchSize) {
+	public void dequeue(Consumer<Sdream<Message>> using, int batchSize) {
 		if (!ended.get() && scanerLock.writeLock().tryLock()) {
 			Result[] rs = null;
 			try {
@@ -212,7 +212,7 @@ public class HbaseInput extends Namedly implements Input<Message> {
 			}
 			if (null != rs) {
 				ended.set(rs.length == 0);
-				if (rs.length > 0) using.accept(Steam.of(rs).map(r -> Hbases.Results.result(htname, r)));
+				if (rs.length > 0) using.accept(Sdream.of(rs).map(r -> Hbases.Results.result(htname, r)));
 			}
 		}
 	}

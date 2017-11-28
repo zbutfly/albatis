@@ -1,7 +1,7 @@
 package net.butfly.albatis.kudu;
 
 import static net.butfly.albacore.paral.Task.waitSleep;
-import static net.butfly.albacore.paral.steam.Steam.of;
+import static net.butfly.albacore.paral.steam.Sdream.of;
 
 import java.io.IOException;
 import java.util.List;
