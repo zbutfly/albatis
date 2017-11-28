@@ -1,6 +1,6 @@
 package net.butfly.albatis.hbase;
 
-import static net.butfly.albacore.paral.Parals.list;
+import static net.butfly.albacore.utils.collection.Colls.list;
 
 import java.io.IOException;
 import java.util.List;
@@ -49,7 +49,7 @@ public final class HbaseOutput extends Namedly implements KeyOutput<String, Mess
 					Message m = map.get(Bytes.toString(row));
 					logger().debug(() -> "Hbase failed on: " + m.toString(), result instanceof Throwable ? (Throwable) result
 							: new RuntimeException("Unknown hbase return [" + result.getClass() + "]: " + result.toString()));
-					failed(Sdream.of(m));
+					failed(Sdream.of1(m));
 				}
 			});
 		} catch (Exception ex) {

@@ -1,6 +1,6 @@
 package net.butfly.albatis.solr;
 
-import static net.butfly.albacore.utils.collection.Streams.map;
+import static net.butfly.albacore.paral.steam.Sdream.of;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -10,7 +10,6 @@ import java.util.Map.Entry;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
-import java.util.stream.Collectors;
 
 import org.apache.solr.client.solrj.ResponseParser;
 import org.apache.solr.client.solrj.SolrClient;
@@ -247,11 +246,11 @@ public final class Solrs extends Utils {
 	public static SolrInputDocument input(Message m, String keyFieldName) {
 		if (null == m) return null;
 		if (m.isEmpty() || null == m.key()) return null;
-		SolrInputDocument doc = new SolrInputDocument(map(m.entrySet(), e -> {
+		SolrInputDocument doc = new SolrInputDocument(of(m).map(e -> {
 			SolrInputField f = new SolrInputField(e.getKey());
 			f.setValue(e.getValue(), 1f);
 			return f;
-		}, Collectors.toConcurrentMap(f -> f.getName(), f -> f)));
+		}).partitions(SolrInputField::getName, f -> f));
 		doc.addField(keyFieldName, m.key());
 		return doc;
 	}

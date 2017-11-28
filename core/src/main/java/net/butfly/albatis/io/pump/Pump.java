@@ -1,11 +1,13 @@
 package net.butfly.albatis.io.pump;
 
+import static net.butfly.albacore.utils.Systems.handleSignal;
+import static net.butfly.albacore.utils.Systems.pid;
+import static net.butfly.albacore.utils.Systems.threadsRunning;
+
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import net.butfly.albacore.io.Openable;
-import net.butfly.albacore.utils.Systems;
 import net.butfly.albacore.utils.stats.Statistical;
 import net.butfly.albatis.io.Input;
 import net.butfly.albatis.io.Output;
@@ -17,12 +19,11 @@ public interface Pump<V> extends Statistical<Pump<V>>, Openable {
 	@Override
 	default void open() {
 		Openable.super.open();
-		Systems.handleSignal(sig -> {
+		handleSignal(sig -> {
 			close();
-			System.err.println("Maybe you need to kill me manually: kill -9 " + Systems.pid() + "\n" + Systems.threadsRunning().count()
+			System.err.println("Maybe you need to kill me manually: kill -9 " + pid() + "\n" + threadsRunning().count()
 					+ " threads remain: ");
-			System.err.println("\t" + Systems.threadsRunning().map(t -> t.getId() + "[" + t.getName() + "]").collect(Collectors.joining(
-					", ")));
+			System.err.println("\t" + threadsRunning().joinAsString(t -> t.getId() + "[" + t.getName() + "]", ","));
 		}, "TERM", "INT");
 	}
 

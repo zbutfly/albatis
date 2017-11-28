@@ -8,14 +8,11 @@ import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.BiConsumer;
-import java.util.stream.Collectors;
 
 import net.butfly.albacore.serder.BsonSerder;
 import net.butfly.albacore.utils.IOs;
 import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.collection.Maps;
-import net.butfly.albacore.utils.collection.Streams;
 
 public class Message extends ConcurrentHashMap<String, Object> {
 	private static final long serialVersionUID = 2316795812336748252L;
@@ -134,10 +131,4 @@ public class Message extends ConcurrentHashMap<String, Object> {
 		return new HashMap<>(this);
 	}
 
-	public void each(BiConsumer<String, Object> using) {
-		Streams.map(entrySet(), e -> {
-			using.accept(e.getKey(), e.getValue());
-			return null;
-		}, Collectors.counting());
-	}
 }

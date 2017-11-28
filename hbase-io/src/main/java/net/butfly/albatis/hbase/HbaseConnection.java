@@ -1,7 +1,6 @@
 package net.butfly.albatis.hbase;
 
-import static net.butfly.albacore.utils.collection.Streams.map;
-
+import static net.butfly.albacore.paral.steam.Sdream.of;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
@@ -11,8 +10,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.TableName;
@@ -112,9 +109,9 @@ public class HbaseConnection extends NoSqlConnection<Connection> {
 		if (gets.size() == 1) return Arrays.asList(scan(table, gets.get(0)));
 		return table(table, t -> {
 			try {
-				return map(Stream.of(t.get(gets)), r -> Hbases.Results.result(table, r), Collectors.toList());
+				return of(t.get(gets)).map(r -> Hbases.Results.result(table, r)).list();
 			} catch (Exception ex) {
-				return map(gets, g -> scan(table, g), r -> null != r, Collectors.toList());
+				return of(gets).map(g -> scan(table, g)).nonNull().list();
 			}
 		});
 	}

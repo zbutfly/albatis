@@ -1,8 +1,6 @@
 package net.butfly.albatis.io.ext;
 
-import static net.butfly.albacore.utils.collection.Streams.map;
-
-import java.util.stream.Collectors;
+import static net.butfly.albacore.paral.steam.Sdream.of;
 
 import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.paral.steam.Sdream;
@@ -12,7 +10,7 @@ public class FanOutput<V> extends Namedly implements Output<V> {
 	private final Iterable<? extends Output<V>> outputs;
 
 	public FanOutput(Iterable<? extends Output<V>> outputs) {
-		this("FanOutTo" + ":" + map(outputs, o -> o.name(), Collectors.joining("&")), outputs);
+		this("FanOutTo" + ":" + of(outputs).joinAsString(Output::name, "&"), outputs);
 		open();
 	}
 

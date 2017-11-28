@@ -3,10 +3,12 @@ package net.butfly.albatis.mongodb;
 import static net.butfly.albacore.paral.steam.Sdream.of;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 
 import com.google.common.base.Joiner;
 import com.mongodb.Bytes;
@@ -17,6 +19,7 @@ import com.mongodb.MongoException;
 import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
+import net.butfly.albacore.utils.parallel.Lambdas;
 import net.butfly.albatis.io.Message;
 import net.butfly.albatis.io.OddInput;
 
@@ -41,15 +44,20 @@ public class MongoInput extends OddInput<Message> {
 		this.conn = conn;
 		logger.debug("[" + name + "] find begin...");
 		cursors = new LinkedBlockingQueue<>(tables.length);
-		of(tables).setWait(true).each(t -> {
-			try {
-				cursors.put(new Pair<>(t, conn.cursor(t).batchSize(conn.getBatchSize()).addOption(Bytes.QUERYOPTION_NOTIMEOUT)));
-			} catch (Exception e) {
-				logger.error("MongoDB query [" + t + "]failed", e);
-			} finally {
-				queryings.decrementAndGet();
+		List<Pair<String, DBCursor>> ss = of(tables).join(new Function<String, DBCursor>() {
+			@Override
+			public DBCursor apply(String t) {
+				try {
+					return conn.cursor(t).batchSize(conn.getBatchSize()).addOption(Bytes.QUERYOPTION_NOTIMEOUT);
+				} catch (Exception e) {
+					logger.error("MongoDB query [" + t + "]failed", e);
+					return null;
+				} finally {
+					queryings.decrementAndGet();
+				}
 			}
-		});
+		}).filter(Lambdas.notNull()).list();
+		cursors.addAll(ss);
 		closing(this::closeMongo);
 		open();
 	}
@@ -66,16 +74,17 @@ public class MongoInput extends OddInput<Message> {
 		this.conn = conn;
 		logger.debug("[" + name + "] find begin...");
 		cursors = new LinkedBlockingQueue<>(tablesAndQueries.size());
-		of(tablesAndQueries.entrySet()).setWait(true).each(e -> {
+		cursors.addAll(of(tablesAndQueries).map(e -> {
 			try {
-				cursors.put(new Pair<>(e.getKey(), conn.cursor(e.getKey(), e.getValue()).batchSize(conn.getBatchSize()).addOption(
-						Bytes.QUERYOPTION_NOTIMEOUT)));
+				return new Pair<>(e.getKey(), conn.cursor(e.getKey(), e.getValue()).batchSize(conn.getBatchSize()).addOption(
+						Bytes.QUERYOPTION_NOTIMEOUT));
 			} catch (Exception ex) {
 				logger.error("MongoDB query [" + e.getKey() + "]failed", ex);
+				return null;
 			} finally {
 				queryings.decrementAndGet();
 			}
-		});
+		}).list());
 		closing(this::closeMongo);
 		open();
 	}

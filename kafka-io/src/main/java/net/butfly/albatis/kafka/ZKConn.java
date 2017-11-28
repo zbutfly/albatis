@@ -1,16 +1,12 @@
 package net.butfly.albatis.kafka;
 
-import static net.butfly.albacore.utils.collection.Streams.toMap;
-import static net.butfly.albacore.utils.collection.Streams.maps;
+import static net.butfly.albacore.paral.steam.Sdream.of;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooKeeper;
@@ -20,11 +16,11 @@ import kafka.common.TopicAndPartition;
 import kafka.javaapi.OffsetRequest;
 import kafka.javaapi.consumer.SimpleConsumer;
 import kafka.utils.ZkUtils;
+import net.butfly.albacore.paral.steam.Sdream;
 import net.butfly.albacore.serder.JsonSerder;
 import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
-import scala.Tuple2;
 
 public class ZKConn implements AutoCloseable {
 	private final static Logger logger = Logger.getLogger(ZKConn.class);
@@ -39,9 +35,9 @@ public class ZKConn implements AutoCloseable {
 		}
 	}
 
-	private List<String> fetchChildren(String path) {
+	private Sdream<String> fetchChildren(String path) {
 		try {
-			return zk.getChildren(path, false);
+			return of(zk.getChildren(path, false));
 		} catch (KeeperException e) {
 			throw new RuntimeException("ZK failure", e);
 		} catch (InterruptedException e) {
@@ -73,10 +69,10 @@ public class ZKConn implements AutoCloseable {
 	}
 
 	public String[] getBorkers() {
-		return fetchChildren(ZkUtils.BrokerIdsPath()).stream().map(bid -> {
+		return fetchChildren(ZkUtils.BrokerIdsPath()).map(bid -> {
 			Pair<String, Integer> addr = getBorkerAddr(Integer.parseInt(bid));
 			return addr.v1() + ":" + addr.v2().toString();
-		}).collect(Collectors.toList()).toArray(new String[0]);
+		}).list().toArray(new String[0]);
 	}
 
 	private Pair<String, Integer> getBorkerAddr(int id) {
@@ -85,19 +81,18 @@ public class ZKConn implements AutoCloseable {
 	}
 
 	public Map<String, int[]> getTopicPartitions() {
-		@SuppressWarnings("unchecked")
-		Stream<Tuple2<String, Set<Integer>>> s = fetchChildren(ZkUtils.BrokerTopicsPath()).stream().map(topic -> {
+		return fetchChildren(ZkUtils.BrokerTopicsPath()).map(topic -> {
+			@SuppressWarnings("unchecked")
 			Map<String, List<Integer>> parts = (Map<String, List<Integer>>) fetchMap(ZkUtils.getTopicPath(topic)).get("partitions");
-			Tuple2<String, Set<Integer>> t = new Tuple2<String, Set<Integer>>(topic, parts.keySet().stream().map(i -> Integer.parseInt(i))
-					.collect(Collectors.toSet()));
+			int[] ints = of(parts.keySet()).map(Integer::parseInt).list().stream().mapToInt(i -> i.intValue()).sorted().toArray();
+			Pair<String, int[]> t = new Pair<>(topic, ints);
 			return t;
-		});
-		return toMap(s, t -> t._1, t -> t._2.stream().mapToInt(i -> null == i ? 0 : i.intValue()).sorted().toArray());
+		}).partitions(t -> t.v1(), t -> t.v2());
 	}
 
 	public Map<String, int[]> getTopicPartitions(String... topics) {
 		if (topics == null || topics.length == 0) return getTopicPartitions();
-		return toMap(Stream.of(topics), t -> t, t -> {
+		return of(topics).partitions(t -> t, t -> {
 			Map<String, Object> info = fetchMap(ZkUtils.getTopicPath(t));
 			if (null == info) return new int[0];
 			else {
@@ -137,16 +132,16 @@ public class ZKConn implements AutoCloseable {
 	@SuppressWarnings("unchecked")
 	@Deprecated
 	protected <T> T fetchTree(String path, Class<T> cl) {
-		List<String> nodes = fetchChildren(path);
+		List<String> nodes = fetchChildren(path).list();
 		if (null == nodes || nodes.isEmpty()) {
 			Map<String, Object> map = fetchMap(path);
 			return null == map ? fetchValue(path, cl) : (T) map;
-		} else return (T) maps(nodes, s -> s.map(node -> {
+		} else return (T) of(nodes).partitions(n -> n, node -> {
 			String subpath = "/".equals(path) ? "/" + node : path + "/" + node;
 			System.err.println("Scan zk: " + subpath);
 			Object sub = fetchTree(subpath, cl);
 			return new Pair<String, Object>(node, sub);
-		}).filter(p -> p.v2() != null), Collectors.toMap(p -> p.v1(), p -> p.v2()));
+		});
 	}
 
 	@Override

@@ -1,7 +1,5 @@
 package net.butfly.albatis.hbase;
 
-import static net.butfly.albacore.utils.collection.Streams.collect;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -12,7 +10,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
@@ -33,11 +30,12 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Row;
 import org.apache.hadoop.hbase.util.Bytes;
 
+import net.butfly.albacore.paral.steam.Sdream;
 import net.butfly.albacore.utils.IOs;
 import net.butfly.albacore.utils.Utils;
 import net.butfly.albacore.utils.collection.Maps;
-import net.butfly.albacore.utils.collection.Streams;
 import net.butfly.albacore.utils.logger.Logger;
+import net.butfly.albacore.utils.parallel.Lambdas;
 import net.butfly.albatis.io.Message;
 
 public final class Hbases extends Utils {
@@ -99,7 +97,7 @@ public final class Hbases extends Utils {
 	}
 
 	public static long totalCellSize(List<Result> rs) {
-		return collect(Streams.of(rs), Collectors.summingLong(r -> r.size()));
+		return Sdream.of(rs).map(Result::size).reduce(Lambdas.sumLong());
 	}
 
 	public static Map<String, byte[]> map(Stream<Cell> cells) {
@@ -158,10 +156,13 @@ public final class Hbases extends Utils {
 			case INSERT:
 			case UPSERT:
 				Put put = new Put(rowk);
-				m.each((k, v) -> {
-					if (!(v instanceof byte[]) || null == ((byte[]) v) || ((byte[]) v).length == 0) return;
+				Sdream.of(m).map(e -> {
+					Object v = e.getValue();
+					String k = e.getKey();
+					if (!(v instanceof byte[]) || null == ((byte[]) v) || ((byte[]) v).length == 0) return null;
 					byte[][] fq = Results.parseFQ(k);
-					Cell c = CellUtil.createCell(rowk, fq[0], fq[1], HConstants.LATEST_TIMESTAMP, Type.Put.getCode(), (byte[]) v);
+					return CellUtil.createCell(rowk, fq[0], fq[1], HConstants.LATEST_TIMESTAMP, Type.Put.getCode(), (byte[]) v);
+				}).nonNull().eachs(c -> {
 					try {
 						put.add(c);
 					} catch (Exception ee) {
@@ -172,8 +173,9 @@ public final class Hbases extends Utils {
 				return put;
 			case INCREASE:
 				Increment inc = new Increment(rowk);
-				m.each((k, v) -> {
-					byte[][] fq = Results.parseFQ(k);
+				Sdream.of(m).eachs(e -> {
+					byte[][] fq = Results.parseFQ(e.getKey());
+					Object v = e.getValue();
 					inc.addColumn(fq[0], fq[1], null == v ? 1 : ((Long) v).longValue());
 				});
 				return inc;
