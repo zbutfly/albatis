@@ -8,6 +8,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import net.butfly.albacore.io.Openable;
+import net.butfly.albacore.utils.stats.Statistical;
 import net.butfly.albatis.io.Input;
 import net.butfly.albatis.io.Output;
 import net.butfly.albatis.io.ext.DryOutput;
@@ -21,16 +22,9 @@ public interface Pump<V> extends Statistical<Pump<V>>, Openable {
 		Openable.super.open();
 		handleSignal(sig -> {
 			close();
-			List<Thread> threads = threadsRunning().list();
-			System.err.println("Maybe you need to kill me manually: kill -9 " + pid() + "\n" + threads.size() + " threads remain: ");
-			int i = 0;
-			for (Thread t : threads) {
-				if (i++ < 10) System.err.println("\t" + t.getId() + "[" + t.getName() + "]");
-				else {
-					System.err.println("\t......................");
-					break;
-				}
-			}
+			System.err.println("Maybe you need to kill me manually: kill -9 " + pid() + "\n" + threadsRunning().count()
+					+ " threads remain: ");
+			System.err.println("\t" + threadsRunning().joinAsString(t -> t.getId() + "[" + t.getName() + "]", ","));
 		}, "TERM", "INT");
 	}
 

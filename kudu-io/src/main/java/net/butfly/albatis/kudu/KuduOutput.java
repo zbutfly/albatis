@@ -1,16 +1,14 @@
 package net.butfly.albatis.kudu;
 
-import static net.butfly.albacore.utils.collection.Streams.ofMap;
+import static net.butfly.albacore.paral.steam.Sdream.of;
 
 import java.io.BufferedWriter;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.util.Map;
-import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
 
 import org.apache.kudu.ColumnSchema;
 import org.apache.kudu.client.Delete;
@@ -21,6 +19,7 @@ import org.apache.kudu.client.Upsert;
 import net.butfly.albacore.paral.Task;
 import net.butfly.albacore.paral.steam.Sdream;
 import net.butfly.albacore.utils.Pair;
+import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albatis.io.Message;
 import net.butfly.albatis.io.OddOutput;
 
@@ -42,13 +41,12 @@ public class KuduOutput extends OddOutput<Message> {
 		// sdumpDups();
 	}
 
-	protected final Map<String, Long> keys = new ConcurrentSkipListMap<>();
+	protected final Map<String, Long> keys = Maps.of();
 	protected final AtomicReference<Pair<String, Long>> maxDup = new AtomicReference<>();
 
 	protected void dumpDups() {
 		if (keys.isEmpty()) return;
-		Map<String, Long> dups = ofMap(keys).filter(e -> e.getValue() > 1).collect(Collectors.toConcurrentMap(e -> e.getKey(), e -> e
-				.getValue()));
+		Map<String, Long> dups = of(keys).filter(e -> e.getValue() > 1).partitions(e -> e.getKey(), e -> e.getValue());
 		try (FileOutputStream fs = new FileOutputStream("duplicated-keys.dump");
 				OutputStreamWriter ow = new OutputStreamWriter(fs);
 				BufferedWriter ww = new BufferedWriter(ow);) {
@@ -80,7 +78,7 @@ public class KuduOutput extends OddOutput<Message> {
 		if (null == m || m.isEmpty()) return false;
 		working.incrementAndGet();
 		try {
-			connect.apply(op(m), (op, e) -> failed(Sdream.of(m)));
+			connect.apply(op(m), (op, e) -> failed(Sdream.of1(m)));
 		} finally {
 			working.decrementAndGet();
 		}

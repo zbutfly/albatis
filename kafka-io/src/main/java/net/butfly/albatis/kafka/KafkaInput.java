@@ -1,7 +1,6 @@
 package net.butfly.albatis.kafka;
 
-import static net.butfly.albacore.utils.collection.Streams.map;
-import static net.butfly.albacore.utils.collection.Streams.maps;
+import static net.butfly.albacore.paral.steam.Sdream.of;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -12,7 +11,6 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import kafka.common.ConsumerRebalanceFailedException;
 import kafka.common.MessageStreamsExistException;
@@ -94,8 +92,7 @@ public class KafkaInput extends OddInput<Message> {
 		while (temp == null);
 		connect = c;
 		logger().info("[" + name() + "] connected.");
-		consumers = new LinkedBlockingQueue<>(maps(temp.entrySet(), s -> s.flatMap(e -> map(e.getValue(),
-				KafkaStream<byte[], byte[]>::iterator)), Collectors.toList()));
+		consumers = new LinkedBlockingQueue<>(of(temp).mapFlat(e -> of(e.getValue()).map(s -> s.iterator())).list());
 		closing(this::closeKafka);
 	}
 
