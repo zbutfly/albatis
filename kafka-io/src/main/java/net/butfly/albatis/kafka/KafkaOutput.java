@@ -12,7 +12,7 @@ import kafka.producer.KeyedMessage;
 import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.exception.ConfigException;
 import net.butfly.albacore.io.URISpec;
-import net.butfly.albacore.paral.steam.Steam;
+import net.butfly.albacore.paral.steam.Sdream;
 import net.butfly.albatis.io.Message;
 import net.butfly.albatis.io.Output;
 import net.butfly.albatis.kafka.config.KafkaOutputConfig;
@@ -37,7 +37,7 @@ public final class KafkaOutput extends Namedly implements Output<Message> {
 	}
 
 	@Override
-	public void enqueue(Steam<Message> messages) {
+	public void enqueue(Sdream<Message> messages) {
 		List<Message> msgs = messages.list();
 		List<KeyedMessage<byte[], byte[]>> ms = map(msgs, m -> Kafkas.toKeyedMessage(m, coder), Collectors.toList());
 		if (!ms.isEmpty()) try {

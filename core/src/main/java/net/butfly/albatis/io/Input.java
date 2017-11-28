@@ -11,7 +11,7 @@ import java.util.function.Supplier;
 import net.butfly.albacore.io.Dequeuer;
 import net.butfly.albacore.io.IO;
 import net.butfly.albacore.paral.Parals;
-import net.butfly.albacore.paral.steam.Steam;
+import net.butfly.albacore.paral.steam.Sdream;
 import net.butfly.albatis.io.ext.PrefetchInput;
 
 public interface Input<V> extends IO, Dequeuer<V> {
@@ -31,11 +31,11 @@ public interface Input<V> extends IO, Dequeuer<V> {
 		return Wrapper.wrap(this, "Then", (using, batchSize) -> dequeue(s -> using.accept(s.map(conv)), batchSize));
 	}
 
-	default <V1> Input<V1> thens(Function<Steam<V>, Steam<V1>> conv) {
+	default <V1> Input<V1> thens(Function<Sdream<V>, Sdream<V1>> conv) {
 		return Wrapper.wrap(this, "Thens", (using, batchSize) -> dequeue(s -> using.accept(conv.apply(s)), batchSize));
 	}
 
-	default <V1> Input<V1> thens(Function<Steam<V>, Steam<V1>> conv, int parallelism) {
+	default <V1> Input<V1> thens(Function<Sdream<V>, Sdream<V1>> conv, int parallelism) {
 		return Wrapper.wrap(this, "Thens", (using, batchSize) -> //
 		dequeue(s -> s.partition(v -> using.accept(conv.apply(v)), parallelism), batchSize));
 	}
@@ -51,10 +51,10 @@ public interface Input<V> extends IO, Dequeuer<V> {
 			private final BlockingQueue<T> undly = new LinkedBlockingQueue<>(collection);
 
 			@Override
-			public void dequeue(final Consumer<Steam<T>> using, final int batchSize) {
+			public void dequeue(final Consumer<Sdream<T>> using, final int batchSize) {
 				final List<T> l = Parals.list();
 				undly.drainTo(l, batchSize);
-				if (!l.isEmpty()) using.accept(Steam.of(l));
+				if (!l.isEmpty()) using.accept(Sdream.of(l));
 			}
 		};
 	}
@@ -65,7 +65,7 @@ public interface Input<V> extends IO, Dequeuer<V> {
 			T t;
 			while (!ending.get() && null != (t = next.get()) && l.size() < batchSize)
 				l.add(t);
-			using.accept(Steam.of(l));
+			using.accept(Sdream.of(l));
 		};
 	}
 }

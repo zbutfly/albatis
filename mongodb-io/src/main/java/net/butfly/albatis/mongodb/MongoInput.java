@@ -1,6 +1,6 @@
 package net.butfly.albatis.mongodb;
 
-import static net.butfly.albacore.paral.steam.Steam.of;
+import static net.butfly.albacore.paral.steam.Sdream.of;
 
 import java.io.IOException;
 import java.util.Map;

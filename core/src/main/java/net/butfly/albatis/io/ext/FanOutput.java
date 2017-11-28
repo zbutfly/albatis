@@ -5,7 +5,7 @@ import static net.butfly.albacore.utils.collection.Streams.map;
 import java.util.stream.Collectors;
 
 import net.butfly.albacore.base.Namedly;
-import net.butfly.albacore.paral.steam.Steam;
+import net.butfly.albacore.paral.steam.Sdream;
 import net.butfly.albatis.io.Output;
 
 public class FanOutput<V> extends Namedly implements Output<V> {
@@ -22,7 +22,7 @@ public class FanOutput<V> extends Namedly implements Output<V> {
 	}
 
 	@Override
-	public void enqueue(Steam<V> s) {
+	public void enqueue(Sdream<V> s) {
 		for (Output<V> o : outputs)
 			o.enqueue(s);
 	}

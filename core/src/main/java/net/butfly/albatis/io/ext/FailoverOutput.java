@@ -1,6 +1,6 @@
 package net.butfly.albatis.io.ext;
 
-import net.butfly.albacore.paral.steam.Steam;
+import net.butfly.albacore.paral.steam.Sdream;
 import net.butfly.albacore.utils.OpenableThread;
 import net.butfly.albatis.io.Output;
 import net.butfly.albatis.io.Queue;
@@ -39,12 +39,12 @@ public class FailoverOutput<M> extends Wrapper.WrapOutput<M, M> {
 	}
 
 	@Override
-	public final void enqueue(Steam<M> els) {
+	public final void enqueue(Sdream<M> els) {
 		base.enqueue(els);
 	}
 
 	@Override
-	public void failed(Steam<M> failed) {
+	public void failed(Sdream<M> failed) {
 		pool.enqueue(failed);
 	}
 

@@ -5,7 +5,7 @@ import java.util.function.Function;
 
 import com.bluejeans.bigqueue.BigQueue;
 
-import net.butfly.albacore.paral.steam.Steam;
+import net.butfly.albacore.paral.steam.Sdream;
 
 /**
  * Rich feature queue for big data processing, supporting:
@@ -45,17 +45,17 @@ public interface Queue0<I, O> extends Input<O>, Output<I> {
 	default <O1> Queue0<I, O1> then(Function<O, O1> conv) {
 		Queue0<I, O1> i = new Queue0<I, O1>() {
 			@Override
-			public void dequeue(Consumer<Steam<O1>> using, int batchSize) {
+			public void dequeue(Consumer<Sdream<O1>> using, int batchSize) {
 				Queue0.this.dequeue(s -> using.accept(s.map(conv)), batchSize);
 			}
 
 			@Override
-			public void enqueue(Steam<I> items) {
+			public void enqueue(Sdream<I> items) {
 				Queue0.this.enqueue(items);
 			}
 
 			@Override
-			public void failed(Steam<I> failed) {
+			public void failed(Sdream<I> failed) {
 				Queue0.this.failed(failed);
 			}
 
@@ -74,20 +74,20 @@ public interface Queue0<I, O> extends Input<O>, Output<I> {
 	}
 
 	@Override
-	default <O1> Queue0<I, O1> thens(Function<Steam<O>, Steam<O1>> conv, int parallelism) {
+	default <O1> Queue0<I, O1> thens(Function<Sdream<O>, Sdream<O1>> conv, int parallelism) {
 		Queue0<I, O1> i = new Queue0<I, O1>() {
 			@Override
-			public void dequeue(Consumer<Steam<O1>> using, int batchSize) {
+			public void dequeue(Consumer<Sdream<O1>> using, int batchSize) {
 				Queue0.this.dequeue(s -> s.partition(s1 -> using.accept(conv.apply(s1)), parallelism), batchSize);
 			}
 
 			@Override
-			public void enqueue(Steam<I> items) {
+			public void enqueue(Sdream<I> items) {
 				Queue0.this.enqueue(items);
 			}
 
 			@Override
-			public void failed(Steam<I> failed) {
+			public void failed(Sdream<I> failed) {
 				Queue0.this.failed(failed);
 			}
 
@@ -109,17 +109,17 @@ public interface Queue0<I, O> extends Input<O>, Output<I> {
 	default <I0> Queue0<I0, O> prior(Function<I0, I> conv) {
 		Queue0<I0, O> o = new Queue0<I0, O>() {
 			@Override
-			public void dequeue(Consumer<Steam<O>> using, int batchSize) {
+			public void dequeue(Consumer<Sdream<O>> using, int batchSize) {
 				Queue0.this.dequeue(using, batchSize);
 			}
 
 			@Override
-			public void enqueue(Steam<I0> s) {
+			public void enqueue(Sdream<I0> s) {
 				Queue0.this.enqueue(s.map(conv));
 			}
 
 			@Override
-			public void failed(Steam<I0> failed) {
+			public void failed(Sdream<I0> failed) {
 				Queue0.this.failed(failed.map(conv));
 			}
 
@@ -138,15 +138,15 @@ public interface Queue0<I, O> extends Input<O>, Output<I> {
 	}
 
 	@Override
-	default <I0> Queue0<I0, O> priors(Function<Steam<I0>, Steam<I>> conv, int parallelism) {
+	default <I0> Queue0<I0, O> priors(Function<Sdream<I0>, Sdream<I>> conv, int parallelism) {
 		Queue0<I0, O> o = new Queue0<I0, O>() {
 			@Override
-			public void dequeue(Consumer<Steam<O>> using, int batchSize) {
+			public void dequeue(Consumer<Sdream<O>> using, int batchSize) {
 				Queue0.this.dequeue(using, batchSize);
 			}
 
 			@Override
-			public void enqueue(Steam<I0> s) {
+			public void enqueue(Sdream<I0> s) {
 				s.partition(ss -> Queue0.this.enqueue(conv.apply(ss)), parallelism);
 			}
 
@@ -156,7 +156,7 @@ public interface Queue0<I, O> extends Input<O>, Output<I> {
 			}
 
 			@Override
-			public void failed(Steam<I0> failed) {
+			public void failed(Sdream<I0> failed) {
 				failed.partition(ss -> Queue0.this.failed(conv.apply(failed)), parallelism);
 			}
 
