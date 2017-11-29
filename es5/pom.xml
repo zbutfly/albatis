@@ -15,11 +15,40 @@
     <packaging>jar</packaging>
 
     <properties>
-        <elastic.version>5.6.1</elastic.version>
+        <elastic.version>5.5.2</elastic.version>
+        <log4j.core.version>2.9.1</log4j.core.version>
     </properties>
 
     <dependencies>
+        <dependency>
+            <groupId>com.hzcominfo.dataggr.uniquery</groupId>
+            <artifactId>uniquery-core</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+        </dependency>
 
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
+            <version>${log4j.core.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.elasticsearch.client</groupId>
+            <artifactId>transport</artifactId>
+            <version>${elastic.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.elasticsearch.client</groupId>
+            <artifactId>rest</artifactId>
+            <version>${elastic.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.elasticsearch</groupId>
+            <artifactId>elasticsearch</artifactId>
+            <version>${elastic.version}</version>
+        </dependency>
     </dependencies>
 
 </project>
