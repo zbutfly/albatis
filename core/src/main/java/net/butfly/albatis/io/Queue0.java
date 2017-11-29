@@ -5,7 +5,7 @@ import java.util.function.Function;
 
 import com.bluejeans.bigqueue.BigQueue;
 
-import net.butfly.albacore.paral.steam.Sdream;
+import net.butfly.albacore.paral.Sdream;
 
 /**
  * Rich feature queue for big data processing, supporting:

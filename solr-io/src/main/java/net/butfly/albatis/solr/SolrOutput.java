@@ -6,7 +6,7 @@ import java.util.List;
 import org.apache.solr.client.solrj.SolrServerException;
 
 import net.butfly.albacore.base.Namedly;
-import net.butfly.albacore.paral.steam.Sdream;
+import net.butfly.albacore.paral.Sdream;
 import net.butfly.albatis.io.KeyOutput;
 import net.butfly.albatis.io.Message;
 import net.butfly.albatis.io.Message.Op;

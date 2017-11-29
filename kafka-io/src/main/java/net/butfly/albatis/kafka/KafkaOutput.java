@@ -1,6 +1,6 @@
 package net.butfly.albatis.kafka;
 
-import static net.butfly.albacore.paral.steam.Sdream.of;
+import static net.butfly.albacore.paral.Sdream.of;
 
 import java.util.List;
 import java.util.Map;
@@ -11,7 +11,7 @@ import kafka.producer.KeyedMessage;
 import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.exception.ConfigException;
 import net.butfly.albacore.io.URISpec;
-import net.butfly.albacore.paral.steam.Sdream;
+import net.butfly.albacore.paral.Sdream;
 import net.butfly.albatis.io.Message;
 import net.butfly.albatis.io.Output;
 import net.butfly.albatis.kafka.config.KafkaOutputConfig;

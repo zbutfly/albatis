@@ -5,7 +5,7 @@ import java.util.function.Consumer;
 import net.butfly.albacore.io.Dequeuer;
 import net.butfly.albacore.io.Enqueuer;
 import net.butfly.albacore.lambda.Runnable;
-import net.butfly.albacore.paral.steam.Sdream;
+import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.logger.Logger;
 
 public interface Wrapper {

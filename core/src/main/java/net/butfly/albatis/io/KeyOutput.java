@@ -1,6 +1,6 @@
 package net.butfly.albatis.io;
 
-import net.butfly.albacore.paral.steam.Sdream;
+import net.butfly.albacore.paral.Sdream;
 import net.butfly.albatis.io.ext.FailoverOutput;
 
 public interface KeyOutput<K, V> extends Output<V> {

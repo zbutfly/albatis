@@ -3,7 +3,7 @@ package net.butfly.albatis.io;
 import java.util.function.Consumer;
 
 import net.butfly.albacore.base.Namedly;
-import net.butfly.albacore.paral.steam.Sdream;
+import net.butfly.albacore.paral.Sdream;
 
 public abstract class OddInput<V> extends Namedly implements Input<V> {
 	protected OddInput() {
