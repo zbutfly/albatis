@@ -18,7 +18,7 @@ import org.apache.hadoop.hbase.filter.MultipleColumnPrefixFilter;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import net.butfly.albacore.base.Namedly;
-import net.butfly.albacore.paral.steam.Sdream;
+import net.butfly.albacore.paral.Sdream;
 import net.butfly.albatis.io.Input;
 import net.butfly.albatis.io.Message;
 

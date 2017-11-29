@@ -12,7 +12,7 @@ import org.apache.hadoop.hbase.client.Row;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import net.butfly.albacore.base.Namedly;
-import net.butfly.albacore.paral.steam.Sdream;
+import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.Exceptions;
 import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.collection.Maps;

@@ -1,6 +1,6 @@
 package net.butfly.albatis.kudu;
 
-import static net.butfly.albacore.paral.steam.Sdream.of;
+import static net.butfly.albacore.paral.Sdream.of;
 
 import java.io.IOException;
 import java.util.ArrayList;

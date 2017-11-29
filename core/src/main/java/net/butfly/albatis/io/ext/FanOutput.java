@@ -1,9 +1,9 @@
 package net.butfly.albatis.io.ext;
 
-import static net.butfly.albacore.paral.steam.Sdream.of;
+import static net.butfly.albacore.paral.Sdream.of;
 
 import net.butfly.albacore.base.Namedly;
-import net.butfly.albacore.paral.steam.Sdream;
+import net.butfly.albacore.paral.Sdream;
 import net.butfly.albatis.io.Output;
 
 public class FanOutput<V> extends Namedly implements Output<V> {

@@ -2,7 +2,7 @@ package net.butfly.albatis.io.ext;
 
 import java.util.function.Consumer;
 
-import net.butfly.albacore.paral.steam.Sdream;
+import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.OpenableThread;
 import net.butfly.albatis.io.Input;
 import net.butfly.albatis.io.Queue;

@@ -1,6 +1,6 @@
 package net.butfly.albatis.kudu;
 
-import static net.butfly.albacore.paral.steam.Sdream.of;
+import static net.butfly.albacore.paral.Sdream.of;
 
 import java.io.BufferedWriter;
 import java.io.FileOutputStream;
@@ -16,8 +16,8 @@ import org.apache.kudu.client.KuduTable;
 import org.apache.kudu.client.Operation;
 import org.apache.kudu.client.Upsert;
 
+import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.paral.Task;
-import net.butfly.albacore.paral.steam.Sdream;
 import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albatis.io.Message;

@@ -1,6 +1,6 @@
 package net.butfly.albatis.io.ext;
 
-import net.butfly.albacore.paral.steam.Sdream;
+import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.OpenableThread;
 import net.butfly.albatis.io.Output;
 import net.butfly.albatis.io.Queue;

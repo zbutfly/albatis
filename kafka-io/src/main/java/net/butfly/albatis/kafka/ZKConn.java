@@ -1,6 +1,6 @@
 package net.butfly.albatis.kafka;
 
-import static net.butfly.albacore.paral.steam.Sdream.of;
+import static net.butfly.albacore.paral.Sdream.of;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -16,7 +16,7 @@ import kafka.common.TopicAndPartition;
 import kafka.javaapi.OffsetRequest;
 import kafka.javaapi.consumer.SimpleConsumer;
 import kafka.utils.ZkUtils;
-import net.butfly.albacore.paral.steam.Sdream;
+import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.serder.JsonSerder;
 import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.collection.Maps;

@@ -3,7 +3,7 @@ package net.butfly.albatis.io;
 import static net.butfly.albacore.paral.Task.waitSleep;
 
 import net.butfly.albacore.base.Namedly;
-import net.butfly.albacore.paral.steam.Sdream;
+import net.butfly.albacore.paral.Sdream;
 
 public interface OddOutput<V> extends Output<V> {
 	boolean enqueue(V v);
