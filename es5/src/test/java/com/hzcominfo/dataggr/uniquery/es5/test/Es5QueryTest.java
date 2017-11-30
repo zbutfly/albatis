@@ -1,10 +1,16 @@
 package com.hzcominfo.dataggr.uniquery.es5.test;
 
+import com.google.gson.JsonObject;
+import com.hzcominfo.dataggr.uniquery.SqlExplainer;
+import com.hzcominfo.dataggr.uniquery.es5.Es5Query;
+import com.hzcominfo.dataggr.uniquery.es5.SearchRequestBuilderVistor;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.action.search.SearchType;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
+import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.transport.client.PreBuiltTransportClient;
 import org.junit.Before;
 import org.junit.Test;
@@ -32,15 +38,37 @@ public class Es5QueryTest {
     @Test
     public void q1() {
         SearchRequestBuilder requestBuilder = client.prepareSearch("test_hzwa");
-
-        // TODO: 2017/11/29 other settings
-//        requestBuilder.storedFields("LOCATION");
-
+//        String sql1 = "select CAPTURE_TIME_s,LOCATION,MAC_s,BRAND_s,NETBAR_WACODE_s from test_hzwa.TEST_HZWA_WA_SOURCE_FJ_1001 where ";
+        String sql1 = "select CAPTURE_TIME_s,MAC_s,BRAND_s,NETBAR_WACODE_s from test_hzwa.TEST_HZWA_WA_SOURCE_FJ_1001 where ";
+        String sql3 = " limit 2 offset 0";
+//        String sql2 = "NETBAR_WACODE_s = '33010635460001'";
+        String sql2 = "NETBAR_WACODE_s = '33010635460001' and BRAND_s = 'SamsungE'";
+        String sql = sql1 + sql2 + sql3;
+        JsonObject json = SqlExplainer.explain(sql);
+        requestBuilder = new SearchRequestBuilderVistor(requestBuilder, json).get();
+        requestBuilder.setSearchType(SearchType.DFS_QUERY_THEN_FETCH);
+        System.out.println("==============requestBuilder=======================");
+        System.out.println(requestBuilder);
+        System.out.println("==============response=============================");
         SearchResponse response = requestBuilder.get();
         /*System.out.println("total: " + response.getHits().getTotalHits());
         response.getHits().forEach(hit -> {
             System.out.println(hit.getFields());
         });*/
         System.out.println(response);
+    }
+
+
+    public QueryBuilder q2() {
+        String sql = "select * from a where NETBAR_WACODE_s = '33010635460001'";
+//        String sql = "select * from a where BRAND_s = 'AppleInc'";
+//        String sql = "select * from a where NETBAR_WACODE_s = '33010635460001' and MAC_s = '78-9F-70-0F-56-20'";
+        JsonObject condition = SqlExplainer.explain(sql).getAsJsonObject("where");
+        System.out.println("where : " + condition);
+        QueryBuilder query = Es5Query.of(condition);
+        System.out.println("=====================================");
+        System.out.println(query);
+        System.out.println("=====================================");
+        return query;
     }
 }

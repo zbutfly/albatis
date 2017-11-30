@@ -30,6 +30,11 @@ public class TableItem {
         return names.get(names.size() - 1);
     }
 
+    public String name(int last) {
+        if (last >= name().length()) return null;
+        return names.get(names.size() - last - 1);
+    }
+
     public String alias() {
         return alias;
     }
