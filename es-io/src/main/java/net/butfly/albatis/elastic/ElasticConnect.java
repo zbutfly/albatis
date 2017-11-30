@@ -130,11 +130,11 @@ public interface ElasticConnect extends Connection {
 
 			TransportClient tc = new PreBuiltTransportClient(settings.build());
 
-			TransportAddress[] addrs = meta == null ? //
-					Arrays.stream(uri.getInetAddrs()).map(TransportAddress::new).toArray(i -> new TransportAddress[i])
-					: Arrays.stream(Parser.getNodes(meta)).map(n -> n.transport).toArray(i -> new TransportAddress[i]);
-			_logger.debug(() -> "Elastic transport client construct, cluster: [" + cn + "]\n\t" + of(addrs).joinAsString(
-					TransportAddress::toString, ","));
+			InetSocketTransportAddress[] addrs = meta == null ? Arrays.stream(uri.getInetAddrs()).map(InetSocketTransportAddress::new)
+					.toArray(i -> new InetSocketTransportAddress[i])
+					: Arrays.stream(Parser.getNodes(meta)).map(n -> n.transport).toArray(i -> new InetSocketTransportAddress[i]);
+			_logger.debug(() -> "Elastic transport client construct, cluster: [" + cn + "]\n\t" + Arrays.stream(addrs).map(a -> a
+					.toString()).collect(Collectors.joining(",")));
 
 			tc.addTransportAddresses(addrs);
 			return tc;
