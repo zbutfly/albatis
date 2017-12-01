@@ -40,7 +40,7 @@ public class SearchRequestBuilderVistor extends JsonBasicVisitor<SearchRequestBu
     @Override
     public void visitConditions(JsonObject json) {
         SearchRequestBuilder builder = super.get();
-        QueryBuilder query = Es5Query.of(json);
+        QueryBuilder query = Es5ConditionTransverter.of(json);
         System.out.println("==============query===============================");
         System.out.println(query);
         builder.setQuery(query);

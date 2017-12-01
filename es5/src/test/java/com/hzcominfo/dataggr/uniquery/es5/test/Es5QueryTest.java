@@ -2,7 +2,7 @@ package com.hzcominfo.dataggr.uniquery.es5.test;
 
 import com.google.gson.JsonObject;
 import com.hzcominfo.dataggr.uniquery.SqlExplainer;
-import com.hzcominfo.dataggr.uniquery.es5.Es5Query;
+import com.hzcominfo.dataggr.uniquery.es5.Es5ConditionTransverter;
 import com.hzcominfo.dataggr.uniquery.es5.SearchRequestBuilderVistor;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
@@ -11,7 +11,6 @@ import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.index.query.QueryBuilder;
-import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.transport.client.PreBuiltTransportClient;
 import org.junit.Before;
 import org.junit.Test;
@@ -71,7 +70,7 @@ public class Es5QueryTest {
 //        String sql = "select * from a where NETBAR_WACODE_s = '33010635460001' and MAC_s = '78-9F-70-0F-56-20'";
         JsonObject condition = SqlExplainer.explain(sql).getAsJsonObject("where");
         System.out.println("where : " + condition);
-        QueryBuilder query = Es5Query.of(condition);
+        QueryBuilder query = Es5ConditionTransverter.of(condition);
         System.out.println("=====================================");
         System.out.println(query);
         System.out.println("=====================================");
