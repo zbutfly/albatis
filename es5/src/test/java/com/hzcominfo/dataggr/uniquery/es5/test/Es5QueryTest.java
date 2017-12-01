@@ -48,8 +48,6 @@ public class Es5QueryTest {
 //        String sql2 = "where (MAC_s = '78-BD-BC-6C-FD-0C' and CAPTURE_TIME_s = '1484882948') or (MAC_s = 'F2-F6-B0-4E-AF-40' and CAPTURE_TIME_s = '1484882948')";
 //        String sql2 = " ";
         String sql = sql1 + sql2 + sql3;
-        System.out.println("==============sql==================================");
-        System.out.println(sql);
         JsonObject json = SqlExplainer.explain(sql);
         System.out.println("==============explainResult=======================");
         System.out.println(json);
