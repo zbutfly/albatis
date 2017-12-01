@@ -164,7 +164,7 @@ public interface Es5ConditionTransverter extends ConditionTransverter {
 
         @Override
         public QueryBuilder toEs5Query() {
-            return QueryBuilders.rangeQuery(field).from(value, false);
+            return QueryBuilders.rangeQuery(field).to(value, false);
         }
     }
 
@@ -179,7 +179,7 @@ public interface Es5ConditionTransverter extends ConditionTransverter {
 
         @Override
         public QueryBuilder toEs5Query() {
-            return QueryBuilders.rangeQuery(field).from(value, true);
+            return QueryBuilders.rangeQuery(field).to(value, true);
         }
     }
 
@@ -194,7 +194,7 @@ public interface Es5ConditionTransverter extends ConditionTransverter {
 
         @Override
         public QueryBuilder toEs5Query() {
-            return QueryBuilders.rangeQuery(field).to(value, false);
+            return QueryBuilders.rangeQuery(field).from(value, false);
         }
     }
 
@@ -209,7 +209,7 @@ public interface Es5ConditionTransverter extends ConditionTransverter {
 
         @Override
         public QueryBuilder toEs5Query() {
-            return QueryBuilders.rangeQuery(field).to(value, true);
+            return QueryBuilders.rangeQuery(field).from(value, true);
         }
     }
 
