@@ -22,7 +22,7 @@ public class TableItem {
         alias = null == element ? null : element.getAsString();
     }
 
-    public TableItem of(JsonObject json) {
+    public static TableItem of(JsonObject json) {
         return new TableItem(json);
     }
 

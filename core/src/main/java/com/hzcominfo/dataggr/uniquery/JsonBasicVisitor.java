@@ -23,6 +23,12 @@ public abstract class JsonBasicVisitor<V> implements JsonVisiter<V> {
 
     protected void visit(JsonObject json) {
         JsonElement element;
+
+        element = json.get("tables");
+        List<TableItem> tables = new ArrayList<>();
+        tables.add(TableItem.of(element.getAsJsonObject()));
+        visitTables(tables);
+
         element = json.get("distinct");
         boolean distinct = null != element && element.getAsBoolean();
         List<FieldItem> fields = fieldsJsonArray2List(json.getAsJsonArray("fields"));

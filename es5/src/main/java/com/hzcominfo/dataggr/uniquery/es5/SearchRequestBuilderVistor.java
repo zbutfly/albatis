@@ -10,6 +10,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import static com.hzcominfo.dataggr.uniquery.es5.Es5ConditionTransverter.KEYWORD_SUFFIX;
+
 public class SearchRequestBuilderVistor extends JsonBasicVisitor<SearchRequestBuilder> {
 
     public SearchRequestBuilderVistor(SearchRequestBuilder searchRequestBuilder, JsonObject json) {
@@ -60,7 +62,7 @@ public class SearchRequestBuilderVistor extends JsonBasicVisitor<SearchRequestBu
     public void visitOrderBy(List<OrderItem> orders) {
         assert null != orders;
         SearchRequestBuilder builder = super.get();
-        orders.forEach(order -> builder.addSort(order.name(), order.desc() ? SortOrder.DESC : SortOrder.ASC));
+        orders.forEach(order -> builder.addSort(order.name() + KEYWORD_SUFFIX, order.desc() ? SortOrder.DESC : SortOrder.ASC));
     }
 
     @Override

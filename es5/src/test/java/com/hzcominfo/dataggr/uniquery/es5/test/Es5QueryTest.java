@@ -4,9 +4,11 @@ import com.google.gson.JsonObject;
 import com.hzcominfo.dataggr.uniquery.SqlExplainer;
 import com.hzcominfo.dataggr.uniquery.es5.Es5ConditionTransverter;
 import com.hzcominfo.dataggr.uniquery.es5.SearchRequestBuilderVistor;
+import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.SearchType;
+import org.elasticsearch.client.IndicesAdminClient;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
@@ -23,31 +25,36 @@ public class Es5QueryTest {
 
     @Before
     public void init() throws UnknownHostException {
-        Settings settings = Settings.builder()
+        /*Settings settings = Settings.builder()
                 .put("cluster.name", "cidev")
 //                .put("client.transport.sniff", true)
 //                .put("client.transport.ignore_cluster_name", true)
                 .build();
-
-
         client = new PreBuiltTransportClient(settings)
                 .addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName("172.16.17.11"), 39300))
                 .addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName("172.16.17.12"), 39300))
                 .addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName("172.16.17.13"), 39300));
+*/
+        Settings settings = Settings.builder()
+                .put("cluster.name", "pseudo-elasticsearch")
+//                .put("client.transport.sniff", true)
+//                .put("client.transport.ignore_cluster_name", true)
+                .build();
+        client = new PreBuiltTransportClient(settings)
+//                .addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName("172.16.16.232"), 9200));
+                .addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName("172.16.16.232"), 9300));
     }
+
     @Test
     public void q1() {
-        SearchRequestBuilder requestBuilder = client.prepareSearch("test_hzwa");
-//        String sql1 = "select CAPTURE_TIME_s,LOCATION,MAC_s,BRAND_s,NETBAR_WACODE_s from test_hzwa.TEST_HZWA_WA_SOURCE_FJ_1001 where ";
-        String sql1 = "select CAPTURE_TIME_s,MAC_s,BRAND_s,NETBAR_WACODE_s from test_hzwa.TEST_HZWA_WA_SOURCE_FJ_1001 ";
-        String sql3 = " limit 10 offset 0";
-//        String sql2 = "NETBAR_WACODE_s = '33010635460001'";
-        String sql2 = "where NETBAR_WACODE_s = '33010635460001' or CAPTURE_TIME_s = '1484882948'";
-//        String sql2 = "where MAC_s = '78-BD-BC-6C-FD-0C'";
-//        String sql2 = "where (MAC_s = '78-BD-BC-6C-FD-0C' and CAPTURE_TIME_s = '1484882948') or (MAC_s = 'F2-F6-B0-4E-AF-40' and CAPTURE_TIME_s = '1484882948')";
-//        String sql2 = " ";
-        String sql = sql1 + sql2 + sql3;
+//        String sql = "select * from uniquery.sellinfo";
+        String sql = "select * from uniquery.sellinfo order by sell desc";
+
+//        String sql = "select * from uniquery.sellinfo where name='xx'";
+//        String sql = "select * from uniquery.sellinfo where name='xx' and sell = '200'";
+//        String sql = "select * from uniquery.sellinfo where name='xx' or name = 'yy'";
         JsonObject json = SqlExplainer.explain(sql);
+        SearchRequestBuilder requestBuilder = client.prepareSearch("");
         System.out.println("==============explainResult=======================");
         System.out.println(json);
         requestBuilder = new SearchRequestBuilderVistor(requestBuilder, json).get();
@@ -76,4 +83,14 @@ public class Es5QueryTest {
         System.out.println("=====================================");
         return query;
     }
+
+
+    public void createIndex() {
+        IndicesAdminClient iclient = client.admin().indices();
+        CreateIndexRequest ciRequest = new CreateIndexRequest();
+        ciRequest.index("uniquery");
+//        ciRequest.mapping()
+        iclient.create(ciRequest);
+    }
+
 }
