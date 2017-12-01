@@ -48,11 +48,32 @@ public class Es5QueryTest {
     @Test
     public void q1() {
 //        String sql = "select * from uniquery.sellinfo";
-        String sql = "select * from uniquery.sellinfo order by sell desc";
+//        String sql = "select name, sell from uniquery.sellinfo";
+//        String sql = "select * from uniquery.sellinfo order by name desc, sell desc";
+//        String sql = "select * from uniquery.sellinfo order by name desc, sell desc limit 4 offset 2";
+//        String sql = "select * from uniquery.sellinfo limit 4";
+//        String sql = "select * from uniquery.sellinfo offset 4";
+//        String sql = "select * from uniquery.sellinfo limit 4 offset 2";
 
 //        String sql = "select * from uniquery.sellinfo where name='xx'";
 //        String sql = "select * from uniquery.sellinfo where name='xx' and sell = '200'";
 //        String sql = "select * from uniquery.sellinfo where name='xx' or name = 'yy'";
+//        String sql = "select * from uniquery.sellinfo where (name='xx' and sell = '200') or (name = 'yy' and sell = '250')";
+//        String sql = "select * from uniquery.sellinfo where name > 'xx'";
+//        String sql = "select * from uniquery.sellinfo where name >= 'yy'";
+//        String sql = "select * from uniquery.sellinfo where name < 'yy'";
+//        String sql = "select * from uniquery.sellinfo where name <= 'yy'";
+//        String sql = "select * from uniquery.sellinfo where name <> 'yy'"; // where name != 'yy'
+//        String sql = "select * from uniquery.sellinfo where name like 'y%'";
+//        String sql = "select * from uniquery.sellinfo where name like '%'";
+//        String sql = "select * from uniquery.sellinfo where name not like 'y%'";
+//        String sql = "select * from uniquery.sellinfo where name is not null"; // TODO: 2017/12/1 have not been tested
+//        String sql = "select * from uniquery.sellinfo where name is null"; // TODO: 2017/12/1 have not been tested
+//        String sql = "select * from uniquery.sellinfo where name in ('xx', 'yy')";
+//        String sql = "select * from uniquery.sellinfo where name not in ('xx', 'yy')";
+//        String sql = "select * from uniquery.sellinfo where name between 'xx' and 'yy'";
+        String sql = "select * from uniquery.sellinfo where name not between 'xx' and 'yy'";
+
         JsonObject json = SqlExplainer.explain(sql);
         SearchRequestBuilder requestBuilder = client.prepareSearch("");
         System.out.println("==============explainResult=======================");
