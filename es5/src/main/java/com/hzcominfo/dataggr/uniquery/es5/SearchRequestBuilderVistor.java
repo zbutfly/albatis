@@ -4,13 +4,13 @@ import com.google.gson.JsonObject;
 import com.hzcominfo.dataggr.uniquery.*;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
+import org.elasticsearch.search.aggregations.AggregationBuilders;
+import org.elasticsearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
 import org.elasticsearch.search.sort.SortOrder;
 
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
-
-import static com.hzcominfo.dataggr.uniquery.es5.Es5ConditionTransverter.KEYWORD_SUFFIX;
 
 public class SearchRequestBuilderVistor extends JsonBasicVisitor<SearchRequestBuilder> {
 
@@ -48,7 +48,15 @@ public class SearchRequestBuilderVistor extends JsonBasicVisitor<SearchRequestBu
 
     @Override
     public void visitGroupBy(List<GroupItem> groups) {
-
+        if (null == groups || groups.isEmpty()) return;
+        String first = groups.remove(0).name();
+        TermsAggregationBuilder aggBuilder = AggregationBuilders.terms("elastic_agg").field(first/* + KEYWORD_SUFFIX*/);
+        if (!groups.isEmpty()) groups.stream().map(GroupItem::name).forEach(field -> {
+            aggBuilder.subAggregation(AggregationBuilders.terms("elastic_agg").field(field/* + KEYWORD_SUFFIX*/));
+        });
+//        aggBuilder.subAggregation(AggregationBuilders.avg(""))
+        SearchRequestBuilder builder = super.get();
+        builder.addAggregation(aggBuilder);
     }
 
     @Override
@@ -60,7 +68,7 @@ public class SearchRequestBuilderVistor extends JsonBasicVisitor<SearchRequestBu
     public void visitOrderBy(List<OrderItem> orders) {
         assert null != orders;
         SearchRequestBuilder builder = super.get();
-        orders.forEach(order -> builder.addSort(order.name() + KEYWORD_SUFFIX, order.desc() ? SortOrder.DESC : SortOrder.ASC));
+        orders.forEach(order -> builder.addSort(order.name(), order.desc() ? SortOrder.DESC : SortOrder.ASC));
     }
 
     @Override
