@@ -1,30 +1,27 @@
 package com.hzcominfo.dataggr.uniquery;
 
-import java.math.BigDecimal;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
+import com.google.common.collect.ImmutableList;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.hzcominfo.dataggr.uniquery.utils.ExceptionUtil;
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.sql.*;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.impl.SqlParserImpl;
-import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.validate.SqlConformanceEnum;
 import org.apache.calcite.util.NlsString;
 
-import com.google.common.collect.ImmutableList;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-import com.hzcominfo.dataggr.uniquery.utils.ExceptionUtil;
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class SqlExplainer {
     public static SqlParser.ConfigBuilder DEFAULT_PARSER_CONFIG = SqlParser
@@ -37,82 +34,6 @@ public class SqlExplainer {
                 .setConformance(SqlConformanceEnum.LENIENT) // allow everything
 //            .setConformance(SqlConformanceEnum.MYSQL_5) // 默认sql标准为mysql_5 allow Limit start,count ,,,start is from 1
             .setCaseSensitive(true);
-
-    public static final SqlBasicVisitor<String> visitor = new SqlBasicVisitor<String>() {
-        @Override
-        public String visit(SqlLiteral literal) {
-
-//                System.out.println("literal(文本常量)===>" + literal.toString());
-            return super.visit(literal);
-        }
-
-        @Override
-        public String visit(SqlCall call) {
-            switch (call.getKind()) {
-                case SELECT:
-                    SqlSelect select = (SqlSelect) call;
-                    System.out.println("selectList:  " + select.getSelectList().getList().stream().map(SqlNode::toString).reduce("", (s1, s2) -> s1 + "\n" + s2));
-                    System.out.println("from     " + select.getFrom());
-                    if (select.hasWhere()) {
-                        SqlNode where = select.getWhere();
-                        System.out.println("where    " + where + " " + where.getKind() + where.getClass().getSimpleName());
-                    }
-                    if (null != select.getGroup())
-                        System.out.println("groupBy  " + select.getGroup().getList().stream().filter(Objects::nonNull).map(SqlNode::toString).reduce("\n", (s1, s2) -> s1 + "\n" + s2));
-                    System.out.println("having " + select.getHaving());
-                    if (select.hasOrderBy()) System.out.println("orderBy  " + select.getOrderList());
-                    System.out.println("offset " + select.getOffset());
-
-                        /*select.getOperandList().stream().filter(Objects::nonNull).forEach(n -> {
-                            System.out.println("\nselect: " + n.getKind() + "\n" + n.toString());
-                        });*/
-                    break;
-                case AS:
-                    System.out.println("AS::   " + ((SqlBasicCall) call).getOperandList());
-                    break;
-                case AND:
-                    System.out.println("AND::   " + ((SqlBasicCall) call).getOperandList());
-                    break;
-                case CAST:
-                    System.out.println("CAST::   " + ((SqlBasicCall) call).getOperandList());
-                    break;
-                default:
-//                        System.out.println(call.getKind().name() + " ???? " + call.getClass().getName());
-
-            }
-//                    call.getOperandList().forEach(n -> System.out.println(n.toString()));
-            return super.visit(call);
-        }
-
-        @Override
-        public String visit(SqlNodeList nodeList) {
-//                nodeList.forEach(n -> System.out.println("nodeList===>" + n.getClass().getName()));
-            return super.visit(nodeList);
-        }
-
-        @Override
-        public String visit(SqlIdentifier id) {
-//                System.out.println("identifier===>" + id.getSimple());
-            return super.visit(id);
-        }
-
-        @Override
-        public String visit(SqlDataTypeSpec type) {
-
-            return super.visit(type);
-        }
-
-        @Override
-        public String visit(SqlDynamicParam param) {
-            System.out.println("param index at " + param.getIndex());
-            return super.visit(param);
-        }
-
-        @Override
-        public String visit(SqlIntervalQualifier intervalQualifier) {
-            return super.visit(intervalQualifier);
-        }
-    };
 
     private static Map<String, JsonObject> explains = new ConcurrentHashMap<>();
     private static final AtomicInteger DYNAMIC_PARAM_INDEX = new AtomicInteger(0);
@@ -161,13 +82,8 @@ public class SqlExplainer {
         }
 
         json.addProperty("dynamic_param_size", DYNAMIC_PARAM_INDEX.get());
-        DYNAMIC_PARAM_INDEX.set(0);
+        DYNAMIC_PARAM_INDEX.set(0); // reset
         return json;
-    }
-
-    private JsonObject setParameters(JsonObject orig, Object... params) {
-
-        return orig;
     }
 
     private static String newDynamicParamMark() {
@@ -379,7 +295,7 @@ public class SqlExplainer {
         node = sc.operand(0);
         String field = null;
         if (node instanceof  SqlIdentifier)
-            field = ((SqlIdentifier) node).getSimple();
+            field = ((SqlIdentifier) node).names.stream().collect(Collectors.joining("."));
         else if (node instanceof SqlBasicCall) {
             SqlCall sbc = (SqlCall) node;
             SqlOperator operator = sbc.getOperator();
@@ -467,7 +383,7 @@ public class SqlExplainer {
         if (null == groupList) return;
         groupList.getList().forEach(node -> {
             if (node.getKind() == SqlKind.IDENTIFIER) {
-                array.add(((SqlIdentifier) node).getSimple());
+                array.add(((SqlIdentifier) node).names.stream().collect(Collectors.joining(".")));
             } else {
                 System.out.println("Unsupported GROUP kind " + node.getKind().name());
             }
@@ -494,7 +410,7 @@ public class SqlExplainer {
             } else if (node instanceof SqlBasicCall) {
                 SqlBasicCall sbc = (SqlBasicCall) node;
                 SqlIdentifier identifier = sbc.operand(0);
-                object.addProperty(identifier.getSimple(), sbc.getOperator().getName());
+                object.addProperty(identifier.names.stream().collect(Collectors.joining(".")), sbc.getOperator().getName());
                 array.add(object);
             } else {
                 System.out.println("Error to parse ORDER BY from " + node);

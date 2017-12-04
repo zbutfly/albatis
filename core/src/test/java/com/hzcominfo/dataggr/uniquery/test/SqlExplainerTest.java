@@ -3,10 +3,6 @@ package com.hzcominfo.dataggr.uniquery.test;
 import com.google.gson.JsonObject;
 import com.hzcominfo.dataggr.uniquery.SqlExplainer;
 import org.apache.calcite.jdbc.CalcitePrepare;
-import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.parser.SqlParseException;
-import org.apache.calcite.sql.parser.SqlParser;
-import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.junit.Test;
 
 import java.util.regex.Matcher;
@@ -14,46 +10,11 @@ import java.util.regex.Pattern;
 
 public class SqlExplainerTest {
 
-    private SqlParser.ConfigBuilder parserConfig = SqlExplainer.DEFAULT_PARSER_CONFIG;
-    private SqlBasicVisitor<String> visitor = SqlExplainer.visitor;
-
-    @Test
-    public void t1() throws SqlParseException {
-//        String sql = "select p.name AS n, p.age As a, p.address, count(name) from people p where age > 30  and name like '%姓名%' order by age, name desc limit 10, 999";
-        String sql = "select p.name AS n, p.age As a, p.address from people p where (age > 30  or name like '%姓名%') and name like '%xxx%' order by age, name desc limit 1000 offset 100";
-//        String sql = "select p.name AS n, p.age As a, p.address, count(name) from people p where age > ?  and name like '%姓名%' order by age, name desc offset ? row fetch first ? rows only";
-//        String sql = "select distinct(name) from people where age > 30";
-
-        SqlParser parser = SqlParser.create(sql, parserConfig.build());
-        SqlNode query = parser.parseQuery();
-
-        System.out.println("---------" + query.getKind());
-        query.accept(visitor);
-//        SqlNode stmt = parser.parseStmt();
-//        stmt.accept(visitor);
-
-    }
-
     @Test
     public void t2() throws Exception {
         String sql = "select a.p.name AS n, b.p.age As a, p.address from a.people p where age > 30  and name like '%姓名%' order by age desc, name asc limit 1000 offset 10";
         JsonObject object = SqlExplainer.explain(sql);
         System.out.println(object);
-        CalcitePrepare.Query query = CalcitePrepare.Query.of(sql);
-    }
-
-    @Test
-    public void t3() throws Exception {
-        String sql = "INSERT INTO Persons VALUES ('Gates', 'Bill', 'Xuanwumen 10', 'Beijing')";
-//        SqlNode query = SqlExplainer.explain(sql);
-//        query.accept(SqlExplainer.visitor);
-    }
-
-    @Test
-    public void t4() throws Exception {
-        String sql = "UPDATE Person SET FirstName = 'Fred' WHERE LastName = 'Wilson'";
-//        SqlNode update = SqlExplainer.explain(sql);
-//        update.accept(SqlExplainer.visitor);
     }
 
     @Test
