@@ -225,7 +225,7 @@ public interface Es5ConditionTransverter extends ConditionTransverter {
          */
         @Override
         public QueryBuilder toEs5Query() {
-            return QueryBuilders.termQuery(field, "NULL");
+            return QueryBuilders.boolQuery().mustNot(QueryBuilders.existsQuery(field));
         }
     }
 
@@ -238,15 +238,17 @@ public interface Es5ConditionTransverter extends ConditionTransverter {
 
         /**
          * see https://www.elastic.co/guide/en/elasticsearch/reference/5.5/null-value.html
+         * https://www.elastic.co/guide/en/elasticsearch/reference/5.5/query-dsl-exists-query.html#_literal_missing_literal_query
          */
         @Override
         public QueryBuilder toEs5Query() {
-            return QueryBuilders.boolQuery().mustNot(QueryBuilders.termQuery(field, "NULL"));
+            return QueryBuilders.boolQuery().must(QueryBuilders.existsQuery(field));
         }
     }
 
     /**
      * https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-wildcard-query.html
+     * https://www.elastic.co/guide/en/elasticsearch/reference/5.5/query-dsl-exists-query.html#_literal_missing_literal_query
      */
     class LikeEs5ConditionTransverter implements Es5ConditionTransverter {
         private String field;

@@ -2,17 +2,13 @@ package com.hzcominfo.dataggr.uniquery.es5.test;
 
 import com.google.gson.JsonObject;
 import com.hzcominfo.dataggr.uniquery.SqlExplainer;
-import com.hzcominfo.dataggr.uniquery.es5.Es5ConditionTransverter;
 import com.hzcominfo.dataggr.uniquery.es5.SearchRequestBuilderVistor;
-import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.SearchType;
-import org.elasticsearch.client.IndicesAdminClient;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
-import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.transport.client.PreBuiltTransportClient;
 import org.junit.Before;
 import org.junit.Test;
@@ -41,12 +37,11 @@ public class Es5QueryTest {
 //                .put("client.transport.ignore_cluster_name", true)
                 .build();
         client = new PreBuiltTransportClient(settings)
-//                .addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName("172.16.16.232"), 9200));
                 .addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName("172.16.16.232"), 9300));
     }
 
     @Test
-    public void q1() {
+    public void query() {
 //        String sql = "select * from uniquery.sellinfo";
 //        String sql = "select name, sell from uniquery.sellinfo";
 //        String sql = "select * from uniquery.sellinfo order by name desc, sell desc";
@@ -67,12 +62,12 @@ public class Es5QueryTest {
 //        String sql = "select * from uniquery.sellinfo where name like 'y%'";
 //        String sql = "select * from uniquery.sellinfo where name like '%'";
 //        String sql = "select * from uniquery.sellinfo where name not like 'y%'";
-//        String sql = "select * from uniquery.sellinfo where name is not null"; // TODO: 2017/12/1 have not been tested
-//        String sql = "select * from uniquery.sellinfo where name is null"; // TODO: 2017/12/1 have not been tested
+//        String sql = "select * from uniquery.sellinfo where sell is not null";
+        String sql = "select * from uniquery.sellinfo where sell is null";
 //        String sql = "select * from uniquery.sellinfo where name in ('xx', 'yy')";
 //        String sql = "select * from uniquery.sellinfo where name not in ('xx', 'yy')";
 //        String sql = "select * from uniquery.sellinfo where name between 'xx' and 'yy'";
-        String sql = "select * from uniquery.sellinfo where name not between 'xx' and 'yy'";
+//        String sql = "select * from uniquery.sellinfo where name not between 'xx' and 'yy'";
 
         JsonObject json = SqlExplainer.explain(sql);
         SearchRequestBuilder requestBuilder = client.prepareSearch("");
@@ -84,34 +79,6 @@ public class Es5QueryTest {
         System.out.println(requestBuilder);
         System.out.println("==============response=============================");
         SearchResponse response = requestBuilder.get();
-        /*System.out.println("total: " + response.getHits().getTotalHits());
-        response.getHits().forEach(hit -> {
-            System.out.println(hit.getFields());
-        });*/
         System.out.println(response);
     }
-
-
-    public QueryBuilder q2() {
-        String sql = "select * from a where NETBAR_WACODE_s = '33010635460001'";
-//        String sql = "select * from a where BRAND_s = 'AppleInc'";
-//        String sql = "select * from a where NETBAR_WACODE_s = '33010635460001' and MAC_s = '78-9F-70-0F-56-20'";
-        JsonObject condition = SqlExplainer.explain(sql).getAsJsonObject("where");
-        System.out.println("where : " + condition);
-        QueryBuilder query = Es5ConditionTransverter.of(condition);
-        System.out.println("=====================================");
-        System.out.println(query);
-        System.out.println("=====================================");
-        return query;
-    }
-
-
-    public void createIndex() {
-        IndicesAdminClient iclient = client.admin().indices();
-        CreateIndexRequest ciRequest = new CreateIndexRequest();
-        ciRequest.index("uniquery");
-//        ciRequest.mapping()
-        iclient.create(ciRequest);
-    }
-
 }
