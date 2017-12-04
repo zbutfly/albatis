@@ -19,7 +19,7 @@ public abstract class Adapter {
 	static final Map<String, Class<? extends Adapter>> ADAPTER_MAP = loadAdapters();
 	
 	// 查询组装
-    public abstract <T> T queryAssemble(JsonObject sqlJson, Object...params);
+    public abstract <T> T queryAssemble(Connection connection, JsonObject sqlJson);
     
     // 查询执行
     public abstract <T> T queryExecute(Connection connection, Object query, String table);

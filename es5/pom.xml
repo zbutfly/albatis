@@ -1,54 +1,46 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
 
-    <parent>
-        <groupId>com.hzcominfo.dataggr.uniquery</groupId>
-        <artifactId>uniquery</artifactId>
-        <version>0.0.1-SNAPSHOT</version>
-    </parent>
+	<parent>
+		<groupId>com.hzcominfo.dataggr.uniquery</groupId>
+		<artifactId>uniquery</artifactId>
+		<version>0.0.1-SNAPSHOT</version>
+	</parent>
 
-    <artifactId>uniquery-es5</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
-    <packaging>jar</packaging>
+	<artifactId>uniquery-es5</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+	<packaging>jar</packaging>
 
-    <properties>
-        <elastic.version>5.5.2</elastic.version>
-        <log4j.core.version>2.9.1</log4j.core.version>
-    </properties>
+	<properties>
+		<elastic.version>5.5.2</elastic.version>
+		<log4j.core.version>2.9.1</log4j.core.version>
+	</properties>
 
-    <dependencies>
-        <dependency>
-            <groupId>com.hzcominfo.dataggr.uniquery</groupId>
-            <artifactId>uniquery-core</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
-        </dependency>
+	<dependencies>
+		<dependency>
+			<groupId>com.hzcominfo.dataggr.uniquery</groupId>
+			<artifactId>uniquery-core</artifactId>
+			<version>0.0.1-SNAPSHOT</version>
+		</dependency>
 
-        <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-core</artifactId>
-            <version>${log4j.core.version}</version>
-        </dependency>
+		<dependency>
+			<groupId>org.apache.logging.log4j</groupId>
+			<artifactId>log4j-core</artifactId>
+			<version>${log4j.core.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>net.butfly.albatis</groupId>
+			<artifactId>albatis-es-io</artifactId>
+			<version>1.4.1-lilz-ALPHA-SNAPSHOT</version>
+		</dependency>
 
-        <dependency>
-            <groupId>org.elasticsearch.client</groupId>
-            <artifactId>transport</artifactId>
-            <version>${elastic.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.elasticsearch.client</groupId>
-            <artifactId>rest</artifactId>
-            <version>${elastic.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.elasticsearch</groupId>
-            <artifactId>elasticsearch</artifactId>
-            <version>${elastic.version}</version>
-        </dependency>
-    </dependencies>
+		<!-- <dependency> <groupId>org.elasticsearch.client</groupId> <artifactId>transport</artifactId> 
+			<version>${elastic.version}</version> </dependency> <dependency> <groupId>org.elasticsearch.client</groupId> 
+			<artifactId>rest</artifactId> <version>${elastic.version}</version> </dependency> 
+			<dependency> <groupId>org.elasticsearch</groupId> <artifactId>elasticsearch</artifactId> 
+			<version>${elastic.version}</version> </dependency> -->
+	</dependencies>
 
 </project>

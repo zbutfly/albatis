@@ -58,7 +58,7 @@ public class Client implements AutoCloseable {
 			JsonObject sqlJson = SqlExplainer.explain(sql, params);
 			JsonObject tableJson = sqlJson.has("tables") ? sqlJson.getAsJsonObject("tables"):null;
 			String table = tableJson != null && tableJson.has("table") ? tableJson.get("table").getAsString():null;
-			Object query = adapter.queryAssemble(sqlJson, params); 
+			Object query = adapter.queryAssemble(conn, sqlJson); 
 			long start = System.currentTimeMillis();
 			Object result = adapter.queryExecute(conn, query, table);
 			System.out.println("query spends: " + (System.currentTimeMillis() - start) + "ms");
@@ -84,7 +84,7 @@ public class Client implements AutoCloseable {
 			JsonArray facetArr = new JsonArray();
 			Arrays.asList(facets).forEach(f -> facetArr.add(f));
 			sqlJson.add("multiGroupBy", facetArr);
-			Object query = adapter.queryAssemble(sqlJson, params); 
+			Object query = adapter.queryAssemble(conn, sqlJson); 
 			long start = System.currentTimeMillis();
 			Object result = adapter.queryExecute(conn, query, table);
 			System.out.println("query spends: " + (System.currentTimeMillis() - start) + "ms");
