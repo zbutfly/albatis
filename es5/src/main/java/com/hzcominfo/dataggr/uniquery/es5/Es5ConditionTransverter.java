@@ -14,7 +14,6 @@ import java.util.List;
 import static com.hzcominfo.dataggr.uniquery.ConditionTransverter.valueOf;
 
 public interface Es5ConditionTransverter extends ConditionTransverter {
-    String KEYWORD_SUFFIX = ".keyword";
 
     QueryBuilder toEs5Query();
 
@@ -128,7 +127,7 @@ public interface Es5ConditionTransverter extends ConditionTransverter {
         private Object value;
 
         EqualsEs5ConditionTransverter(String field, Object value) {
-            this.field = field + KEYWORD_SUFFIX;
+            this.field = field;
             this.value = value;
         }
 
@@ -143,7 +142,7 @@ public interface Es5ConditionTransverter extends ConditionTransverter {
         private Object value;
 
         NotEqualsEs5ConditionTransverter(String field, Object value) {
-            this.field = field + KEYWORD_SUFFIX;
+            this.field = field;
             this.value = value;
         }
 
@@ -158,7 +157,7 @@ public interface Es5ConditionTransverter extends ConditionTransverter {
         private Object value;
 
         LtEs5ConditionTransverter(String field, Object value) {
-            this.field = field + KEYWORD_SUFFIX;
+            this.field = field;
             this.value = value;
         }
 
@@ -173,7 +172,7 @@ public interface Es5ConditionTransverter extends ConditionTransverter {
         private Object value;
 
         LeEs5ConditionTransverter(String field, Object value) {
-            this.field = field + KEYWORD_SUFFIX;
+            this.field = field;
             this.value = value;
         }
 
@@ -188,7 +187,7 @@ public interface Es5ConditionTransverter extends ConditionTransverter {
         private Object value;
 
         GtEs5ConditionTransverter(String field, Object value) {
-            this.field = field + KEYWORD_SUFFIX;
+            this.field = field;
             this.value = value;
         }
 
@@ -203,7 +202,7 @@ public interface Es5ConditionTransverter extends ConditionTransverter {
         private Object value;
 
         GeEs5ConditionTransverter(String field, Object value) {
-            this.field = field + KEYWORD_SUFFIX;
+            this.field = field;
             this.value = value;
         }
 
@@ -217,7 +216,7 @@ public interface Es5ConditionTransverter extends ConditionTransverter {
         private String field;
 
         IsNullEs5ConditionTransverter(String field) {
-            this.field = field + KEYWORD_SUFFIX;
+            this.field = field;
         }
 
         /**
@@ -233,7 +232,7 @@ public interface Es5ConditionTransverter extends ConditionTransverter {
         private String field;
 
         IsNotNullEs5ConditionTransverter(String field) {
-            this.field = field + KEYWORD_SUFFIX;
+            this.field = field;
         }
 
         /**
@@ -255,7 +254,7 @@ public interface Es5ConditionTransverter extends ConditionTransverter {
         private Object value;
 
         LikeEs5ConditionTransverter(String field, Object value) {
-            this.field = field + KEYWORD_SUFFIX;
+            this.field = field;
             this.value = value;
         }
 
@@ -274,7 +273,7 @@ public interface Es5ConditionTransverter extends ConditionTransverter {
         private Object value;
 
         NotLikeEs5ConditionTransverter(String field, Object value) {
-            this.field = field + KEYWORD_SUFFIX;
+            this.field = field;
             this.value = value;
         }
 
@@ -293,7 +292,7 @@ public interface Es5ConditionTransverter extends ConditionTransverter {
         private Object start, end;
 
         BetweenEs5ConditionTransverter(String field, Object start, Object end) {
-            this.field = field + KEYWORD_SUFFIX;
+            this.field = field;
             this.start = start;
             this.end = end;
         }
@@ -309,7 +308,7 @@ public interface Es5ConditionTransverter extends ConditionTransverter {
         private Object start, end;
 
         NotBetweenEs5ConditionTransverter(String field, Object start, Object end) {
-            this.field = field + KEYWORD_SUFFIX;
+            this.field = field;
             this.start = start;
             this.end = end;
         }
@@ -327,7 +326,7 @@ public interface Es5ConditionTransverter extends ConditionTransverter {
 
         InEs5ConditionTransverter(String field, List<Object> values) {
             assert values != null;
-            this.field = field + KEYWORD_SUFFIX;
+            this.field = field;
             this.values = values;
         }
 
@@ -346,7 +345,7 @@ public interface Es5ConditionTransverter extends ConditionTransverter {
 
         NotInEs5ConditionTransverter(String field, List<Object> values) {
             assert values != null;
-            this.field = field + KEYWORD_SUFFIX;
+            this.field = field;
             this.values = values;
         }
 

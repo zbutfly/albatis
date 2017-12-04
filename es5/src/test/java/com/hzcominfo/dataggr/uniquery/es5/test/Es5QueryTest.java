@@ -42,32 +42,35 @@ public class Es5QueryTest {
 
     @Test
     public void query() {
-//        String sql = "select * from uniquery.sellinfo";
-//        String sql = "select name, sell from uniquery.sellinfo";
-//        String sql = "select * from uniquery.sellinfo order by name desc, sell desc";
-//        String sql = "select * from uniquery.sellinfo order by name desc, sell desc limit 4 offset 2";
-//        String sql = "select * from uniquery.sellinfo limit 4";
-//        String sql = "select * from uniquery.sellinfo offset 4";
-//        String sql = "select * from uniquery.sellinfo limit 4 offset 2";
+//        String sql = "select * from uniquery.sell";
+//        String sql = "select name, sell from uniquery.sell";
+//        String sql = "select * from uniquery.sell order by name.keyword desc, sell desc";
+//        String sql = "select * from uniquery.sell order by name.keyword desc, sell desc limit 4 offset 2";
+//        String sql = "select * from uniquery.sell limit 4";
+//        String sql = "select * from uniquery.sell offset 4";
+//        String sql = "select * from uniquery.sell limit 4 offset 2";
 
-//        String sql = "select * from uniquery.sellinfo where name='xx'";
-//        String sql = "select * from uniquery.sellinfo where name='xx' and sell = '200'";
-//        String sql = "select * from uniquery.sellinfo where name='xx' or name = 'yy'";
-//        String sql = "select * from uniquery.sellinfo where (name='xx' and sell = '200') or (name = 'yy' and sell = '250')";
-//        String sql = "select * from uniquery.sellinfo where name > 'xx'";
-//        String sql = "select * from uniquery.sellinfo where name >= 'yy'";
-//        String sql = "select * from uniquery.sellinfo where name < 'yy'";
-//        String sql = "select * from uniquery.sellinfo where name <= 'yy'";
-//        String sql = "select * from uniquery.sellinfo where name <> 'yy'"; // where name != 'yy'
-//        String sql = "select * from uniquery.sellinfo where name like 'y%'";
-//        String sql = "select * from uniquery.sellinfo where name like '%'";
-//        String sql = "select * from uniquery.sellinfo where name not like 'y%'";
-//        String sql = "select * from uniquery.sellinfo where sell is not null";
-        String sql = "select * from uniquery.sellinfo where sell is null";
-//        String sql = "select * from uniquery.sellinfo where name in ('xx', 'yy')";
-//        String sql = "select * from uniquery.sellinfo where name not in ('xx', 'yy')";
-//        String sql = "select * from uniquery.sellinfo where name between 'xx' and 'yy'";
-//        String sql = "select * from uniquery.sellinfo where name not between 'xx' and 'yy'";
+//        String sql = "select * from uniquery.sell where name.keyword='xx'";
+//        String sql = "select * from uniquery.sell where name.keyword='xx' and sell = 200";
+//        String sql = "select * from uniquery.sell where name.keyword='xx' or name.keyword = 'yy'";
+//        String sql = "select * from uniquery.sell where (name.keyword='xx' and sell = '200') or (name.keyword = 'yy' and sell = '250')";
+//        String sql = "select * from uniquery.sell where name.keyword > 'xx'";
+//        String sql = "select * from uniquery.sell where name.keyword >= 'yy'";
+//        String sql = "select * from uniquery.sell where sell <= 100";
+//        String sql = "select * from uniquery.sell where name.keyword < 'yy'";
+//        String sql = "select * from uniquery.sell where name.keyword <= 'yy'";
+//        String sql = "select * from uniquery.sell where name.keyword <> 'yy'"; // where name != 'yy'
+//        String sql = "select * from uniquery.sell where name.keyword like 'y%'";
+//        String sql = "select * from uniquery.sell where name.keyword like '%'";
+//        String sql = "select * from uniquery.sell where name.keyword not like 'y%'";
+//        String sql = "select * from uniquery.sell where remark.keyword is not null";
+//        String sql = "select * from uniquery.sell where remark.keyword is null";
+//        String sql = "select * from uniquery.sell where name.keyword in ('xx', 'yy')";
+//        String sql = "select * from uniquery.sell where name.keyword not in ('xx', 'yy')";
+//        String sql = "select * from uniquery.sell where name.keyword between 'xx' and 'yy'";
+//        String sql = "select * from uniquery.sell where name.keyword not between 'xx' and 'yy'";
+
+        String sql = "select name, years from uniquery.sell where name.keyword = 'xx' group by name.keyword, years";
 
         JsonObject json = SqlExplainer.explain(sql);
         SearchRequestBuilder requestBuilder = client.prepareSearch("");
@@ -75,6 +78,7 @@ public class Es5QueryTest {
         System.out.println(json);
         requestBuilder = new SearchRequestBuilderVistor(requestBuilder, json).get();
         requestBuilder.setSearchType(SearchType.DFS_QUERY_THEN_FETCH);
+
         System.out.println("==============requestBuilder=======================");
         System.out.println(requestBuilder);
         System.out.println("==============response=============================");
