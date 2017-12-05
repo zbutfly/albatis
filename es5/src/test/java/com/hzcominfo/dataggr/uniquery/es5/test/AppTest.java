@@ -15,7 +15,7 @@ public class AppTest {
 		URISpec uriSpec = new URISpec(uri);
 		Client conn = new Client(uriSpec);
 		//执行查询
-		/*String sql = "select a.b from uniquery.sell group by a.b";
+		/*String sql = "select * from uniquery.sell";
 		List<Map<String, Object>> result = conn.execute(sql);
 		System.out.println(result);*/
 		
@@ -37,9 +37,14 @@ public class AppTest {
 		System.out.println(result);*/
 		
 		//multi facet test
-		String sql = "select * from uniquery.sell";
+		/*String sql = "select * from uniquery.sell";
 		String[] facets = {"name.keyword", "years"};
 		List<List<Map<String, Object>>> result = conn.execute(sql, facets, "");
+		System.out.println(result);*/
+		
+		// count test
+		String sql = "select count(*) from uniquery.sell";
+		long result = conn.execute(sql);
 		System.out.println(result);
 		
 		//释放连接

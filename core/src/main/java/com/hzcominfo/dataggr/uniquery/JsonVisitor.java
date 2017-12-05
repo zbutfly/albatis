@@ -26,6 +26,7 @@ public interface JsonVisitor<V> {
 
     void visitLimit(long limit);
 
-
+    void visitOnlyCount(boolean onlyCount);
+    
     V get();
 }

@@ -49,23 +49,28 @@ public class Es5Adapter extends Adapter {
 			JsonObject results = json.getAsJsonObject("aggregations");
 			if (results.keySet().size() == 1) return (T) facet(results);
 			else return (T) multiFacet(results);
-		} else return (T) common(sr);
+		} else {
+			SearchHits hits = sr.getHits();
+			SearchHit[] hitList = hits.getHits();
+			if (hitList == null || hitList.length < 1) return (T) count(hits);
+			return (T) common(hitList);
+		}
 	}
 	
-	private List<Map<String, Object>> common(SearchResponse searchResponse) {
-		SearchHits hits = searchResponse.getHits();
+	private Long count(SearchHits hits) {
+		return hits.totalHits;
+	}
+	
+	private List<Map<String, Object>> common(SearchHit[] hitList) {
 		List<Map<String, Object>> resultMap = new ArrayList<>();
-		if (hits.totalHits > 0) {
-			SearchHit[] hitList = hits.getHits();
-			for (SearchHit hit : hitList) {
-				if (!hit.hasSource()) continue;
-				Map<String, Object> map = new HashMap<>();
-				Map<String, Object> sourceMap = hit.getSourceAsMap();
-				for(String key : sourceMap.keySet()) {
-					map.put(key, sourceMap.get(key));
-				}
-				resultMap.add(map);
+		for (SearchHit hit : hitList) {
+			if (!hit.hasSource()) continue;
+			Map<String, Object> map = new HashMap<>();
+			Map<String, Object> sourceMap = hit.getSourceAsMap();
+			for(String key : sourceMap.keySet()) {
+				map.put(key, sourceMap.get(key));
 			}
+			resultMap.add(map);
 		}
 		return resultMap;
 	}

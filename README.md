@@ -3,19 +3,36 @@
 
 #### 本地调用 （以solr为例）
 1. mvn 依赖
-	~~~xml
-		<dependency>
-			<groupId>com.hzcominfo.dataggr.uniquery</groupId>
-			<artifactId>uniquery-solr</artifactId>
-			<version>0.0.1-SNAPSHOT</version>
-		</dependency>
-	~~~
+	1. solr
+		~~~xml
+			<dependency>
+				<groupId>com.hzcominfo.dataggr.uniquery</groupId>
+				<artifactId>uniquery-solr</artifactId>
+				<version>0.0.1-SNAPSHOT</version>
+			</dependency>
+		~~~
+	
+	1. es5
+		~~~xml
+			<dependency>
+				<groupId>com.hzcominfo.dataggr.uniquery</groupId>
+				<artifactId>uniquery-es5</artifactId>
+				<version>0.0.1-SNAPSHOT</version>
+			</dependency>
+		~~~
 
 1. 本地调用代码实例
 	1. 根据url串创建URISpec实例
+		1. solr
+			~~~java
+				String uri = "solr:http://cdh001:10180/solr";
+				//String uri = "zk:solr://cdh001:12181,cdh002:12181,cdh003:12181";
+			~~~
+		1. es5 
+			~~~java
+				String uri = "es://pseudo-elasticsearch@172.16.27.232:9300";
+			~~~
 		~~~java
-			String uri = "solr:http://cdh001:10180/solr";
-			//String uri = "zk:solr://cdh001:12181,cdh002:12181,cdh003:12181";
 			URISpec uriSpec = new URISpec(uri);
 		~~~
 		
@@ -32,7 +49,7 @@
 				List<Map<String, Object>> result = client.execute(sql, params);			
 			~~~
 		
-		2. facet 
+		1. facet 
 			~~~java
 				String sql = "select XB_FORMAT_s,MZ_FORMAT_s from tdl_c1 group by XB_FORMAT_s,MZ_FORMAT_s";
 				Object[] params = {};
@@ -45,6 +62,12 @@
 				String[] facets = {"XB_FORMAT_s", "MZ_FORMAT_s", "MZ_i"}; //facet字段 一个数组元素可包含多个facet字段,用  , 隔开
 				Object[] params = {};
 				List<List<Map<String, Object>>> result = conn.execute(sql, facets, params);	
+			~~~
+		
+		1. count
+			~~~java
+				String sql = "select count(*) from uniquery.sell";
+				long result = conn.execute(sql);
 			~~~
 	
 	1. 关闭客户端
@@ -79,3 +102,6 @@
 	
 	9. cache功能
 	    1. 以HashMap方式简单支持 
+	    
+	1. 统计功能	
+		已支持数据统计：count(*)
