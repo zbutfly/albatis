@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.Map;
 
 import com.hzcominfo.dataggr.uniquery.Client;
-import com.hzcominfo.dataggr.uniquery.ClientManager;
 
 import net.butfly.albacore.io.URISpec;
 
@@ -14,7 +13,7 @@ public class AppTest {
 		//建立连接
 		String uri = "solr:http://172.16.17.11:10180/solr/tdl_c1";
 		URISpec uriSpec = new URISpec(uri);
-		Client conn = ClientManager.getConnection(uriSpec);
+		Client conn = new Client(uriSpec);
 		
 		//执行查询
 		String sql = "select * from tdl_c1";

@@ -15,20 +15,20 @@ public class AppTest {
 		URISpec uriSpec = new URISpec(uri);
 		Client conn = new Client(uriSpec);
 		//执行查询
-		/*String sql = "select * from uniquery.sellinfo";
+		String sql = "select a.b from uniquery.sell group by a.b";
 		List<Map<String, Object>> result = conn.execute(sql);
-		System.out.println(result);*/
+		System.out.println(result);
 		
 		// dynamic test
-		/*String sql = "select * from uniquery.sellinfo where name=? and sell = ?";
+		/*String sql = "select * from uniquery.sell where name=? and sell = ?";
 		Object[] params = {"xx", "200"}; 
 		List<Map<String, Object>> result = conn.execute(sql, params);
 		System.out.println(result);*/
 		
-		String sql = "select uniquery.sellinfo.a.b from uniquery.sellinfo where name not in (?, ?)";
+		/*String sql = "select a.b from uniquery.sell where name not in (?, ?)";
 		Object[] params = {"xx", "yy"}; 
 		List<Map<String, Object>> result = conn.execute(sql, params);
-		System.out.println(result);
+		System.out.println(result);*/
 		
 		
 		//multi facet test
