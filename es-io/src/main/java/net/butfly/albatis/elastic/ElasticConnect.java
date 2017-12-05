@@ -1,11 +1,12 @@
 package net.butfly.albatis.elastic;
 
+import static net.butfly.albacore.paral.Sdream.of;
+
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import org.apache.http.HttpHost;
 import org.elasticsearch.client.Response;
@@ -64,8 +65,8 @@ public interface ElasticConnect extends Connection {
 
 		@SuppressWarnings("unchecked")
 		static Map<String, Object> fetchMetadata(InetSocketAddress... rest) {
-			if (_logger.isDebugEnabled()) _logger.debug("Fetch transport nodes meta from: " + Arrays.stream(rest).map(a -> a.toString())
-					.collect(Collectors.joining(",")));
+			if (_logger.isDebugEnabled()) _logger.debug("Fetch transport nodes meta from: " + of(rest).joinAsString(
+					InetSocketAddress::toString, ","));
 			try (RestClient client = RestClient.builder(Arrays.stream(rest).map(a -> new HttpHost(a.getHostName(), a.getPort())).toArray(
 					i -> new HttpHost[i])).build();) {
 				Response rep;
@@ -127,8 +128,8 @@ public interface ElasticConnect extends Connection {
 			InetSocketTransportAddress[] addrs = meta == null ? Arrays.stream(uri.getInetAddrs()).map(InetSocketTransportAddress::new)
 					.toArray(i -> new InetSocketTransportAddress[i])
 					: Arrays.stream(Parser.getNodes(meta)).map(n -> n.transport).toArray(i -> new InetSocketTransportAddress[i]);
-			_logger.debug(() -> "Elastic transport client construct, cluster: [" + cn + "]\n\t" + Arrays.stream(addrs).map(a -> a
-					.toString()).collect(Collectors.joining(",")));
+			_logger.debug(() -> "Elastic transport client consrtuct, cluster: [" + cn + "]\n\t" + of(addrs).joinAsString(
+					InetSocketTransportAddress::toString, ","));
 
 			tc.addTransportAddresses(addrs);
 			return tc;
