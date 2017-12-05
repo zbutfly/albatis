@@ -4,7 +4,7 @@ import com.google.gson.JsonObject;
 
 import java.util.List;
 
-public interface JsonVisiter<V> {
+public interface JsonVisitor<V> {
 
 //    V distinct(boolean distinct);
 

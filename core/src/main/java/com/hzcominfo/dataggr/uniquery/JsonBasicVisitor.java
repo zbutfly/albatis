@@ -7,7 +7,7 @@ import com.google.gson.JsonObject;
 import java.util.ArrayList;
 import java.util.List;
 
-public abstract class JsonBasicVisitor<V> implements JsonVisiter<V> {
+public abstract class JsonBasicVisitor<V> implements JsonVisitor<V> {
     private V v;
 
     public JsonBasicVisitor(V v, JsonObject json) {
@@ -33,7 +33,6 @@ public abstract class JsonBasicVisitor<V> implements JsonVisiter<V> {
         boolean distinct = null != element && element.getAsBoolean();
         List<FieldItem> fields = fieldsJsonArray2List(json.getAsJsonArray("fields"));
         visitFields(fields, distinct);
-        // TODO: 2017/11/16 visit table
 
         visitConditions(json.get("where").getAsJsonObject());
         
@@ -64,7 +63,6 @@ public abstract class JsonBasicVisitor<V> implements JsonVisiter<V> {
         	visitMultiGroupBy(groupsList);
         }
     }
-
 
     private static List<FieldItem> fieldsJsonArray2List(JsonArray array) {
         List<FieldItem> fields = new ArrayList<>();
