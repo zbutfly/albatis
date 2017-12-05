@@ -67,7 +67,8 @@
 		1. count
 			~~~java
 				String sql = "select count(*) from uniquery.sell";
-				long result = conn.execute(sql);
+				Object[] params = {};
+				long result = conn.execute(sql, params);
 			~~~
 	
 	1. 关闭客户端
