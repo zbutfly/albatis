@@ -43,7 +43,6 @@ import net.butfly.albatis.io.Input;
 import net.butfly.albatis.io.Message;
 
 public class SolrConnection extends NoSqlConnection<SolrClient> {
-	final static String schema = "solr,zk:solr,solr:http";
 	private static final Logger logger = Logger.getLogger(SolrConnection.class);
 	private static final CloseableHttpClient HTTP_CLIENT = SolrHttpContext.createDefaultHttpclient();
 	private static final Map<Class<? extends ResponseParser>, ResponseParser> PARSER_POOL = Maps.of();
