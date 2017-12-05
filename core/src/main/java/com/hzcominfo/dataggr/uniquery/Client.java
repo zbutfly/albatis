@@ -82,7 +82,7 @@ public class Client implements AutoCloseable {
 			JsonObject tableJson = sqlJson.has("tables") ? sqlJson.getAsJsonObject("tables"):null;
 			String table = tableJson != null && tableJson.has("table") ? tableJson.get("table").getAsString():null;
 			JsonArray facetArr = new JsonArray();
-			Arrays.asList(facets).forEach(f -> facetArr.add(f));
+			Arrays.asList(facets).forEach(facetArr::add);
 			sqlJson.add("multiGroupBy", facetArr);
 			Object query = adapter.queryAssemble(conn, sqlJson); 
 			long start = System.currentTimeMillis();
