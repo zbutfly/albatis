@@ -20,16 +20,6 @@ public interface Connection extends AutoCloseable {
 
 	URISpec getURI();
 
-	@SuppressWarnings("unchecked")
-	public static <T extends Connection> T connect(URISpec uriSpec) throws Exception {
-		for (String schema : CONNECTION_MAP.keySet()) {
-			if (schema.contains(uriSpec.getScheme())) {
-				return (T) connect(uriSpec, CONNECTION_MAP.get(schema));
-			}
-		}
-		throw new RuntimeException("No matched connection");
-	}
-
 	public static <T extends Connection> T connect(String url, Class<T> clazz) throws Exception {
 		return connect(new URISpec(url), clazz);
 	}

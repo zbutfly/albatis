@@ -19,6 +19,13 @@ public abstract class NoSqlConnection<C> implements Connection, Loggable {
 	protected final URISpec uri;
 	protected final Properties parameters;
 
+	public NoSqlConnection() {
+		// Required for JAVA SPI
+		uri = null;
+		supportedSchemas = null;
+		client = null;
+		parameters = null;
+	}
 	protected NoSqlConnection(URISpec uri, Function<URISpec, C> client, int defaultPort, String... supportedSchema) throws IOException {
 		super();
 		supportedSchemas = null != supportedSchema ? supportedSchema : new String[0];
