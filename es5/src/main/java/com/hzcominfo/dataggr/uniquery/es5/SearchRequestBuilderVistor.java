@@ -6,7 +6,6 @@ import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.search.aggregations.AggregationBuilder;
 import org.elasticsearch.search.aggregations.AggregationBuilders;
-import org.elasticsearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
 import org.elasticsearch.search.sort.SortOrder;
 
 import java.util.ArrayList;
@@ -27,7 +26,7 @@ public class SearchRequestBuilderVistor extends JsonBasicVisitor<SearchRequestBu
     public void visitFields(List<FieldItem> fields, boolean distinct) {
         SearchRequestBuilder builder = super.get();
         boolean isStart = fields.stream().map(FieldItem::name).collect(Collectors.toSet()).contains("*");
-        if (! isStart) {
+        if (!isStart) {
             builder.setFetchSource(fields.stream().map(FieldItem::name)
                     .filter(field -> !field.contains("(") && !field.contains(")")).toArray(String[]::new), new String[]{});
         }
@@ -69,61 +68,43 @@ public class SearchRequestBuilderVistor extends JsonBasicVisitor<SearchRequestBu
                 throw new RuntimeException("Unsupported aggregation: " + item);
         }
     }
-/*
+
     @Override
     public void visitGroupBy(List<GroupItem> groups) {
         if (null == groups || groups.isEmpty()) return;
-        String first = groups.remove(0).name();
-        AggregationBuilder aggBuilder = AggregationBuilders.terms("elastic_agg").field(first);
         AggregationBuilder subBuilder = null;
-        if (!groups.isEmpty()) for (int i = groups.size() - 1; i >= 0; i--) {
+        List<AggregationBuilder> aggs = aggItems.stream().map(SearchRequestBuilderVistor::toAggregationBuilder).collect(Collectors.toList());
+        for (int i = groups.size() - 1; i >= 0; i--) {
+            GroupItem groupItem = groups.get(i);
             if (i == groups.size() - 1) {
-                subBuilder = AggregationBuilders.terms(groups.get(i).name()).field(groups.get(i).name());
-                aggItems.forEach(item -> {
-                    subBuilder.subAggregation(toAggregationBuilder(item));
-                });
+                subBuilder = AggregationBuilders.terms(groupItem.name()).field(groupItem.name());
+                for (AggregationBuilder agg : aggs) subBuilder.subAggregation(agg);
             } else {
-                subBuilder = AggregationBuilders.terms(groups.get(i).name()).field(groups.get(i).name())
-                        .subAggregation(subBuilder);
+                subBuilder = AggregationBuilders.terms(groupItem.name()).field(groupItem.name()).subAggregation(subBuilder);
             }
-        } else {
-
         }
-
-        groups.stream().map(GroupItem::name).forEach(field -> {
-            AggregationBuilder sub = AggregationBuilders.terms("elastic_agg").field(field);
-
-            sub.subAggregation(AggregationBuilders.count("count_sell").field("sell"));
-            sub.subAggregation(AggregationBuilders.avg("avg_sell").field("sell"));
-            aggBuilder.subAggregation(sub);
-        });
+        System.out.println(subBuilder);
         SearchRequestBuilder builder = super.get();
-        builder.addAggregation(aggBuilder);
+        builder.setSize(0);
+        builder.addAggregation(subBuilder);
     }
-    */
-@Override
-public void visitGroupBy(List<GroupItem> groups) {
-    if (null == groups || groups.isEmpty()) return;
-    AggregationBuilder subBuilder = null;
-    List<AggregationBuilder> aggs = aggItems.stream().map(SearchRequestBuilderVistor::toAggregationBuilder).collect(Collectors.toList());
-    for (int i = groups.size() - 1; i >= 0; i--) {
-        GroupItem groupItem = groups.get(i);
-        if (i == groups.size() - 1) {
-            subBuilder = AggregationBuilders.terms(groupItem.name()).field(groupItem.name());
-            for (AggregationBuilder agg : aggs) subBuilder.subAggregation(agg);
-        } else {
-            subBuilder = AggregationBuilders.terms(groupItem.name()).field(groupItem.name()).subAggregation(subBuilder);
-        }
+
+    private AggregationBuilder toSubTermAggregationBuilder(List<GroupItem> groups) {
+        if (null == groups || groups.isEmpty()) return null;
+        GroupItem first = groups.remove(0);
+        AggregationBuilder parent = AggregationBuilders.terms(first.name()).field(first.name());
+        AggregationBuilder child = toSubTermAggregationBuilder(groups);
+        if (null != child) parent.subAggregation(child);
+        return parent;
     }
-    System.out.println(subBuilder);
-    SearchRequestBuilder builder = super.get();
-    builder.setSize(0);
-    builder.addAggregation(subBuilder);
-}
 
     @Override
     public void visitMultiGroupBy(List<List<GroupItem>> groupsList) {
+        if (null == groupsList || groupsList.isEmpty()) return;
+        SearchRequestBuilder builder = super.get();
 
+        groupsList.stream().filter(list -> list != null && !list.isEmpty()).forEach(list ->
+                builder.addAggregation(toSubTermAggregationBuilder(list)));
     }
 
     @Override
@@ -150,7 +131,7 @@ public void visitGroupBy(List<GroupItem> groups) {
     public void visitLimit(long limit) {
         if (limit >= 0L) {
             SearchRequestBuilder builder = super.get();
-            builder.setSize((int)limit);
+            builder.setSize((int) limit);
         }
     }
 }

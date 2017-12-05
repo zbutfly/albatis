@@ -9,6 +9,9 @@ import org.elasticsearch.action.search.SearchType;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
+import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.search.aggregations.AggregationBuilder;
+import org.elasticsearch.search.aggregations.AggregationBuilders;
 import org.elasticsearch.transport.client.PreBuiltTransportClient;
 import org.junit.Before;
 import org.junit.Test;
@@ -37,7 +40,8 @@ public class Es5QueryTest {
 //                .put("client.transport.ignore_cluster_name", true)
                 .build();
         client = new PreBuiltTransportClient(settings)
-                .addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName("172.16.16.232"), 9300));
+//                .addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName("172.16.16.232"), 9300));
+                .addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName("172.16.27.232"), 9300));
     }
 
     @Test
@@ -83,6 +87,21 @@ public class Es5QueryTest {
         System.out.println("==============requestBuilder=======================");
         System.out.println(requestBuilder);
         System.out.println("==============response=============================");
+        SearchResponse response = requestBuilder.get();
+        System.out.println(response);
+    }
+
+    @Test
+    public void multiGroupByQuery() {
+        SearchRequestBuilder requestBuilder = client.prepareSearch("");
+        requestBuilder.setIndices("uniquery");
+        requestBuilder.setTypes("sell");
+        requestBuilder.setQuery(QueryBuilders.matchAllQuery());
+
+        AggregationBuilder aggBuilder1 = AggregationBuilders.terms("name").field("name.keyword");
+        AggregationBuilder aggBuilder2 = AggregationBuilders.terms("years").field("years");
+        requestBuilder.addAggregation(aggBuilder1);
+        requestBuilder.addAggregation(aggBuilder2);
         SearchResponse response = requestBuilder.get();
         System.out.println(response);
     }
