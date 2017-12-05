@@ -71,7 +71,7 @@ public class Es5QueryTest {
 //        String sql = "select * from uniquery.sell where name.keyword not between 'xx' and 'yy'";
 
 //        String sql = "select name, years, count(sell) as s from uniquery.sell group by name.keyword, years"; // TODO: 2017/12/4 AS for agg fun has not support well
-        String sql = "select name, years as y, count(sell) from uniquery.sell group by name.keyword, years";
+        String sql = "select name, years as y, sum(sell), max(sell) from uniquery.sell group by name.keyword, years";
 
         JsonObject json = SqlExplainer.explain(sql);
         SearchRequestBuilder requestBuilder = client.prepareSearch("");

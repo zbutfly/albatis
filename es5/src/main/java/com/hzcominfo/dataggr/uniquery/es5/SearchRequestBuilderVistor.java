@@ -104,21 +104,18 @@ public class SearchRequestBuilderVistor extends JsonBasicVisitor<SearchRequestBu
 @Override
 public void visitGroupBy(List<GroupItem> groups) {
     if (null == groups || groups.isEmpty()) return;
-    AggregationBuilder subBuilder = AggregationBuilders.terms("elastic_agg").field("year");
+    AggregationBuilder subBuilder = null;
     List<AggregationBuilder> aggs = aggItems.stream().map(SearchRequestBuilderVistor::toAggregationBuilder).collect(Collectors.toList());
     for (int i = groups.size() - 1; i >= 0; i--) {
         GroupItem groupItem = groups.get(i);
-        String f = groupItem.name();
-        TermsAggregationBuilder sub = AggregationBuilders.terms("elastic_agg");
-        sub.field(f);
-//        subBuilder = AggregationBuilders.terms(groupItem.name()).field(groupItem.name());
-        if (i == groups.size() - 1) for (AggregationBuilder agg : aggs) {
-            subBuilder.subAggregation(agg);
+        if (i == groups.size() - 1) {
+            subBuilder = AggregationBuilders.terms(groupItem.name()).field(groupItem.name());
+            for (AggregationBuilder agg : aggs) subBuilder.subAggregation(agg);
         } else {
-            subBuilder = AggregationBuilders.terms("term_").field(f).subAggregation(subBuilder);
+            subBuilder = AggregationBuilders.terms(groupItem.name()).field(groupItem.name()).subAggregation(subBuilder);
         }
     }
-
+    System.out.println(subBuilder);
     SearchRequestBuilder builder = super.get();
     builder.addAggregation(subBuilder);
 }
