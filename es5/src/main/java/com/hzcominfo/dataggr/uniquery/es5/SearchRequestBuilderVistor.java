@@ -15,6 +15,7 @@ import java.util.stream.Collectors;
 
 public class SearchRequestBuilderVistor extends JsonBasicVisitor<SearchRequestBuilder> {
 
+    public static final String AGGRS_SUFFIX = "_aggrs";
     private List<AggItem> aggItems = new ArrayList<>();
 
     public SearchRequestBuilderVistor(SearchRequestBuilder searchRequestBuilder, JsonObject json) {
@@ -77,10 +78,10 @@ public class SearchRequestBuilderVistor extends JsonBasicVisitor<SearchRequestBu
         for (int i = groups.size() - 1; i >= 0; i--) {
             GroupItem groupItem = groups.get(i);
             if (i == groups.size() - 1) {
-                subBuilder = AggregationBuilders.terms(groupItem.name()).field(groupItem.name());
+                subBuilder = AggregationBuilders.terms(groupItem.name() + AGGRS_SUFFIX).field(groupItem.name());
                 for (AggregationBuilder agg : aggs) subBuilder.subAggregation(agg);
             } else {
-                subBuilder = AggregationBuilders.terms(groupItem.name()).field(groupItem.name()).subAggregation(subBuilder);
+                subBuilder = AggregationBuilders.terms(groupItem.name() + AGGRS_SUFFIX).field(groupItem.name()).subAggregation(subBuilder);
             }
         }
         System.out.println(subBuilder);
