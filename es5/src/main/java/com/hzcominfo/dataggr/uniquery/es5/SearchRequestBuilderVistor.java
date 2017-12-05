@@ -117,6 +117,7 @@ public void visitGroupBy(List<GroupItem> groups) {
     }
     System.out.println(subBuilder);
     SearchRequestBuilder builder = super.get();
+    builder.setSize(0);
     builder.addAggregation(subBuilder);
 }
 
