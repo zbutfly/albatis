@@ -64,13 +64,4 @@ public class AggItem {
     public String toString() {
         return func + "(" + (null == keyword ? "" : keyword + " ") + field + ")" + (null == alias ? "" : " AS " + alias);
     }
-
-    public static void main(String[] args) {
-        AggItem item = AggItem.of("count(distinct name)", "cnt");
-        System.out.println(item);
-        System.out.println(item.name());
-        item = AggItem.of("count(name)", "cnt");
-        System.out.println(item);
-        System.out.println(item.name());
-    }
 }
