@@ -75,7 +75,7 @@
 		
 		1. count
 			~~~java
-				String sql = "select count(*) from uniquery.sell";
+				String sql = "select count(*) from tdl_c1";
 				Object[] params = {};
 				long result = conn.execute(sql, params);
 			~~~
