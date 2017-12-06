@@ -11,8 +11,6 @@ import org.elasticsearch.search.aggregations.AggregationBuilder;
 import org.elasticsearch.search.aggregations.AggregationBuilders;
 import org.elasticsearch.search.sort.SortOrder;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.hzcominfo.dataggr.uniquery.AggItem;
 import com.hzcominfo.dataggr.uniquery.FieldItem;
@@ -25,7 +23,6 @@ public class SearchRequestBuilderVistor extends JsonBasicVisitor<SearchRequestBu
 
     public static final String AGGRS_SUFFIX = "_aggrs";
     private List<AggItem> aggItems = new ArrayList<>();
-    private List<FieldItem> fieldItems = new ArrayList<>();
 
     public SearchRequestBuilderVistor(SearchRequestBuilder searchRequestBuilder, JsonObject json) {
         super(searchRequestBuilder, json);
@@ -35,7 +32,6 @@ public class SearchRequestBuilderVistor extends JsonBasicVisitor<SearchRequestBu
     @Override
     public void visitFields(List<FieldItem> fields, boolean distinct) {
         SearchRequestBuilder builder = super.get();
-        this.fieldItems = new ArrayList<>(fields);
         boolean isStart = fields.stream().map(FieldItem::name).collect(Collectors.toSet()).contains("*");
         if (!isStart) {
             builder.setFetchSource(fields.stream().map(FieldItem::name)
@@ -147,25 +143,9 @@ public class SearchRequestBuilderVistor extends JsonBasicVisitor<SearchRequestBu
     }
 
 	@Override
-	public void visitOnlyCount(boolean onlyCount) {
-		// TODO Auto-generated method stub
-		JsonArray es5Fields = new JsonArray();
-		if (fieldItems.isEmpty()) return;
-        for (FieldItem item : fieldItems) {
-            if ("*".equals(item.name())) return;
-            es5Fields.add(item.name());
-        }
-        
-        List<String> funcFields = new ArrayList<>();
-		for(JsonElement fieldElement : es5Fields) {
-			String field = fieldElement.getAsString();
-			if (field.contains("(") && field.contains(")")) {
-				funcFields.add(field);
-			}
-		}
-		if (!funcFields.isEmpty() && funcFields.size() == 1 && funcFields.get(0).startsWith("count"))
-			onlyCount = true;
-		if (onlyCount) {
+	public void visitIsCount(boolean isGroup) {
+		if (isGroup) return;
+		if (aggItems.size() == 1 && aggItems.get(0).function().equals("COUNT")) {
 			SearchRequestBuilder builder = super.get();
 			builder.setSize(0);
 		}

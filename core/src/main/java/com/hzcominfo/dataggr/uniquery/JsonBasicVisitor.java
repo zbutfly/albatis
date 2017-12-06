@@ -51,23 +51,23 @@ public abstract class JsonBasicVisitor<V> implements JsonVisitor<V> {
             visitLimit(limit);
         }
         
-        boolean onlyCount = false;
+        boolean isGroup = false;
         
         element = json.get("groupBy");
         if (null != element) {
-        	onlyCount = false;
         	List<GroupItem> groups = groupsJsonArray2List(element.getAsJsonArray());
+        	isGroup = !groups.isEmpty();
     		visitGroupBy(groups);
         }
         
         element = json.get("multiGroupBy");
         if (null != element) {
-        	onlyCount = false;
+        	isGroup = true;
         	List<List<GroupItem>> groupsList = multiGroupsJsonArray2List(element.getAsJsonArray());
         	visitMultiGroupBy(groupsList);
         }
         
-        visitOnlyCount(onlyCount);
+        visitIsCount(isGroup);
     }
 
     private static List<FieldItem> fieldsJsonArray2List(JsonArray array) {
