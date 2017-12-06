@@ -31,6 +31,7 @@
 		1. es5 
 			~~~java
 				String uri = "es://pseudo-elasticsearch@172.16.27.232:9300";
+				String uri = "elasticsearch://pseudo-elasticsearch@172.16.27.232:9300";
 			~~~
 		~~~java
 			URISpec uriSpec = new URISpec(uri);
@@ -43,11 +44,19 @@
 		
 	1. 执行sql并得到结果
 		1. common query
-			~~~java
-				String sql = "select * from tdl_c1 where id=? and XB_FORMAT_s=?";
-				Object[] params = {"593fb635c00282f4af41bdd0","男"}; //动态参数
-				List<Map<String, Object>> result = client.execute(sql, params);			
-			~~~
+			1. solr 
+				~~~java
+					String sql = "select * from tdl_c1 where id=? and XB_FORMAT_s=?";
+					Object[] params = {"593fb635c00282f4af41bdd0","男"}; //动态参数
+					List<Map<String, Object>> result = client.execute(sql, params);			
+				~~~
+			
+			1. es
+				~~~java
+					String sql = "select * from uniquery.sell";
+					Object[] params = {};
+					List<Map<String, Object>> result = conn.execute(sql, params);				
+				~~~
 		
 		1. facet 
 			~~~java

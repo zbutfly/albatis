@@ -62,7 +62,7 @@ public abstract class Adapter {
 				}
 			}
 		}
-		throw new RuntimeException("No matched connection");
+		throw new RuntimeException("No matched adapter");
 	}
     
 	static <T extends Adapter> T adapt(Class<T> clazz)

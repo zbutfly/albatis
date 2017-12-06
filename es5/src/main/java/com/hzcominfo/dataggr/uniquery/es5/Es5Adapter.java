@@ -23,7 +23,7 @@ import com.hzcominfo.dataggr.uniquery.Adapter;
 import net.butfly.albatis.elastic.ElasticConnection;
 
 public class Es5Adapter extends Adapter {
-	final static String schema = "es";
+	final static String schema = "es,elasticsearch";
 	public Es5Adapter() {}
 
 	@SuppressWarnings("unchecked")
