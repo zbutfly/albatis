@@ -359,7 +359,7 @@ public class SqlExplainer {
         String operator = sc.getKind().lowerName;
         String field;
         if (sc.operand(0) instanceof SqlDynamicParam) field = newDynamicParamMark();
-        else field = ((SqlIdentifier) sc.operand(0)).getSimple();
+        else field = ((SqlIdentifier) sc.operand(0)).names.stream().collect(Collectors.joining("."));
         SqlNode nodes = sc.operand(1);
         JsonObject object = new JsonObject();
         JsonArray array = new JsonArray();
