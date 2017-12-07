@@ -6,7 +6,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 import com.hzcominfo.albatis.nosql.Connection;
 import com.hzcominfo.dataggr.uniquery.utils.ExceptionUtil;
 
@@ -69,5 +71,19 @@ public abstract class Adapter {
 			throws Exception {
 		Constructor<T> con = clazz.getConstructor();
 		return con.newInstance();
+	}
+	
+	protected static Object val(JsonElement element) {
+		if (element.isJsonArray()) return element.getAsJsonArray();
+		if (element.isJsonObject()) return element.getAsJsonObject();
+		if (element.isJsonNull()) return null;
+		if (element.isJsonPrimitive()) {
+			JsonPrimitive jp = element.getAsJsonPrimitive();
+			if (jp.isBoolean()) return jp.getAsBoolean();
+			if (jp.isNumber()) return jp.getAsNumber();
+			if (jp.isString()) return jp.getAsString();
+			return element.getAsJsonPrimitive();
+		}
+		return element;
 	}
 }

@@ -115,8 +115,8 @@ public class Es5Adapter extends Adapter {
 				if (element.isJsonObject())
 					analyseResultJson(element.getAsJsonObject(), mapList, valList.get(0).split(AGGRS_SUFFIX)[0], map);
 				else if ("key".equals(object)) {
-						map.put(val, element);
-				} else map.put("doc_count".equals(object) ? "count":object, element);
+						map.put(val, val(element));
+				} else map.put("doc_count".equals(object) ? "count":object, val(element));
 			}
 		} else {
 			Map<String, Object> subMap = new HashMap<>(map);
@@ -124,10 +124,10 @@ public class Es5Adapter extends Adapter {
 				JsonElement element = jsonObject.get(object);
 				if (element.isJsonObject()) {
 					JsonObject funcObject = element.getAsJsonObject();
-					subMap.put(object, funcObject.get("value"));
+					subMap.put(object, val(funcObject.get("value")));
 				} else if ("key".equals(object)) {
-					subMap.put(val, element);
-				} else subMap.put("doc_count".equals(object) ? "count":object, element);
+					subMap.put(val, val(element));
+				} else subMap.put("doc_count".equals(object) ? "count":object, val(element));
 			}
 			mapList.add(subMap);
 		}
