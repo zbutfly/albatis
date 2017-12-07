@@ -22,6 +22,7 @@ import net.butfly.albacore.paral.Exeter;
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.paral.Task;
 import net.butfly.albacore.utils.Exceptions;
+import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albacore.utils.parallel.Lambdas;
 import net.butfly.albatis.io.Message;
@@ -89,12 +90,13 @@ public final class ElasticOutput extends Namedly implements Output<Message> {
 
 		@Override
 		public void onResponse(BulkResponse response) {
-			Map<Integer, List<BulkItemResponse>> resps = of(response).partition(r -> r.isFailed() ? //
-					(noRetry(r.getFailure().getCause()) ? 1 : 2) : 0, r -> r);
-			List<BulkItemResponse> succs = resps.get(0);
-			List<BulkItemResponse> fails = resps.get(1);
-			List<BulkItemResponse> retries = resps.get(2);
-
+			List<BulkItemResponse> succs = Colls.list();
+			List<BulkItemResponse> fails = Colls.list();
+			List<BulkItemResponse> retries = Colls.list();
+			for (BulkItemResponse r : response)
+				if (!r.isFailed()) succs.add(r);
+				else if (noRetry(r.getFailure().getCause())) fails.add(r);
+				else retries.add(r);
 			if (!succs.isEmpty()) {
 				logger.trace(() -> "Elastic enqueue succeed [" + req.estimatedSizeInBytes() + " bytes], sample id: " + succs.get(0)
 						.getId());
