@@ -6,6 +6,7 @@ import static net.butfly.albacore.utils.Exceptions.unwrap;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.DocWriteRequest;
@@ -19,6 +20,7 @@ import org.elasticsearch.transport.RemoteTransportException;
 import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.paral.Exeter;
 import net.butfly.albacore.paral.Sdream;
+import net.butfly.albacore.paral.Task;
 import net.butfly.albacore.utils.Exceptions;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albacore.utils.parallel.Lambdas;
@@ -52,8 +54,6 @@ public final class ElasticOutput extends Namedly implements Output<Message> {
 		List<Message> ol = msgs.list();
 		if (ol.isEmpty()) return;
 		Map<String, Message> remains = of(ol).partition(Message::key, conn::fixTable, Lambdas.nullOr());
-		for (Message m : ol)
-			remains.computeIfAbsent(m.key(), k -> conn.fixTable(m));
 		Exeter.of().submit(() -> {
 			int retry = 0;
 			while (!remains.isEmpty() && retry++ < maxRetry) {
@@ -61,8 +61,10 @@ public final class ElasticOutput extends Namedly implements Output<Message> {
 				List<DocWriteRequest> reqs = of(remains.values()).map(Elastics::forWrite).list();
 				if (reqs.isEmpty()) return;
 				BulkRequest req = new BulkRequest().add(reqs);
+				EnqueueListener lis = new EnqueueListener(remains, req);
 				try {
-					conn.client().bulk(req, new EnqueueListener(remains, req));
+					conn.client().bulk(req, lis);
+					lis.join();
 				} catch (IllegalStateException ex) {
 					logger().error("Elastic client fail: [" + ex.toString() + "]");
 				}
@@ -73,10 +75,16 @@ public final class ElasticOutput extends Namedly implements Output<Message> {
 	private class EnqueueListener implements ActionListener<BulkResponse> {
 		private final BulkRequest req;
 		private final Map<String, Message> remains;
+		private final AtomicBoolean finished = new AtomicBoolean(false);
 
 		private EnqueueListener(Map<String, Message> remains, BulkRequest req) {
 			this.remains = remains;
 			this.req = req;
+		}
+
+		public void join() {
+			while (!finished.get())
+				Task.waitSleep(10);
 		}
 
 		@Override
@@ -100,7 +108,7 @@ public final class ElasticOutput extends Namedly implements Output<Message> {
 				logger.warn(() -> of(fails).joinAsString("Some fails: \n", //
 						r -> "\tfailed id [" + r.getFailure().getId() + "] for: " + unwrap(r.getFailure().getCause()).toString(), "\n"));
 			}
-
+			finished.set(true);
 		}
 
 		@Override
@@ -108,6 +116,7 @@ public final class ElasticOutput extends Namedly implements Output<Message> {
 			Throwable t = Exceptions.unwrap(e);
 			if (noRetry(t)) logger().warn("Elastic connection op failed [" + t + "], [" + remains.size() + "] fails", t);
 			else failed(of(remains.values()));
+			finished.set(true);
 		}
 
 		private boolean noRetry(Throwable cause) {
