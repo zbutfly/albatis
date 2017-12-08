@@ -21,9 +21,16 @@ public interface Pump<V> extends Statistical<Pump<V>>, Openable {
 		Openable.super.open();
 		handleSignal(sig -> {
 			close();
-			System.err.println("Maybe you need to kill me manually: kill -9 " + pid() + "\n" + threadsRunning().count()
-					+ " threads remain: ");
-			System.err.println("\t" + threadsRunning().joinAsString(t -> t.getId() + "[" + t.getName() + "]", ","));
+			List<Thread> threads = threadsRunning().list();
+			System.err.println("Maybe you need to kill me manually: kill -9 " + pid() + "\n" + threads.size() + " threads remain: ");
+			int i = 0;
+			for (Thread t : threads) {
+				if (i++ < 10) System.err.println("\t" + t.getId() + "[" + t.getName() + "]");
+				else {
+					System.err.println("\t......................");
+					break;
+				}
+			}
 		}, "TERM", "INT");
 	}
 
