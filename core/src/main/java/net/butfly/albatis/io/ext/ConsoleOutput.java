@@ -7,8 +7,9 @@ public class ConsoleOutput extends OddOutputBase<String> {
 		super("ConsoleOutput");
 	}
 
+public class ConsoleOutput extends net.butfly.albacore.base.Namedly implements OddOutput<String> {
 	@Override
-	protected boolean enqueue0(String item) {
+	public boolean enqueue(String item) {
 		System.out.println(item);
 		return true;
 	}

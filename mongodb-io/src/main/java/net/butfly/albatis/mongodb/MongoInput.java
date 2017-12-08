@@ -98,32 +98,15 @@ public class MongoInput extends net.butfly.albacore.base.Namedly implements OddI
 	@SuppressWarnings("unchecked")
 	@Override
 	public Message dequeue() {
-		Cursor c;
-		Map<String, Object> m;
-		while (opened() && !empty())
-			if (null != (c = cursors.poll())) try {
-				if (c.cursor.hasNext()) {
-					try {
-						m = s().stats(c.cursor.next()).toMap();
-					} catch (MongoException ex) {
-						logger.warn("Mongo fail fetch, ignore and continue retry...");
-						continue;
-					} catch (IllegalStateException ex) {
-						continue;
-					}
-					String collection = c.col;
-					Object key = m.containsKey("_id") ? m.get("_id").toString() : null;
-					Message msg = new Message(collection, key);
-					m.forEach((k, v) -> {
-						if (null == v) {
-							logger.error("Mongo result field [" + k + "] null at table [" + collection + "], id [" + key + "].");
-						} else { msg.put(k, v); }
-					});
-					return msg;
-				} else {
-					c.close();
-					c = null;
-				}
+		Pair<String, DBCursor> c;
+		while (null != (c = cursors.poll()))
+			try {
+				if (!c.v2().hasNext()) c = closeCursor(c);
+				else return new Message(c.v1(), (String) null, c.v2().next().toMap());
+			} catch (MongoException ex) {
+				logger.warn("Mongo fail fetch, ignore and continue retry...");
+			} catch (IllegalStateException ex) {
+				break;
 			} finally {
 				if (null != c) cursors.offer(c);
 			}

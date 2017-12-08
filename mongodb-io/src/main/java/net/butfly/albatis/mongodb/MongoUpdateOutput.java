@@ -10,7 +10,7 @@ import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.Pair;
 import net.butfly.albatis.io.OddOutputBase;
 
-public final class MongoUpdateOutput extends OddOutputBase<Pair<DBObject, DBObject>> {
+public final class MongoUpdateOutput extends net.butfly.albacore.base.Namedly implements OddOutput<Pair<DBObject, DBObject>> {
 	private final boolean upsert;
 	private final MongoConnection conn;
 	private final DBCollection collection;
@@ -52,7 +52,7 @@ public final class MongoUpdateOutput extends OddOutputBase<Pair<DBObject, DBObje
 	}
 
 	@Override
-	protected boolean enqueue0(Pair<DBObject, DBObject> queryAndUpdate) {
+	public boolean enqueue(Pair<DBObject, DBObject> queryAndUpdate) {
 		if (null == queryAndUpdate) return false;
 		WriteResult r = collection.update(queryAndUpdate.v1(), queryAndUpdate.v2(), true, upsert);
 		return r.getN() > 0;

@@ -28,7 +28,7 @@ import net.butfly.albatis.io.Message;
 import net.butfly.albatis.io.OddInput;
 import net.butfly.albatis.kafka.config.KafkaInputConfig;
 
-public class KafkaInput extends OddInput<Message> {
+public class KafkaInput extends net.butfly.albacore.base.Namedly implements OddInput<Message> {
 	private final KafkaInputConfig config;
 	private final Map<String, Integer> allTopics = Maps.of();
 	private final ConsumerConnector connect;
@@ -99,7 +99,7 @@ public class KafkaInput extends OddInput<Message> {
 	}
 
 	@Override
-	protected Message dequeue() {
+	public Message dequeue() {
 		ConsumerIterator<byte[], byte[]> it;
 		MessageAndMetadata<byte[], byte[]> m;
 		if (null == (it = consumers.poll())) return null;
