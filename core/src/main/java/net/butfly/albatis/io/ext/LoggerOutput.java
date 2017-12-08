@@ -10,7 +10,7 @@ import net.butfly.albacore.utils.Instances;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.io.OddOutput;
 
-public final class LoggerOutput extends OddOutput<String> {
+public final class LoggerOutput extends net.butfly.albacore.base.Namedly implements OddOutput<String> {
 	private final Map<Level, Consumer<String>> loggings;
 	private final Logger logger;
 	private final Level level;
@@ -46,7 +46,7 @@ public final class LoggerOutput extends OddOutput<String> {
 	}
 
 	@Override
-	protected boolean enqueue(String item) {
+	public boolean enqueue(String item) {
 		loggings.get(level).accept(item);
 		return true;
 	}

@@ -23,7 +23,7 @@ import net.butfly.albacore.utils.parallel.Lambdas;
 import net.butfly.albatis.io.Message;
 import net.butfly.albatis.io.OddInput;
 
-public class MongoInput extends OddInput<Message> {
+public class MongoInput extends net.butfly.albacore.base.Namedly implements OddInput<Message> {
 	private static final Logger logger = Logger.getLogger(MongoInput.class);
 	private final MongoConnection conn;
 	private final BlockingQueue<Pair<String, DBCursor>> cursors;
@@ -112,7 +112,7 @@ public class MongoInput extends OddInput<Message> {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	protected Message dequeue() {
+	public Message dequeue() {
 		Pair<String, DBCursor> c;
 		while (null != (c = cursors.poll()))
 			try {

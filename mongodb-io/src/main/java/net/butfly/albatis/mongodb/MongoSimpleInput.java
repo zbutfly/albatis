@@ -12,7 +12,7 @@ import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.io.Message;
 import net.butfly.albatis.io.OddInput;
 
-public class MongoSimpleInput extends OddInput<Message> {
+public class MongoSimpleInput extends net.butfly.albacore.base.Namedly implements OddInput<Message> {
 	private static final Logger logger = Logger.getLogger(MongoSimpleInput.class);
 	private final MongoConnection conn;
 	private DBCursor cursor;
@@ -57,7 +57,7 @@ public class MongoSimpleInput extends OddInput<Message> {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	protected Message dequeue() {
+	public Message dequeue() {
 		boolean hasNext = true;
 		do {
 			if (lock.writeLock().tryLock()) try {

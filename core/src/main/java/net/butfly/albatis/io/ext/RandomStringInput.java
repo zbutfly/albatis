@@ -5,7 +5,7 @@ import java.util.UUID;
 import net.butfly.albatis.io.Input;
 import net.butfly.albatis.io.OddInput;
 
-public final class RandomStringInput extends OddInput<String> {
+public final class RandomStringInput extends net.butfly.albacore.base.Namedly implements OddInput<String> {
 	public RandomStringInput() {
 		super();
 		open();
@@ -14,7 +14,7 @@ public final class RandomStringInput extends OddInput<String> {
 	public static final Input<String> INSTANCE = new RandomStringInput();
 
 	@Override
-	protected String dequeue() {
+	public String dequeue() {
 		return UUID.randomUUID().toString();
 	}
 }

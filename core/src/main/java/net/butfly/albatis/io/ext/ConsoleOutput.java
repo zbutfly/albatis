@@ -2,9 +2,9 @@ package net.butfly.albatis.io.ext;
 
 import net.butfly.albatis.io.OddOutput;
 
-public class ConsoleOutput extends OddOutput<String> {
+public class ConsoleOutput extends net.butfly.albacore.base.Namedly implements OddOutput<String> {
 	@Override
-	protected boolean enqueue(String item) {
+	public boolean enqueue(String item) {
 		System.out.println(item);
 		return true;
 	}

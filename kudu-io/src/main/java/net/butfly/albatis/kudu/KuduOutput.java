@@ -23,7 +23,7 @@ import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albatis.io.Message;
 import net.butfly.albatis.io.OddOutput;
 
-public class KuduOutput extends OddOutput<Message> {
+public class KuduOutput extends net.butfly.albacore.base.Namedly implements OddOutput<Message> {
 	public static final int SUGGEST_BATCH_SIZE = 200;
 	private final KuduConnBase<?, ?, ?> connect;
 
@@ -38,7 +38,7 @@ public class KuduOutput extends OddOutput<Message> {
 		long w = 0;
 		while ((w = working.get()) > 0 && logger().info("Waiting for working: " + w) && Task.waitSleep()) {}
 		commit();
-		super.close();
+		OddOutput.super.close();
 		// sdumpDups();
 	}
 

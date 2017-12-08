@@ -50,7 +50,7 @@ public class BigqQueue<V> extends QueueOddImpl<V> {
 	}
 
 	@Override
-	protected boolean enqueue(V e) {
+	public boolean enqueue(V e) {
 		if (null == e) return false;
 		byte[] v;
 		try {
@@ -66,7 +66,7 @@ public class BigqQueue<V> extends QueueOddImpl<V> {
 	}
 
 	@Override
-	protected V dequeue() {
+	public V dequeue() {
 		V v = null;
 		try {
 			while (v == null && !empty() && opened()) {

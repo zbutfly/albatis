@@ -34,14 +34,15 @@ public class JavaQueue<V> extends QueueOddImpl<V> {
 	}
 
 	@Override
-	protected final boolean enqueue(V e) {
+	public
+	final boolean enqueue(V e) {
 		if (null == e) return false;
 		do {} while (opened() && !impl.offer(e) && waitSleep());
 		return false;
 	}
 
 	@Override
-	protected V dequeue() {
+	public V dequeue() {
 		if (!opened()) return null;
 		V v = null;
 		do {} while (opened() && (v = impl.poll()) == null && waitSleep());

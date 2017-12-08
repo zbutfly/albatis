@@ -11,7 +11,7 @@ import org.elasticsearch.index.query.QueryBuilders;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.io.OddInput;
 
-public final class ElasticInput extends OddInput<SearchResponse> {
+public final class ElasticInput extends net.butfly.albacore.base.Namedly implements OddInput<SearchResponse> {
 	protected static final Logger logger = Logger.getLogger(ElasticInput.class);
 	private final ElasticConnection elastic;
 	// view time def 10 minute
@@ -91,7 +91,7 @@ public final class ElasticInput extends OddInput<SearchResponse> {
 	}
 
 	@Override
-	protected SearchResponse dequeue() {
+	public SearchResponse dequeue() {
 		if (searchResponse == null) scanType();
 		else scanType2(searchResponse);
 		return searchResponse;
