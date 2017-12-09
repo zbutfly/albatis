@@ -2,13 +2,17 @@ package net.butfly.albatis.io.ext;
 
 import static net.butfly.albacore.paral.Sdream.of;
 
+import java.util.List;
+import java.util.function.Consumer;
+
 import net.butfly.albacore.base.Namedly;
+import net.butfly.albacore.paral.Exeter;
 import net.butfly.albacore.paral.Sdream;
+import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albatis.io.Output;
 
 public class FanOutput<V> extends Namedly implements Output<V> {
 	private final List<Consumer<Sdream<V>>> tasks;
-	private final List<? extends Output<V>> outputs;
 
 	public FanOutput(Iterable<? extends Output<V>> outputs) {
 		this("FanOutTo" + ":" + of(outputs).joinAsString(Output::name, "&"), outputs);
@@ -18,16 +22,12 @@ public class FanOutput<V> extends Namedly implements Output<V> {
 	public FanOutput(String name, Iterable<? extends Output<V>> outputs) {
 		super(name);
 		tasks = Colls.list();
-		this.outputs = Colls.list(outputs);
 		for (Output<V> o : outputs)
-			tasks.add(items -> {
-				o.enqueue(items);
-			});
+			tasks.add(s -> o.enqueue(s));
 	}
 
 	@Override
 	public void enqueue(Sdream<V> s) {
-		for (Output<V> o : outputs)
-			o.enqueue(s);
+		Exeter.of().join(s, tasks);
 	}
 }
