@@ -7,7 +7,7 @@ import java.io.IOException;
 import com.bluejeans.bigqueue.BigQueue;
 
 import net.butfly.albacore.utils.logger.Logger;
-import net.butfly.albatis.io.QueueOddImpl;
+import net.butfly.albatis.io.OddQueue;
 
 public class BigqQueue<V> extends OddQueue<V> {
 	public static final long GC_INTV = Integer.parseInt(System.getProperty("albatis.queue.bigqueue.autogc", "30")) * 1000;

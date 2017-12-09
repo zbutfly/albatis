@@ -1,46 +1,59 @@
 package net.butfly.albatis.io;
 
-import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.Spliterator;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
-import net.butfly.albacore.paral.Exeter;
 import net.butfly.albacore.paral.Sdream;
-import net.butfly.albacore.utils.collection.Colls;
 
 public interface OddInput<V> extends Input<V> {
-	final static long TIMEOUT_MS = 1000;
-
 	V dequeue();
 
 	@Override
 	public default void dequeue(Consumer<Sdream<V>> using, int batchSize) {
-		List<V> batch = Colls.list();
-		try {
-			while (!empty() && opened()) {
-				while (batch.size() < batchSize && !empty()) {
-					Future<V> f = Exeter.of().submit((Callable<V>) this::dequeue);
-					V v;
-					try {
-						v = f.get(TIMEOUT_MS, TimeUnit.MILLISECONDS);
-					} catch (ExecutionException e) {
-						logger().error("Dequeue fail", e);
-						return;
-					} catch (InterruptedException e) {
-						logger().warn("Dequeue interrupted");
-						return;
-					} catch (TimeoutException e) {
-						return;
-					}
-					if (null != v) batch.add(v);
-				}
+		using.accept(Sdream.of(new SupSpliterator<>(this::dequeue, () -> empty() || !opened(), batchSize)));
+	}
+
+	class SupSpliterator<V> implements Spliterator<V> {
+		private int est;
+		private Supplier<V> get;
+		private Supplier<Boolean> end;
+
+		public SupSpliterator(Supplier<V> get, Supplier<Boolean> end, int limit) {
+			super();
+			this.est = limit;
+			this.get = get;
+			this.end = end;
+		}
+
+		@Override
+		public int characteristics() {
+			return CONCURRENT | SIZED | SUBSIZED | IMMUTABLE | NONNULL;
+		}
+
+		@Override
+		public long estimateSize() {
+			return est;
+		}
+
+		@Override
+		public boolean tryAdvance(Consumer<? super V> using1) {
+			V v = null;
+			while (est > 0 && !end.get() && null == (v = get.get())) {}
+			if (null == v) {
+				est = 0;
+				return false;
+			} else {
+				est--;
+				using1.accept(v);
+				return true;
 			}
-		} finally {
-			if (batch.isEmpty()) using.accept(Sdream.of(batch));
+		}
+
+		@Override
+		public Spliterator<V> trySplit() {
+			// TODO not split now
+			return null;
 		}
 	}
 }
