@@ -112,7 +112,8 @@ public class KafkaInput extends net.butfly.albacore.base.Namedly implements OddI
 				} catch (NoSuchElementException ex) {
 					return null;
 				} catch (Exception ex) {
-					logger().warn("Unprocessed kafka error", ex);
+					logger().warn("Unprocessed kafka error [" + ex.getClass().toString() + ": " + ex.getMessage()
+							+ "], ignore and continue.");
 					return null;
 				}
 		} finally {
