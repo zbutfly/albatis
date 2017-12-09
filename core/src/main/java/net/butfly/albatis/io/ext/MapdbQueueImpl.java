@@ -9,7 +9,7 @@ package net.butfly.albatis.io.ext;
 //
 //import net.butfly.albatis.io.queue.QueueOddImpl;
 //
-//public abstract class MapdbQueueImpl<V0> extends QueueOddImpl<V0> {
+//public abstract class MapdbQueueImpl<V0> extends OddQueue<V0> {
 //	private static final String FILENAME_PREFIX = "mapdb-";
 //	private static final String FILENAME_EXT = ".db";
 //	protected final DB db;

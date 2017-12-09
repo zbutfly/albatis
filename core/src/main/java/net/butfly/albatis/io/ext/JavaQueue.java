@@ -4,9 +4,9 @@ import static net.butfly.albacore.paral.Task.waitSleep;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
-import net.butfly.albatis.io.QueueOddImpl;
+import net.butfly.albatis.io.OddQueue;
 
-public class JavaQueue<V> extends QueueOddImpl<V> {
+public class JavaQueue<V> extends OddQueue<V> {
 	private BlockingQueue<V> impl;
 
 	public JavaQueue(long capacity) {

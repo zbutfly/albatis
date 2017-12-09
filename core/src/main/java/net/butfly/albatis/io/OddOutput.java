@@ -10,7 +10,7 @@ public interface OddOutput<V> extends Output<V> {
 	@Override
 	public default void enqueue(Sdream<V> s) {
 		if (!waitSleep(() -> full())) return;
-		s.each(v -> {
+		s.eachs(v -> {
 			if (enqueue(v)) succeeded(1);
 		});
 	}

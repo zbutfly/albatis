@@ -5,15 +5,15 @@ import java.util.concurrent.atomic.AtomicLong;
 import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.paral.Sdream;
 
-public abstract class QueueOddImpl<V> extends Namedly implements Queue<V>, OddInput<V>, OddOutput<V> {
+public abstract class OddQueue<V> extends Namedly implements Queue<V>, OddInput<V>, OddOutput<V> {
 	private final AtomicLong capacity;
 
-	protected QueueOddImpl(long capacity) {
+	protected OddQueue(long capacity) {
 		super();
 		this.capacity = new AtomicLong(capacity);
 	}
 
-	protected QueueOddImpl(String name, long capacity) {
+	protected OddQueue(String name, long capacity) {
 		super(name);
 		this.capacity = new AtomicLong(capacity);
 	}
