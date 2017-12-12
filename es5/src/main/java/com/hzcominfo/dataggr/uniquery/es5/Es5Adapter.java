@@ -19,6 +19,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.hzcominfo.albatis.nosql.Connection;
 import com.hzcominfo.dataggr.uniquery.Adapter;
+import com.hzcominfo.dataggr.uniquery.dto.ResultSet;
 
 import net.butfly.albatis.elastic.ElasticConnection;
 
@@ -53,7 +54,7 @@ public class Es5Adapter extends Adapter {
 			SearchHits hits = sr.getHits();
 			SearchHit[] hitList = hits.getHits();
 			if (hitList == null || hitList.length < 1) return (T) count(hits);
-			return (T) common(hitList);
+			return (T) common(hits);
 		}
 	}
 	
@@ -61,9 +62,10 @@ public class Es5Adapter extends Adapter {
 		return hits.totalHits;
 	}
 	
-	private List<Map<String, Object>> common(SearchHit[] hitList) {
+	private ResultSet common(SearchHits hits) {
+		ResultSet rs = new ResultSet();
 		List<Map<String, Object>> resultMap = new ArrayList<>();
-		for (SearchHit hit : hitList) {
+		for (SearchHit hit : hits.getHits()) {
 			if (!hit.hasSource()) continue;
 			Map<String, Object> map = new HashMap<>();
 			Map<String, Object> sourceMap = hit.getSourceAsMap();
@@ -72,10 +74,13 @@ public class Es5Adapter extends Adapter {
 			}
 			resultMap.add(map);
 		}
-		return resultMap;
+		rs.setTotal(hits.totalHits);
+		rs.setResults(resultMap);
+		return rs;
 	}
 	
-	private static List<Map<String, Object>> facet(JsonObject results) {
+	private static ResultSet facet(JsonObject results) {
+		ResultSet rs = new ResultSet();
 		List<Map<String, Object>> mapList = new ArrayList<>();
 		for (String result : results.keySet()) {
 			JsonElement element = results.get(result);
@@ -84,7 +89,8 @@ public class Es5Adapter extends Adapter {
 			}
 			else continue;
 		}
-		return mapList;
+		rs.setResults(mapList);
+		return rs;
 	}
 	
 	private static List<List<Map<String, Object>>> multiFacet(JsonObject results) {

@@ -8,7 +8,7 @@
 			<dependency>
 				<groupId>com.hzcominfo.dataggr.uniquery</groupId>
 				<artifactId>uniquery-solr</artifactId>
-				<version>0.0.1-SNAPSHOT</version>
+				<version>0.0.2-SNAPSHOT</version>
 			</dependency>
 		~~~
 	
@@ -17,7 +17,7 @@
 			<dependency>
 				<groupId>com.hzcominfo.dataggr.uniquery</groupId>
 				<artifactId>uniquery-es5</artifactId>
-				<version>0.0.1-SNAPSHOT</version>
+				<version>0.0.2-SNAPSHOT</version>
 			</dependency>
 		~~~
 
@@ -31,7 +31,7 @@
 		1. es5 
 			~~~java
 				String uri = "es://pseudo-elasticsearch@172.16.27.232:9300";
-				String uri = "elasticsearch://pseudo-elasticsearch@172.16.27.232:9300";
+				//String uri = "elasticsearch://pseudo-elasticsearch@172.16.27.232:9300";
 			~~~
 		~~~java
 			URISpec uriSpec = new URISpec(uri);
@@ -48,24 +48,28 @@
 				~~~java
 					String sql = "select * from tdl_c1 where id=? and XB_FORMAT_s=?";
 					Object[] params = {"593fb635c00282f4af41bdd0","男"}; //动态参数
-					List<Map<String, Object>> result = client.execute(sql, params);			
 				~~~
 			
 			1. es
 				~~~java
 					String sql = "select * from uniquery.sell";
 					Object[] params = {};
-					List<Map<String, Object>> result = conn.execute(sql, params);				
 				~~~
+			~~~java
+				ResultSet rs = client.execute(sql, params);	
+				List<Map<String, Object>> result = rs.getResults();
+				long total = rs.getTotal();			
+			~~~
 		
-		1. facet 
+		1. group by 
 			~~~java
 				String sql = "select XB_FORMAT_s,MZ_FORMAT_s from tdl_c1 group by XB_FORMAT_s,MZ_FORMAT_s";
 				Object[] params = {};
-				List<Map<String, Object>> result = client.execute(sql, params);			
+				ResultSet rs = client.execute(sql, params);
+				List<Map<String, Object>> result = rs.getResults();			
 			~~~
 			
-		1. multi facet
+		1. multi group by
 			~~~java
 				String sql = "select * from tdl_c1";
 				String[] facets = {"XB_FORMAT_s", "MZ_FORMAT_s", "MZ_i"}; //facet字段 一个数组元素可包含多个facet字段,用  , 隔开

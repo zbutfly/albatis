@@ -10,8 +10,8 @@
 	</parent>
 
 	<artifactId>uniquery-es5</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
 	<packaging>jar</packaging>
+	<version>0.0.2-SNAPSHOT</version>
 
 	<properties>
 		<elastic.version>5.5.2</elastic.version>
