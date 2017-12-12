@@ -19,4 +19,8 @@ public class ResultSet {
 	public void setResults(List<Map<String, Object>> results) {
 		this.results = results;
 	}
+	@Override
+	public String toString() {
+		return "ResultSet [total=" + total + ", results=" + results + "]";
+	}
 }

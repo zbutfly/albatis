@@ -57,7 +57,7 @@
 				~~~
 			~~~java
 				ResultSet rs = client.execute(sql, params);	
-				List<Map<String, Object>> result = rs.getResults();
+				List<Map<String, Object>> results = rs.getResults();
 				long total = rs.getTotal();			
 			~~~
 		
@@ -66,7 +66,7 @@
 				String sql = "select XB_FORMAT_s,MZ_FORMAT_s from tdl_c1 group by XB_FORMAT_s,MZ_FORMAT_s";
 				Object[] params = {};
 				ResultSet rs = client.execute(sql, params);
-				List<Map<String, Object>> result = rs.getResults();			
+				List<Map<String, Object>> results = rs.getResults();			
 			~~~
 			
 		1. multi group by
@@ -74,14 +74,32 @@
 				String sql = "select * from tdl_c1";
 				String[] facets = {"XB_FORMAT_s", "MZ_FORMAT_s", "MZ_i"}; //facet字段 一个数组元素可包含多个facet字段,用  , 隔开
 				Object[] params = {};
-				List<List<Map<String, Object>>> result = conn.execute(sql, facets, params);	
+				Map<String, ResultSet> results = conn.execute(sql, facets, params);	
 			~~~
 		
 		1. count
 			~~~java
 				String sql = "select count(*) from tdl_c1";
 				Object[] params = {};
-				long result = conn.execute(sql, params);
+				ResultSet rs = conn.execute(sql, params);
+				long result = rs.getTotal();
+			~~~
+		
+		1. batch operation
+			~~~java
+				Request request = new Request();
+				request.setKey("0");
+				request.setSql("select * from tdl_c1");
+				Object[] params = {};
+				request.setParams(params);
+				
+				Request request1 = new Request();
+				request1.setKey("1");
+				request1.setSql("select * from tdl_c2");
+				Object[] params1 = {};
+				request1.setParams(params1);
+				
+				Map<String, ResultSet> results = conn.batchExecute(request, request1);
 			~~~
 	
 	1. 关闭客户端

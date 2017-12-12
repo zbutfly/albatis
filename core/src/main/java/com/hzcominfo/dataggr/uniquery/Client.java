@@ -1,13 +1,15 @@
 package com.hzcominfo.dataggr.uniquery;
 
 import java.util.Arrays;
-import java.util.List;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.hzcominfo.albatis.nosql.Connection;
+import com.hzcominfo.dataggr.uniquery.dto.Request;
+import com.hzcominfo.dataggr.uniquery.dto.ResultSet;
 import com.hzcominfo.dataggr.uniquery.utils.ExceptionUtil;
 
 import net.butfly.albacore.io.URISpec;
@@ -76,7 +78,7 @@ public class Client implements AutoCloseable {
 	 * @param params sql dynamic parameter
 	 * @return
 	 */
-	public List<List<Map<String, Object>>> execute(String sql, String[] facets, Object...params) {
+	public Map<String, ResultSet> execute(String sql, String[] facets, Object...params) {
 		try {
 			JsonObject sqlJson = SqlExplainer.explain(sql, params);
 			JsonObject tableJson = sqlJson.has("tables") ? sqlJson.getAsJsonObject("tables"):null;
@@ -93,6 +95,20 @@ public class Client implements AutoCloseable {
 			ExceptionUtil.runtime("connect error", e);
 		}
 		return null;
+	}
+	
+	/**
+	 * batch execute
+	 * @param requests {String sql, Object...params}...
+	 * @return
+	 */
+	public Map<String, ResultSet> batchExecute(Request...requests) {
+		Map<String, ResultSet> resMap = new LinkedHashMap<>();
+		for (Request request : requests) {
+			ResultSet rs = execute(request.getSql(), request.getParams());
+			resMap.put(request.getKey(), rs);
+		}
+		return resMap;
 	}
 
 	@Override

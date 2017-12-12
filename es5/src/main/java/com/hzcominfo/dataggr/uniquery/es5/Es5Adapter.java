@@ -4,6 +4,7 @@ import static com.hzcominfo.dataggr.uniquery.es5.SearchRequestBuilderVistor.AGGR
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -58,8 +59,10 @@ public class Es5Adapter extends Adapter {
 		}
 	}
 	
-	private Long count(SearchHits hits) {
-		return hits.totalHits;
+	private ResultSet count(SearchHits hits) {
+		ResultSet rs = new ResultSet();
+		rs.setTotal(hits.totalHits);
+		return rs;
 	}
 	
 	private ResultSet common(SearchHits hits) {
@@ -84,8 +87,9 @@ public class Es5Adapter extends Adapter {
 		List<Map<String, Object>> mapList = new ArrayList<>();
 		for (String result : results.keySet()) {
 			JsonElement element = results.get(result);
+			List<String> key = new ArrayList<>();
 			if (element.isJsonObject()) {
-				analyseResultJson(element.getAsJsonObject(), mapList, result.split(AGGRS_SUFFIX)[0], new HashMap<>());
+				analyseResultJson(element.getAsJsonObject(), mapList, result.split(AGGRS_SUFFIX)[0], new HashMap<>(), key);
 			}
 			else continue;
 		}
@@ -93,34 +97,40 @@ public class Es5Adapter extends Adapter {
 		return rs;
 	}
 	
-	private static List<List<Map<String, Object>>> multiFacet(JsonObject results) {
-		List<List<Map<String, Object>>> multiList = new ArrayList<>();
+	private static Map<String, ResultSet> multiFacet(JsonObject results) {
+		Map<String, ResultSet> rsMap = new LinkedHashMap<>();
 		for (String result : results.keySet()) {
 			JsonElement element = results.get(result);
 			if (element.isJsonObject()) {
+				ResultSet rs = new ResultSet();
+				List<String> key = new ArrayList<>();
 				List<Map<String, Object>> mapList = new ArrayList<>();
-				analyseResultJson(element.getAsJsonObject(), mapList, result.split(AGGRS_SUFFIX)[0], new HashMap<>());
-				multiList.add(mapList);
-			}
-			else continue;
+				String val = result.split(AGGRS_SUFFIX)[0];
+				key.add(val);
+				analyseResultJson(element.getAsJsonObject(), mapList, val, new HashMap<>(), key);
+				rs.setResults(mapList);
+				rsMap.put(key.toString(), rs);
+			} else continue;
 		}
-		return multiList;
+		return rsMap;
 	}
 	
 	private static void analyseResultJson(JsonObject jsonObject, List<Map<String, Object>> mapList, String val, 
-			Map<String, Object> map) {
+			Map<String, Object> map, List<String> key) {
 		if (jsonObject.keySet().contains("buckets")) {
 			JsonElement buckets = jsonObject.get("buckets");
 			if (buckets.isJsonArray())
 				for (JsonElement element : buckets.getAsJsonArray())
-					analyseResultJson(element.getAsJsonObject(), mapList, val, map);
+					analyseResultJson(element.getAsJsonObject(), mapList, val, map, key);
 		} else if (jsonObject.keySet().stream().filter(s -> s.endsWith(AGGRS_SUFFIX)).count() > 0) {
 			List<String> valList = jsonObject.keySet().stream().filter(s -> s.endsWith(AGGRS_SUFFIX)).collect(Collectors.toList());
 			for (String object : jsonObject.keySet()) {
 				JsonElement element = jsonObject.get(object);
-				if (element.isJsonObject())
-					analyseResultJson(element.getAsJsonObject(), mapList, valList.get(0).split(AGGRS_SUFFIX)[0], map);
-				else if ("key".equals(object)) {
+				if (element.isJsonObject()) {
+					String nextVal = valList.get(0).split(AGGRS_SUFFIX)[0];
+					key.add(nextVal);
+					analyseResultJson(element.getAsJsonObject(), mapList, nextVal, map, key);
+				}else if ("key".equals(object)) {
 						map.put(val, val(element));
 				} else map.put("doc_count".equals(object) ? "count":object, val(element));
 			}
