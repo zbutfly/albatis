@@ -77,14 +77,6 @@
 				Map<String, ResultSet> results = conn.execute(sql, facets, params);	
 			~~~
 		
-		1. count
-			~~~java
-				String sql = "select count(*) from tdl_c1";
-				Object[] params = {};
-				ResultSet rs = conn.execute(sql, params);
-				long result = rs.getTotal();
-			~~~
-		
 		1. batch operation
 			~~~java
 				Request request = new Request();

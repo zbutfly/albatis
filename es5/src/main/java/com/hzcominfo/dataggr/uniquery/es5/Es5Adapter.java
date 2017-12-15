@@ -53,16 +53,8 @@ public class Es5Adapter extends Adapter {
 			else return (T) multiFacet(results);
 		} else {
 			SearchHits hits = sr.getHits();
-			SearchHit[] hitList = hits.getHits();
-			if (hitList == null || hitList.length < 1) return (T) count(hits);
 			return (T) common(hits);
 		}
-	}
-	
-	private ResultSet count(SearchHits hits) {
-		ResultSet rs = new ResultSet();
-		rs.setTotal(hits.totalHits);
-		return rs;
 	}
 	
 	private ResultSet common(SearchHits hits) {
