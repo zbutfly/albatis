@@ -2,13 +2,17 @@ package net.butfly.albatis.io;
 
 import java.util.function.Consumer;
 
+import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.io.Dequeuer;
 import net.butfly.albacore.io.Enqueuer;
+import net.butfly.albacore.io.IO;
 import net.butfly.albacore.lambda.Runnable;
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.logger.Logger;
 
-public interface Wrapper {
+public interface Wrapper<W extends IO> extends IO {
+	W bases();
+
 	static <T, T1> WrapInput<T, T1> wrap(Input<T1> base, String suffix, Dequeuer<T> d) {
 		return new WrapInput<T, T1>(base, suffix) {
 			@Override
@@ -37,10 +41,7 @@ public interface Wrapper {
 		};
 	}
 
-	abstract class WrapInput<V, V1> implements Input<V> {
-		@Override
-		public abstract void dequeue(Consumer<Sdream<V>> using, int batchSize);
-
+	abstract class WrapInput<V, V1> extends Namedly implements Input<V>, Wrapper<Input<?>> {
 		protected final Input<? extends V1> base;
 
 		protected WrapInput(Input<? extends V1> origin, String suffix) {
@@ -54,7 +55,7 @@ public interface Wrapper {
 		}
 
 		@Override
-		public abstract void dequeue(Consumer<Sdream<V>> using);
+		public abstract void dequeue(Consumer<Sdream<V>> using, int batchSize);
 
 		@Override
 		public long capacity() {
@@ -112,10 +113,7 @@ public interface Wrapper {
 		}
 	}
 
-	abstract class WrapOutput<V, V1> implements Output<V> {
-		@Override
-		public abstract void enqueue(Sdream<V> items);
-
+	abstract class WrapOutput<V, V1> extends Namedly implements Output<V>, Wrapper<Output<?>> {
 		protected final Output<V1> base;
 
 		protected WrapOutput(Output<V1> origin, String suffix) {
@@ -130,6 +128,7 @@ public interface Wrapper {
 				o = ((WrapOutput<?, ?>) o).base;
 			return o;
 		}
+
 
 		@Override
 		public abstract void enqueue(Sdream<V> items);
