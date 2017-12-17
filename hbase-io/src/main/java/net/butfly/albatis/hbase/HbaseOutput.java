@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Row;
@@ -13,6 +14,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 
 import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.paral.Sdream;
+import net.butfly.albacore.paral.Task;
 import net.butfly.albacore.utils.Exceptions;
 import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.collection.Maps;
@@ -32,38 +34,54 @@ public final class HbaseOutput extends OutputBase<Message> {
 	public HbaseOutput(String name, HbaseConnection hconn, Function<Map<String, Object>, byte[]> ser) throws IOException {
 		super(name);
 		this.hconn = hconn;
+		closing(() -> {
+			int i;
+			while (0 < (i = enqing.get())) {
+				logger().debug("Pending enqueuing: " + i);
+				Task.waitSleep();
+			}
+		});
+		open();
 	}
+
+	final AtomicInteger enqing = new AtomicInteger(0);
 
 	@Override
 	public void enqueue(String table, Sdream<Message> msgs) {
-		Map<String, Message> map = Maps.of();
-		List<Pair<Message, Row>> l = Sdream.of(incs(table, msgs)).map(m -> new Pair<>(m, Hbases.Results.put(m))).filter(p -> {
-			boolean b = null != p && null != p.v2();
-			if (b) map.put(Bytes.toString(p.v2().getRow()), p.v1());
-			return b;
-		}).list();
-
-		List<Message> vs = Sdream.of(l).map(v -> v.v1()).list();
-		List<? extends Row> puts = Sdream.of(l).map(v -> v.v2()).list();
-		Object[] results = new Object[l.size()];
+		enqing.incrementAndGet();
 		try {
-			hconn.table(table).batchCallback(puts, results, (region, row, result) -> {
-				if (result instanceof Result) succeeded(1);
-				else {
-					Message m = map.get(Bytes.toString(row));
-					logger().debug(() -> "Hbase failed on: " + m.toString(), result instanceof Throwable ? (Throwable) result
-							: new RuntimeException("Unknown hbase return [" + result.getClass() + "]: " + result.toString()));
-					failed(Sdream.of1(m));
-				}
-			});
-		} catch (Exception ex) {
-			logger().warn(name() + " write failed [" + Exceptions.unwrap(ex).getMessage() + "], [" + l.size() + "] into fails.");
-			List<Message> fails = new CopyOnWriteArrayList<>();
-			for (int i = 0; i < results.length; i++)
-				if (results[i] instanceof Result) succeeded(1);
-				else fails.add(vs.get(i));
-			failed(Sdream.of(fails));
-		} finally {}
+			Map<String, Message> map = Maps.of();
+			List<Pair<Message, Row>> l = Sdream.of(incs(table, msgs)).map(m -> new Pair<>(m, Hbases.Results.put(m))).filter(p -> {
+				boolean b = null != p && null != p.v2();
+				if (b) map.put(Bytes.toString(p.v2().getRow()), p.v1());
+				return b;
+			}).list();
+
+			List<Message> vs = Sdream.of(l).map(v -> v.v1()).list();
+			List<? extends Row> puts = Sdream.of(l).map(v -> v.v2()).list();
+			Object[] results = new Object[l.size()];
+			try {
+				hconn.table(table).batchCallback(puts, results, (region, row, result) -> {
+//					logger().error("INFO: hbase writen: [" + puts.size() + " messages]");
+					if (result instanceof Result) succeeded(1);
+					else {
+						Message m = map.get(Bytes.toString(row));
+						logger().debug(() -> "Hbase failed on: " + m.toString(), result instanceof Throwable ? (Throwable) result
+								: new RuntimeException("Unknown hbase return [" + result.getClass() + "]: " + result.toString()));
+						failed(Sdream.of1(m));
+					}
+				});
+			} catch (Exception ex) {
+				logger().warn(name() + " write failed [" + Exceptions.unwrap(ex).getMessage() + "], [" + l.size() + "] into fails.");
+				List<Message> fails = new CopyOnWriteArrayList<>();
+				for (int i = 0; i < results.length; i++)
+					if (results[i] instanceof Result) succeeded(1);
+					else fails.add(vs.get(i));
+				failed(Sdream.of(fails));
+			}
+		} finally {
+			enqing.decrementAndGet();
+		}
 	}
 
 	private List<Message> incs(String table, Sdream<Message> values) {
