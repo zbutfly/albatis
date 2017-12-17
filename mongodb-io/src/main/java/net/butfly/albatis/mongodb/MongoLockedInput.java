@@ -74,6 +74,7 @@ public class MongoLockedInput extends net.butfly.albacore.base.Namedly implement
 			}
 		}).filter(Lambdas.notNull()).list();
 		closing(this::closeMongo);
+		open();
 	}
 
 	public MongoLockedInput(String name, MongoConnection conn, Map<String, DBObject> tablesAndQueries) throws IOException {
@@ -99,6 +100,7 @@ public class MongoLockedInput extends net.butfly.albacore.base.Namedly implement
 			}
 		}).list();
 		closing(this::closeMongo);
+		open();
 	}
 
 	private void closeMongo() {
@@ -126,6 +128,7 @@ public class MongoLockedInput extends net.butfly.albacore.base.Namedly implement
 				if (!c.lock.writeLock().tryLock()) continue;
 				try {
 					if (c.cursor.hasNext()) dbo = c.cursor.next();
+					// logger().error("INFO: mongodb fetched: [" + dbo.keySet().size() + " fields]");
 					else {
 						cursors.remove(c);
 						c.close();
