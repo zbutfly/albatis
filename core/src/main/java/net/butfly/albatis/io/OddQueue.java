@@ -8,6 +8,7 @@ import net.butfly.albacore.paral.Sdream;
 public abstract class OddQueue<V> extends Namedly implements Queue<V>, OddInput<V>, OddOutput<V> {
 	private final AtomicLong capacity;
 
+	@Deprecated
 	protected OddQueue(long capacity) {
 		super();
 		this.capacity = new AtomicLong(capacity);

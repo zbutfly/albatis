@@ -7,7 +7,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.kudu.ColumnSchema;
@@ -17,7 +16,6 @@ import org.apache.kudu.client.Operation;
 import org.apache.kudu.client.Upsert;
 
 import net.butfly.albacore.paral.Sdream;
-import net.butfly.albacore.paral.Task;
 import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albatis.io.Message;
@@ -35,8 +33,6 @@ public class KuduOutput extends net.butfly.albacore.base.Namedly implements OddO
 
 	@Override
 	public void close() {
-		long w = 0;
-		while ((w = working.get()) > 0 && logger().info("Waiting for working: " + w) && Task.waitSleep()) {}
 		commit();
 		OddOutput.super.close();
 		// sdumpDups();
@@ -72,17 +68,10 @@ public class KuduOutput extends net.butfly.albacore.base.Namedly implements OddO
 		connect.commit();
 	}
 
-	private final AtomicLong working = new AtomicLong();
-
 	@Override
 	public boolean enqueue(Message m) {
 		if (null == m || m.isEmpty()) return false;
-		working.incrementAndGet();
-		try {
-			connect.apply(op(m), (op, e) -> failed(Sdream.of1(m)));
-		} finally {
-			working.decrementAndGet();
-		}
+		connect.apply(op(m), (op, e) -> failed(Sdream.of1(m)));
 		return true;
 	}
 

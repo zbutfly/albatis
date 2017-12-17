@@ -1,6 +1,6 @@
 package net.butfly.albatis.io;
 
-import static net.butfly.albacore.paral.Task.waitSleep;
+import static net.butfly.albacore.paral.Task.waitWhen;
 
 import net.butfly.albacore.paral.Sdream;
 
@@ -9,7 +9,7 @@ public interface OddOutput<V> extends Output<V> {
 
 	@Override
 	public default void enqueue(Sdream<V> s) {
-		if (!waitSleep(() -> full())) return;
+		if (!waitWhen(() -> full())) return;
 		s.eachs(v -> {
 			if (enqueue(v)) succeeded(1);
 		});

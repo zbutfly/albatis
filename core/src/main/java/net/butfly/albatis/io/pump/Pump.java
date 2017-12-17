@@ -8,6 +8,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import net.butfly.albacore.io.Openable;
+import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.stats.Statistical;
 import net.butfly.albatis.io.Input;
 import net.butfly.albatis.io.Output;
@@ -35,15 +36,18 @@ public interface Pump<V> extends Statistical<Pump<V>>, Openable {
 	}
 
 	public static <V> Pump<V> pump(Input<V> input, int parallelism, Output<V> dest) {
-		return new BasicPump<V>(input, parallelism, dest);
+		return new BasicPump<V>(input, parallelism, dest.safe());
 	}
 
 	@SafeVarargs
 	public static <V> Pump<V> pump(Input<V> input, int parallelism, Output<V>... dests) {
-		return new BasicPump<>(input, parallelism, new FanOutput<V>(Arrays.asList(dests)));
+		return pump(input, parallelism, Arrays.asList(dests));
 	}
 
 	public static <V> Pump<V> pump(Input<V> input, int parallelism, List<? extends Output<V>> dests) {
-		return new BasicPump<>(input, parallelism, new FanOutput<V>(dests));
+		List<Output<V>> l = Colls.list();
+		for (Output<V> o : dests)
+			if (null != o && o.opened()) l.add(o.safe());
+		return new BasicPump<>(input, parallelism, new FanOutput<V>(l));
 	}
 }
