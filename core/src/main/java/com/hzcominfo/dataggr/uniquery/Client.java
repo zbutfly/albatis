@@ -15,8 +15,8 @@ import com.hzcominfo.dataggr.uniquery.utils.ExceptionUtil;
 import net.butfly.albacore.io.URISpec;
 
 public class Client implements AutoCloseable {
-	private final static Map<URISpec, Connection> connections = new ConcurrentHashMap<>();
-	private final static Map<URISpec, Adapter> adapters = new ConcurrentHashMap<>();
+	private final static Map<String, Connection> connections = new ConcurrentHashMap<>();
+	private final static Map<String, Adapter> adapters = new ConcurrentHashMap<>();
 
 	private final URISpec uriSpec;
 	private Connection conn;
@@ -24,7 +24,7 @@ public class Client implements AutoCloseable {
 
 	public Client(URISpec uriSpec) {
 		this.uriSpec = uriSpec;
-		this.adapter = Adapter.adapt(uriSpec);
+		this.adapter = adapt(uriSpec);
 		try {
 			this.conn = connect(uriSpec);
 		} catch (Exception e) {
@@ -33,7 +33,7 @@ public class Client implements AutoCloseable {
 	}
 	
 	public Connection connect(URISpec uriSpec) {
-		return connections.compute(uriSpec, (u, c) -> null == c ? newConnection(uriSpec):c);
+		return connections.compute(uriSpec.toString(), (u, c) -> null == c ? newConnection(uriSpec):c);
 	}
 	
 	public Connection newConnection(URISpec uriSpec) {
@@ -46,7 +46,7 @@ public class Client implements AutoCloseable {
 	}
 	
 	public Adapter adapt(URISpec uriSpec) {
-		return adapters.compute(uriSpec, (u, a) -> null == a ? Adapter.adapt(uriSpec):a);
+		return adapters.compute(uriSpec.getScheme(), (u, a) -> null == a ? Adapter.adapt(uriSpec):a);
 	}
 
 	/**

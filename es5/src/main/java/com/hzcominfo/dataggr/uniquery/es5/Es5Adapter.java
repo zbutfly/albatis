@@ -86,6 +86,7 @@ public class Es5Adapter extends Adapter {
 			else continue;
 		}
 		rs.setResults(mapList);
+		rs.setTotal(mapList.size());
 		return rs;
 	}
 	
@@ -101,6 +102,7 @@ public class Es5Adapter extends Adapter {
 				key.add(val);
 				analyseResultJson(element.getAsJsonObject(), mapList, val, new HashMap<>(), key);
 				rs.setResults(mapList);
+				rs.setTotal(mapList.size());
 				rsMap.put(key.toString(), rs);
 			} else continue;
 		}
