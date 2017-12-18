@@ -16,11 +16,10 @@ public class AppTest {
 		String uri = "elasticsearch://cidev@172.16.17.11:39300";
 		URISpec uriSpec = new URISpec(uri);
 		Client conn = new Client(uriSpec);
-		Client conn1 = new Client(uriSpec);
-		Client conn2 = new Client(uriSpec);
 		//执行查询
 //		String sql = "select * from uniquery.sell";
-		String sql = "SELECT * FROM track_dev.ES_ORA_GAZHK_LGY_NB WHERE ZJHM_s.keyword = '33082518240610278X'";
+//		String sql = "SELECT * FROM track_dev.ES_ORA_GAZHK_LGY_NB WHERE ZJHM_s.keyword = '33082518240610278X'";
+		String sql = "select count(*) from track_dev.ES_ORA_GAZHK_LGY_NB WHERE ZJHM_s.keyword = '33082518240610278X'";
 		ResultSet r = conn.execute(sql);
 		List<Map<String, Object>> result = r.getResults();
 		System.out.println(r.getTotal());

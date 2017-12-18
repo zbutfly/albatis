@@ -69,8 +69,17 @@ public class Es5Adapter extends Adapter {
 			}
 			resultMap.add(map);
 		}
-		rs.setTotal(hits.totalHits);
-		rs.setResults(resultMap);
+		long num = hits.totalHits;
+		if (resultMap.isEmpty() && num != 0L) {
+			Map<String, Object> map = new HashMap<>();
+			map.put("count", num);
+			resultMap.add(map);
+			rs.setResults(resultMap);
+			rs.setTotal(resultMap.size());
+		} else {
+			rs.setTotal(hits.totalHits);
+			rs.setResults(resultMap);
+		}
 		return rs;
 	}
 	
