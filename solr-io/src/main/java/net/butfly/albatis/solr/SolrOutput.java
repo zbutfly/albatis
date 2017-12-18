@@ -5,8 +5,6 @@ import java.util.List;
 
 import org.apache.solr.client.solrj.SolrServerException;
 
-import com.hzcominfo.albatis.Albatis;
-
 import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albatis.io.KeyOutput;
@@ -14,7 +12,7 @@ import net.butfly.albatis.io.Message;
 import net.butfly.albatis.io.Message.Op;
 
 public final class SolrOutput extends Namedly implements KeyOutput<String, Message> {
-	public static final @Albatis.Props String MAX_CONCURRENT_OP_PROP_NAME = Albatis.Props.PROP_SOLR_CONCURRENT_OPS_LIMIT;
+	public static final @SolrProps String MAX_CONCURRENT_OP_PROP_NAME = SolrProps.OUTPUT_CONCURRENT_OPS;
 	public static final int MAX_CONCURRENT_OP_DEFAULT = 100;
 	public static final int SUGGEST_BATCH_SIZE = 200;
 	private static final int DEFAULT_AUTO_COMMIT_MS = 30000;
