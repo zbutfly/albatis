@@ -117,7 +117,7 @@
 	    1. ORDER BY field_a ASC/DESC[, field_b ASC, DESC ...]
 	    
 	7. 查询数量支持情况
-	    1. 支持 LIMIT 关键字(可选，不填则默认为 Integer.MAX_VALUE)
+	    1. 支持 LIMIT 关键字(可选，可通过系统属性'uniquery.default.limit'指定默认值, 若'uniquery.default.limit'未指定，则默认值为10000 )
 	    2. 支持 OFFSET 关键字(可选，不填则默认为 0)
 	    3. OFFSET 需要在 LIMIT 之后出现 (如果有)
 	

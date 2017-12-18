@@ -5,6 +5,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.hzcominfo.dataggr.uniquery.utils.ExceptionUtil;
+import net.butfly.albacore.utils.logger.Logger;
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.sql.*;
@@ -24,6 +25,9 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class SqlExplainer {
+    private static final Logger logger = Logger.getLogger(SqlExplainer.class);
+
+    public static final int LIMIT_DEFAULT;
     public static SqlParser.ConfigBuilder DEFAULT_PARSER_CONFIG = SqlParser
             .configBuilder()
             .setParserFactory(SqlParserImpl.FACTORY)
@@ -37,6 +41,23 @@ public class SqlExplainer {
 
     private static Map<String, JsonObject> explains = new ConcurrentHashMap<>();
     private static final AtomicInteger DYNAMIC_PARAM_INDEX = new AtomicInteger(0);
+
+    static {
+        String strValue = System.getProperty("uniquery.default.limit");
+        if (null == strValue) {
+            LIMIT_DEFAULT = 10000;
+            logger.debug("system property 'uniquery.default.limit' not assigned, use default value: " + LIMIT_DEFAULT);
+        } else {
+            int limit = 10000;
+            try {
+                limit = Integer.valueOf(strValue);
+            } catch (NumberFormatException e) {
+                logger.warn("can NOT parse default limit as INT from system property 'uniquery.default.limit=" +
+                        strValue + "', use default value: " + limit);
+            }
+            LIMIT_DEFAULT = limit;
+        }
+    }
 
     public static JsonObject explain(String sql, Object... params) {
     	JsonObject json =  explains.compute(sql, (s, e) -> null == e ? newExplain(s, params) : e);
@@ -428,7 +449,7 @@ public class SqlExplainer {
     }
 
     private static void analysisLimit(SqlNode node, JsonObject json) {
-        long limit = -1L;
+        long limit = LIMIT_DEFAULT;
         if (node instanceof SqlNumericLiteral) {
             limit = ((SqlNumericLiteral) node).bigDecimalValue().longValue();
             if (limit < 0) throw new RuntimeException(node + " analysis failed, Maybe it is larger than Long.MAX_VALUE");
