@@ -31,7 +31,7 @@ public abstract class PumpImpl<V, P extends PumpImpl<V, P>> extends Namedly impl
 		else if (parallelism == 0) this.parallelism = 16;
 		else this.parallelism = parallelism;
 		dependencies = new ArrayList<>();
-		batchSize = Integer.parseInt(System.getProperty(Albatis.Props.PROP_PUMP_BATCH_SIZE, "1000"));
+		batchSize = Integer.parseInt(System.getProperty(Albatis.PROP_PUMP_BATCH_SIZE, "1000"));
 		logger().info("Pump [" + name + "] created with parallelism: " + parallelism);
 	}
 

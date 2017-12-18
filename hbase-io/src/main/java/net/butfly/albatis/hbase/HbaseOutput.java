@@ -20,10 +20,7 @@ import net.butfly.albatis.io.KeyOutput;
 import net.butfly.albatis.io.Message;
 import net.butfly.albatis.io.Message.Op;
 
-/**
- * Subject (embedded document serialized as BSON with prefixed column name) writer to hbase.
- */
-public final class HbaseOutput extends OutputBase<Message> {
+public final class HbaseOutput extends Namedly implements KeyOutput<String, Message> {
 	public static final @HbaseProps String MAX_CONCURRENT_OP_PROP_NAME = HbaseProps.OUTPUT_CONCURRENT_OPS;
 	public static final int MAX_CONCURRENT_OP_DEFAULT = Integer.MAX_VALUE;
 	public static final int SUGGEST_BATCH_SIZE = 200;

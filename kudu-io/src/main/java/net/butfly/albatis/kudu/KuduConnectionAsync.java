@@ -24,7 +24,6 @@ import org.apache.kudu.client.OperationResponse;
 import org.apache.kudu.client.SessionConfiguration.FlushMode;
 
 import com.google.common.base.Joiner;
-import com.hzcominfo.albatis.Albatis;
 import com.stumbleupon.async.Deferred;
 
 import net.butfly.albacore.io.URISpec;
@@ -41,7 +40,7 @@ public class KuduConnectionAsync extends KuduConnBase<KuduConnectionAsync, Async
 		super(kuduUri, r -> new AsyncKuduClient.AsyncKuduClientBuilder(kuduUri.getHost()).build());
 		session = client().newSession();
 		session.setFlushMode(FlushMode.AUTO_FLUSH_BACKGROUND);
-		session.setTimeoutMillis(Long.parseLong(Configs.get(Albatis.Props.PROP_KUDU_TIMEOUT, "2000")));
+		session.setTimeoutMillis(Long.parseLong(Configs.get(KuduProps.TIMEOUT, "2000")));
 		session.setFlushInterval(1000);
 		session.setMutationBufferSpace(5);
 
@@ -111,9 +110,8 @@ public class KuduConnectionAsync extends KuduConnBase<KuduConnectionAsync, Async
 
 	@Override
 	public void table(String name, List<ColumnSchema> cols, boolean autoKey) {
-		int buckets = Integer.parseInt(System.getProperty(Albatis.Props.PROP_KUDU_TABLE_BUCKETS, "24"));
-		logger.info("Kudu table constructing, with bucket [" + buckets + "], can be defined by [-D" + Albatis.Props.PROP_KUDU_TABLE_BUCKETS
-				+ "=400]");
+		int buckets = Integer.parseInt(System.getProperty(KuduProps.TABLE_BUCKETS, "24"));
+		logger.info("Kudu table constructing, with bucket [" + buckets + "], can be defined by [-D" + KuduProps.TABLE_BUCKETS + "=400]");
 		try {
 			if (client().tableExists(name).join()) {
 				logger.info("Kudu table [" + name + "] existed, will be droped.");

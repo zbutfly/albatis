@@ -19,7 +19,6 @@ import org.apache.kudu.client.OperationResponse;
 import org.apache.kudu.client.SessionConfiguration.FlushMode;
 
 import com.google.common.base.Joiner;
-import com.hzcominfo.albatis.Albatis;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.Configs;
@@ -30,7 +29,7 @@ public class KuduConnection extends KuduConnBase<KuduConnection, KuduClient, Kud
 		super(kuduUri, r -> new KuduClient.KuduClientBuilder(kuduUri.getHost()).build());
 		session = client().newSession();
 		session.setFlushMode(FlushMode.AUTO_FLUSH_BACKGROUND);
-		session.setTimeoutMillis(Long.parseLong(Configs.get(Albatis.Props.PROP_KUDU_TIMEOUT, "2000")));
+		session.setTimeoutMillis(Long.parseLong(Configs.get(KuduProps.TIMEOUT, "2000")));
 	}
 
 	@Override
@@ -95,12 +94,12 @@ public class KuduConnection extends KuduConnBase<KuduConnection, KuduClient, Kud
 
 	@Override
 	public void table(String name, List<ColumnSchema> cols, boolean autoKey) {
-		int buckets = Integer.parseInt(System.getProperty(Albatis.Props.PROP_KUDU_TABLE_BUCKETS, "8"));
-		String v = Configs.get(Albatis.Props.PROP_KUDU_TABLE_REPLICAS);
+		int buckets = Integer.parseInt(System.getProperty(KuduProps.TABLE_BUCKETS, "8"));
+		String v = Configs.get(KuduProps.TABLE_REPLICAS);
 		int replicas = null == v ? -1 : Integer.parseInt(v);
-		String info = "Kudu table constructing, with bucket [" + buckets + "], can be defined by [-D"
-				+ Albatis.Props.PROP_KUDU_TABLE_BUCKETS + "=8(default value)]";
-		if (replicas > 0) info = info + ", with replicas [" + replicas + "], can be defined by [-D" + Albatis.Props.PROP_KUDU_TABLE_REPLICAS
+		String info = "Kudu table constructing, with bucket [" + buckets + "], can be defined by [-D" + KuduProps.TABLE_BUCKETS
+				+ "=8(default value)]";
+		if (replicas > 0) info = info + ", with replicas [" + replicas + "], can be defined by [-D" + KuduProps.TABLE_REPLICAS
 				+ "=xx(no default value)]";
 		logger.info(info + ".");
 		try {
