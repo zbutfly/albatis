@@ -6,21 +6,21 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Row;
 import org.apache.hadoop.hbase.util.Bytes;
 
-import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.Exceptions;
 import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.collection.Maps;
-import net.butfly.albatis.io.KeyOutput;
 import net.butfly.albatis.io.Message;
 import net.butfly.albatis.io.Message.Op;
+import net.butfly.albatis.io.SafeKeyOutput;
 
-public final class HbaseOutput extends Namedly implements KeyOutput<String, Message> {
+public final class HbaseOutput extends SafeKeyOutput<String, Message> {
 	public static final @HbaseProps String MAX_CONCURRENT_OP_PROP_NAME = HbaseProps.OUTPUT_CONCURRENT_OPS;
 	public static final int MAX_CONCURRENT_OP_DEFAULT = Integer.MAX_VALUE;
 	public static final int SUGGEST_BATCH_SIZE = 200;
@@ -33,28 +33,34 @@ public final class HbaseOutput extends Namedly implements KeyOutput<String, Mess
 	}
 
 	@Override
-	public void enqueue(String table, Sdream<Message> msgs) {
+	public void enqueue(String table, Sdream<Message> msgs, AtomicInteger ops) {
+		ops.incrementAndGet();
 		Map<String, Message> map = Maps.of();
 		List<Pair<Message, Row>> l = Sdream.of(incs(table, msgs)).map(m -> new Pair<>(m, Hbases.Results.put(m))).filter(p -> {
 			boolean b = null != p && null != p.v2();
 			if (b) map.put(Bytes.toString(p.v2().getRow()), p.v1());
 			return b;
 		}).list();
+		// logger().error("HbaseOutput: " + l.size());
 
 		List<Message> vs = Sdream.of(l).map(v -> v.v1()).list();
 		List<? extends Row> puts = Sdream.of(l).map(v -> v.v2()).list();
 		Object[] results = new Object[l.size()];
 		try {
-			hconn.table(table).batchCallback(puts, results, (region, row, result) -> {
-				// logger().error("INFO: hbase writen: [" + puts.size() + " messages]");
-				if (result instanceof Result) succeeded(1);
-				else {
-					Message m = map.get(Bytes.toString(row));
-					logger().debug(() -> "Hbase failed on: " + m.toString(), result instanceof Throwable ? (Throwable) result
-							: new RuntimeException("Unknown hbase return [" + result.getClass() + "]: " + result.toString()));
-					failed(Sdream.of1(m));
-				}
-			});
+			hconn.table(table).batchCallback(puts, results, (region, row, result) -> ops.decrementAndGet());
+			/**
+			 * original exception handling in callback
+			 * 
+			 * <pre>
+			 * if (result instanceof Result) succeeded(1);
+			 * else {
+			 * 	Message m = map.get(Bytes.toString(row));
+			 * 	logger().debug(() -> "Hbase failed on: " + m.toString(), result instanceof Throwable ? (Throwable) result
+			 * 			: new RuntimeException("Unknown hbase return [" + result.getClass() + "]: " + result.toString()));
+			 * 	failed(Sdream.of1(m));
+			 * }
+			 * </pre>
+			 */
 		} catch (Exception ex) {
 			logger().warn(name() + " write failed [" + Exceptions.unwrap(ex).getMessage() + "], [" + l.size() + "] into fails.");
 			List<Message> fails = new CopyOnWriteArrayList<>();
