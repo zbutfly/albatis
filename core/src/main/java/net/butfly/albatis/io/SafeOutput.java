@@ -32,9 +32,12 @@ public class SafeOutput<V> extends WrapOutput<V, V> {
 	@Override
 	public void close() {
 		int remained;
+		int waited = 1;
 		while (0 < (remained = currOps.get())) {
 			int r = remained;
-			Task.waitSleep(1000, logger(), () -> "Output ops [" + r + "] remained, waiting for safe closing until all finishing.");
+			logger().info("Output ops [" + r + "] remained, waiting " + (waited++) + " second for safe closing.");
+			if (!Task.waitSleep(1000)) break;
+			// Task.waitSleep(1000, logger(), () -> "Output ops [" + r + "] remained, waiting for safe closing until all finishing.");
 		}
 		super.close();
 	}
