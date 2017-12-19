@@ -50,9 +50,6 @@ public interface Pump<V> extends Statistical<Pump<V>>, Openable {
 	}
 
 	public static <V> Pump<V> pump(Input<V> input, int parallelism, List<? extends Output<V>> dests) {
-		List<Output<V>> l = Colls.list();
-		for (Output<V> o : dests)
-			if (null != o && o.opened()) l.add(o.safe());
-		return new BasicPump<>(input, parallelism, new FanOutput<V>(l));
+		return new BasicPump<>(input, parallelism, new FanOutput<V>(Colls.list(dests, Output::safe)));
 	}
 }
