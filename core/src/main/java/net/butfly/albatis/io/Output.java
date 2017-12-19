@@ -93,10 +93,10 @@ public interface Output<V> extends IO, Consumer<Sdream<V>>, Enqueuer<V> {
 							if (Modifier.isStatic(mod) && Modifier.isPublic(mod) && Modifier.isFinal(mod)) defv = f.getInt(null);
 						}
 						String confn = conf.toString();
-						String info = "Output [" + oc.toString() + "] concurrent limit configurated by -D " + confn;
-						if (defv > 0) info += " [default:" + defv + "]";
-						cop = Integer.parseInt(Configs.get(confn, Integer.toString(defv)));
+						String info = "Output [" + oc.toString() + "] concurrent limit configurated by -D" + confn;
+						cop = Integer.parseInt(Configs.of().gets(confn, Integer.toString(defv)));
 						if (cop > 0) info += "=" + cop;
+						if (defv > 0) info += " [default:" + defv + "]";
 						logger.info(info + ".");
 					}
 				}
