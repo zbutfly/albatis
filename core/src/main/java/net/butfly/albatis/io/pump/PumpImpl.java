@@ -72,16 +72,12 @@ abstract class PumpImpl<V, P extends PumpImpl<V, P>> extends Namedly implements 
 		Pump.super.open();
 		for (OpenableThread t : tasks)
 			t.open();
-		try {
-			for (OpenableThread t : tasks)
-				try {
-					t.join();
-				} catch (InterruptedException e) {
-					t.close();
-				}
-		} finally {
-			close();
-		}
+		for (OpenableThread t : tasks)
+			try {
+				t.join();
+			} catch (InterruptedException e) {
+				t.close();
+			}
 		logger().info(name() + " finished.");
 	}
 

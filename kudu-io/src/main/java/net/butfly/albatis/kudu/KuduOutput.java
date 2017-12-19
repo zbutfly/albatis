@@ -7,6 +7,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.kudu.ColumnSchema;
@@ -19,9 +20,9 @@ import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albatis.io.Message;
-import net.butfly.albatis.io.OddOutput;
+import net.butfly.albatis.io.SafeOddOutput;
 
-public class KuduOutput extends net.butfly.albacore.base.Namedly implements OddOutput<Message> {
+public class KuduOutput extends SafeOddOutput<Message> {
 	public static final int SUGGEST_BATCH_SIZE = 200;
 	private final KuduConnBase<?, ?, ?> connect;
 
@@ -34,7 +35,7 @@ public class KuduOutput extends net.butfly.albacore.base.Namedly implements OddO
 	@Override
 	public void close() {
 		commit();
-		OddOutput.super.close();
+		super.close();
 		// sdumpDups();
 	}
 
@@ -69,10 +70,15 @@ public class KuduOutput extends net.butfly.albacore.base.Namedly implements OddO
 	}
 
 	@Override
-	public boolean enqueue(Message m) {
-		if (null == m || m.isEmpty()) return false;
-		connect.apply(op(m), (op, e) -> failed(Sdream.of1(m)));
-		return true;
+	protected boolean enqueue1(Message m, AtomicInteger ops) {
+		ops.incrementAndGet();
+		try {
+			if (null == m || m.isEmpty()) return false;
+			connect.apply(op(m), (op, e) -> failed(Sdream.of1(m)));
+			return true;
+		} finally {
+			ops.decrementAndGet();
+		}
 	}
 
 	public String status() {
