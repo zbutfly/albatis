@@ -35,7 +35,7 @@ abstract class SafeOutputBase<V> extends Namedly implements Output<V> {
 		int waited = 1;
 		while (0 < (remained = currOps.get())) {
 			int r = remained;
-			logger().info("Output ops [" + r + "] remained, waiting " + (waited++) + " second for safe closing.");
+			logger().debug("Output ops [" + r + "] remained, waiting " + (waited++) + " second for safe closing.");
 			if (!Task.waitSleep(1000)) break;
 		}
 		Output.super.close();

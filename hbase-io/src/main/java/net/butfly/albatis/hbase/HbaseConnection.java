@@ -37,8 +37,9 @@ public class HbaseConnection extends NoSqlConnection<org.apache.hadoop.hbase.cli
 	private final Map<String, Table> tables;
 	private final LinkedBlockingQueue<Scan> scans = new LinkedBlockingQueue<>(CACHED_SCAN_OBJS);
 
-public class HbaseConnection extends NoSqlConnection<Connection> {
-	private static final Logger logger = Logger.getLogger(HbaseConnection.class);
+	public HbaseConnection() throws IOException {
+		this(new URISpec("hbase:///"));
+	}
 
 	public HbaseConnection(URISpec uri) throws IOException {
 		super(uri, u -> {
