@@ -12,7 +12,6 @@ import org.elasticsearch.action.update.UpdateRequest;
 
 import net.butfly.albacore.utils.Pair;
 import net.butfly.albatis.io.Message;
-
 public class Elastics {
 	@SuppressWarnings("rawtypes")
 	public static DocWriteRequest forWrite(Message m) {
