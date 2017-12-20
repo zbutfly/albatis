@@ -8,8 +8,13 @@ import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.hadoop.hbase.client.Append;
+import org.apache.hadoop.hbase.client.Delete;
+import org.apache.hadoop.hbase.client.Increment;
+import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Row;
+import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import net.butfly.albacore.paral.Sdream;
@@ -42,7 +47,29 @@ public final class HbaseOutput extends SafeKeyOutput<String, Message> {
 			return b;
 		}).list();
 		// logger().error("HbaseOutput: " + l.size());
+		if (l.size() == 0) return;
+		if (l.size() == 1) {
+			ops.incrementAndGet();
+			Pair<Message, Row> p = l.get(0);
+			try {
+				enq(hconn.table(p.v1().table()), p.v2());
+				succeeded(1);
+			} catch (IOException e) {
+				failed(Sdream.of1(p.v1()));
+			} finally {
+				ops.decrementAndGet();
+			}
+		} else enq(table, l, ops);
+	}
 
+	private void enq(Table t, Row req) throws IOException {
+		if (req instanceof Put) t.put((Put) req);
+		else if (req instanceof Delete) t.delete((Delete) req);
+		else if (req instanceof Increment) t.increment((Increment) req);
+		else if (req instanceof Append) t.append((Append) req);
+	}
+
+	private void enq(String table, List<Pair<Message, Row>> l, AtomicInteger ops) {
 		List<Message> vs = Sdream.of(l).map(v -> v.v1()).list();
 		List<? extends Row> puts = Sdream.of(l).map(v -> v.v2()).list();
 		Object[] results = new Object[l.size()];

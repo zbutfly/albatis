@@ -38,7 +38,7 @@ public class ElasticMessage extends Message {
 
 	@Override
 	public String toString() {
-		StringBuilder sb = new StringBuilder(op.name()).append("@").append(table).append("/").append(key);
+		StringBuilder sb = new StringBuilder(Message.opname(op)).append("@").append(table).append("/").append(key);
 		if (script == null) sb.append("(upsert:").append("):\n\tdocument:").append(this);
 		else sb.append(":\n\tscript: ").append(script);
 		return sb.toString();

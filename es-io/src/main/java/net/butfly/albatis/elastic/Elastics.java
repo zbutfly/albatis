@@ -1,5 +1,10 @@
 package net.butfly.albatis.elastic;
 
+import static net.butfly.albatis.io.Message.Op.DELETE;
+import static net.butfly.albatis.io.Message.Op.INSERT;
+import static net.butfly.albatis.io.Message.Op.UPDATE;
+import static net.butfly.albatis.io.Message.Op.UPSERT;
+
 import org.elasticsearch.action.DocWriteRequest;
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.index.IndexRequest;
@@ -7,7 +12,6 @@ import org.elasticsearch.action.update.UpdateRequest;
 
 import net.butfly.albacore.utils.Pair;
 import net.butfly.albatis.io.Message;
-
 public class Elastics {
 	@SuppressWarnings("rawtypes")
 	public static DocWriteRequest forWrite(Message m) {

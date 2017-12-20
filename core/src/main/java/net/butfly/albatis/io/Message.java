@@ -18,15 +18,31 @@ public class Message extends ConcurrentHashMap<String, Object> {
 	private static final long serialVersionUID = 2316795812336748252L;
 	protected String key;
 	protected String table;
-	protected Op op;
+	protected @Op int op;
 
-	public enum Op {
-		UPSERT, INSERT, UPDATE, DELETE, INCREASE; // DELETE must be 3
-		public static final Op DEFAULT_OP = Op.UPSERT;
+	public @interface Op {
+		static int UPSERT = 0;
+		static int INSERT = 1;
+		static int UPDATE = 2;
+		static int DELETE = 3;// DELETE must be 3
+		static int INCREASE = 4;
+		static final @Op int DEFAULT = Op.UPSERT;
+	}
 
-		public static Op parse(int op) {
-			return Op.values()[op];
+	public static String opname(@Op int op) {
+		switch (op) {
+		case Op.UPSERT:
+			return "UPSERT";
+		case Op.INSERT:
+			return "INSERT";
+		case Op.UPDATE:
+			return "UPDATE";
+		case Op.DELETE:
+			return "DELETE";
+		case Op.INCREASE:
+			return "INCREASE";
 		}
+		return null;
 	}
 
 	public Message() {
@@ -41,12 +57,12 @@ public class Message extends ConcurrentHashMap<String, Object> {
 		super();
 		this.table = table;
 		this.key = key;
-		op = Op.DEFAULT_OP;
+		op = Op.DEFAULT;
 	}
 
 	public Message(Map<? extends String, ? extends Object> values) {
 		super(values);
-		op = Op.DEFAULT_OP;
+		op = Op.DEFAULT;
 	}
 
 	public Message(String table, Map<? extends String, ? extends Object> values) {
@@ -57,7 +73,7 @@ public class Message extends ConcurrentHashMap<String, Object> {
 	public Message(String table, String key, Map<? extends String, ? extends Object> values) {
 		this(table, values);
 		this.key = key;
-		op = Op.DEFAULT_OP;
+		op = Op.DEFAULT;
 	}
 
 	public Message(String table, Pair<String, Map<String, Object>> keyAndValues) {
@@ -77,11 +93,11 @@ public class Message extends ConcurrentHashMap<String, Object> {
 		return this;
 	}
 
-	public Op op() {
+	public @Op int op() {
 		return op;
 	}
 
-	public Message op(Op op) {
+	public Message op(@Op int op) {
 		this.op = op;
 		return this;
 	}
@@ -105,12 +121,12 @@ public class Message extends ConcurrentHashMap<String, Object> {
 		table = null != attrs[0] ? null : new String(attrs[0]);
 		key = null != attrs[1] ? null : new String(attrs[1]);
 		if (null == attrs[2]) putAll(BsonSerder.map(attrs[2]));
-		op = Op.values()[attrs[3][0]];
+		op = attrs[3][0];
 	}
 
 	@Override
 	public String toString() {
-		return "[Table: " + table + ", Key: " + key + ", Op: " + op.name() + "] => " + super.toString();
+		return "[Table: " + table + ", Key: " + key + ", Op: " + opname(op) + "] => " + super.toString();
 	}
 
 	public final byte[] toBytes() {
@@ -124,7 +140,7 @@ public class Message extends ConcurrentHashMap<String, Object> {
 
 	protected void write(OutputStream os) throws IOException {
 		IOs.writeBytes(os, null == table ? null : table.getBytes(), null == key ? null : key.getBytes(), BsonSerder.map(this), new byte[] {
-				(byte) op.ordinal() });
+				(byte) op });
 	}
 
 	public Map<String, Object> map() {

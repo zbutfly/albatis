@@ -1,6 +1,10 @@
 package net.butfly.albatis.kudu;
 
 import static net.butfly.albacore.paral.Sdream.of;
+import static net.butfly.albatis.io.Message.Op.DELETE;
+import static net.butfly.albatis.io.Message.Op.INSERT;
+import static net.butfly.albatis.io.Message.Op.UPDATE;
+import static net.butfly.albatis.io.Message.Op.UPSERT;
 
 import java.io.BufferedWriter;
 import java.io.FileOutputStream;

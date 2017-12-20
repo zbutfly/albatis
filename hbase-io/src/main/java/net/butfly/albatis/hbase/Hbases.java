@@ -1,5 +1,9 @@
 package net.butfly.albatis.hbase;
 
+import static net.butfly.albatis.io.Message.Op.INCREASE;
+import static net.butfly.albatis.io.Message.Op.INSERT;
+import static net.butfly.albatis.io.Message.Op.UPSERT;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
