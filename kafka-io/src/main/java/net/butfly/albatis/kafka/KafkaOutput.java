@@ -4,6 +4,7 @@ import static net.butfly.albacore.paral.Sdream.of;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
 import kafka.javaapi.producer.Producer;
@@ -12,13 +13,13 @@ import net.butfly.albacore.exception.ConfigException;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albatis.io.Message;
-import net.butfly.albatis.io.OutputBase;
+import net.butfly.albatis.io.SafeOutput;
 import net.butfly.albatis.kafka.config.KafkaOutputConfig;
 
 /**
  * @author zx
  */
-public final class KafkaOutput extends OutputBase<Message> {
+public final class KafkaOutput extends SafeOutput<Message> {
 	private final URISpec uri;
 	private final KafkaOutputConfig config;
 	private final Producer<byte[], byte[]> producer;
@@ -34,13 +35,22 @@ public final class KafkaOutput extends OutputBase<Message> {
 	}
 
 	@Override
-	public void enqueue(Sdream<Message> messages) {
-		List<Message> msgs = messages.list();
-		List<KeyedMessage<byte[], byte[]>> ms = of(msgs).map(m -> Kafkas.toKeyedMessage(m, coder)).list();
-		if (!ms.isEmpty()) try {
-			producer.send(ms);
-			succeeded(ms.size());
-		} catch (Exception e) {}
+	protected void enqueue(Sdream<Message> messages, AtomicInteger ops) {
+		ops.incrementAndGet();
+		try {
+			List<Message> msgs = messages.list();
+			List<KeyedMessage<byte[], byte[]>> ms = of(msgs).map(m -> Kafkas.toKeyedMessage(m, coder)).list();
+			if (!ms.isEmpty()) try {
+				int s = ms.size();
+				if (s == 1) producer.send(ms.get(0));
+				else producer.send(ms);
+				succeeded(s);
+			} catch (Exception e) {
+				failed(Sdream.of(msgs));
+			}
+		} finally {
+			ops.decrementAndGet();
+		}
 	}
 
 	public String getDefaultTopic() {

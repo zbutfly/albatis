@@ -128,7 +128,6 @@ public class MongoLockedInput extends net.butfly.albacore.base.Namedly implement
 				if (!c.lock.writeLock().tryLock()) continue;
 				try {
 					if (c.cursor.hasNext()) dbo = c.cursor.next();
-					// logger().error("INFO: mongodb fetched: [" + dbo.keySet().size() + " fields]");
 					else {
 						cursors.remove(c);
 						c.close();

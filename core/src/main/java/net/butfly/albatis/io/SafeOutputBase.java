@@ -29,18 +29,16 @@ abstract class SafeOutputBase<V> extends Namedly implements Output<V> {
 
 	@Override
 	public void close() {
-		logger().error(name() + " closing after safe waiting @[" + Thread.currentThread().toString() + "]:" + currOps.get());
+		logger().info("INFO: " + name() + " closing after safe waiting @[" + Thread.currentThread().toString() + "], pending ops:" + currOps
+				.get());
 		int remained;
 		int waited = 1;
 		while (0 < (remained = currOps.get())) {
 			int r = remained;
 			logger().info("Output ops [" + r + "] remained, waiting " + (waited++) + " second for safe closing.");
 			if (!Task.waitSleep(1000)) break;
-			// Task.waitSleep(1000, logger(), () -> "Output ops [" + r + "] remained, waiting for safe closing until all finishing.");
 		}
-		logger().error(name() + " waiting finished.");
 		Output.super.close();
-		logger().error(name() + " closed.");
 	}
 
 	@Override

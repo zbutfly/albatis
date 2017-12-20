@@ -46,13 +46,16 @@ public final class HbaseOutput extends SafeKeyOutput<String, Message> {
 			if (b) map.put(Bytes.toString(p.v2().getRow()), p.v1());
 			return b;
 		}).list();
-		// logger().error("HbaseOutput: " + l.size());
 		if (l.size() == 0) return;
 		if (l.size() == 1) {
-			ops.incrementAndGet();
 			Pair<Message, Row> p = l.get(0);
 			try {
-				enq(hconn.table(p.v1().table()), p.v2());
+				Table t = hconn.table(p.v1().table());
+				Row req = p.v2();
+				if (req instanceof Put) t.put((Put) req);
+				else if (req instanceof Delete) t.delete((Delete) req);
+				else if (req instanceof Increment) t.increment((Increment) req);
+				else if (req instanceof Append) t.append((Append) req);
 				succeeded(1);
 			} catch (IOException e) {
 				failed(Sdream.of1(p.v1()));
@@ -60,13 +63,6 @@ public final class HbaseOutput extends SafeKeyOutput<String, Message> {
 				ops.decrementAndGet();
 			}
 		} else enq(table, l, ops);
-	}
-
-	private void enq(Table t, Row req) throws IOException {
-		if (req instanceof Put) t.put((Put) req);
-		else if (req instanceof Delete) t.delete((Delete) req);
-		else if (req instanceof Increment) t.increment((Increment) req);
-		else if (req instanceof Append) t.append((Append) req);
 	}
 
 	private void enq(String table, List<Pair<Message, Row>> l, AtomicInteger ops) {
