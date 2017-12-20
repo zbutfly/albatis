@@ -13,8 +13,11 @@ import com.hzcominfo.dataggr.uniquery.dto.ResultSet;
 import com.hzcominfo.dataggr.uniquery.utils.ExceptionUtil;
 
 import net.butfly.albacore.io.URISpec;
+import net.butfly.albacore.utils.logger.Logger;
 
 public class Client implements AutoCloseable {
+    private static final Logger logger = Logger.getLogger(Client.class);
+
 	private final static Map<String, Connection> connections = new ConcurrentHashMap<>();
 	private final static Map<String, Adapter> adapters = new ConcurrentHashMap<>();
 
@@ -60,7 +63,8 @@ public class Client implements AutoCloseable {
 			JsonObject sqlJson = SqlExplainer.explain(sql, params);
 			JsonObject tableJson = sqlJson.has("tables") ? sqlJson.getAsJsonObject("tables"):null;
 			String table = tableJson != null && tableJson.has("table") ? tableJson.get("table").getAsString():null;
-			Object query = adapter.queryAssemble(conn, sqlJson); 
+			Object query = adapter.queryAssemble(conn, sqlJson);
+			logger.debug(query.toString());
 			long start = System.currentTimeMillis();
 			Object result = adapter.queryExecute(conn, query, table);
 			System.out.println("query spends: " + (System.currentTimeMillis() - start) + "ms");
@@ -86,8 +90,9 @@ public class Client implements AutoCloseable {
 			JsonArray facetArr = new JsonArray();
 			Arrays.asList(facets).forEach(facetArr::add);
 			sqlJson.add("multiGroupBy", facetArr);
-			Object query = adapter.queryAssemble(conn, sqlJson); 
-			long start = System.currentTimeMillis();
+			Object query = adapter.queryAssemble(conn, sqlJson);
+            logger.debug(query.toString());
+            long start = System.currentTimeMillis();
 			Object result = adapter.queryExecute(conn, query, table);
 			System.out.println("query spends: " + (System.currentTimeMillis() - start) + "ms");
 			return adapter.resultAssemble(result);
