@@ -10,7 +10,7 @@ public interface KeyOutput<K, V> extends Output<V> {
 
 	@Override
 	public default void enqueue(Sdream<V> s) {
-		s.partition((k, ss) -> enqueue(k, ss), v -> partition(v), 1000);
+		s.partition((k, ss) -> enqueue(k, ss), v -> partition(v), 350);
 	}
 
 	@Override
