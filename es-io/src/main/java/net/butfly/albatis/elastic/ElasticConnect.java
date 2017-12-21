@@ -120,8 +120,13 @@ public interface ElasticConnect extends Connection {
 
 			Map<String, Object> meta = null == rest ? null : Parser.fetchMetadata(parseRestAddrs(rest, uri.getInetAddrs()));
 			String cn = Parser.checkClusterName(uri.getUsername(), null == meta ? null : (String) meta.get("cluster_name"));
-			if (null == cn) settings.put("client.transport.ignore_cluster_name", true);
-			else settings.put("cluster.name", cn);
+			if (null == cn) {
+				settings.put("client.transport.ignore_cluster_name", true);
+				_logger.info("ElasticSearch \"cluster.name\" not found, enable ignore setting.");
+			} else {
+				settings.put("cluster.name", cn);
+				_logger.info("ElasticSearch \"cluster.name\" set to: " + cn);
+			}
 
 			TransportClient tc = new PreBuiltTransportClient(settings.build());
 

@@ -46,8 +46,9 @@ public final class HbaseOutput extends SafeKeyOutput<String, Message> {
 			if (b) map.put(Bytes.toString(p.v2().getRow()), p.v1());
 			return b;
 		}).list();
-		if (l.size() == 0) return;
-		if (l.size() == 1) {
+		int batchSize = l.size();
+		if (batchSize == 0) return;
+		if (batchSize == 1) {
 			Pair<Message, Row> p = l.get(0);
 			try {
 				Table t = hconn.table(p.v1().table());
