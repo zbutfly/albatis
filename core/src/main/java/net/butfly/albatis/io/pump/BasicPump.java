@@ -18,6 +18,7 @@ public class BasicPump<V> extends PumpImpl<V, BasicPump<V>> {
 	}
 
 	private void p() {
-		if (opened()) input.dequeue(s -> output.enqueue(s.map(this::stats)), batchSize);
+		if (opened()) //
+			input.dequeue(s -> output.enqueue(s.map(this::stats)), batchSize);
 	}
 }

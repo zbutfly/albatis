@@ -102,11 +102,10 @@ public class KafkaInput extends net.butfly.albacore.base.Namedly implements OddI
 	public Message dequeue() {
 		ConsumerIterator<byte[], byte[]> it;
 		MessageAndMetadata<byte[], byte[]> m;
-		if (null == (it = consumers.poll())) return null;
-		try {
-			while (true)
+		while (opened())
+			if (null != (it = consumers.poll())) {
 				try {
-					if (null != (m = it.next())) break;
+					if (null != (m = it.next())) return Kafkas.message(m, decoder);
 				} catch (ConsumerTimeoutException ex) {
 					return null;
 				} catch (NoSuchElementException ex) {
@@ -115,11 +114,11 @@ public class KafkaInput extends net.butfly.albacore.base.Namedly implements OddI
 					logger().warn("Unprocessed kafka error [" + ex.getClass().toString() + ": " + ex.getMessage()
 							+ "], ignore and continue.");
 					return null;
+				} finally {
+					consumers.offer(it);
 				}
-		} finally {
-			consumers.offer(it);
-		}
-		return Kafkas.message(m, decoder);
+			}
+		return null;
 	}
 
 	private void closeKafka() {
