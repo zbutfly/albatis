@@ -42,7 +42,8 @@ public class MongoInput extends net.butfly.albacore.base.Namedly implements OddI
 					DBCursor c = conn.cursor(t).batchSize(conn.getBatchSize()).addOption(Bytes.QUERYOPTION_NOTIMEOUT);
 					if (c.hasNext()) {
 						cursors.add(new Pair<>(t, c));
-						logger.info("MongoDB query [" + t + "] successed.");
+						if (logger.isDebugEnabled()) logger.info("MongoDB query [" + t + "] successed, count: [" + c.count() + "].");
+						else logger.info("MongoDB query [" + t + "] successed.");
 					} else logger.warn("MongoDB query [" + t + "] finished but empty.");
 				} catch (Exception e) {
 					logger.error("MongoDB query [" + t + "] failed", e);
@@ -71,7 +72,7 @@ public class MongoInput extends net.butfly.albacore.base.Namedly implements OddI
 							Bytes.QUERYOPTION_NOTIMEOUT);
 					if (c.hasNext()) {
 						cursors.add(new Pair<>(e.getKey(), c));
-						logger.info("MongoDB query [" + e.getKey() + "] successed.");
+						logger.info("MongoDB query [" + e.getKey() + "] successed, count: [" + c.count() + "].");
 					} else logger.warn("MongoDB query [" + e.getKey() + "] finished but empty.");
 				} catch (Exception ex) {
 					logger.error("MongoDB query [" + e.getKey() + "] failed", ex);
@@ -110,17 +111,20 @@ public class MongoInput extends net.butfly.albacore.base.Namedly implements OddI
 	@Override
 	public Message dequeue() {
 		Pair<String, DBCursor> c;
-		while (null != (c = cursors.poll()))
-			try {
-				if (!c.v2().hasNext()) c = closeCursor(c);
-				else return new Message(c.v1(), (String) null, c.v2().next().toMap());
-			} catch (MongoException ex) {
-				logger.warn("Mongo fail fetch, ignore and continue retry...");
-			} catch (IllegalStateException ex) {
-				break;
-			} finally {
-				if (null != c) cursors.offer(c);
-			}
+		while (opened() && !empty())
+			while (null != (c = cursors.poll()))
+				try {
+					if (!c.v2().hasNext()) c = closeCursor(c);
+					else return new Message(c.v1(), (String) null, c.v2().next().toMap());
+				} catch (MongoException ex) {
+					logger.warn("Mongo fail fetch, ignore and continue retry...");
+				} catch (IllegalStateException ex) {
+					break;
+				} finally {
+					if (null != c && !cursors.offer(c)) logger.error("MongoDB cursor [" + c.v1() + "] lost.");
+				}
+		return null;
+	}
 
 		return null;
 	}
