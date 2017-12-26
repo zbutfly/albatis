@@ -74,7 +74,7 @@ public final class HbaseOutput extends SafeKeyOutput<String, Message> {
 			failed(Sdream.of(origins));
 		} finally {
 			List<Message> failed = Colls.list();
-			int succs = 0, unknowns = 0;
+			int succs = 0;
 			for (int i = 0; i < results.length; i++) {
 				if (null == results[i]) // error
 					failed.add(origins.get(i));
@@ -91,7 +91,7 @@ public final class HbaseOutput extends SafeKeyOutput<String, Message> {
 
 	private void incs(String table, Sdream<Message> values, List<Message> origins, List<Row> puts) {
 		Map<String, List<Message>> incByKeys = Maps.of();
-		for (Message m : values.list()) {
+		values.eachs(m -> {
 			if (m.op() == Op.INCREASE) {
 				incByKeys.compute(m.key(), (k, l) -> {
 					if (null == l) l = list();
@@ -105,7 +105,7 @@ public final class HbaseOutput extends SafeKeyOutput<String, Message> {
 					puts.add(r);
 				}
 			}
-		}
+		});
 		for (Map.Entry<String, List<Message>> e : incByKeys.entrySet()) {
 			Message merge = new Message(table, e.getKey()).op(Op.INCREASE);
 			for (Message m : e.getValue())
