@@ -2,8 +2,10 @@ package com.hzcominfo.dataggr.uniquery;
 
 import java.util.Arrays;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -13,13 +15,15 @@ import com.hzcominfo.dataggr.uniquery.dto.ResultSet;
 import com.hzcominfo.dataggr.uniquery.utils.ExceptionUtil;
 
 import net.butfly.albacore.io.URISpec;
-import net.butfly.albacore.utils.logger.Logger;
+import net.butfly.albacore.utils.parallel.Parals;
 
 public class Client implements AutoCloseable {
     private static final Logger logger = Logger.getLogger(Client.class);
 
 	private final static Map<String, Connection> connections = new ConcurrentHashMap<>();
 	private final static Map<String, Adapter> adapters = new ConcurrentHashMap<>();
+	private static transient AtomicInteger running;
+	private static final int cap = Runtime.getRuntime().availableProcessors(); 
 
 	private final URISpec uriSpec;
 	private Connection conn;
@@ -33,6 +37,7 @@ public class Client implements AutoCloseable {
 		} catch (Exception e) {
 			ExceptionUtil.runtime("connect error", e);
 		}
+		System.out.println("cap: " + cap);
 	}
 	
 	public Connection connect(URISpec uriSpec) {
@@ -109,13 +114,23 @@ public class Client implements AutoCloseable {
 	 */
 	public Map<String, ResultSet> batchExecute(Request...requests) {
 		Map<String, ResultSet> resMap = new LinkedHashMap<>();
-		for (Request request : requests) {
-			ResultSet rs = execute(request.getSql(), request.getParams());
-			resMap.put(request.getKey(), rs);
-		}
+		if (requests == null || requests.length == 0) return resMap;
+		List<Request> tasks = Arrays.asList(requests);
+		Parals.listen(() -> {
+			while(tasks.size() > 0) {
+				int curr = running.get();
+				if (curr < cap) {
+					running.incrementAndGet();
+					Request task = tasks.remove(0);
+					ResultSet rs = execute(task.getSql(), task.getParams());
+					resMap.put(task.getKey(), rs);
+					running.decrementAndGet();
+				}
+			}
+		});
 		return resMap;
 	}
-
+	
 	@Override
 	public void close() throws Exception {
 		conn.close();
