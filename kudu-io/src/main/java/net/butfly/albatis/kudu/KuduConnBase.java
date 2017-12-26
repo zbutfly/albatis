@@ -120,4 +120,6 @@ public abstract class KuduConnBase<C extends KuduConnBase<C, KC, S>, KC extends 
 	public abstract void commit();
 
 	public abstract void table(String name, List<ColumnSchema> cols, boolean autoKey);
+
+	public abstract void dropTable(String table);
 }

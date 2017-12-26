@@ -109,14 +109,29 @@ public class KuduConnectionAsync extends KuduConnBase<KuduConnectionAsync, Async
 	}
 
 	@Override
+	public void dropTable(String table) {
+		try {
+			if (client().tableExists(table).join()) {
+				logger.warn("Kudu table [" + table + "] exised and dropped.");
+				client().deleteTable(table);
+			}
+		} catch (Exception ex) {}
+	}
+
+	@Override
 	public void table(String name, List<ColumnSchema> cols, boolean autoKey) {
+		try {
+			if (client().tableExists(name).join()) {
+				logger.info("Kudu table [" + name + "] existed.");
+				return;
+			}
+		} catch (Exception e) {
+			logger.error("Check kudu table fail.", e);
+			throw new RuntimeException(e);
+		}
 		int buckets = Integer.parseInt(System.getProperty(KuduProps.TABLE_BUCKETS, "24"));
 		logger.info("Kudu table constructing, with bucket [" + buckets + "], can be defined by [-D" + KuduProps.TABLE_BUCKETS + "=400]");
 		try {
-			if (client().tableExists(name).join()) {
-				logger.info("Kudu table [" + name + "] existed, will be droped.");
-				client().deleteTable(name).join();
-			}
 			List<String> keys = new ArrayList<>();
 			for (ColumnSchema c : cols)
 				if (c.isKey()) keys.add(c.getName());
