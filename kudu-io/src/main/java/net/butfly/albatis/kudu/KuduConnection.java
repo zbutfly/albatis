@@ -93,7 +93,27 @@ public class KuduConnection extends KuduConnBase<KuduConnection, KuduClient, Kud
 	}
 
 	@Override
+	public void dropTable(String name) {
+		try {
+			if (client().tableExists(name)) {
+				logger.warn("Kudu table [" + name + "] exised and dropped.");
+				client().deleteTable(name);
+			}
+		} catch (KuduException ex) {}
+	}
+
+	@Override
 	public void table(String name, List<ColumnSchema> cols, boolean autoKey) {
+		try {
+			if (client().tableExists(name)) {
+				logger.info("Kudu table [" + name + "] existed.");
+				return;
+			}
+		} catch (KuduException e) {
+			logger.error("Check kudu table fail.", e);
+			throw new RuntimeException(e);
+		}
+
 		int buckets = Integer.parseInt(System.getProperty(KuduProps.TABLE_BUCKETS, "8"));
 		String v = Configs.get(KuduProps.TABLE_REPLICAS);
 		int replicas = null == v ? -1 : Integer.parseInt(v);
@@ -103,10 +123,6 @@ public class KuduConnection extends KuduConnBase<KuduConnection, KuduClient, Kud
 				+ "=xx(no default value)]";
 		logger.info(info + ".");
 		try {
-			if (client().tableExists(name)) {
-				logger.info("Kudu table [" + name + "] existed, will be droped.");
-				client().deleteTable(name);
-			}
 			List<String> keys = new ArrayList<>();
 			for (ColumnSchema c : cols)
 				if (c.isKey()) keys.add(c.getName());
