@@ -1,6 +1,5 @@
 package net.butfly.albatis.io;
 
-import net.butfly.albacore.paral.Exeter;
 import net.butfly.albacore.paral.Sdream;
 
 public abstract class SafeKeyOutput<K, V> extends SafeOutputBase<V> implements KeyOutput<K, V> {
@@ -13,7 +12,7 @@ public abstract class SafeKeyOutput<K, V> extends SafeOutputBase<V> implements K
 	@Override
 	public final void enqueue(K key, Sdream<V> v) {
 		opsPending.incrementAndGet();
-		Exeter.of().execute(() -> enqSafe(key, v));
+		enqSafe(key, v);
 	}
 
 	@Override
