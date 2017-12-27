@@ -13,15 +13,20 @@ import org.elasticsearch.action.bulk.BulkResponse;
 
 import net.butfly.albacore.paral.Task;
 import net.butfly.albacore.utils.Exceptions;
+import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.io.Message;
 
 public class ElasticOutputAsync extends ElasticOutput {
+	private static final Logger logger = Logger.getLogger(ElasticOutputAsync.class);
+	public static final int MAX_RETRY = 3;
+	public static final int SUGGEST_BATCH_SIZE = 1000;
+
 	public ElasticOutputAsync(String name, ElasticConnection conn) throws IOException {
 		super(name, conn);
 	}
 
 	@Override
-	protected final void go(Map<Object, Message> remains) {
+	protected final void go(Map<String, Message> remains) {
 		while (!remains.isEmpty()) {
 			@SuppressWarnings("rawtypes")
 			List<DocWriteRequest> reqs = of(remains.values()).map(Elastics::forWrite).list();
@@ -35,9 +40,9 @@ public class ElasticOutputAsync extends ElasticOutput {
 	}
 
 	protected final class EnqueueListener implements ActionListener<BulkResponse> {
-		private final Map<Object, Message> remains;
+		private final Map<String, Message> remains;
 
-		private EnqueueListener(Map<Object, Message> remains) {
+		private EnqueueListener(Map<String, Message> remains) {
 			this.remains = remains;
 		}
 

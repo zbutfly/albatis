@@ -11,7 +11,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.kudu.ColumnSchema;
@@ -73,14 +72,14 @@ public class KuduOutput extends SafeOddOutput<Message> {
 	}
 
 	@Override
-	protected boolean enqueue1(Message m, AtomicInteger ops) {
-		ops.incrementAndGet();
+	protected boolean enqSafe(Message m) {
+		opsPending.incrementAndGet();
 		try {
 			if (null == m || m.isEmpty()) return false;
 			connect.apply(op(m), (op, e) -> failed(Sdream.of1(m)));
 			return true;
 		} finally {
-			ops.decrementAndGet();
+			opsPending.decrementAndGet();
 		}
 	}
 

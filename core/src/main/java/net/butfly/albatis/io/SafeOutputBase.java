@@ -14,26 +14,26 @@ import net.butfly.albacore.utils.Configs;
 
 abstract class SafeOutputBase<V> extends Namedly implements Output<V> {
 	protected final Supplier<Boolean> opExceeded;
-	protected final AtomicInteger currOps;
+	protected final AtomicInteger opsPending;
 
 	protected SafeOutputBase(String name) {
 		super(name);
-		this.currOps = new AtomicInteger(0);
+		this.opsPending = new AtomicInteger(0);
 		int maxOps = detectMaxConcurrentOps();
-		this.opExceeded = maxOps > 0 ? () -> currOps.get() > maxOps : () -> false;
+		this.opExceeded = maxOps > 0 ? () -> opsPending.get() > maxOps : () -> false;
 	}
 
-	// currOps.incrementAndGet();
-	// currOps.decrementAndGet();
-	protected abstract void enqueue(Sdream<V> items, AtomicInteger ops);
+	// opsPending.incrementAndGet();
+	// opsPending.decrementAndGet();
+	protected abstract void enqSafe(Sdream<V> items);
 
 	@Override
 	public void close() {
 		logger().info("INFO: " + name() + " closing after safe waiting @[" + Thread.currentThread().toString() + "], "//
-				+ "pending ops:" + currOps.get());
+				+ "pending ops:" + opsPending.get());
 		int remained;
 		int waited = 1;
-		while (0 < (remained = currOps.get())) {
+		while (0 < (remained = opsPending.get())) {
 			int r = remained;
 			logger().debug("Output ops [" + r + "] remained, waiting " + (waited++) + " second for safe closing.");
 			if (!Task.waitSleep(1000)) break;
@@ -43,7 +43,7 @@ abstract class SafeOutputBase<V> extends Namedly implements Output<V> {
 
 	@Override
 	public String toString() {
-		return super.toString() + "[Pending Ops: " + currOps.get() + "]";
+		return super.toString() + "[Pending Ops: " + opsPending.get() + "]";
 	}
 
 	int detectMaxConcurrentOps() {

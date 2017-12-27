@@ -5,7 +5,6 @@ import static net.butfly.albacore.utils.collection.Colls.list;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.hadoop.hbase.client.Append;
 import org.apache.hadoop.hbase.client.Delete;
@@ -37,15 +36,18 @@ public final class HbaseOutput extends SafeKeyOutput<String, Message> {
 	}
 
 	@Override
-	public void enqueue(String table, Sdream<Message> msgs, AtomicInteger ops) {
+	protected void enqSafe(String table, Sdream<Message> msgs) {
+		opsPending.incrementAndGet();
 		List<Message> origins = Colls.list();
 		List<Row> puts = Colls.list();
 		incs(table, msgs, origins, puts);
 
 		int batchSize = puts.size();
-		if (batchSize == 0) return;
+		if (batchSize == 0) {
+			opsPending.decrementAndGet();
+			return;
+		}
 		if (batchSize == 1) {
-			ops.incrementAndGet();
 			try {
 				Table t = hconn.table(origins.get(0).table());
 				Row req = puts.get(0);
@@ -57,15 +59,12 @@ public final class HbaseOutput extends SafeKeyOutput<String, Message> {
 			} catch (IOException e) {
 				failed(Sdream.of(origins));
 			} finally {
-				ops.decrementAndGet();
+				opsPending.decrementAndGet();
 			}
-		} else {
-			ops.incrementAndGet();
-			Exeter.of().submit(() -> enqS(table, origins, puts, ops));
-		}
+		} else Exeter.of().submit(() -> enqAsync(table, origins, puts));
 	}
 
-	protected void enqS(String table, List<Message> origins, List<Row> enqs, AtomicInteger ops) {
+	protected void enqAsync(String table, List<Message> origins, List<Row> enqs) {
 		Object[] results = new Object[enqs.size()];
 		try {
 			hconn.table(table).batch(enqs, results);
@@ -79,13 +78,13 @@ public final class HbaseOutput extends SafeKeyOutput<String, Message> {
 				if (null == results[i]) // error
 					failed.add(origins.get(i));
 				else if (results[i] instanceof Result) succs++;
-				else logger().error("HbaseOutput unknown: [" + results[i].toString() + "], pending: " + ops.get() + "]");
+				else logger().error("HbaseOutput unknown: [" + results[i].toString() + "], pending: " + opsPending.get() + "]");
 			}
 			// logger().error("INFO: HbaseOutput batch [messages: " + origins.size() + ", actions: " + enqs.size() + "], failed " + failed
 			// .size() + ", success: " + succs + ", unknown: " + unknowns + ", pending: " + ops.get() + ".");
 			if (!failed.isEmpty()) failed(Sdream.of(failed));
 			if (succs > 0) succeeded(succs);
-			ops.decrementAndGet();
+			opsPending.decrementAndGet();
 		}
 	}
 

@@ -4,7 +4,6 @@ import static net.butfly.albacore.paral.Sdream.of;
 
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
 import kafka.javaapi.producer.Producer;
@@ -35,8 +34,8 @@ public final class KafkaOutput extends SafeOutput<Message> {
 	}
 
 	@Override
-	protected void enqueue(Sdream<Message> messages, AtomicInteger ops) {
-		ops.incrementAndGet();
+	protected void enqSafe(Sdream<Message> messages) {
+		opsPending.incrementAndGet();
 		try {
 			List<Message> msgs = messages.list();
 			List<KeyedMessage<byte[], byte[]>> ms = of(msgs).map(m -> Kafkas.toKeyedMessage(m, coder)).list();
@@ -49,7 +48,7 @@ public final class KafkaOutput extends SafeOutput<Message> {
 				failed(Sdream.of(msgs));
 			}
 		} finally {
-			ops.decrementAndGet();
+			opsPending.decrementAndGet();
 		}
 	}
 
