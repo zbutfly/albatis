@@ -1,7 +1,5 @@
 package net.butfly.albatis.io;
 
-import java.util.concurrent.atomic.AtomicInteger;
-
 import net.butfly.albacore.paral.Sdream;
 
 public abstract class SafeKeyOutput<K, V> extends SafeOutputBase<V> implements KeyOutput<K, V> {
@@ -9,20 +7,20 @@ public abstract class SafeKeyOutput<K, V> extends SafeOutputBase<V> implements K
 		super(name);
 	}
 
-	protected abstract void enqueue(K key, Sdream<V> items, AtomicInteger ops);
+	protected abstract void enqSafe(K key, Sdream<V> items);
 
 	@Override
-	protected final void enqueue(Sdream<V> items, AtomicInteger ops) {
-		items.partition((k, ss) -> enqueue(k, ss, ops), v -> partition(v), 1000);
+	protected final void enqSafe(Sdream<V> items) {
+		items.partition((k, ss) -> enqueue(k, ss), v -> partition(v), 1000);
 	}
 
 	@Override
 	public final void enqueue(K key, Sdream<V> v) {
-		enqueue(key, v, currOps);
+		enqSafe(key, v);
 	}
 
 	@Override
 	public final void enqueue(Sdream<V> s) {
-		s.partition((k, ss) -> enqueue(k, ss, currOps), v -> partition(v), 1000);
+		s.partition((k, ss) -> enqSafe(k, ss), v -> partition(v), 1000);
 	}
 }
