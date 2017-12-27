@@ -41,8 +41,14 @@ public interface Input<V> extends IO, Dequeuer<V> {
 		dequeue(s -> s.partition(v -> using.accept(conv.apply(v)), parallelism), batchSize));
 	}
 
-	default <V1> Input<V1> then(Function<V, V1> conv) {
-		return Wrapper.wrap(this, "Then", using -> dequeue(s -> using.accept(s.map(conv))));
+	default <V1> Input<V1> thenFlat(Function<V, Sdream<V1>> conv) {
+		return Wrapper.wrap(this, "Thens", (Dequeuer<V1>) (using, batchSize) -> //
+		dequeue(s -> using.accept(s.mapFlat(conv)), batchSize));
+	}
+
+	// more extends
+	default PrefetchInput<V> prefetch(Queue<V> pool, int batchSize) {
+		return new PrefetchInput<V>(this, pool, batchSize);
 	}
 
 	// constructor
