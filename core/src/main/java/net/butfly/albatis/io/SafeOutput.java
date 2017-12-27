@@ -1,5 +1,6 @@
 package net.butfly.albatis.io;
 
+import net.butfly.albacore.paral.Exeter;
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.paral.Task;
 
@@ -15,6 +16,7 @@ public abstract class SafeOutput<V> extends SafeOutputBase<V> {
 	public final void enqueue(Sdream<V> items) {
 		while (opExceeded.get())
 			Task.waitSleep(100);
-		enqSafe(items);
+		opsPending.incrementAndGet();
+		Exeter.of().execute(() -> enqSafe(items));
 	}
 }

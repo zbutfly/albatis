@@ -15,16 +15,15 @@ import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.index.mapper.MapperException;
 import org.elasticsearch.transport.RemoteTransportException;
 
-import net.butfly.albacore.paral.Exeter;
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.collection.Colls;
+import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
-import net.butfly.albacore.utils.parallel.Lambdas;
 import net.butfly.albatis.io.Message;
 import net.butfly.albatis.io.SafeOutput;
 
 public class ElasticOutput extends SafeOutput<Message> {
-	private static final Logger logger = Logger.getLogger(ElasticOutput.class);
+	static final Logger logger = Logger.getLogger(ElasticOutput.class);
 	public static final int MAX_RETRY = 3;
 	public static final int SUGGEST_BATCH_SIZE = 1000;
 	protected final ElasticConnection conn;
@@ -45,14 +44,14 @@ public class ElasticOutput extends SafeOutput<Message> {
 
 	@Override
 	protected void enqSafe(Sdream<Message> msgs) {
-		opsPending.incrementAndGet();
-		Map<String, Message> remains = msgs.partition(Message::key, conn::fixTable, Lambdas.nullOr());
+		Map<String, Message> remains = Maps.of();
+		for (Message m : msgs.list())
+			remains.put(m.key(), conn.fixTable(m));
 		if (remains.isEmpty()) {
 			opsPending.decrementAndGet();
 			return;
 		}
-		// goA(remains, ops);
-		Exeter.of().execute(() -> go(remains));
+		go(remains);
 	}
 
 	protected void go(Map<String, Message> remains) {
