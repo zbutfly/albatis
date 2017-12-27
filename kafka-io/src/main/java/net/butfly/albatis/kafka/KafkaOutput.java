@@ -36,7 +36,6 @@ public final class KafkaOutput extends SafeOutput<Message> {
 
 	@Override
 	protected void enqSafe(Sdream<Message> messages) {
-		opsPending.incrementAndGet();
 		try {
 			List<Message> msgs = messages.list();
 			List<KeyedMessage<byte[], byte[]>> ms = of(msgs).map(m -> Kafkas.toKeyedMessage(m, coder)).list();

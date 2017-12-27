@@ -74,7 +74,6 @@ public class KuduOutput extends SafeOddOutput<Message> {
 
 	@Override
 	protected boolean enqSafe(Message m) {
-		opsPending.incrementAndGet();
 		try {
 			if (null == m || m.isEmpty()) return false;
 			connect.apply(op(m), (op, e) -> failed(Sdream.of1(m)));

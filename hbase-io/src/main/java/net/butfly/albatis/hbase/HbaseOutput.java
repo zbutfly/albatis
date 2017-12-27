@@ -14,7 +14,6 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Row;
 import org.apache.hadoop.hbase.client.Table;
 
-import net.butfly.albacore.paral.Exeter;
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.Exceptions;
 import net.butfly.albacore.utils.collection.Colls;
@@ -37,7 +36,6 @@ public final class HbaseOutput extends SafeKeyOutput<String, Message> {
 
 	@Override
 	protected void enqSafe(String table, Sdream<Message> msgs) {
-		opsPending.incrementAndGet();
 		List<Message> origins = Colls.list();
 		List<Row> puts = Colls.list();
 		incs(table, msgs, origins, puts);
@@ -61,7 +59,7 @@ public final class HbaseOutput extends SafeKeyOutput<String, Message> {
 			} finally {
 				opsPending.decrementAndGet();
 			}
-		} else Exeter.of().submit(() -> enqAsync(table, origins, puts));
+		} else enqAsync(table, origins, puts);
 	}
 
 	protected void enqAsync(String table, List<Message> origins, List<Row> enqs) {
