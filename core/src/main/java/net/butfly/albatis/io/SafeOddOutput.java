@@ -1,7 +1,5 @@
 package net.butfly.albatis.io;
 
-import static net.butfly.albacore.paral.Task.waitWhen;
-
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.paral.Task;
 
@@ -21,13 +19,14 @@ public abstract class SafeOddOutput<V> extends SafeOutputBase<V> implements OddO
 
 	@Override
 	public boolean enqueue(V v) {
+		opsPending.incrementAndGet();
 		return enqSafe(v);
 	}
 
 	@Override
 	protected final void enqSafe(Sdream<V> items) {
-		if (!waitWhen(() -> full())) return;
 		items.eachs(v -> {
+			opsPending.incrementAndGet();
 			if (enqSafe(v)) succeeded(1);
 		});
 	}
