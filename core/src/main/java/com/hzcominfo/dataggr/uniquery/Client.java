@@ -40,11 +40,11 @@ public class Client implements AutoCloseable {
 		System.out.println("cap: " + cap);
 	}
 	
-	public Connection connect(URISpec uriSpec) {
+	private Connection connect(URISpec uriSpec) {
 		return connections.compute(uriSpec.toString(), (u, c) -> null == c ? newConnection(uriSpec):c);
 	}
 	
-	public Connection newConnection(URISpec uriSpec) {
+	private Connection newConnection(URISpec uriSpec) {
 		try {
 			return Connection.connect(uriSpec);
 		} catch (Exception e) {
@@ -53,7 +53,7 @@ public class Client implements AutoCloseable {
 		}
 	}
 	
-	public Adapter adapt(URISpec uriSpec) {
+	private Adapter adapt(URISpec uriSpec) {
 		return adapters.compute(uriSpec.getScheme(), (u, a) -> null == a ? Adapter.adapt(uriSpec):a);
 	}
 
@@ -136,25 +136,5 @@ public class Client implements AutoCloseable {
 		conn.close();
 		connections.remove(uriSpec);
 		adapters.remove(uriSpec);
-	}
-	
-	public Connection getConn() {
-		return conn;
-	}
-
-	public void setConn(Connection conn) {
-		this.conn = conn;
-	}
-
-	public Adapter getAdapter() {
-		return adapter;
-	}
-
-	public void setAdapter(Adapter adapter) {
-		this.adapter = adapter;
-	}
-
-	public URISpec getUriSpec() {
-		return uriSpec;
 	}
 }
