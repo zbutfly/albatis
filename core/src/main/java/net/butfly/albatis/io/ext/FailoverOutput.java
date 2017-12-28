@@ -1,6 +1,7 @@
 package net.butfly.albatis.io.ext;
 
 import net.butfly.albacore.paral.Sdream;
+import net.butfly.albacore.paral.Task;
 import net.butfly.albacore.utils.OpenableThread;
 import net.butfly.albatis.io.Output;
 import net.butfly.albatis.io.Queue;
@@ -23,8 +24,11 @@ public class FailoverOutput<M> extends Wrapper.WrapOutput<M, M> {
 		super(output, "Failover");
 		this.pool = failover;
 		failovering = new OpenableThread(() -> {
-			while (output.opened() && opened())
+			while (output.opened() && opened()) {
+				while (failover.empty())
+					if (!output.opened() || !opened() || !Task.waitSleep()) break;
 				failover.dequeue(output::enqueue, batchSize);
+			}
 			logger().info("Failovering stopped.");
 		}, name() + "Failovering");
 		closing(() -> {
