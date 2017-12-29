@@ -8,7 +8,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import net.butfly.albacore.io.Openable;
-import net.butfly.albacore.utils.stats.Statistical;
+import net.butfly.albacore.utils.logger.Statistical;
 import net.butfly.albatis.io.Input;
 import net.butfly.albatis.io.Output;
 import net.butfly.albatis.io.ext.FanOutput;
