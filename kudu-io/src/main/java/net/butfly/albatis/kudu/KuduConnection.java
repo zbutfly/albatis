@@ -4,6 +4,7 @@ import static net.butfly.albacore.paral.Sdream.of;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.BiConsumer;
 
@@ -24,7 +25,7 @@ import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.Configs;
 
 @SuppressWarnings("unchecked")
-public class KuduConnection extends KuduConnBase<KuduConnection, KuduClient, KuduSession> {
+public class KuduConnection extends KuduConnectionBase<KuduConnection, KuduClient, KuduSession> {
 	public KuduConnection(URISpec kuduUri) throws IOException {
 		super(kuduUri, r -> new KuduClient.KuduClientBuilder(kuduUri.getHost()).build());
 		session = client().newSession();
@@ -93,48 +94,48 @@ public class KuduConnection extends KuduConnBase<KuduConnection, KuduClient, Kud
 	}
 
 	@Override
-	public void dropTable(String name) {
+	public void tableDrop(String name) {
 		try {
-			if (client().tableExists(name)) {
+			if (!client().tableExists(name)) logger.warn("Kudu table [" + name + "] not exised, need not dropped.");
+			else {
 				logger.warn("Kudu table [" + name + "] exised and dropped.");
 				client().deleteTable(name);
 			}
-		} catch (KuduException ex) {}
+		} catch (KuduException ex) {
+			logger.warn("Kudu table [" + name + "] drop fail", ex);
+		}
 	}
 
 	@Override
-	public void table(String name, List<ColumnSchema> cols, boolean autoKey) {
+	public void tableCreate(String name, boolean drop, ColumnSchema... cols) {
+		if (drop) tableDrop(name);
 		try {
 			if (client().tableExists(name)) {
-				logger.info("Kudu table [" + name + "] existed.");
+				logger.warn("Ask for creating new table but existed and not droped, ignore");
 				return;
 			}
 		} catch (KuduException e) {
-			logger.error("Check kudu table fail.", e);
 			throw new RuntimeException(e);
 		}
+		List<String> keys = new ArrayList<>();
+		for (ColumnSchema c : cols)
+			if (c.isKey()) keys.add(c.getName());
+			else break;
 
-		int buckets = Integer.parseInt(System.getProperty(KuduProps.TABLE_BUCKETS, "8"));
+		int buckets = Integer.parseInt(System.getProperty(KuduProps.TABLE_BUCKETS, "24"));
 		String v = Configs.get(KuduProps.TABLE_REPLICAS);
 		int replicas = null == v ? -1 : Integer.parseInt(v);
-		String info = "Kudu table constructing, with bucket [" + buckets + "], can be defined by [-D" + KuduProps.TABLE_BUCKETS
-				+ "=8(default value)]";
+		String info = "with bucket [" + buckets + "], can be defined by [-D" + KuduProps.TABLE_BUCKETS + "=8(default value)]";
 		if (replicas > 0) info = info + ", with replicas [" + replicas + "], can be defined by [-D" + KuduProps.TABLE_REPLICAS
 				+ "=xx(no default value)]";
-		logger.info(info + ".");
+		logger.info("Kudu table [" + name + "] will be created with keys: [" + Joiner.on(',').join(keys) + "], " + info);
+		CreateTableOptions opts = new CreateTableOptions().addHashPartitions(keys, buckets);
+		if (replicas > 0) opts = opts.setNumReplicas(replicas);
 		try {
-			List<String> keys = new ArrayList<>();
-			for (ColumnSchema c : cols)
-				if (c.isKey()) keys.add(c.getName());
-				else break;
-			logger.info("Kudu table [" + name + "] will be created with keys: [" + Joiner.on(',').join(keys) + "].");
-			CreateTableOptions opts = new CreateTableOptions().addHashPartitions(keys, buckets);
-			if (replicas > 0) opts = opts.setNumReplicas(replicas);
-			client().createTable(name, new Schema(cols), opts);
-			logger.info("Kudu table [" + name + "] created successfully.");
+			client().createTable(name, new Schema(Arrays.asList(cols)), opts);
 		} catch (KuduException e) {
-			logger.error("Build kudu table fail.", e);
 			throw new RuntimeException(e);
 		}
+		logger.info("Kudu table [" + name + "] created successfully.");
 	}
 }

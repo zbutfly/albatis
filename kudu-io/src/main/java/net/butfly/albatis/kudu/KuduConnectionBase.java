@@ -4,7 +4,6 @@ import static net.butfly.albacore.paral.Sdream.of;
 import static net.butfly.albacore.paral.Task.waitSleep;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
@@ -27,15 +26,15 @@ import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
 
 @SuppressWarnings("unchecked")
-public abstract class KuduConnBase<C extends KuduConnBase<C, KC, S>, KC extends AutoCloseable, S extends SessionConfiguration> extends
+public abstract class KuduConnectionBase<C extends KuduConnectionBase<C, KC, S>, KC extends AutoCloseable, S extends SessionConfiguration> extends
 		NoSqlConnection<KC> {
-	protected static final Logger logger = Logger.getLogger(KuduConnBase.class);
+	protected static final Logger logger = Logger.getLogger(KuduConnectionBase.class);
 	private static final Map<String, KuduTable> tables = Maps.of();
 	private static final Map<String, Map<String, ColumnSchema>> SCHEMAS_CI = Maps.of();
 	private final Thread failHandler;
 	protected S session;
 
-	protected KuduConnBase(URISpec kuduUri, Function<URISpec, KC> clienting) throws IOException {
+	protected KuduConnectionBase(URISpec kuduUri, Function<URISpec, KC> clienting) throws IOException {
 		super(kuduUri, clienting, "kudu");
 
 		failHandler = new Thread(() -> {
@@ -119,7 +118,7 @@ public abstract class KuduConnBase<C extends KuduConnBase<C, KC, S>, KC extends 
 
 	public abstract void commit();
 
-	public abstract void table(String name, List<ColumnSchema> cols, boolean autoKey);
+	public abstract void tableDrop(String table);
 
-	public abstract void dropTable(String table);
+	public abstract void tableCreate(String name, boolean drop, ColumnSchema... cols);
 }
