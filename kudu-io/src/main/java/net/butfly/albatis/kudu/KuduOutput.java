@@ -27,9 +27,9 @@ import net.butfly.albatis.io.SafeOddOutput;
 
 public class KuduOutput extends SafeOddOutput<Message> {
 	public static final int SUGGEST_BATCH_SIZE = 200;
-	private final KuduConnBase<?, ?, ?> connect;
+	private final KuduConnectionBase<?, ?, ?> connect;
 
-	public KuduOutput(String name, KuduConnBase<?, ?, ?> conn) throws IOException {
+	public KuduOutput(String name, KuduConnectionBase<?, ?, ?> conn) throws IOException {
 		super(name);
 		connect = conn;
 	}

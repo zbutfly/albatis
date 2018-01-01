@@ -4,7 +4,6 @@ import static net.butfly.albacore.paral.Sdream.of;
 import static net.butfly.albacore.paral.Task.waitSleep;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
@@ -23,16 +22,12 @@ import com.hzcominfo.albatis.nosql.NoSqlConnection;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.paral.Exeter;
-import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
-import net.butfly.albatis.ddl.FieldDesc;
-import net.butfly.albatis.io.Input;
-import net.butfly.albatis.io.Message;
 
 @SuppressWarnings("unchecked")
-public abstract class KuduConnectionBase<C extends KuduConnectionBase<C, KC, S>, KC extends AutoCloseable, S extends SessionConfiguration>
-		extends NoSqlConnection<KC> {
+public abstract class KuduConnectionBase<C extends KuduConnectionBase<C, KC, S>, KC extends AutoCloseable, S extends SessionConfiguration> extends
+		NoSqlConnection<KC> {
 	protected static final Logger logger = Logger.getLogger(KuduConnectionBase.class);
 	private static final Map<String, KuduTable> tables = Maps.of();
 	private static final Map<String, Map<String, ColumnSchema>> SCHEMAS_CI = Maps.of();
@@ -68,7 +63,7 @@ public abstract class KuduConnectionBase<C extends KuduConnectionBase<C, KC, S>,
 		if (null == errs) return;
 		RowError[] rows = session.getPendingErrors().getRowErrors();
 		if (null == rows || rows.length == 0) return;
-		of(rows).map(RowError::getOperation).eachs(op -> this.apply(op, this::error));
+		of(rows).map(e -> e.getOperation()).each(op -> this.apply(op, this::error));
 	}
 
 	protected final void error(Operation op, Throwable cause) {
@@ -123,57 +118,7 @@ public abstract class KuduConnectionBase<C extends KuduConnectionBase<C, KC, S>,
 
 	public abstract void commit();
 
-	@Override
-	public abstract void destruct(String table);
+	public abstract void tableDrop(String table);
 
-	protected abstract void construct(String table, ColumnSchema... cols);
-
-	@Override
-	public final void construct(String table, FieldDesc... fields) {
-		construct(table, ColBuild.buildColumns(false, fields));
-	}
-
-	public static class Driver implements com.hzcominfo.albatis.nosql.Connection.Driver<KuduConnection> {
-		static {
-			DriverManager.register(new Driver());
-		}
-
-		@Override
-		public KuduConnection connect(URISpec uriSpec) throws IOException {
-			return new KuduConnection(uriSpec);
-		}
-
-		@Override
-		public List<String> schemas() {
-			return Colls.list("kudu");
-		}
-	}
-
-	@Deprecated
-	public static class AsyncDriver implements com.hzcominfo.albatis.nosql.Connection.Driver<KuduConnectionAsync> {
-		static {
-			DriverManager.register(new Driver());
-		}
-
-		@Override
-		public KuduConnectionAsync connect(URISpec uriSpec) throws IOException {
-			return new KuduConnectionAsync(uriSpec);
-		}
-
-		@Override
-		public List<String> schemas() {
-			return Colls.list("kudu:async");
-		}
-
-	}
-
-	@Override
-	public Input<Message> input(String... table) throws IOException {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	public KuduOutput output() throws IOException {
-		return new KuduOutput("KuduOutput", this);
-	}
+	public abstract void tableCreate(String name, boolean drop, ColumnSchema... cols);
 }
