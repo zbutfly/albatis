@@ -120,7 +120,21 @@ public class MongoInput extends net.butfly.albacore.base.Namedly implements OddI
 			while (null != (c = cursors.poll()))
 				try {
 					if (!c.v2().hasNext()) c = closeCursor(c);
-					else return new Message(c.v1(), (String) null, c.v2().next().toMap());
+					else {
+						@SuppressWarnings("rawtypes")
+						Map m = c.v2().next().toMap();
+						try {
+							return new Message(c.v1(), (String) null, m);
+						} catch (NullPointerException e) {
+							for (Object k : m.keySet())
+								if (null == m.get(k)) {
+									logger.error("Mongo result field [" + k + "] null at table [" + c.v1() + "], id [" + m.get("_id")
+											+ "].");
+									m.remove(k);
+								}
+							return new Message(c.v1(), (String) null, m);
+						}
+					}
 				} catch (MongoException ex) {
 					logger.warn("Mongo fail fetch, ignore and continue retry...");
 				} catch (IllegalStateException ex) {
