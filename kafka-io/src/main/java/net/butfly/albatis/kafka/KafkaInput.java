@@ -61,19 +61,18 @@ public class KafkaInput extends net.butfly.albacore.base.Namedly implements OddI
 		skip = new AtomicLong(Long.parseLong(uri.getParameter("skip", "0")));
 		if (skip.get() > 0) logger().error("[" + name() + "] skip [" + skip.get()
 				+ "] for testing, the skip is estimated, especially in multiple topic subscribing.");
-		int configTopicParallinism = Props.propI(KafkaInput.class, "topic.paral", config.getDefaultPartitionParallelism());
-		if (configTopicParallinism > 0) //
-			logger().debug("[" + name() + "] default topic parallelism [" + configTopicParallinism + "]");
-		Set<String> ts = topics == null || topics.length == 0 ? new HashSet<>(config.topics()) : new HashSet<>(Arrays.asList(topics));
-		Map<String, Integer> topicPartitions = config.getTopicPartitions(ts);
-
-		for (String t : ts) {
-			int parts = topicPartitions.getOrDefault(t, 1);
-			int p = configTopicParallinism <= 0 ? parts : configTopicParallinism;
-			allTopics.put(t, p);
-			if (p > parts) logger().warn("[" + name() + "] topic [" + t + "] define parallelism: [" + p + "] "
-					+ "over existed partitions: [" + parts + "].");
-			else logger().info("[" + name() + "] topic [" + t + "] consumers creating as parallelism [" + p + "]");
+		int kp = config.getPartitionParallelism();
+		if (topics == null || topics.length == 0) topics = config.topics().toArray(new String[0]);
+		Map<String, int[]> topicParts;
+		try (ZKConn zk = new ZKConn(config.getZookeeperConnect())) {
+			topicParts = zk.getTopicPartitions(topics);
+			if (logger().isDebugEnabled()) for (String t : topics)
+				logger().debug(() -> "[" + name() + "] lag of " + config.getGroupId() + "@" + t + ": " + zk.getLag(t, config.getGroupId()));
+		}
+		for (String t : topicParts.keySet()) {
+			if (kp <= 0) allTopics.put(t, 1);
+			else if (kp >= topicParts.get(t).length) allTopics.put(t, topicParts.get(t).length);
+			else allTopics.put(t, (int) Math.ceil(topicParts.get(t).length * 1.0 / kp));
 		}
 		logger().trace("[" + name() + "] parallelism of topics: " + allTopics.toString() + ".");
 		// connect

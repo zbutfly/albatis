@@ -206,7 +206,7 @@ public class HbaseInput extends Namedly implements Input<Message> {
 			try {
 				rs = scaner.next(batchSize);
 			} catch (Exception ex) {
-				logger().warn("Hbase failure", ex);
+				logger().warn("Hbase failed and continue: " + ex.toString());
 			} finally {
 				scanerLock.writeLock().unlock();
 			}
