@@ -78,11 +78,11 @@ public final class HbaseOutput extends SafeKeyOutput<String, Message> {
 				else if (results[i] instanceof Result) succs++;
 				else logger().error("HbaseOutput unknown: [" + results[i].toString() + "], pending: " + opsPending.get() + "]");
 			}
-			// logger().error("INFO: HbaseOutput batch [messages: " + origins.size() + ", actions: " + enqs.size() + "], failed " + failed
-			// .size() + ", success: " + succs + ", unknown: " + unknowns + ", pending: " + ops.get() + ".");
 			if (!failed.isEmpty()) failed(Sdream.of(failed));
 			if (succs > 0) succeeded(succs);
 			opsPending.decrementAndGet();
+			// logger().error("INFO: HbaseOutput batch [messages: " + origins.size() + ", actions: " + enqs.size() + "], failed " + failed
+			// .size() + ", success: " + succs + ", pending: " + opsPending.get() + ".");
 		}
 	}
 

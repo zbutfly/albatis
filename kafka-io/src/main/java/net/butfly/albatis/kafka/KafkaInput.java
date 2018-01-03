@@ -66,7 +66,7 @@ public class KafkaInput extends net.butfly.albacore.base.Namedly implements OddI
 		Map<String, int[]> topicParts;
 		try (ZKConn zk = new ZKConn(config.getZookeeperConnect())) {
 			topicParts = zk.getTopicPartitions(topics);
-			if (logger().isTraceEnabled()) for (String t : topics)
+			if (logger().isDebugEnabled()) for (String t : topics)
 				logger().debug(() -> "[" + name() + "] lag of " + config.getGroupId() + "@" + t + ": " + zk.getLag(t, config.getGroupId()));
 		}
 		for (String t : topicParts.keySet()) {
