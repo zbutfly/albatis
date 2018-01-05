@@ -38,7 +38,7 @@ public final class HbaseOutput extends SafeKeyOutput<String, Message> {
 	protected void enqSafe(String table, Sdream<Message> msgs) {
 		List<Message> origins = Colls.list();
 		List<Row> puts = Colls.list();
-		incs(table, msgs, origins, puts);
+		incs(table, msgs.filter(m -> null != m.key()), origins, puts);
 
 		int batchSize = puts.size();
 		if (batchSize == 0) {
