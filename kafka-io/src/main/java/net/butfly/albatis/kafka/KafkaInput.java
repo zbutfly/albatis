@@ -1,11 +1,10 @@
 package net.butfly.albatis.kafka;
 
-import static net.butfly.albacore.paral.Sdream.of;
-
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -23,6 +22,7 @@ import net.butfly.albacore.exception.ConfigException;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.paral.Task;
 import net.butfly.albacore.utils.Texts;
+import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albatis.io.Message;
 import net.butfly.albatis.io.OddInput;
@@ -67,7 +67,7 @@ public class KafkaInput extends net.butfly.albacore.base.Namedly implements OddI
 		try (ZKConn zk = new ZKConn(config.getZookeeperConnect())) {
 			topicParts = zk.getTopicPartitions(topics);
 			if (logger().isDebugEnabled()) for (String t : topics)
-				logger().debug(() -> "[" + name() + "] lag of " + config.getGroupId() + "@" + t + ": " + zk.getLag(t, config.getGroupId()));
+				logger().debug("[" + name() + "] lag of " + config.getGroupId() + "@" + t + ": " + zk.getLag(t, config.getGroupId()));
 		}
 		for (String t : topicParts.keySet()) {
 			if (kp <= 0) allTopics.put(t, 1);
@@ -91,8 +91,10 @@ public class KafkaInput extends net.butfly.albacore.base.Namedly implements OddI
 		while (temp == null);
 		connect = c;
 		logger().info("[" + name() + "] connected.");
-		List<ConsumerIterator<byte[], byte[]>> l = of(temp).mapFlat(e -> of(e.getValue()).map(KafkaStream<byte[], byte[]>::iterator))
-				.list();
+		List<ConsumerIterator<byte[], byte[]>> l = Colls.list();
+		for (Entry<String, List<KafkaStream<byte[], byte[]>>> e : temp.entrySet())
+			for (KafkaStream<byte[], byte[]> ks : e.getValue())
+				l.add(ks.iterator());
 		consumers = new LinkedBlockingQueue<>(l);
 		closing(this::closeKafka);
 	}

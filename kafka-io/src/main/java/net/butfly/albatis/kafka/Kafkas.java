@@ -19,6 +19,6 @@ public interface Kafkas {
 	}
 
 	static KeyedMessage<byte[], byte[]> toKeyedMessage(Message m, Function<Map<String, Object>, byte[]> ser) {
-		return null == m.key() ? null : new KeyedMessage<>(m.table(), m.keyBytes(), ser.apply(m.map()));
+		return null == m.key() ? null : new KeyedMessage<>(m.table(), m.key().getBytes(), ser.apply(m.map()));
 	}
 }
