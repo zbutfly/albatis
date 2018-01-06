@@ -21,6 +21,7 @@ import kafka.message.MessageAndMetadata;
 import net.butfly.albacore.exception.ConfigException;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.paral.Task;
+import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.Texts;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
@@ -97,7 +98,8 @@ public class KafkaInput extends net.butfly.albacore.base.Namedly implements OddI
 				l.add(ks.iterator());
 		consumers = new LinkedBlockingQueue<>(l);
 		closing(this::closeKafka);
-		trace(MessageAndMetadata.class).sizing(km -> (long) km.rawMessage$1().payloadSize());
+		trace(MessageAndMetadata.class).sizing(km -> (long) km.rawMessage$1().payloadSize())//
+				.step(Long.parseLong(Configs.gets(KafkaProps.INPUT_STATS_STEP), -1));
 		open();
 	}
 
