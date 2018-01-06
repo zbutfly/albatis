@@ -16,6 +16,7 @@ import org.elasticsearch.index.mapper.MapperException;
 import org.elasticsearch.transport.RemoteTransportException;
 
 import net.butfly.albacore.paral.Sdream;
+import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
@@ -31,7 +32,8 @@ public class ElasticOutput extends SafeOutput<Message> {
 	public ElasticOutput(String name, ElasticConnection conn) throws IOException {
 		super(name);
 		this.conn = conn;
-		trace(BulkRequest.class).sizing(r -> r.estimatedSizeInBytes()).stepping(r -> (long) r.requests().size());
+		trace(BulkRequest.class).sizing(r -> r.estimatedSizeInBytes()).stepping(r -> (long) r.requests().size())//
+				.step(Long.parseLong(Configs.gets(ElasticProps.OUTPUT_STATS_STEP), -1));
 		open();
 	}
 

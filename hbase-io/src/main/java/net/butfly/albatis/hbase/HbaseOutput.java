@@ -15,6 +15,7 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Table;
 
 import net.butfly.albacore.paral.Sdream;
+import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.Exceptions;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
@@ -31,7 +32,8 @@ public final class HbaseOutput extends SafeKeyOutput<String, Message> {
 	public HbaseOutput(String name, HbaseConnection hconn) throws IOException {
 		super(name);
 		this.hconn = hconn;
-		trace(Mutation.class).sizing(Mutation::heapSize);
+		trace(Mutation.class).sizing(Mutation::heapSize)//
+				.step(Long.parseLong(Configs.gets(HbaseProps.OUTPUT_STATS_STEP), -1));
 		open();
 	}
 
@@ -40,7 +42,6 @@ public final class HbaseOutput extends SafeKeyOutput<String, Message> {
 		List<Message> origins = Colls.list();
 		List<Mutation> puts = Colls.list();
 		incs(table, msgs.filter(m -> null != m.key()), origins, puts);
-		stats(puts);
 
 		int batchSize = puts.size();
 		if (batchSize == 0) {
@@ -50,12 +51,13 @@ public final class HbaseOutput extends SafeKeyOutput<String, Message> {
 		if (batchSize == 1) {
 			try {
 				Table t = hconn.table(origins.get(0).table());
-				Mutation req = stats(puts.get(0));
+				Mutation req = puts.get(0);
 				if (req instanceof Put) t.put((Put) req);
 				else if (req instanceof Delete) t.delete((Delete) req);
 				else if (req instanceof Increment) t.increment((Increment) req);
 				else if (req instanceof Append) t.append((Append) req);
 				succeeded(1);
+				stats(req);
 			} catch (IOException e) {
 				failed(Sdream.of(origins));
 			} finally {
@@ -82,6 +84,7 @@ public final class HbaseOutput extends SafeKeyOutput<String, Message> {
 			}
 			if (!failed.isEmpty()) failed(Sdream.of(failed));
 			if (succs > 0) succeeded(succs);
+			stats(enqs);
 			opsPending.decrementAndGet();
 			// logger().error("INFO: HbaseOutput batch [messages: " + origins.size() + ", actions: " + enqs.size() + "], failed " + failed
 			// .size() + ", success: " + succs + ", pending: " + opsPending.get() + ".");

@@ -1,7 +1,7 @@
-package net.butfly.albatis.elastic;
+package net.butfly.albatis.kafka;
 
-public @interface ElasticProps {
-	final String MODULE_NAME = "es";
+public @interface KafkaProps {
+	final String MODULE_NAME = "kafka";
 	final String OUTPUT_CONCURRENT_OPS = "albatis." + MODULE_NAME + ".concurrent.ops.limit";
 	final String OUTPUT_BATCH_SIZE = "albatis." + MODULE_NAME + ".concurrent.ops.limit";
 	final String INPUT_BATCH_SIZE = "albatis." + MODULE_NAME + ".concurrent.ops.limit";
