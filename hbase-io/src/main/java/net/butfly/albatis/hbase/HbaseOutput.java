@@ -9,9 +9,9 @@ import java.util.Map;
 import org.apache.hadoop.hbase.client.Append;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Increment;
+import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.Row;
 import org.apache.hadoop.hbase.client.Table;
 
 import net.butfly.albacore.paral.Sdream;
@@ -31,14 +31,16 @@ public final class HbaseOutput extends SafeKeyOutput<String, Message> {
 	public HbaseOutput(String name, HbaseConnection hconn, Function<Map<String, Object>, byte[]> ser) throws IOException {
 		super(name);
 		this.hconn = hconn;
+		trace(Mutation.class).sizing(Mutation::heapSize);
 		open();
 	}
 
 	@Override
 	protected void enqSafe(String table, Sdream<Message> msgs) {
 		List<Message> origins = Colls.list();
-		List<Row> puts = Colls.list();
+		List<Mutation> puts = Colls.list();
 		incs(table, msgs.filter(m -> null != m.key()), origins, puts);
+		stats(puts);
 
 		int batchSize = puts.size();
 		if (batchSize == 0) {
@@ -48,7 +50,7 @@ public final class HbaseOutput extends SafeKeyOutput<String, Message> {
 		if (batchSize == 1) {
 			try {
 				Table t = hconn.table(origins.get(0).table());
-				Row req = puts.get(0);
+				Mutation req = stats(puts.get(0));
 				if (req instanceof Put) t.put((Put) req);
 				else if (req instanceof Delete) t.delete((Delete) req);
 				else if (req instanceof Increment) t.increment((Increment) req);
@@ -62,7 +64,7 @@ public final class HbaseOutput extends SafeKeyOutput<String, Message> {
 		} else enqAsync(table, origins, puts);
 	}
 
-	protected void enqAsync(String table, List<Message> origins, List<Row> enqs) {
+	protected void enqAsync(String table, List<Message> origins, List<Mutation> enqs) {
 		Object[] results = new Object[enqs.size()];
 		try {
 			hconn.table(table).batch(enqs, results);
@@ -86,7 +88,7 @@ public final class HbaseOutput extends SafeKeyOutput<String, Message> {
 		}
 	}
 
-	private void incs(String table, Sdream<Message> values, List<Message> origins, List<Row> puts) {
+	private void incs(String table, Sdream<Message> values, List<Message> origins, List<Mutation> puts) {
 		Map<String, List<Message>> incByKeys = Maps.of();
 		values.eachs(m -> {
 			if (m.op() == Op.INCREASE) {
@@ -96,7 +98,7 @@ public final class HbaseOutput extends SafeKeyOutput<String, Message> {
 					return l;
 				});
 			} else {
-				Row r = Hbases.Results.put(m);
+				Mutation r = Hbases.Results.put(m);
 				if (null != r) {
 					origins.add(m);
 					puts.add(r);
@@ -111,7 +113,7 @@ public final class HbaseOutput extends SafeKeyOutput<String, Message> {
 			for (String k : merge.keySet())
 				if (((Long) merge.get(k)).longValue() <= 0) merge.remove(k);
 			if (!merge.isEmpty()) {
-				Row r = Hbases.Results.put(merge);
+				Mutation r = Hbases.Results.put(merge);
 				if (null != r) {
 					origins.add(merge);
 					puts.add(r);

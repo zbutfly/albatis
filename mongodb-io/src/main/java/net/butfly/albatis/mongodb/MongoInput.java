@@ -52,6 +52,8 @@ public class MongoInput extends net.butfly.albacore.base.Namedly implements OddI
 		Exeter.of().join(queries.toArray(new Runnable[queries.size()]));
 		cursorCount = new AtomicInteger(cursors.size());
 		closing(this::closeMongo);
+		trace(DBObject.class).sizing(b -> (long) b.keySet().size()).detailing(() -> "[MongoDB stats field count, not bytes]");
+		open();
 	}
 
 	public MongoInput(String name, MongoConnection conn, Map<String, DBObject> tablesAndQueries) throws IOException {
@@ -117,7 +119,7 @@ public class MongoInput extends net.butfly.albacore.base.Namedly implements OddI
 					if (!c.v2().hasNext()) c = closeCursor(c);
 					else {
 						@SuppressWarnings("rawtypes")
-						Map m = c.v2().next().toMap();
+						Map m = stats(c.v2().next()).toMap();
 						try {
 							return new Message(c.v1(), (String) null, m);
 						} catch (NullPointerException e) {
