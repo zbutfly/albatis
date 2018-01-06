@@ -31,7 +31,7 @@ import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.hadoop.hbase.client.Increment;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.Row;
+import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import net.butfly.albacore.paral.Sdream;
@@ -151,7 +151,7 @@ public final class Hbases extends Utils {
 			return new Message(table, row, map);
 		}
 
-		static Row put(Message m) {
+		static Mutation put(Message m) {
 			if (m.isEmpty()) return null;
 			String row = m.key();
 			if (row == null || row.isEmpty()) return null;

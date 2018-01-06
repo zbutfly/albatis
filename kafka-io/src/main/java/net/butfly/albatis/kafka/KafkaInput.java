@@ -97,6 +97,7 @@ public class KafkaInput extends net.butfly.albacore.base.Namedly implements OddI
 				l.add(ks.iterator());
 		consumers = new LinkedBlockingQueue<>(l);
 		closing(this::closeKafka);
+		trace(MessageAndMetadata.class).sizing(km -> (long) km.rawMessage$1().payloadSize());
 		open();
 	}
 
@@ -107,7 +108,7 @@ public class KafkaInput extends net.butfly.albacore.base.Namedly implements OddI
 		while (opened())
 			if (null != (it = consumers.poll())) {
 				try {
-					if (null != (m = it.next())) return Kafkas.message(m, decoder);
+					if (null != (m = it.next())) return Kafkas.message(stats(m), decoder);
 				} catch (ConsumerTimeoutException ex) {
 					return null;
 				} catch (NoSuchElementException ex) {

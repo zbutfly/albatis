@@ -58,6 +58,7 @@ public final class HbaseInput extends Namedly implements Input<Message> {
 		scaner = htable.getScanner(scan);
 		scanerLock = new ReentrantReadWriteLock();
 		ended = new AtomicBoolean(false);
+		trace(Result.class).sizing(Result::getTotalSizeOfCells);
 		open();
 	}
 
@@ -93,7 +94,9 @@ public final class HbaseInput extends Namedly implements Input<Message> {
 			}
 			if (null != rs) {
 				ended.set(rs.length == 0);
-				if (rs.length > 0) using.accept(Sdream.of(rs).map(r -> Hbases.Results.result(htname, r)));
+				if (rs.length > 0) {
+					using.accept(stats(Sdream.of(rs)).map(r -> Hbases.Results.result(htname, r)));
+				}
 			}
 		}
 	}

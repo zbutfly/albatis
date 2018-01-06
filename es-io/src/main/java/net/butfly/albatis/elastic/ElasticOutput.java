@@ -31,6 +31,7 @@ public class ElasticOutput extends SafeOutput<Message> {
 	public ElasticOutput(String name, ElasticConnection conn) throws IOException {
 		super(name);
 		this.conn = conn;
+		trace(BulkRequest.class).sizing(r -> r.estimatedSizeInBytes()).stepping(r -> (long) r.requests().size());
 		open();
 	}
 
@@ -65,7 +66,7 @@ public class ElasticOutput extends SafeOutput<Message> {
 				List<DocWriteRequest> reqs = of(remains.values()).map(Elastics::forWrite).list();
 				if (reqs.isEmpty()) return;
 				try {
-					process(remains, conn.client().bulk(new BulkRequest().add(reqs)).get());
+					process(remains, conn.client().bulk(stats(new BulkRequest().add(reqs))).get());
 				} catch (ExecutionException ex) {
 					logger().error("Elastic client fail: [" + ex.getCause() + "]");
 				} catch (Exception ex) {
