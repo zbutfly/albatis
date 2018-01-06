@@ -33,7 +33,7 @@ public final class HbaseOutput extends SafeKeyOutput<String, Message> {
 		super(name);
 		this.hconn = hconn;
 		trace(Mutation.class).sizing(Mutation::heapSize)//
-				.step(Long.parseLong(Configs.gets(HbaseProps.OUTPUT_STATS_STEP), -1));
+				.step(Long.parseLong(Configs.gets(HbaseProps.OUTPUT_STATS_STEP, "-1")));
 		open();
 	}
 

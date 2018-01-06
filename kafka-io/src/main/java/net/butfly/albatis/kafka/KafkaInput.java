@@ -99,7 +99,7 @@ public class KafkaInput extends net.butfly.albacore.base.Namedly implements OddI
 		consumers = new LinkedBlockingQueue<>(l);
 		closing(this::closeKafka);
 		trace(MessageAndMetadata.class).sizing(km -> (long) km.rawMessage$1().payloadSize())//
-				.step(Long.parseLong(Configs.gets(KafkaProps.INPUT_STATS_STEP), -1));
+				.step(Long.parseLong(Configs.gets(KafkaProps.INPUT_STATS_STEP, "-1")));
 		open();
 	}
 

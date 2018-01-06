@@ -33,7 +33,7 @@ public class ElasticOutput extends SafeOutput<Message> {
 		super(name);
 		this.conn = conn;
 		trace(BulkRequest.class).sizing(r -> r.estimatedSizeInBytes()).stepping(r -> (long) r.requests().size())//
-				.step(Long.parseLong(Configs.gets(ElasticProps.OUTPUT_STATS_STEP), -1));
+				.step(Long.parseLong(Configs.gets(ElasticProps.OUTPUT_STATS_STEP, "-1")));
 		open();
 	}
 
