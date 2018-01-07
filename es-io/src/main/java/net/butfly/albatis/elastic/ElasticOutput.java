@@ -31,8 +31,7 @@ public class ElasticOutput extends SafeOutput<Message> {
 	public ElasticOutput(String name, ElasticConnection conn) throws IOException {
 		super(name);
 		this.conn = conn;
-		trace(BulkRequest.class).sizing(r -> r.estimatedSizeInBytes()).stepping(r -> (long) r.requests().size())//
-				.step(statsStep());
+		trace(BulkRequest.class).sizing(r -> r.estimatedSizeInBytes()).stepping(r -> (long) r.requests().size()).step(statsStep());
 		open();
 	}
 

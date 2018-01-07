@@ -31,8 +31,7 @@ public final class HbaseOutput extends SafeKeyOutput<String, Message> {
 	public HbaseOutput(String name, HbaseConnection hconn) throws IOException {
 		super(name);
 		this.hconn = hconn;
-		trace(Mutation.class).sizing(Mutation::heapSize)//
-				.step(statsStep());
+		trace(Mutation.class).sizing(Mutation::heapSize).step(statsStep());
 		open();
 	}
 

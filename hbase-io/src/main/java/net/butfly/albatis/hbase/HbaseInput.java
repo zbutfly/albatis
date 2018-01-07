@@ -58,8 +58,7 @@ public final class HbaseInput extends Namedly implements Input<Message> {
 		scaner = htable.getScanner(scan);
 		scanerLock = new ReentrantReadWriteLock();
 		ended = new AtomicBoolean(false);
-		trace(Result.class).sizing(Result::getTotalSizeOfCells)//
-				.step(statsStep());
+		trace(Result.class).sizing(Result::getTotalSizeOfCells).step(statsStep());
 		open();
 	}
 
