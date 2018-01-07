@@ -6,7 +6,6 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 import net.butfly.albacore.io.Enqueuer;
-import net.butfly.albacore.io.IO;
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albatis.io.ext.FailoverOutput;
 

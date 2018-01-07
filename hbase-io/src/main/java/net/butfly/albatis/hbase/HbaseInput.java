@@ -19,7 +19,6 @@ import org.apache.hadoop.hbase.util.Bytes;
 
 import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.paral.Sdream;
-import net.butfly.albacore.utils.Configs;
 import net.butfly.albatis.io.Input;
 import net.butfly.albatis.io.Message;
 
@@ -46,7 +45,7 @@ public class HbaseInput extends Namedly implements Input<Message> {
 		scanerLock = new ReentrantReadWriteLock();
 		ended = new AtomicBoolean(false);
 		trace(Result.class).sizing(Result::getTotalSizeOfCells)//
-				.step(Long.parseLong(Configs.gets(HbaseProps.INPUT_STATS_STEP, "-1")));
+				.step(statsStep());
 		open();
 	}
 

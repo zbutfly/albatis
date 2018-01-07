@@ -21,7 +21,6 @@ import kafka.message.MessageAndMetadata;
 import net.butfly.albacore.exception.ConfigException;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.paral.Task;
-import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.Texts;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
@@ -71,9 +70,11 @@ public class KafkaInput extends net.butfly.albacore.base.Namedly implements OddI
 				logger().debug("[" + name() + "] lag of " + config.getGroupId() + "@" + t + ": " + zk.getLag(t, config.getGroupId()));
 		}
 		for (String t : topicParts.keySet()) {
-			if (kp <= 0) allTopics.put(t, 1);
-			else if (kp >= topicParts.get(t).length) allTopics.put(t, topicParts.get(t).length);
-			else allTopics.put(t, (int) Math.ceil(topicParts.get(t).length * 1.0 / kp));
+			if (kp <= 0) kp = 1;
+			else if (kp >= topicParts.get(t).length) kp = topicParts.get(t).length;
+			else kp = (int) Math.ceil(topicParts.get(t).length * 1.0 / kp);
+			logger().debug("[" + name() + "] topic [" + t + "] consumers creating as parallinism [" + kp + "]");
+			allTopics.put(t, kp);
 		}
 		logger().trace("[" + name() + "] parallelism of topics: " + allTopics.toString() + ".");
 		// connect
@@ -99,7 +100,7 @@ public class KafkaInput extends net.butfly.albacore.base.Namedly implements OddI
 		consumers = new LinkedBlockingQueue<>(l);
 		closing(this::closeKafka);
 		trace(MessageAndMetadata.class).sizing(km -> (long) km.rawMessage$1().payloadSize())//
-				.step(Long.parseLong(Configs.gets(KafkaProps.INPUT_STATS_STEP, "-1")));
+				.step(statsStep());
 		open();
 	}
 
