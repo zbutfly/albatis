@@ -13,6 +13,7 @@ import net.butfly.albacore.paral.Task;
 import net.butfly.albacore.utils.Configs;
 
 abstract class SafeOutputBase<V> extends Namedly implements Output<V> {
+	private static final String PARAL_LIMIT = "paral.limit";
 	protected final Supplier<Boolean> opExceeded;
 	protected final AtomicInteger opsPending;
 
@@ -44,7 +45,12 @@ abstract class SafeOutputBase<V> extends Namedly implements Output<V> {
 		return super.toString() + "[Pending Ops: " + opsPending.get() + "]";
 	}
 
-	int detectMaxConcurrentOps() {
+	private int detectMaxConcurrentOps() {
+		return propI(PARAL_LIMIT, 0);
+	}
+
+	@Deprecated
+	protected int detectOldMax() {
 		Class<?> oc = (this instanceof Wrapper ? (Output<?>) ((Wrapper<?>) this).bases() : this).getClass();
 		int cop = -1;
 		Field f;

@@ -15,7 +15,6 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Table;
 
 import net.butfly.albacore.paral.Sdream;
-import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.Exceptions;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
@@ -33,7 +32,7 @@ public final class HbaseOutput extends SafeKeyOutput<String, Message> {
 		super(name);
 		this.hconn = hconn;
 		trace(Mutation.class).sizing(Mutation::heapSize)//
-				.step(Long.parseLong(Configs.gets(HbaseProps.OUTPUT_STATS_STEP, "-1")));
+				.step(statsStep());
 		open();
 	}
 
