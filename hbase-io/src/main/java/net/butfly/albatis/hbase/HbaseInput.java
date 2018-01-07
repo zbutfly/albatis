@@ -205,11 +205,11 @@ public class HbaseInput extends Namedly implements Input<Message> {
 	}
 
 	@Override
-	public void dequeue(Consumer<Sdream<Message>> using, int batchSize) {
+	public void dequeue(Consumer<Sdream<Message>> using) {
 		if (!ended.get() && scanerLock.writeLock().tryLock()) {
 			Result[] rs = null;
 			try {
-				rs = scaner.next(batchSize);
+				rs = scaner.next(batchSize());
 			} catch (Exception ex) {
 				logger().warn("Hbase failed and continue: " + ex.toString());
 			} finally {

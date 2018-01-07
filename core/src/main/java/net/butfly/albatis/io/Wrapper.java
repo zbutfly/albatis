@@ -15,8 +15,8 @@ public interface Wrapper<W extends IO> extends IO {
 	static <T, T1> WrapInput<T, T1> wrap(Input<T1> base, String suffix, Dequeuer<T> d) {
 		return new WrapInput<T, T1>(base, suffix) {
 			@Override
-			public void dequeue(Consumer<Sdream<T>> using, int batchSize) {
-				d.dequeue(using, batchSize);
+			public void dequeue(Consumer<Sdream<T>> using) {
+				d.dequeue(using);
 			}
 		};
 	}
@@ -54,7 +54,7 @@ public interface Wrapper<W extends IO> extends IO {
 		}
 
 		@Override
-		public abstract void dequeue(Consumer<Sdream<V>> using, int batchSize);
+		public abstract void dequeue(Consumer<Sdream<V>> using);
 
 		@Override
 		public long capacity() {
@@ -127,7 +127,6 @@ public interface Wrapper<W extends IO> extends IO {
 				o = ((WrapOutput<?, ?>) o).base;
 			return o;
 		}
-
 
 		@Override
 		public abstract void enqueue(Sdream<V> items);

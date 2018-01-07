@@ -41,6 +41,7 @@ public class MongoInput extends net.butfly.albacore.base.Namedly implements OddI
 				try {
 					DBCursor c = conn.cursor(t).batchSize(conn.getBatchSize()).addOption(Bytes.QUERYOPTION_NOTIMEOUT);
 					if (c.hasNext()) {
+						c.batchSize(batchSize());
 						cursors.add(new Pair<>(t, c));
 						if (logger.isDebugEnabled()) logger.info("MongoDB query [" + t + "] successed, count: [" + c.count() + "].");
 						else logger.info("MongoDB query [" + t + "] successed.");
@@ -74,6 +75,7 @@ public class MongoInput extends net.butfly.albacore.base.Namedly implements OddI
 					DBCursor c = conn.cursor(e.getKey(), e.getValue()).batchSize(conn.getBatchSize()).addOption(
 							Bytes.QUERYOPTION_NOTIMEOUT);
 					if (c.hasNext()) {
+						c.batchSize(batchSize());
 						cursors.add(new Pair<>(e.getKey(), c));
 						logger.info("MongoDB query [" + e.getKey() + "] successed, count: [" + c.count() + "].");
 					} else logger.warn("MongoDB query [" + e.getKey() + "] finished but empty.");
@@ -140,9 +142,6 @@ public class MongoInput extends net.butfly.albacore.base.Namedly implements OddI
 				} finally {
 					if (null != c && !cursors.offer(c)) logger.error("MongoDB cursor [" + c.v1() + "] lost.");
 				}
-		return null;
-	}
-
 		return null;
 	}
 }

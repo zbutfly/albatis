@@ -10,8 +10,8 @@ public interface OddInput<V> extends Input<V> {
 	V dequeue();
 
 	@Override
-	public default void dequeue(Consumer<Sdream<V>> using, int batchSize) {
-		using.accept(Sdream.of(new SupSpliterator<>(this, () -> empty() || !opened(), batchSize)));
+	public default void dequeue(Consumer<Sdream<V>> using) {
+		using.accept(Sdream.of(new SupSpliterator<>(this, () -> empty() || !opened(), batchSize())));
 	}
 
 	class SupSpliterator<V> implements Spliterator<V> {

@@ -37,7 +37,7 @@ public class MongoIOTest {
 						in.dequeue(s -> size.addAndGet(s.map(m -> {
 							count.incrementAndGet();
 							return m.toString().length();
-						}).reduce((i1, i2) -> i1 + i2)), 1000);
+						}).reduce((i1, i2) -> i1 + i2)));
 						long curr = new Date().getTime();
 						total.addAndGet(size.get() / 1024.0 / 1024);
 						System.out.println(df.format(new Date()) + ii //

@@ -14,8 +14,6 @@ import net.butfly.albatis.io.ext.DryOutput;
 import net.butfly.albatis.io.ext.FanOutput;
 
 public interface Pump<V> extends Openable {
-	Pump<V> batch(int batchSize);
-
 	@Override
 	default void open() {
 		Openable.super.open();

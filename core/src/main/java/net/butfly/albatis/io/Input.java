@@ -15,7 +15,7 @@ import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albatis.io.ext.PrefetchInput;
 
 public interface Input<V> extends IO, Dequeuer<V> {
-	static Input<?> NULL = (using, batchSize) -> {};
+	static Input<?> NULL = using -> {};
 
 	@Override
 	default long size() {
@@ -28,35 +28,35 @@ public interface Input<V> extends IO, Dequeuer<V> {
 	}
 
 	default <V1> Input<V1> then(Function<V, V1> conv) {
-		return Wrapper.wrap(this, "Then", (using, batchSize) -> dequeue(s -> using.accept(s.map(conv)), batchSize));
+		return Wrapper.wrap(this, "Then", using -> dequeue(s -> using.accept(s.map(conv))));
 	}
 
 	default <V1> Input<V1> thens(Function<Sdream<V>, Sdream<V1>> conv) {
-		return Wrapper.wrap(this, "Thens", (using, batchSize) -> dequeue(s -> using.accept(conv.apply(s)), batchSize));
+		return Wrapper.wrap(this, "Thens", using -> dequeue(s -> using.accept(conv.apply(s))));
 	}
 
 	default <V1> Input<V1> thens(Function<Sdream<V>, Sdream<V1>> conv, int parallelism) {
-		return Wrapper.wrap(this, "Thens", (using, batchSize) -> //
-		dequeue(s -> s.partition(v -> using.accept(conv.apply(v)), parallelism), batchSize));
+		return Wrapper.wrap(this, "Thens", using -> //
+		dequeue(s -> s.partition(v -> using.accept(conv.apply(v)), parallelism)));
 	}
 
 	default <V1> Input<V1> thenFlat(Function<V, Sdream<V1>> conv) {
-		return Wrapper.wrap(this, "Thens", (Dequeuer<V1>) (using, batchSize) -> //
-		dequeue(s -> using.accept(s.mapFlat(conv)), batchSize));
+		return Wrapper.wrap(this, "Thens", (Dequeuer<V1>) using -> //
+		dequeue(s -> using.accept(s.mapFlat(conv))));
 	}
 
 	// more extends
-	default PrefetchInput<V> prefetch(Queue<V> pool, int batchSize) {
-		return new PrefetchInput<V>(this, pool, batchSize);
+	default PrefetchInput<V> prefetch(Queue<V> pool) {
+		return new PrefetchInput<V>(this, pool);
 	}
 
 	// constructor
-	public static <T> Input<T> of(Collection<? extends T> collection) {
+	public static <T> Input<T> of(Collection<? extends T> collection, int batchSize) {
 		return new Input<T>() {
 			private final BlockingQueue<T> undly = new LinkedBlockingQueue<>(collection);
 
 			@Override
-			public void dequeue(final Consumer<Sdream<T>> using, final int batchSize) {
+			public void dequeue(Consumer<Sdream<T>> using) {
 				final List<T> l = Colls.list();
 				undly.drainTo(l, batchSize);
 				if (!l.isEmpty()) using.accept(Sdream.of(l));
@@ -64,8 +64,8 @@ public interface Input<V> extends IO, Dequeuer<V> {
 		};
 	}
 
-	public static <T> Input<T> of(Supplier<? extends T> next, Supplier<Boolean> ending) {
-		return (using, batchSize) -> {
+	public static <T> Input<T> of(Supplier<? extends T> next, Supplier<Boolean> ending, int batchSize) {
+		return using -> {
 			final List<T> l = Colls.list();
 			T t;
 			while (!ending.get() && null != (t = next.get()) && l.size() < batchSize)
