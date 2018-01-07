@@ -53,8 +53,7 @@ public class MongoInput extends net.butfly.albacore.base.Namedly implements OddI
 		Exeter.of().join(queries.toArray(new Runnable[queries.size()]));
 		cursorCount = new AtomicInteger(cursors.size());
 		closing(this::closeMongo);
-		trace(DBObject.class).sizing(b -> (long) b.keySet().size()).detailing(() -> "[MongoDB stats field count, not bytes]")//
-				.step(statsStep());
+		trace(DBObject.class).sizing(b -> (long) b.keySet().size()).detailing(() -> "[MongoDB stats field count, not bytes]").step(statsStep());
 		open();
 	}
 
