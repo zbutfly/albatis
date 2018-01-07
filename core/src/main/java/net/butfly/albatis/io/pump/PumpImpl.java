@@ -5,7 +5,6 @@ import java.util.Arrays;
 import java.util.List;
 
 import com.google.common.base.Supplier;
-import com.hzcominfo.albatis.Albatis;
 
 import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.io.Openable;
@@ -20,7 +19,6 @@ abstract class PumpImpl<V, P extends PumpImpl<V, P>> extends Namedly implements 
 
 	protected final String name;
 	private final int parallelism;
-	protected int batchSize;
 
 	private final List<OpenableThread> tasks = new ArrayList<>();
 	protected final List<AutoCloseable> dependencies;
@@ -32,14 +30,7 @@ abstract class PumpImpl<V, P extends PumpImpl<V, P>> extends Namedly implements 
 		else if (parallelism == 0) this.parallelism = 16;
 		else this.parallelism = parallelism;
 		dependencies = new ArrayList<>();
-		batchSize = Integer.parseInt(System.getProperty(Albatis.PROP_PUMP_BATCH_SIZE, "1000"));
 		logger().info("Pump [" + name + "] created with parallelism: " + parallelism);
-	}
-
-	@Override
-	public Pump<V> batch(int batchSize) {
-		this.batchSize = batchSize;
-		return this;
 	}
 
 	private void closeDeps() {

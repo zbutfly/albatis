@@ -17,7 +17,7 @@ import net.butfly.albacore.serder.BsonSerder;
 public class KafkaTest {
 	public static void main(String[] args) throws ConfigException, IOException {
 		if (args.length != 2) throw new RuntimeException("KafkaTest <uri> <batchSize> , topics in url");
-		int batchSize = Integer.parseInt(args[1]);
+		// int batchSize = Integer.parseInt(args[1]);
 
 		Map<String, Integer> counts = new HashMap<>();
 		NumberFormat nf = new DecimalFormat("0.00");
@@ -33,7 +33,7 @@ public class KafkaTest {
 					count.incrementAndGet();
 					counts.compute(m.table(), (k, v) -> v + 1);
 					return m.toBytes().length;
-				}).reduce((i1, i2) -> i1 + i2)), batchSize);
+				}).reduce((i1, i2) -> i1 + i2)));
 				long curr = new Date().getTime();
 				total += (size.get() / 1024.0 / 1024);
 				System.out.println(df.format(new Date()) + "<Count: " + count.get() + ">: <" + nf.format((curr - now) / 1000.0) + " secs>, "//

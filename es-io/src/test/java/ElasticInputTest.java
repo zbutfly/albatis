@@ -15,10 +15,10 @@ public class ElasticInputTest {
 	public void ioInputTest() throws IOException {
 		String uri = "elasticsearch://@10.118.159.45:39300/scattered_data";
 		try (ElasticConnection c = new ElasticConnection(uri); ElasticInput elasticInput = new ElasticInput("", c);) {
-			elasticInput.dequeue(ElasticInputTest::t, 1);
-			elasticInput.dequeue(ElasticInputTest::t, 1);
-			elasticInput.dequeue(ElasticInputTest::t, 1);
-			elasticInput.dequeue(ElasticInputTest::t, 1);
+			elasticInput.dequeue(ElasticInputTest::t);
+			elasticInput.dequeue(ElasticInputTest::t);
+			elasticInput.dequeue(ElasticInputTest::t);
+			elasticInput.dequeue(ElasticInputTest::t);
 		}
 	}
 

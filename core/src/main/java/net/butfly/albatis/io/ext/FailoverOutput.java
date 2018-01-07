@@ -20,14 +20,14 @@ public class FailoverOutput<M> extends Wrapper.WrapOutput<M, M> {
 	protected final Queue<M> pool;
 	protected final OpenableThread failovering;
 
-	public FailoverOutput(Output<M> output, Queue<M> failover, int batchSize) {
+	public FailoverOutput(Output<M> output, Queue<M> failover) {
 		super(output, "Failover");
 		this.pool = failover;
 		failovering = new OpenableThread(() -> {
 			while (output.opened() && opened()) {
 				while (failover.empty())
 					if (!output.opened() || !opened() || !Task.waitSleep()) break;
-				failover.dequeue(output::enqueue, batchSize);
+				failover.dequeue(output::enqueue);
 			}
 			logger().info("Failovering stopped.");
 		}, name() + "Failovering");

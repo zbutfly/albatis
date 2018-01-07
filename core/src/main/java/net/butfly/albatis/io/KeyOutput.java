@@ -14,8 +14,8 @@ public interface KeyOutput<K, V> extends Output<V> {
 	}
 
 	@Override
-	default FailoverKeyOutput<K, V> failover(Queue<V> pool, int batchSize) {
-		return new FailoverKeyOutput<K, V>(this, pool, batchSize);
+	default FailoverKeyOutput<K, V> failover(Queue<V> pool) {
+		return new FailoverKeyOutput<K, V>(this, pool);
 	}
 
 	@Override
@@ -43,8 +43,8 @@ public interface KeyOutput<K, V> extends Output<V> {
 
 	@SuppressWarnings("unchecked")
 	class FailoverKeyOutput<K, V> extends FailoverOutput<V> implements KeyOutput<K, V> {
-		public FailoverKeyOutput(KeyOutput<K, V> output, Queue<V> failover, int batchSize) {
-			super(output, failover, batchSize);
+		public FailoverKeyOutput(KeyOutput<K, V> output, Queue<V> failover) {
+			super(output, failover);
 		}
 
 		@Override

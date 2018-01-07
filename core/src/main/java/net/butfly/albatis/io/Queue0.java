@@ -45,8 +45,8 @@ public interface Queue0<I, O> extends Input<O>, Output<I> {
 	default <O1> Queue0<I, O1> then(Function<O, O1> conv) {
 		Queue0<I, O1> i = new Queue0<I, O1>() {
 			@Override
-			public void dequeue(Consumer<Sdream<O1>> using, int batchSize) {
-				Queue0.this.dequeue(s -> using.accept(s.map(conv)), batchSize);
+			public void dequeue(Consumer<Sdream<O1>> using) {
+				Queue0.this.dequeue(s -> using.accept(s.map(conv)));
 			}
 
 			@Override
@@ -77,8 +77,8 @@ public interface Queue0<I, O> extends Input<O>, Output<I> {
 	default <O1> Queue0<I, O1> thens(Function<Sdream<O>, Sdream<O1>> conv, int parallelism) {
 		Queue0<I, O1> i = new Queue0<I, O1>() {
 			@Override
-			public void dequeue(Consumer<Sdream<O1>> using, int batchSize) {
-				Queue0.this.dequeue(s -> s.partition(s1 -> using.accept(conv.apply(s1)), parallelism), batchSize);
+			public void dequeue(Consumer<Sdream<O1>> using) {
+				Queue0.this.dequeue(s -> s.partition(s1 -> using.accept(conv.apply(s1)), parallelism));
 			}
 
 			@Override
@@ -109,8 +109,8 @@ public interface Queue0<I, O> extends Input<O>, Output<I> {
 	default <I0> Queue0<I0, O> prior(Function<I0, I> conv) {
 		Queue0<I0, O> o = new Queue0<I0, O>() {
 			@Override
-			public void dequeue(Consumer<Sdream<O>> using, int batchSize) {
-				Queue0.this.dequeue(using, batchSize);
+			public void dequeue(Consumer<Sdream<O>> using) {
+				Queue0.this.dequeue(using);
 			}
 
 			@Override
@@ -141,8 +141,8 @@ public interface Queue0<I, O> extends Input<O>, Output<I> {
 	default <I0> Queue0<I0, O> priors(Function<Sdream<I0>, Sdream<I>> conv, int parallelism) {
 		Queue0<I0, O> o = new Queue0<I0, O>() {
 			@Override
-			public void dequeue(Consumer<Sdream<O>> using, int batchSize) {
-				Queue0.this.dequeue(using, batchSize);
+			public void dequeue(Consumer<Sdream<O>> using) {
+				Queue0.this.dequeue(using);
 			}
 
 			@Override

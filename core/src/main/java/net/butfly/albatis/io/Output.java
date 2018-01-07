@@ -7,6 +7,7 @@ import java.util.function.Function;
 
 import net.butfly.albacore.io.Enqueuer;
 import net.butfly.albacore.paral.Sdream;
+import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albatis.io.ext.FailoverOutput;
 
 public interface Output<V> extends IO, Consumer<Sdream<V>>, Enqueuer<V> {
@@ -37,16 +38,19 @@ public interface Output<V> extends IO, Consumer<Sdream<V>>, Enqueuer<V> {
 	default void commit() {}
 
 	// more extends
-//	default Output<V> safe() {
-//		return new SafeOutputBase<>(this, detectMaxConcurrentOps(this, logger()));
-//	}
+	// default Output<V> safe() {
+	// return new SafeOutputBase<>(this, detectMaxConcurrentOps(this, logger()));
+	// }
 
-	default FailoverOutput<V> failover(Queue<V> pool, int batchSize) {
-		return new FailoverOutput<V>(this, pool, batchSize);
+	default FailoverOutput<V> failover(Queue<V> pool) {
+		return new FailoverOutput<V>(this, pool);
 	}
 
+	@Deprecated
 	default Output<V> batch(int batchSize) {
-		return Wrapper.wrap(this, "Batch", s -> s.batch(this::enqueue, batchSize));
+		Props.PROPS.computeIfAbsent(this, io -> Maps.of()).put(Props.BATCH_SIZE, batchSize);
+		return this;
+		// return Wrapper.wrap(this, "Batch", s -> s.batch(this::enqueue, batchSize));
 	}
 
 	default <K> KeyOutput<K, V> partitial(Function<V, K> partitier, BiConsumer<K, Sdream<V>> enqueuing) {

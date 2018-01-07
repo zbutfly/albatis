@@ -18,10 +18,10 @@ public interface OddInput1<V> extends Input<V> {
 	V dequeue();
 
 	@Override
-	public default void dequeue(Consumer<Sdream<V>> using, int batchSize) {
+	public default void dequeue(Consumer<Sdream<V>> using) {
 		List<V> batch = Colls.list();
 		try {
-			while (!empty() && opened() && batch.size() < batchSize) {
+			while (!empty() && opened() && batch.size() < batchSize()) {
 				Future<V> f = Exeter.of().submit((Callable<V>) this::dequeue);
 				V v = null;
 				try {
