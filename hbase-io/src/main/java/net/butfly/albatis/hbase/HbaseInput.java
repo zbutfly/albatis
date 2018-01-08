@@ -64,7 +64,7 @@ public final class HbaseInput extends Namedly implements Input<Message> {
 
 	@Override
 	public Statistic<Result> trace() {
-		return new Statistic<Result>(Result.class).sizing(Result::getTotalSizeOfCells);
+		return new Statistic<Result>(this).sizing(Result::getTotalSizeOfCells);
 	}
 
 	@Override

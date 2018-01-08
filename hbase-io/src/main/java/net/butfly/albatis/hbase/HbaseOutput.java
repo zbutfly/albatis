@@ -37,8 +37,7 @@ public final class HbaseOutput extends SafeKeyOutput<String, Message> {
 
 	@Override
 	public Statistic<Mutation> trace() {
-		return new Statistic<Mutation>(Mutation.class)//
-				.sizing(Mutation::heapSize).detailing(() -> "Pengding ops: " + opsPending.get());
+		return new Statistic<Mutation>(this).sizing(Mutation::heapSize).detailing(() -> "Pengding ops: " + opsPending.get());
 	}
 
 	@Override
