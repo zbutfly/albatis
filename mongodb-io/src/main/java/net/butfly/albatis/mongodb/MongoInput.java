@@ -59,8 +59,8 @@ public class MongoInput extends net.butfly.albacore.base.Namedly implements OddI
 
 	@Override
 	public Statistic<DBObject> trace() {
-		return new Statistic<DBObject>(DBObject.class)//
-				.sizing(b -> (long) b.keySet().size()).detailing(() -> "[MongoDB stats field count, not bytes]");
+		return new Statistic<DBObject>(this).sizing(b -> (long) b.keySet().size()) //
+				.detailing(() -> "[Stats Field Count, not Bytes]");
 	}
 
 	public MongoInput(String name, MongoConnection conn, Map<String, DBObject> tablesAndQueries) throws IOException {

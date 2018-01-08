@@ -37,8 +37,7 @@ public class ElasticOutput extends SafeOutput<Message> {
 
 	@Override
 	public Statistic<BulkRequest> trace() {
-		return new Statistic<BulkRequest>(BulkRequest.class)//
-				.sizing(BulkRequest::estimatedSizeInBytes).stepping(r -> (long) r.requests().size());
+		return new Statistic<BulkRequest>(this).sizing(BulkRequest::estimatedSizeInBytes).stepping(r -> (long) r.requests().size());
 	}
 
 	@Override
