@@ -25,6 +25,7 @@ import net.butfly.albacore.paral.Task;
 import net.butfly.albacore.utils.Texts;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
+import net.butfly.albacore.utils.logger.Statistic;
 import net.butfly.albatis.io.Message;
 import net.butfly.albatis.io.OddInput;
 import net.butfly.albatis.kafka.config.KafkaInputConfig;
@@ -100,9 +101,14 @@ public class KafkaInput extends net.butfly.albacore.base.Namedly implements OddI
 				l.add(ks.iterator());
 		consumers = new LinkedBlockingQueue<>(l);
 		closing(this::closeKafka);
-		trace(MessageAndMetadata.class).sizing(km -> (long) km.rawMessage$1().payloadSize())//
-				.step(statsStep()).detailing(Exeter.of()::toString);
 		open();
+	}
+
+	@SuppressWarnings("rawtypes")
+	@Override
+	public Statistic<MessageAndMetadata> trace() {
+		return new Statistic<MessageAndMetadata>(MessageAndMetadata.class)//
+				.sizing(km -> (long) km.rawMessage$1().payloadSize()).detailing(Exeter.of()::toString);
 	}
 
 	@Override

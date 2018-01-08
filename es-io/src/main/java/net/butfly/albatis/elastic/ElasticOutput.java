@@ -19,6 +19,7 @@ import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
+import net.butfly.albacore.utils.logger.Statistic;
 import net.butfly.albatis.io.Message;
 import net.butfly.albatis.io.SafeOutput;
 
@@ -31,8 +32,13 @@ public class ElasticOutput extends SafeOutput<Message> {
 	public ElasticOutput(String name, ElasticConnection conn) throws IOException {
 		super(name);
 		this.conn = conn;
-		trace(BulkRequest.class).sizing(r -> r.estimatedSizeInBytes()).stepping(r -> (long) r.requests().size()).step(statsStep());
 		open();
+	}
+
+	@Override
+	public Statistic<BulkRequest> trace() {
+		return new Statistic<BulkRequest>(BulkRequest.class)//
+				.sizing(BulkRequest::estimatedSizeInBytes).stepping(r -> (long) r.requests().size());
 	}
 
 	@Override

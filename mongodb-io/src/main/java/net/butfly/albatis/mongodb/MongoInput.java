@@ -18,6 +18,7 @@ import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
+import net.butfly.albacore.utils.logger.Statistic;
 import net.butfly.albatis.io.Message;
 import net.butfly.albatis.io.OddInput;
 
@@ -58,8 +59,13 @@ public class MongoInput extends net.butfly.albacore.base.Namedly implements OddI
 		Exeter.of().join(queries.toArray(new Runnable[queries.size()]));
 		cursorCount = new AtomicInteger(cursors.size());
 		closing(this::closeMongo);
-		trace(DBObject.class).sizing(b -> (long) b.keySet().size()).detailing(() -> "[MongoDB stats field count, not bytes]").step(statsStep());
 		open();
+	}
+
+	@Override
+	public Statistic<DBObject> trace() {
+		return new Statistic<DBObject>(DBObject.class)//
+				.sizing(b -> (long) b.keySet().size()).detailing(() -> "[MongoDB stats field count, not bytes]");
 	}
 
 	public MongoInput(String name, MongoConnection conn, Map<String, DBObject> tablesAndQueries) throws IOException {

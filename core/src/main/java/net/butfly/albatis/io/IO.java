@@ -8,6 +8,7 @@ import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.CaseFormat;
 import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.collection.Maps;
+import net.butfly.albacore.utils.logger.Statistic;
 import net.butfly.albacore.utils.logger.Statistical;
 
 public interface IO extends Sizable, Openable, Statistical {
@@ -34,13 +35,24 @@ public interface IO extends Sizable, Openable, Statistical {
 		}
 	}
 
-	default <E> Sdream<E> stats(Sdream<E> s) {
-		return s.peek(this::stats);
+	/**
+	 * default disable stats, if inherited and return a valid {@code Statistic}, enable statis on this io instnce.
+	 */
+	default Statistic<?> trace() {
+		return null;
 	}
 
-	default long statsStep() {
-		return Props.PROPS.computeIfAbsent(this, io -> Maps.of()).computeIfAbsent(Props.STATS_STEP, //
+	@Override
+	default void open() {
+		long step = Props.PROPS.computeIfAbsent(this, io -> Maps.of()).computeIfAbsent(Props.STATS_STEP, //
 				k -> Props.propL(this, k, -1)).longValue();
+		Statistic<?> s;
+		if (step > 0 && null != (s = trace())) statistic(s.step(step));
+		Openable.super.open();
+	}
+
+	default <E> Sdream<E> stats(Sdream<E> s) {
+		return s.peek(this::stats);
 	}
 
 	default int batchSize() {
