@@ -56,7 +56,7 @@ public interface IO extends Sizable, Openable, Statistical {
 	}
 
 	default int batchSize() {
-		return Props.PROPS.computeIfAbsent(this, io -> Maps.of()).computeIfAbsent(Props.STATS_STEP, //
-				k -> Props.propI(this, Props.BATCH_SIZE, 500)).intValue();
+		return Props.PROPS.computeIfAbsent(this, io -> Maps.of()).computeIfAbsent(Props.BATCH_SIZE, //
+				k -> Props.propI(this, k, 500)).intValue();
 	}
 }
