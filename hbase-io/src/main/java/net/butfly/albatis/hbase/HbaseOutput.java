@@ -21,9 +21,9 @@ import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Statistic;
 import net.butfly.albatis.io.Message;
 import net.butfly.albatis.io.Message.Op;
-import net.butfly.albatis.io.SafeKeyOutput;
+import net.butfly.albatis.io.SafeOutput;
 
-public final class HbaseOutput extends SafeKeyOutput<String, Message> {
+public final class HbaseOutput extends SafeOutput<Message> {
 	public static final @HbaseProps String MAX_CONCURRENT_OP_PROP_NAME = HbaseProps.OUTPUT_CONCURRENT_OPS;
 	public static final int MAX_CONCURRENT_OP_DEFAULT = Integer.MAX_VALUE;
 	public static final int SUGGEST_BATCH_SIZE = 200;
@@ -41,14 +41,31 @@ public final class HbaseOutput extends SafeKeyOutput<String, Message> {
 	}
 
 	@Override
-	protected void enqSafe(String table, Sdream<Message> msgs) {
+	protected void enqSafe(Sdream<Message> msgs) {
+		Map<String, List<Message>> map = Maps.of();
+		msgs.eachs(m -> {
+			map.compute(m.table(), (core, cores) -> {
+				if (null == m.key()) return cores;
+				if (null == cores) cores = Colls.list();
+				cores.add(m);
+				return cores;
+			});
+		});
+		try {
+			for (String table : map.keySet())
+				enq(table, map.get(table));
+		} finally {
+			opsPending.decrementAndGet();
+		}
+	}
+
+	protected void enq(String table, List<Message> msgs) {
 		List<Message> origins = Colls.list();
 		List<Mutation> puts = Colls.list();
-		incs(table, msgs.filter(m -> null != m.key()), origins, puts);
+		incs(table, msgs, origins, puts);
 
 		switch (puts.size()) {
 		case 0:
-			opsPending.decrementAndGet();
 			return;
 		case 1:
 			try {
@@ -62,16 +79,14 @@ public final class HbaseOutput extends SafeKeyOutput<String, Message> {
 				stats(req);
 			} catch (IOException e) {
 				failed(Sdream.of(origins));
-			} finally {
-				opsPending.decrementAndGet();
 			}
 			return;
 		default:
-			enqAsync(table, origins, puts);
+			enqs(table, origins, puts);
 		}
 	}
 
-	protected void enqAsync(String table, List<Message> origins, List<Mutation> enqs) {
+	protected void enqs(String table, List<Message> origins, List<Mutation> enqs) {
 		Object[] results = new Object[enqs.size()];
 		try {
 			hconn.table(table).batch(enqs, results);
@@ -89,30 +104,34 @@ public final class HbaseOutput extends SafeKeyOutput<String, Message> {
 			}
 			if (!failed.isEmpty()) failed(Sdream.of(failed));
 			if (succs > 0) succeeded(succs);
-			opsPending.decrementAndGet();
 			stats(enqs);
 			// logger().error("INFO: HbaseOutput batch [messages: " + origins.size() + ", actions: " + enqs.size() + "], failed " + failed
 			// .size() + ", success: " + succs + ", pending: " + opsPending.get() + ".");
 		}
 	}
 
-	private void incs(String table, Sdream<Message> values, List<Message> origins, List<Mutation> puts) {
+	private void incs(String table, List<Message> msgs, List<Message> origins, List<Mutation> puts) {
 		Map<String, List<Message>> incByKeys = Maps.of();
-		values.eachs(m -> {
-			if (m.op() == Op.INCREASE) {
+		for (Message m : msgs)
+			switch (m.op()) {
+			case Op.INCREASE:
 				incByKeys.compute(m.key(), (k, l) -> {
 					if (null == l) l = list();
 					l.add(m);
 					return l;
 				});
-			} else {
+				break;
+			case Op.DELETE:
+				logger().error("Message marked as delete but ignore: " + m.toString());
+				break;
+			default:
 				Mutation r = Hbases.Results.put(m);
 				if (null != r) {
 					origins.add(m);
 					puts.add(r);
 				}
 			}
-		});
+
 		for (Map.Entry<String, List<Message>> e : incByKeys.entrySet()) {
 			Message merge = new Message(table, e.getKey()).op(Op.INCREASE);
 			for (Message m : e.getValue())
@@ -132,10 +151,5 @@ public final class HbaseOutput extends SafeKeyOutput<String, Message> {
 
 	private long lvalue(Object o) {
 		return null != o && Number.class.isAssignableFrom(o.getClass()) ? ((Number) o).longValue() : 0;
-	}
-
-	@Override
-	public String partition(Message v) {
-		return v.table();
 	}
 }
