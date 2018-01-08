@@ -2,16 +2,18 @@ package net.butfly.albatis.solr;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.solr.client.solrj.SolrServerException;
 
-import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.paral.Sdream;
-import net.butfly.albatis.io.KeyOutput;
+import net.butfly.albacore.utils.collection.Colls;
+import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albatis.io.Message;
 import net.butfly.albatis.io.Message.Op;
+import net.butfly.albatis.io.SafeOutput;
 
-public final class SolrOutput extends Namedly implements KeyOutput<String, Message> {
+public final class SolrOutput extends SafeOutput<Message> {
 	public static final @SolrProps String MAX_CONCURRENT_OP_PROP_NAME = SolrProps.OUTPUT_CONCURRENT_OPS;
 	public static final int MAX_CONCURRENT_OP_DEFAULT = 100;
 	public static final int SUGGEST_BATCH_SIZE = 200;
@@ -32,7 +34,7 @@ public final class SolrOutput extends Namedly implements KeyOutput<String, Messa
 
 	@Override
 	public void close() {
-		KeyOutput.super.close();
+		super.close();
 		try {
 			for (String core : solr.getCores())
 				solr.client().commit(core, false, false);
@@ -47,32 +49,44 @@ public final class SolrOutput extends Namedly implements KeyOutput<String, Messa
 	}
 
 	@Override
-	public void enqueue(String core, Sdream<Message> msgs) {
-		msgs.nonNull().partition((del, s) -> {
-			List<Message> ms = s.list();
-			try {
-				if (del.booleanValue()) solr.client().deleteById(core, Sdream.of(ms).map(Message::key).list(), DEFAULT_AUTO_COMMIT_MS);
-				else solr.client().add(core, Sdream.of(ms).map(m -> Solrs.input(m, keyFieldName)).list(), DEFAULT_AUTO_COMMIT_MS);
-				succeeded(ms.size());
-			} catch (Exception ex) {
-				failed(Sdream.of(ms));
+	protected void enqSafe(Sdream<Message> msgs) {
+		Map<String, Map<Integer, List<Message>>> map = Maps.of();
+		msgs.eachs(m -> map.compute(m.table(), (core, cores) -> {
+			if (null == cores) cores = Maps.of();
+			cores.compute(m.op(), (op, ops) -> {
+				if (null == ops) ops = Colls.list();
+				ops.add(m);
+				return ops;
+			});
+			return cores;
+		}));
+		for (String core : map.keySet())
+			for (int op : map.get(core).keySet()) {
+				List<Message> ms = map.get(core).get(op);
+				try {
+					switch (op) {
+					case Op.DELETE:;
+						solr.client().deleteById(core, Sdream.of(map.get(core).get(op)).map(Message::key).list(), DEFAULT_AUTO_COMMIT_MS);
+						break;
+					default:
+						solr.client().add(core, Sdream.of(map.get(core).get(op)).map(m -> Solrs.input(m, keyFieldName)).list(),
+								DEFAULT_AUTO_COMMIT_MS);
+					}
+					succeeded(ms.size());
+				} catch (Exception ex) {
+					failed(Sdream.of(ms));
+				}
 			}
-		}, m -> Op.DELETE == m.op(), Integer.MAX_VALUE);
 	}
 
 	@Override
-	public void commit(String key) {
+	public void commit() {
 		try {
-			solr.client().commit(key, false, false, true);
+			solr.client().commit(false, false, true);
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
-	}
-
-	@Override
-	public String partition(Message v) {
-		return v.table();
 	}
 }

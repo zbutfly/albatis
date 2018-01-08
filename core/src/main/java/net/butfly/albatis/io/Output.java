@@ -1,7 +1,6 @@
 package net.butfly.albatis.io;
 
 import java.util.Collection;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -37,11 +36,6 @@ public interface Output<V> extends IO, Consumer<Sdream<V>>, Enqueuer<V> {
 
 	default void commit() {}
 
-	// more extends
-	// default Output<V> safe() {
-	// return new SafeOutputBase<>(this, detectMaxConcurrentOps(this, logger()));
-	// }
-
 	default FailoverOutput<V> failover(Queue<V> pool) {
 		return new FailoverOutput<V>(this, pool);
 	}
@@ -50,24 +44,8 @@ public interface Output<V> extends IO, Consumer<Sdream<V>>, Enqueuer<V> {
 	default Output<V> batch(int batchSize) {
 		Props.PROPS.computeIfAbsent(this, io -> Maps.of()).put(Props.BATCH_SIZE, batchSize);
 		return this;
-		// return Wrapper.wrap(this, "Batch", s -> s.batch(this::enqueue, batchSize));
 	}
 
-	default <K> KeyOutput<K, V> partitial(Function<V, K> partitier, BiConsumer<K, Sdream<V>> enqueuing) {
-		return new KeyOutput<K, V>() {
-			@Override
-			public K partition(V v) {
-				return partitier.apply(v);
-			}
-
-			@Override
-			public void enqueue(K key, Sdream<V> v) {
-				enqueuing.accept(key, v);
-			}
-		};
-	}
-
-	// constructor
 	static <T> Output<T> of(Collection<? super T> underly) {
 		return s -> s.each(underly::add);
 	}
