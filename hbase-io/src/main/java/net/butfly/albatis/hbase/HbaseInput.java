@@ -19,6 +19,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 
 import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.paral.Sdream;
+import net.butfly.albacore.utils.logger.Statistic;
 import net.butfly.albatis.io.Input;
 import net.butfly.albatis.io.Message;
 
@@ -44,14 +45,23 @@ public class HbaseInput extends Namedly implements Input<Message> {
 		scaner = htable.getScanner(scan);
 		scanerLock = new ReentrantReadWriteLock();
 		ended = new AtomicBoolean(false);
-		trace(Result.class).sizing(Result::getTotalSizeOfCells).step(statsStep());
 		open();
 	}
 
-	private void closeHbase() {
-		TableScaner s;
-		while (!scansMap.isEmpty())
-			if (null != (s = scans.poll())) s.close();
+	@Override
+	public Statistic<Result> trace() {
+		return new Statistic<Result>(Result.class).sizing(Result::getTotalSizeOfCells);
+	}
+
+	@Override
+	public void close() {
+		Input.super.close();
+		try {
+			if (null != scaner) scaner.close();
+		} catch (Exception e) {}
+		try {
+			htable.close();
+		} catch (Exception e) {}
 		try {
 			hconn.close();
 		} catch (Exception e) {}

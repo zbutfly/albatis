@@ -18,6 +18,7 @@ import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.Exceptions;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
+import net.butfly.albacore.utils.logger.Statistic;
 import net.butfly.albatis.io.Message;
 import net.butfly.albatis.io.Message.Op;
 import net.butfly.albatis.io.SafeKeyOutput;
@@ -31,8 +32,13 @@ public final class HbaseOutput extends SafeKeyOutput<String, Message> {
 	public HbaseOutput(String name, HbaseConnection hconn, Function<Map<String, Object>, byte[]> ser) throws IOException {
 		super(name);
 		this.hconn = hconn;
-		trace(Mutation.class).sizing(Mutation::heapSize).step(statsStep());
 		open();
+	}
+
+	@Override
+	public Statistic<Mutation> trace() {
+		return new Statistic<Mutation>(Mutation.class)//
+				.sizing(Mutation::heapSize).detailing(() -> "Pengding ops: " + opsPending.get());
 	}
 
 	@Override
@@ -41,12 +47,11 @@ public final class HbaseOutput extends SafeKeyOutput<String, Message> {
 		List<Mutation> puts = Colls.list();
 		incs(table, msgs.filter(m -> null != m.key()), origins, puts);
 
-		int batchSize = puts.size();
-		if (batchSize == 0) {
+		switch (puts.size()) {
+		case 0:
 			opsPending.decrementAndGet();
 			return;
-		}
-		if (batchSize == 1) {
+		case 1:
 			try {
 				Table t = hconn.table(origins.get(0).table());
 				Mutation req = puts.get(0);
@@ -61,7 +66,10 @@ public final class HbaseOutput extends SafeKeyOutput<String, Message> {
 			} finally {
 				opsPending.decrementAndGet();
 			}
-		} else enqAsync(table, origins, puts);
+			return;
+		default:
+			enqAsync(table, origins, puts);
+		}
 	}
 
 	protected void enqAsync(String table, List<Message> origins, List<Mutation> enqs) {
@@ -82,8 +90,8 @@ public final class HbaseOutput extends SafeKeyOutput<String, Message> {
 			}
 			if (!failed.isEmpty()) failed(Sdream.of(failed));
 			if (succs > 0) succeeded(succs);
-			stats(enqs);
 			opsPending.decrementAndGet();
+			stats(enqs);
 			// logger().error("INFO: HbaseOutput batch [messages: " + origins.size() + ", actions: " + enqs.size() + "], failed " + failed
 			// .size() + ", success: " + succs + ", pending: " + opsPending.get() + ".");
 		}
