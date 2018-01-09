@@ -55,13 +55,13 @@ public final class HbaseOutput extends SafeOutput<Message> {
 			for (String table : map.keySet()) {
 				List<Message> l = map.get(table);
 				if (l.isEmpty()) continue;
-				long now = System.currentTimeMillis();
-				try {
-					if (1 == l.size()) enq1(table, Hbases.Results.put(l.get(0)), l.get(0));
-					else enq(table, map.get(table));
-				} finally {
-					logger().error("[INFO]: write hbase [" + l.size() + "] spent " + (System.currentTimeMillis() - now) + " ms");
-				}
+				// long now = System.currentTimeMillis();
+				// try {
+				if (1 == l.size()) enq1(table, Hbases.Results.put(l.get(0)), l.get(0));
+				else enq(table, map.get(table));
+				// } finally {
+				// logger().error("[INFO]: write hbase [" + l.size() + "] spent " + (System.currentTimeMillis() - now) + " ms");
+				// }
 			}
 		} finally {
 			opsPending.decrementAndGet();
@@ -78,6 +78,8 @@ public final class HbaseOutput extends SafeOutput<Message> {
 			succeeded(1);
 		} catch (IOException e) {
 			failed(Sdream.of1(origin));
+		} finally {
+			stats(op);
 		}
 	}
 
