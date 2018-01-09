@@ -17,20 +17,19 @@ public interface IO extends Sizable, Openable, Statistical {
 		static final String STATS_STEP = "stats.step";
 		static Map<IO, Map<String, Number>> PROPS = Maps.of();
 
-		public static String prop(IO io, String suffix, String def) {
-			return Configs.gets("albatis." + CaseFormat.UPPER_CAMEL.to(CaseFormat.LOWER_DOT, //
-					io.getClass().getSimpleName()) + "." + suffix, def);
+		public static String prop(Class<?> io, String suffix, String def) {
+			return Configs.gets("albatis." + CaseFormat.UPPER_CAMEL.to(CaseFormat.LOWER_DOT, io.getSimpleName()) + "." + suffix, def);
 		}
 
-		public static long propL(IO io, String suffix, long def) {
+		public static long propL(Class<?> io, String suffix, long def) {
 			return Long.parseLong(prop(io, suffix, Long.toString(def)));
 		}
 
-		public static int propI(IO io, String suffix, int def) {
+		public static int propI(Class<?> io, String suffix, int def) {
 			return Integer.parseInt(prop(io, suffix, Integer.toString(def)));
 		}
 
-		public static boolean propB(IO io, String suffix, boolean def) {
+		public static boolean propB(Class<?> io, String suffix, boolean def) {
 			return Boolean.parseBoolean(prop(io, suffix, Boolean.toString(def)));
 		}
 	}
@@ -45,7 +44,7 @@ public interface IO extends Sizable, Openable, Statistical {
 	@Override
 	default void open() {
 		long step = Props.PROPS.computeIfAbsent(this, io -> Maps.of()).computeIfAbsent(Props.STATS_STEP, //
-				k -> Props.propL(this, k, -1)).longValue();
+				k -> Props.propL(getClass(), k, -1)).longValue();
 		Statistic<?> s;
 		if (step > 0 && null != (s = trace())) statistic(s.step(step));
 		Openable.super.open();
@@ -57,6 +56,6 @@ public interface IO extends Sizable, Openable, Statistical {
 
 	default int batchSize() {
 		return Props.PROPS.computeIfAbsent(this, io -> Maps.of()).computeIfAbsent(Props.BATCH_SIZE, //
-				k -> Props.propI(this, k, 500)).intValue();
+				k -> Props.propI(getClass(), k, 500)).intValue();
 	}
 }
