@@ -9,12 +9,14 @@ import net.butfly.albatis.io.OddQueue;
 public class JavaQueue<V> extends OddQueue<V> {
 	private BlockingQueue<V> impl;
 
+	@Deprecated
 	public JavaQueue(long capacity) {
 		super(capacity);
 		this.impl = new LinkedBlockingQueue<>((int) capacity);
 		open();
 	}
 
+	@Deprecated
 	public JavaQueue(BlockingQueue<V> impl, long capacity) {
 		super(capacity);
 		this.impl = impl;
@@ -34,8 +36,7 @@ public class JavaQueue<V> extends OddQueue<V> {
 	}
 
 	@Override
-	public
-	final boolean enqueue(V e) {
+	public final boolean enqueue(V e) {
 		if (null == e) return false;
 		do {} while (opened() && !impl.offer(e) && waitSleep());
 		return false;

@@ -9,13 +9,19 @@ public abstract class SafeOutput<V> extends SafeOutputBase<V> {
 	}
 
 	@Override
-	protected abstract void enqSafe(Sdream<V> items);
+	protected abstract void enqueue0(Sdream<V> items);
 
 	@Override
 	public final void enqueue(Sdream<V> items) {
 		while (opExceeded.get())
 			Task.waitSleep(100);
 		opsPending.incrementAndGet();
-		enqSafe(items);
+		// Exeter.of().execute(() -> {
+		try {
+			enqueue0(items);
+		} finally {
+			opsPending.decrementAndGet();
+		}
+		// });
 	}
 }

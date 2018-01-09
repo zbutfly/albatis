@@ -8,26 +8,27 @@ public abstract class SafeOddOutput<V> extends SafeOutputBase<V> implements OddO
 		super(name);
 	}
 
-	protected abstract boolean enqSafe(V v);
+	protected abstract boolean enqueue0(V v);
+
+	@Override
+	protected final void enqueue0(Sdream<V> items) {
+		enqueue(items);
+	}
 
 	@Override
 	public final void enqueue(Sdream<V> items) {
 		while (opExceeded.get())
 			Task.waitSleep(100);
-		enqSafe(items);
+		OddOutput.super.enqueue(items);
 	}
 
 	@Override
-	public boolean enqueue(V v) {
+	public final boolean enqueue(V v) {
 		opsPending.incrementAndGet();
-		return enqSafe(v);
-	}
-
-	@Override
-	protected final void enqSafe(Sdream<V> items) {
-		items.eachs(v -> {
-			opsPending.incrementAndGet();
-			if (enqSafe(v)) succeeded(1);
-		});
+		try {
+			return enqueue0(v);
+		} finally {
+			opsPending.decrementAndGet();
+		}
 	}
 }

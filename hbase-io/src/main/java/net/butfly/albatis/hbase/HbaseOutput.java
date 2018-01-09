@@ -28,10 +28,12 @@ public final class HbaseOutput extends SafeOutput<Message> {
 	public static final int MAX_CONCURRENT_OP_DEFAULT = Integer.MAX_VALUE;
 	public static final int SUGGEST_BATCH_SIZE = 200;
 	private final HbaseConnection hconn;
+	// private final int batchSize;
 
 	public HbaseOutput(String name, HbaseConnection hconn) throws IOException {
 		super(name);
 		this.hconn = hconn;
+		// this.batchSize = batchSize();
 		open();
 	}
 
@@ -41,7 +43,7 @@ public final class HbaseOutput extends SafeOutput<Message> {
 	}
 
 	@Override
-	protected void enqSafe(Sdream<Message> msgs) {
+	protected void enqueue0(Sdream<Message> msgs) {
 		Map<String, List<Message>> map = Maps.of();
 		msgs.eachs(m -> {
 			map.compute(m.table(), (core, cores) -> {
@@ -51,20 +53,11 @@ public final class HbaseOutput extends SafeOutput<Message> {
 				return cores;
 			});
 		});
-		try {
-			for (String table : map.keySet()) {
-				List<Message> l = map.get(table);
-				if (l.isEmpty()) continue;
-				// long now = System.currentTimeMillis();
-				// try {
-				if (1 == l.size()) enq1(table, Hbases.Results.put(l.get(0)), l.get(0));
-				else enq(table, map.get(table));
-				// } finally {
-				// logger().error("[INFO]: write hbase [" + l.size() + "] spent " + (System.currentTimeMillis() - now) + " ms");
-				// }
-			}
-		} finally {
-			opsPending.decrementAndGet();
+		for (String table : map.keySet()) {
+			List<Message> l = map.get(table);
+			if (l.isEmpty()) continue;
+			if (1 == l.size()) enq1(table, Hbases.Results.put(l.get(0)), l.get(0));
+			else enq(table, l);
 		}
 	}
 

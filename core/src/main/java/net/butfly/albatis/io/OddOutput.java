@@ -8,10 +8,18 @@ public interface OddOutput<V> extends Output<V> {
 	boolean enqueue(V v);
 
 	@Override
-	public default void enqueue(Sdream<V> s) {
+	public default void enqueue(Sdream<V> items) {
 		if (!waitWhen(() -> full())) return;
-		s.eachs(v -> {
+		items.eachs(v -> {
 			if (enqueue(v)) succeeded(1);
+			else failed(v);
 		});
 	}
+
+	@Override
+	public default void failed(Sdream<V> fails) {
+		fails.eachs(this::failed);
+	}
+
+	default void failed(V v) {}
 }
