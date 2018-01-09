@@ -1,11 +1,14 @@
 package net.butfly.albatis.kafka;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
+import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicLong;
@@ -63,20 +66,28 @@ public class KafkaInput extends net.butfly.albacore.base.Namedly implements OddI
 		skip = new AtomicLong(Long.parseLong(uri.getParameter("skip", "0")));
 		if (skip.get() > 0) logger().error("[" + name() + "] skip [" + skip.get()
 				+ "] for testing, the skip is estimated, especially in multiple topic subscribing.");
-		int kp = config.getPartitionParallelism();
-		if (topics == null || topics.length == 0) topics = config.topics().toArray(new String[0]);
+		int kp = Props.propI(KafkaInput.class, "topic.paral", -1);
+		if (kp <= 0) kp = config.getPartitionParallelism();
+		else logger().debug("[" + name() + "] override topic parallelism by setting [" + kp + "]");
+		Set<String> ts = topics == null || topics.length == 0 ? new HashSet<>(config.topics()) : new HashSet<>(Arrays.asList(topics));
 		Map<String, int[]> topicParts;
 		try (ZKConn zk = new ZKConn(config.getZookeeperConnect())) {
 			topicParts = zk.getTopicPartitions(topics);
-			if (logger().isDebugEnabled()) for (String t : topics)
+			if (ts.isEmpty()) {
+				ts = topicParts.keySet();
+				logger().warn("[" + name() + "] not define topic, try to read all topic on kafka: " + ts.toString());
+			}
+			if (logger().isDebugEnabled()) for (String t : ts)
 				logger().debug("[" + name() + "] lag of " + config.getGroupId() + "@" + t + ": " + zk.getLag(t, config.getGroupId()));
 		}
-		for (String t : topicParts.keySet()) {
-			if (kp <= 0) kp = 1;
-			else if (kp >= topicParts.get(t).length) kp = topicParts.get(t).length;
-			else kp = (int) Math.ceil(topicParts.get(t).length * 1.0 / kp);
-			logger().debug("[" + name() + "] topic [" + t + "] consumers creating as parallinism [" + kp + "]");
+		for (String t : ts) {
+			int[] zk = topicParts.get(t);
+			if (kp <= 0) kp = null != zk && zk.length > 0 ? topicParts.get(t).length : 1;
+			if (null != zk && zk.length > 0 && kp > topicParts.get(t).length) //
+				logger().warn("[" + name() + "] topic [" + t + "] define parallelism: [" + kp + "] " + //
+						"over partitions: [" + topicParts.get(t).length + "].");
 			allTopics.put(t, kp);
+			logger().info("[" + name() + "] topic [" + t + "] consumers creating as parallelism [" + kp + "]");
 		}
 		logger().trace("[" + name() + "] parallelism of topics: " + allTopics.toString() + ".");
 		// connect

@@ -46,7 +46,7 @@ abstract class SafeOutputBase<V> extends Namedly implements Output<V> {
 	}
 
 	private int detectMaxConcurrentOps() {
-		return Props.propI(this, PARAL_LIMIT, 0);
+		return Props.propI(getClass(), PARAL_LIMIT, 0);
 	}
 
 	@Deprecated
