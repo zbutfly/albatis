@@ -35,6 +35,7 @@ public interface Input<V> extends IO, Dequeuer<V> {
 		return Wrapper.wrap(this, "Thens", using -> dequeue(s -> using.accept(conv.apply(s))));
 	}
 
+	@Deprecated
 	default <V1> Input<V1> thens(Function<Sdream<V>, Sdream<V1>> conv, int parallelism) {
 		return Wrapper.wrap(this, "Thens", using -> //
 		dequeue(s -> s.partition(v -> using.accept(conv.apply(v)), parallelism)));

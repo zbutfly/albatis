@@ -52,10 +52,32 @@ public final class HbaseOutput extends SafeOutput<Message> {
 			});
 		});
 		try {
-			for (String table : map.keySet())
-				enq(table, map.get(table));
+			for (String table : map.keySet()) {
+				List<Message> l = map.get(table);
+				if (l.isEmpty()) continue;
+				long now = System.currentTimeMillis();
+				try {
+					if (1 == l.size()) enq1(table, Hbases.Results.put(l.get(0)), l.get(0));
+					else enq(table, map.get(table));
+				} finally {
+					logger().error("[INFO]: write hbase [" + l.size() + "] spent " + (System.currentTimeMillis() - now) + " ms");
+				}
+			}
 		} finally {
 			opsPending.decrementAndGet();
+		}
+	}
+
+	protected void enq1(String table, Mutation op, Message origin) {
+		try {
+			Table t = hconn.table(table);
+			if (op instanceof Put) t.put((Put) op);
+			else if (op instanceof Delete) t.delete((Delete) op);
+			else if (op instanceof Increment) t.increment((Increment) op);
+			else if (op instanceof Append) t.append((Append) op);
+			succeeded(1);
+		} catch (IOException e) {
+			failed(Sdream.of1(origin));
 		}
 	}
 
@@ -64,26 +86,8 @@ public final class HbaseOutput extends SafeOutput<Message> {
 		List<Mutation> puts = Colls.list();
 		incs(table, msgs, origins, puts);
 
-		switch (puts.size()) {
-		case 0:
-			return;
-		case 1:
-			try {
-				Table t = hconn.table(origins.get(0).table());
-				Mutation req = puts.get(0);
-				if (req instanceof Put) t.put((Put) req);
-				else if (req instanceof Delete) t.delete((Delete) req);
-				else if (req instanceof Increment) t.increment((Increment) req);
-				else if (req instanceof Append) t.append((Append) req);
-				succeeded(1);
-				stats(req);
-			} catch (IOException e) {
-				failed(Sdream.of(origins));
-			}
-			return;
-		default:
-			enqs(table, origins, puts);
-		}
+		if (1 == puts.size()) enq1(origins.get(0).table(), puts.get(0), origins.get(0));
+		else enqs(table, origins, puts);
 	}
 
 	protected void enqs(String table, List<Message> origins, List<Mutation> enqs) {

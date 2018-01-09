@@ -73,6 +73,7 @@ public interface Queue0<I, O> extends Input<O>, Output<I> {
 		return i;
 	}
 
+	@Deprecated
 	@Override
 	default <O1> Queue0<I, O1> thens(Function<Sdream<O>, Sdream<O1>> conv, int parallelism) {
 		Queue0<I, O1> i = new Queue0<I, O1>() {
@@ -143,6 +144,7 @@ public interface Queue0<I, O> extends Input<O>, Output<I> {
 		return o;
 	}
 
+	@Deprecated
 	@Override
 	default <I0> Queue0<I0, O> priors(Function<Sdream<I0>, Sdream<I>> conv, int parallelism) {
 		Queue0<I0, O> o = new Queue0<I0, O>() {
@@ -176,7 +178,19 @@ public interface Queue0<I, O> extends Input<O>, Output<I> {
 	}
 
 	@Override
-	default <I0> Queue0<I0, O> priorFlat(Function<I0, Sdream<I>> conv) {
+	default <I0> Queue0<I0, O> priors(Function<Sdream<I0>, Sdream<I>> conv) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	default <O1> Queue0<I, O1> thens(Function<Sdream<O>, Sdream<O1>> conv) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	default <O1> Queue0<I, O1> thenFlat(Function<O, Sdream<O1>> conv) {
 		// TODO Auto-generated method stub
 		return null;
 	}

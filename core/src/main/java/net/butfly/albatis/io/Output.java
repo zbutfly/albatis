@@ -23,13 +23,14 @@ public interface Output<V> extends IO, Consumer<Sdream<V>>, Enqueuer<V> {
 	}
 
 	default <V0> Output<V0> prior(Function<V0, V> conv) {
-		return Wrapper.wrap(this, "Prior", s -> enqueue(s.map(conv)));
+		return Wrapper.wrap(this, "Prior", (Enqueuer<V0>) s -> enqueue(s.map(conv)));
 	}
 
 	default <V0> Output<V0> priors(Function<Sdream<V0>, Sdream<V>> conv) {
-		return priors(conv, 1);
+		return Wrapper.wrap(this, "Prior", (Enqueuer<V0>) s -> enqueue(conv.apply(s)));
 	}
 
+	@Deprecated
 	default <V0> Output<V0> priors(Function<Sdream<V0>, Sdream<V>> conv, int parallelism) {
 		return Wrapper.wrap(this, "Priors", (Enqueuer<V0>) s -> s.partition(ss -> enqueue(conv.apply(ss)), parallelism));
 	}
@@ -47,6 +48,6 @@ public interface Output<V> extends IO, Consumer<Sdream<V>>, Enqueuer<V> {
 	}
 
 	static <T> Output<T> of(Collection<? super T> underly) {
-		return s -> s.each(underly::add);
+		return s -> s.eachs(underly::add);
 	}
 }

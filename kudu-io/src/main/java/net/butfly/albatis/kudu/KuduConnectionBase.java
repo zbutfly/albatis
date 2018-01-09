@@ -26,8 +26,8 @@ import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
 
 @SuppressWarnings("unchecked")
-public abstract class KuduConnectionBase<C extends KuduConnectionBase<C, KC, S>, KC extends AutoCloseable, S extends SessionConfiguration> extends
-		NoSqlConnection<KC> {
+public abstract class KuduConnectionBase<C extends KuduConnectionBase<C, KC, S>, KC extends AutoCloseable, S extends SessionConfiguration>
+		extends NoSqlConnection<KC> {
 	protected static final Logger logger = Logger.getLogger(KuduConnectionBase.class);
 	private static final Map<String, KuduTable> tables = Maps.of();
 	private static final Map<String, Map<String, ColumnSchema>> SCHEMAS_CI = Maps.of();
@@ -63,7 +63,7 @@ public abstract class KuduConnectionBase<C extends KuduConnectionBase<C, KC, S>,
 		if (null == errs) return;
 		RowError[] rows = session.getPendingErrors().getRowErrors();
 		if (null == rows || rows.length == 0) return;
-		of(rows).map(e -> e.getOperation()).each(op -> this.apply(op, this::error));
+		of(rows).map(RowError::getOperation).eachs(op -> this.apply(op, this::error));
 	}
 
 	protected final void error(Operation op, Throwable cause) {
