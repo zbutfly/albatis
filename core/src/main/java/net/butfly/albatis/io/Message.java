@@ -81,7 +81,7 @@ public class Message extends ConcurrentHashMap<String, Object> {
 	}
 
 	public Message(String table, String key, String firstFieldName, Object... firstFieldValueAndOthers) {
-		this(table, null, Maps.of(firstFieldName, firstFieldValueAndOthers));
+		this(table, key, Maps.of(firstFieldName, firstFieldValueAndOthers));
 	}
 
 	public String key() {
