@@ -49,15 +49,11 @@ public class ElasticOutput extends SafeOutput<Message> {
 	}
 
 	@Override
-	protected void enqSafe(Sdream<Message> msgs) {
+	protected void enqueue0(Sdream<Message> msgs) {
 		Map<String, Message> remains = Maps.of();
 		for (Message m : msgs.list())
 			remains.put(m.key(), conn.fixTable(m));
-		if (remains.isEmpty()) {
-			opsPending.decrementAndGet();
-			return;
-		}
-		go(remains);
+		if (!remains.isEmpty()) go(remains);
 	}
 
 	protected void go(Map<String, Message> remains) {
@@ -80,7 +76,6 @@ public class ElasticOutput extends SafeOutput<Message> {
 			}
 		} finally {
 			if (!remains.isEmpty()) failed(of(remains.values()));
-			opsPending.decrementAndGet();
 			int ret = retry;
 			logger.debug(() -> "ElasticOutput ops [" + size + "] finished in [" + (System.currentTimeMillis() - now) + " ms], remain ["
 					+ remains.size() + "] after [" + ret + "] retries, pendins [" + opsPending.get() + "]");

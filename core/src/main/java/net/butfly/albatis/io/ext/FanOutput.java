@@ -30,9 +30,9 @@ public class FanOutput<V> extends Namedly implements Output<V> {
 	public FanOutput(String name, Iterable<? extends Output<V>> outputs) {
 		super(name);
 		tasks = Colls.list();
-		for (Output<V> o : outputs)
-			tasks.add(s -> o.enqueue(s));
 		this.outputs = outputs;
+		for (Output<V> o : outputs)
+			tasks.add(o::enqueue);
 	}
 
 	@Override

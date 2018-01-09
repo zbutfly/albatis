@@ -24,7 +24,7 @@ abstract class SafeOutputBase<V> extends Namedly implements Output<V> {
 		this.opExceeded = maxOps > 0 ? () -> opsPending.get() > maxOps : () -> false;
 	}
 
-	protected abstract void enqSafe(Sdream<V> items);
+	protected abstract void enqueue0(Sdream<V> items);
 
 	@Override
 	public void close() {

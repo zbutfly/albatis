@@ -48,7 +48,7 @@ public final class SolrOutput extends SafeOutput<Message> {
 	}
 
 	@Override
-	protected void enqSafe(Sdream<Message> msgs) {
+	protected void enqueue0(Sdream<Message> msgs) {
 		Map<String, Map<Integer, List<Message>>> map = Maps.of();
 		msgs.eachs(m -> map.compute(m.table(), (core, cores) -> {
 			if (null == cores) cores = Maps.of();
