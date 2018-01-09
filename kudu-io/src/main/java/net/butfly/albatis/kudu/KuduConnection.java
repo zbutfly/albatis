@@ -42,7 +42,7 @@ public class KuduConnection extends KuduConnectionBase<KuduConnection, KuduClien
 			logger.error("Kudu commit fail", e);
 			return;
 		}
-		of(v).each(r -> {
+		of(v).eachs(r -> {
 			if (r.hasRowError()) error(r);
 		});
 	}
