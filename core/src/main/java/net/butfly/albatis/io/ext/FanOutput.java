@@ -32,7 +32,9 @@ public class FanOutput<V> extends Namedly implements Output<V> {
 		tasks = Colls.list();
 		this.outputs = outputs;
 		for (Output<V> o : outputs)
-			tasks.add(o::enqueue);
+			tasks.add(items -> {
+				o.enqueue(items);
+			});
 	}
 
 	@Override
