@@ -77,7 +77,7 @@ public class ElasticOutput extends SafeOutput<Message> {
 		} finally {
 			if (!remains.isEmpty()) failed(of(remains.values()));
 			int ret = retry;
-			logger.debug(() -> "ElasticOutput ops [" + size + "] finished in [" + (System.currentTimeMillis() - now) + " ms], remain ["
+			logger.trace(() -> "ElasticOutput ops [" + size + "] finished in [" + (System.currentTimeMillis() - now) + " ms], remain ["
 					+ remains.size() + "] after [" + ret + "] retries, pendins [" + opsPending.get() + "]");
 		}
 	}
@@ -96,7 +96,6 @@ public class ElasticOutput extends SafeOutput<Message> {
 							+ "]: \n\t" + o.toString());
 				} else retries.add(o);
 			}
-
 		}
 		if (succs > 0) succeeded(succs);
 		// process failing and retry...
