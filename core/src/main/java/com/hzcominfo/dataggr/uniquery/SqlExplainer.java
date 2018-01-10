@@ -169,12 +169,26 @@ public class SqlExplainer {
                 	String name = identifier.isStar() ? "*":identifier.getSimple();
                 	field.addProperty("field", ((SqlCall) n).getOperator().getName().toLowerCase() + "(" + name + ")");
                 	break;
+                case OTHER_FUNCTION:
+                    String function = getFunctionNameFromSqlUnresolvedFunction(((SqlCall) n).getOperator());
+                    identifier = ((SqlCall) n).operand(0);
+                    if ("keyword".equals(function.toLowerCase())) {
+                        field.addProperty("field", identifier + "." + "keyword");
+                    } else {
+                        logger.warn("ignore unknown udf:" + function + " and it's params");
+                    }
+                    break;
                 default:
                     throw new RuntimeException("Unsupported kind: " + n.getKind());
             }
             fields.add(field);
         }
         json.add("fields", fields);
+    }
+
+    private static String getFunctionNameFromSqlUnresolvedFunction(SqlOperator operator) {
+        SqlUnresolvedFunction op = (SqlUnresolvedFunction) operator;
+        return op.getSqlIdentifier().getSimple();
     }
 
     private static void identifier2Json(SqlIdentifier identifier, JsonObject json) {
@@ -325,6 +339,14 @@ public class SqlExplainer {
                 operatorName = operator.getName();
                 String identifier = ((SqlIdentifier) sbc.operand(0)).getSimple();
                 field = operatorName + "(" + identifier + ")";
+            } else if (operator instanceof SqlUnresolvedFunction) {
+                String function = getFunctionNameFromSqlUnresolvedFunction(((SqlCall) node).getOperator());
+                SqlIdentifier identifier = ((SqlCall) node).operand(0);
+                if ("keyword".equals(function.toLowerCase())) {
+                    field = identifier + "." + "keyword";
+                } else {
+                    logger.warn("ignore unknown udf:" + function + " and it's params");
+                }
             } else throw new RuntimeException("operator : " + operator + " is not a agg func");
         }
         SqlNode v = sc.operand(1);
@@ -425,18 +447,39 @@ public class SqlExplainer {
         if (null == orderList) return;
         for (SqlNode node : orderList.getList()) {
             JsonObject object = new JsonObject();
-            if (node instanceof SqlIdentifier) {
-                object.addProperty(((SqlIdentifier) node).getSimple(), "ASC");
+            if (node instanceof SqlIdentifier) {  // ASC
+                object.addProperty(sqlIdentifierNames((SqlIdentifier) node), "ASC");
                 array.add(object);
             } else if (node instanceof SqlBasicCall) {
-                SqlBasicCall sbc = (SqlBasicCall) node;
-                SqlIdentifier identifier = sbc.operand(0);
-                object.addProperty(identifier.names.stream().collect(Collectors.joining(".")), sbc.getOperator().getName());
+                SqlNode n = ((SqlBasicCall) node).operand(0);
+                String name;
+                if (n instanceof SqlIdentifier) {
+                    name = sqlIdentifierNames((SqlIdentifier) n);
+                } else if (n instanceof SqlBasicCall) {
+                    SqlOperator operator = ((SqlBasicCall) n).getOperator();
+                    if (SqlUnresolvedFunction.class.isInstance(operator)) {
+                        String function = getFunctionNameFromSqlUnresolvedFunction(operator).toLowerCase();
+                        if ("keyword".equals(function)) {
+                            name = sqlIdentifierNames(((SqlBasicCall) n).operand(0)) + "." + function;
+                        } else {
+                            throw new RuntimeException("unsupport function:" + function);
+                        }
+                    } else {
+                        throw new RuntimeException(operator.getName() + " now is not supported");
+                    }
+                } else {
+                    throw new RuntimeException("Not support node : " + n);
+                }
+                object.addProperty(name, "DESC");
                 array.add(object);
             } else {
                 System.out.println("Error to parse ORDER BY from " + node);
             }
         }
+    }
+
+    private static String sqlIdentifierNames(SqlIdentifier identifier) {
+        return identifier.names.stream().collect(Collectors.joining("."));
     }
 
     private static void analysisOffset(SqlNode node, JsonObject json) {

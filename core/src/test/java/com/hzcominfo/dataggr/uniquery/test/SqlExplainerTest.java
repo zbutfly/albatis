@@ -19,13 +19,10 @@ public class SqlExplainerTest {
 
     @Test
     public void t5() throws Exception {
-        String sql = "select p.name AS n, p.age As a, p.address from people p where age > 30  and name like '%姓名%' order by age, name desc limit 1000 offset 100";
-//        SqlNode query = SqlExplainer.explain(sql, "Lucy", 27, "W");
-//        System.out.println(query);
-//        System.out.println();
-//        String s = query.accept(SqlExplainer.visitor);
-//        System.out.println("s===" + s);
+//        String sql = "SELECT * FROM test_hzwa.RC_WA_BASIC_ES_1002 WHERE COLLECTION_EQUIPMENTID_s.keyword IN ('728489494000FE201231D') LIMIT 1000";
+        String sql = "SELECT LG._._._.NAME FROM test_hzwa.RC_WA_BASIC_ES_1002 WHERE COLLECTION_EQUIPMENTID_s._._._.keyword IN ('728489494000FE201231D') LIMIT 1000";
         JsonObject object = SqlExplainer.explain(sql);
+        System.out.println(object);
     }
 
     @Test
@@ -205,6 +202,29 @@ public class SqlExplainerTest {
             s = s.replace(group, params[index-1].toString());
         }
         System.out.println(s);
+    }
+
+    @Test
+    public void u1() {
+//        String sql = "select u.d.f from person where keyword(home.address.secon) = 'hangzhou'";
+        String sql = "select keyword(u.n.f) from person where keyword(h.a.s.address.secon) = 'hangzhou' order by keyword(o.b.f) desc";
+//        String sql = "select keyword(user.name.first) from person where keyword(home.addr.secon) = 'hangzhou'";
+//        String sql = "select keyword(a.b.c) from person where keyword(d.e.f) = 'kaka'";
+//        String sql = "select keyword(t1.PHONE_NUMBER.aa, t2.PHONE_MAC) from DATA_PHONE t1 inner join DATA_PHONE_MAC t2 on t1.ID = t2.ID";
+//        String sql = "select keyword(t1.PHONE_NUMBER.aa) from DATA_PHONE t1 ";
+        JsonObject object = SqlExplainer.explain(sql);
+        System.out.println(object);
+    }
+
+    @Test
+    public void u2() {
+//        String sql = "select keyword(u.n.f) from person where keyword(h.a.s.address.secon) = 'hangzhou' order by keyword(o.b.f) desc";
+//        String sql = "select keyword(u.n.f) from person where keyword(h.a.s.address.secon) = 'hangzhou' order by o.b.f desc";
+//        String sql = "select keyword(u.n.f) from person where keyword(h.a.s.address.secon) = 'hangzhou' order by f desc";
+//        String sql = "select keyword(u.n.f) from person where h.a.s.address.secon = 'hangzhou' order by f desc";
+        String sql = "select u.n.f from person where h.a.s.address.secon = 'hangzhou' order by f desc";
+        JsonObject object = SqlExplainer.explain(sql);
+        System.out.println(object);
     }
 
 }
