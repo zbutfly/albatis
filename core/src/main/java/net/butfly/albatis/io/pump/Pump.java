@@ -10,6 +10,7 @@ import java.util.List;
 import net.butfly.albacore.io.Openable;
 import net.butfly.albatis.io.Input;
 import net.butfly.albatis.io.Output;
+import net.butfly.albatis.io.ext.DryOutput;
 import net.butfly.albatis.io.ext.FanOutput;
 
 public interface Pump<V> extends Openable {
@@ -32,7 +33,7 @@ public interface Pump<V> extends Openable {
 	}
 
 	public static <V> Pump<V> pump(Input<V> input, int parallelism) {
-		return pump(input, parallelism, (Output<V>) items -> {});
+		return pump(input, parallelism, new DryOutput<V>(input));
 	}
 
 	public static <V> Pump<V> pump(Input<V> input, int parallelism, Output<V> dest) {

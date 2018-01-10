@@ -73,10 +73,9 @@ abstract class PumpImpl<V, P extends PumpImpl<V, P>> extends Namedly implements 
 	}
 
 	protected boolean isAllDependsOpen() {
-		return dependencies.stream().map(c -> {
-			if (c instanceof Openable) return ((Openable) c).opened();
-			else return true;
-		}).reduce((o1, o2) -> o1 && o2).orElse(true);
+		for (AutoCloseable dep : dependencies)
+			if (dep instanceof Openable && !((Openable) dep).opened()) return false;
+		return true;
 	}
 
 	@Override

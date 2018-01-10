@@ -38,7 +38,7 @@ public interface IO extends Sizable, Openable, Statistical {
 	 * default disable stats, if inherited and return a valid {@code Statistic}, enable statis on this io instnce.
 	 */
 	default Statistic<?> trace() {
-		return null;
+		return new Statistic<Object>(this);
 	}
 
 	@Override
