@@ -33,7 +33,7 @@ public interface Pump<V> extends Openable {
 	}
 
 	public static <V> Pump<V> pump(Input<V> input, int parallelism) {
-		return pump(input, parallelism, (Output<V>) items -> {});
+		return pump(input, parallelism, new DryOutput<V>(input));
 	}
 
 	public static <V> Pump<V> pump(Input<V> input, int parallelism, Output<V> dest) {
