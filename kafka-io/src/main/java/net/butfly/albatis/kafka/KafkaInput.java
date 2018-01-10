@@ -129,7 +129,8 @@ public class KafkaInput extends net.butfly.albacore.base.Namedly implements OddI
 		while (opened())
 			if (null != (it = consumers.poll())) {
 				try {
-					if (null != (m = it.next())) return Kafkas.message(stats(m), decoder);
+					if (null != (m = it.next())) //
+						return Kafkas.message(stats(m), decoder);
 				} catch (ConsumerTimeoutException ex) {
 					return null;
 				} catch (NoSuchElementException ex) {
