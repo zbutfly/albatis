@@ -35,6 +35,10 @@ public interface Output<V> extends IO, Consumer<Sdream<V>>, Enqueuer<V> {
 		return Wrapper.wrap(this, "Priors", (Enqueuer<V0>) s -> s.partition(ss -> enqueue(conv.apply(ss)), parallelism));
 	}
 
+	default <V0> Output<V0> priorFlat(Function<V0, Sdream<V>> conv) {
+		return Wrapper.wrap(this, "PriorFlat", (Enqueuer<V0>) s -> enqueue(s.mapFlat(conv)));
+	}
+
 	default void commit() {}
 
 	default FailoverOutput<V> failover(Queue<V> pool) {

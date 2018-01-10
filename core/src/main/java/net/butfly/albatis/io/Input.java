@@ -42,7 +42,7 @@ public interface Input<V> extends IO, Dequeuer<V> {
 	}
 
 	default <V1> Input<V1> thenFlat(Function<V, Sdream<V1>> conv) {
-		return Wrapper.wrap(this, "Thens", (Dequeuer<V1>) using -> //
+		return Wrapper.wrap(this, "ThenFlat", (Dequeuer<V1>) using -> //
 		dequeue(s -> using.accept(s.mapFlat(conv))));
 	}
 
