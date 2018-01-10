@@ -151,37 +151,39 @@ public final class Hbases extends Utils {
 			return new Message(table, row, map);
 		}
 
-		static Mutation put(Message m) {
+		static Mutation op(Message m) {
 			if (m.isEmpty()) return null;
 			String row = m.key();
 			if (row == null || row.isEmpty()) return null;
 			byte[] rowk = Bytes.toBytes(row);
+			int fc = 0;
 			switch (m.op()) {
 			case INSERT:
 			case UPSERT:
 				Put put = new Put(rowk);
-				Sdream.of(m).map(e -> {
+				for (Entry<String, Object> e : m.entrySet()) {
 					Object v = e.getValue();
 					String k = e.getKey();
-					if (!(v instanceof byte[]) || null == ((byte[]) v) || ((byte[]) v).length == 0) return null;
+					if (!(v instanceof byte[]) || null == ((byte[]) v) || ((byte[]) v).length == 0) continue;
 					byte[][] fq = Results.parseFQ(k);
-					return CellUtil.createCell(rowk, fq[0], fq[1], HConstants.LATEST_TIMESTAMP, Type.Put.getCode(), (byte[]) v);
-				}).nonNull().eachs(c -> {
+					Cell c = CellUtil.createCell(rowk, fq[0], fq[1], HConstants.LATEST_TIMESTAMP, Type.Put.getCode(), (byte[]) v);
 					try {
 						put.add(c);
+						fc++;
 					} catch (Exception ee) {
 						logger.warn("Hbase cell converting failure, ignored and continued, row: " + row + ", cell: " + Bytes.toString(
 								CellUtil.cloneFamily(c)) + ":" + Bytes.toString(CellUtil.cloneQualifier(c)), ee);
 					}
-				});
-				return put;
+				}
+				return fc == 0 ? null : put;
 			case INCREASE:
 				Increment inc = new Increment(rowk);
-				Sdream.of(m).eachs(e -> {
+				for (Entry<String, Object> e : m.entrySet()) {
 					byte[][] fq = Results.parseFQ(e.getKey());
 					Object v = e.getValue();
 					inc.addColumn(fq[0], fq[1], null == v ? 1 : ((Long) v).longValue());
-				});
+					fc++;
+				}
 				return inc;
 			default:
 				logger.warn("Op not support: " + m.toString());

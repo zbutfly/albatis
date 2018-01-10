@@ -56,7 +56,7 @@ public final class HbaseOutput extends SafeOutput<Message> {
 		for (String table : map.keySet()) {
 			List<Message> l = map.get(table);
 			if (l.isEmpty()) continue;
-			if (1 == l.size()) enq1(table, Hbases.Results.put(l.get(0)), l.get(0));
+			if (1 == l.size()) enq1(table, Hbases.Results.op(l.get(0)), l.get(0));
 			else enq(table, l);
 		}
 	}
@@ -124,7 +124,7 @@ public final class HbaseOutput extends SafeOutput<Message> {
 				logger().error("Message marked as delete but ignore: " + m.toString());
 				break;
 			default:
-				Mutation r = Hbases.Results.put(m);
+				Mutation r = Hbases.Results.op(m);
 				if (null != r) {
 					origins.add(m);
 					puts.add(r);
@@ -139,7 +139,7 @@ public final class HbaseOutput extends SafeOutput<Message> {
 			for (String k : merge.keySet())
 				if (((Long) merge.get(k)).longValue() <= 0) merge.remove(k);
 			if (!merge.isEmpty()) {
-				Mutation r = Hbases.Results.put(merge);
+				Mutation r = Hbases.Results.op(merge);
 				if (null != r) {
 					origins.add(merge);
 					puts.add(r);
