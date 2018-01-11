@@ -62,18 +62,18 @@ public final class HbaseOutput extends SafeOutput<Message> {
 	}
 
 	protected void enq1(String table, Mutation op, Message origin) {
-		try {
-			Table t = hconn.table(table);
-			if (op instanceof Put) t.put((Put) op);
-			else if (op instanceof Delete) t.delete((Delete) op);
-			else if (op instanceof Increment) t.increment((Increment) op);
-			else if (op instanceof Append) t.append((Append) op);
-			succeeded(1);
-		} catch (IOException e) {
-			failed(Sdream.of1(origin));
-		} finally {
-			s().stats(op);
-		}
+		Table t = hconn.table(table);
+		s().statsOut(op, o -> {
+			try {
+				if (op instanceof Put) t.put((Put) op);
+				else if (op instanceof Delete) t.delete((Delete) op);
+				else if (op instanceof Increment) t.increment((Increment) op);
+				else if (op instanceof Append) t.append((Append) op);
+				succeeded(1);
+			} catch (IOException e) {
+				failed(Sdream.of1(origin));
+			}
+		});
 	}
 
 	protected void enq(String table, List<Message> msgs) {
@@ -88,10 +88,14 @@ public final class HbaseOutput extends SafeOutput<Message> {
 	protected void enqs(String table, List<Message> origins, List<Mutation> enqs) {
 		Object[] results = new Object[enqs.size()];
 		try {
-			hconn.table(table).batch(enqs, results);
-		} catch (Exception ex) {
-			logger().error(name() + " write failed [" + Exceptions.unwrap(ex).getMessage() + "], [" + enqs.size() + "] into fails.");
-			failed(Sdream.of(origins));
+			s().statsOuts(enqs, c -> {
+				try {
+					hconn.table(table).batch(enqs, results);
+				} catch (Exception e) {
+					logger().error(name() + " write failed [" + Exceptions.unwrap(e).getMessage() + "], [" + enqs.size() + "] into fails.");
+					failed(Sdream.of(origins));
+				}
+			});
 		} finally {
 			List<Message> failed = Colls.list();
 			int succs = 0;
@@ -103,9 +107,6 @@ public final class HbaseOutput extends SafeOutput<Message> {
 			}
 			if (!failed.isEmpty()) failed(Sdream.of(failed));
 			if (succs > 0) succeeded(succs);
-			s().stats(enqs);
-			// logger().error("INFO: HbaseOutput batch [messages: " + origins.size() + ", actions: " + enqs.size() + "], failed " + failed
-			// .size() + ", success: " + succs + ", pending: " + opsPending.get() + ".");
 		}
 	}
 

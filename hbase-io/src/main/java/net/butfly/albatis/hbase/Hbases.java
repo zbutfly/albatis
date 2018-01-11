@@ -31,12 +31,13 @@ import org.apache.hadoop.hbase.KeyValue.Type;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.hadoop.hbase.client.Increment;
+import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import net.butfly.albacore.paral.Sdream;
+import net.butfly.albacore.serder.BsonSerder;
 import net.butfly.albacore.utils.IOs;
 import net.butfly.albacore.utils.Utils;
 import net.butfly.albacore.utils.collection.Maps;
@@ -153,6 +154,7 @@ public final class Hbases extends Utils {
 			return new Message(table, row, map);
 		}
 
+		@SuppressWarnings("unchecked")
 		static Mutation op(Message m) {
 			if (m.isEmpty()) return null;
 			String row = m.key();
@@ -164,12 +166,17 @@ public final class Hbases extends Utils {
 			case UPSERT:
 				Put put = new Put(rowk);
 				for (Entry<String, Object> e : m.entrySet()) {
+					byte[] val = null;
 					Object v = e.getValue();
-					String k = e.getKey();
-					if (!(v instanceof byte[]) || null == ((byte[]) v) || ((byte[]) v).length == 0) continue;
-					byte[][] fq = Results.parseFQ(k);
-					Cell c = CellUtil.createCell(rowk, fq[0], fq[1], HConstants.LATEST_TIMESTAMP, Type.Put.getCode(), (byte[]) v);
-					try {
+					if (v instanceof byte[]) val = (byte[]) v;
+					else if (v instanceof CharSequence) {
+						String s = ((CharSequence) v).toString();
+						if (s.length() > 0) val = Bytes.toBytes(s);
+					} else if (v instanceof Map) val = BsonSerder.map((Map<String, Object>) v);
+					if (null == val || val.length == 0) return null;
+					byte[][] fqs = Results.parseFQ(e.getKey());
+					Cell c = CellUtil.createCell(rowk, fqs[0], fqs[1], HConstants.LATEST_TIMESTAMP, Type.Put.getCode(), (byte[]) val);
+					if (null != c) try {
 						put.add(c);
 						fc++;
 					} catch (Exception ee) {
