@@ -36,8 +36,8 @@ public class ElasticOutput extends SafeOutput<Message> {
 	}
 
 	@Override
-	public Statistic<BulkRequest> trace() {
-		return new Statistic<BulkRequest>(this).sizing(BulkRequest::estimatedSizeInBytes).stepping(r -> (long) r.requests().size());
+	public Statistic trace() {
+		return new Statistic(this).sizing(BulkRequest::estimatedSizeInBytes).<BulkRequest> stepping(r -> (long) r.requests().size());
 	}
 
 	@Override
@@ -67,7 +67,7 @@ public class ElasticOutput extends SafeOutput<Message> {
 				List<DocWriteRequest> reqs = of(remains.values()).map(Elastics::forWrite).list();
 				if (reqs.isEmpty()) return;
 				try {
-					process(remains, conn.client().bulk(stats(new BulkRequest().add(reqs))).get());
+					process(remains, conn.client().bulk(s().stats(new BulkRequest().add(reqs))).get());
 				} catch (ExecutionException ex) {
 					logger().error("Elastic client fail: [" + ex.getCause() + "]");
 				} catch (Exception ex) {

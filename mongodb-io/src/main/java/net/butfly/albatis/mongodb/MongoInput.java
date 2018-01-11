@@ -58,8 +58,8 @@ public class MongoInput extends net.butfly.albacore.base.Namedly implements OddI
 	}
 
 	@Override
-	public Statistic<DBObject> trace() {
-		return new Statistic<DBObject>(this).sizing(b -> (long) b.keySet().size()) //
+	public Statistic trace() {
+		return new Statistic(this).<DBObject> sizing(b -> (long) b.keySet().size()) //
 				.detailing(() -> "[Stats Field Count, not Bytes]");
 	}
 
@@ -127,7 +127,7 @@ public class MongoInput extends net.butfly.albacore.base.Namedly implements OddI
 					if (!c.v2().hasNext()) c = closeCursor(c);
 					else {
 						@SuppressWarnings("rawtypes")
-						Map m = stats(c.v2().next()).toMap();
+						Map m = s().stats(c.v2().next()).toMap();
 						try {
 							return new Message(c.v1(), (String) null, m);
 						} catch (NullPointerException e) {

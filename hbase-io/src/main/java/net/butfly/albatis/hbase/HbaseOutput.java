@@ -38,8 +38,8 @@ public final class HbaseOutput extends SafeOutput<Message> {
 	}
 
 	@Override
-	public Statistic<Mutation> trace() {
-		return new Statistic<Mutation>(this).sizing(Mutation::heapSize).detailing(() -> "Pengding ops: " + opsPending.get());
+	public Statistic trace() {
+		return new Statistic(this).sizing(Mutation::heapSize).detailing(() -> "Pengding ops: " + opsPending.get());
 	}
 
 	@Override
@@ -72,7 +72,7 @@ public final class HbaseOutput extends SafeOutput<Message> {
 		} catch (IOException e) {
 			failed(Sdream.of1(origin));
 		} finally {
-			stats(op);
+			s().stats(op);
 		}
 	}
 
@@ -103,7 +103,7 @@ public final class HbaseOutput extends SafeOutput<Message> {
 			}
 			if (!failed.isEmpty()) failed(Sdream.of(failed));
 			if (succs > 0) succeeded(succs);
-			stats(enqs);
+			s().stats(enqs);
 			// logger().error("INFO: HbaseOutput batch [messages: " + origins.size() + ", actions: " + enqs.size() + "], failed " + failed
 			// .size() + ", success: " + succs + ", pending: " + opsPending.get() + ".");
 		}
