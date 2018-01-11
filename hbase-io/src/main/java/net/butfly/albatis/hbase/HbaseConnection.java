@@ -115,8 +115,8 @@ public class HbaseConnection extends NoSqlConnection<org.apache.hadoop.hbase.cli
 		return using.apply(table(name));
 	}
 
-	private final Statistic<Result> s = new Statistic<Result>(HbaseConnection.class).sizing(Result::getTotalSizeOfCells).step(
-			GET_STATS_STEP).detailing(() -> "Cached scaner object: " + scans.size());
+	private final Statistic s = new Statistic(HbaseConnection.class).sizing(Result::getTotalSizeOfCells).step(GET_STATS_STEP).detailing(
+			() -> "Cached scaner object: " + scans.size());
 
 	public List<Message> get(String table, List<Get> gets) {
 		if (gets == null || gets.isEmpty()) return Colls.list();

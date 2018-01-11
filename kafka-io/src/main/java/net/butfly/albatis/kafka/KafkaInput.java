@@ -117,8 +117,8 @@ public class KafkaInput extends net.butfly.albacore.base.Namedly implements OddI
 
 	@SuppressWarnings("rawtypes")
 	@Override
-	public Statistic<MessageAndMetadata> trace() {
-		return new Statistic<MessageAndMetadata>(this).sizing(km -> (long) km.rawMessage$1().payloadSize()) //
+	public Statistic trace() {
+		return new Statistic(this).<MessageAndMetadata> sizing(km -> (long) km.rawMessage$1().payloadSize()) //
 				.detailing(Exeter.of()::toString);
 	}
 
@@ -130,7 +130,7 @@ public class KafkaInput extends net.butfly.albacore.base.Namedly implements OddI
 			if (null != (it = consumers.poll())) {
 				try {
 					if (null != (m = it.next())) //
-						return Kafkas.message(stats(m), decoder);
+						return Kafkas.message((MessageAndMetadata<byte[], byte[]>) s().stats(m), decoder);
 				} catch (ConsumerTimeoutException ex) {
 					return null;
 				} catch (NoSuchElementException ex) {
