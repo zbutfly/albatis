@@ -147,13 +147,23 @@ public class SqlExplainer {
             JsonObject field = new JsonObject();
             switch (n.getKind()) {
                 case AS:
-                    identifier = ((SqlCall) n).operand(0);
-                    identifier2Json(identifier, field);
+                    SqlNode nd = ((SqlCall) n).operand(0);
+                    String names;
+                    if (SqlIdentifier.class.isInstance(nd)) {
+                        names = sqlIdentifierNames((SqlIdentifier) nd);
+                    } else if (SqlDynamicParam.class.isInstance(nd)) {
+                        names = newDynamicParamMark();
+                    } else {
+                        throw new RuntimeException("unsupported SqlNode in AS: " + nd);
+                    }
+//                    identifier2Json(name, field);
+                    field.addProperty("field", names);
                     field.addProperty("alias", ((SqlIdentifier) ((SqlCall) n).operand(1)).getSimple());
                     break;
                 case IDENTIFIER:
                     identifier = (SqlIdentifier) n;
                     identifier2Json(identifier, field);
+                    field.addProperty("alias", sqlIdentifierNames(identifier));
 //                    field.addProperty("field", identifier.isStar() ? "*" : identifier.getSimple());
                     break;
                 case DYNAMIC_PARAM:
@@ -506,7 +516,7 @@ public class SqlExplainer {
         int paramSize = json.get("dynamic_param_size").getAsInt();
         if (0 == paramSize) return json;
         if (null == params || params.length != paramSize)
-            ExceptionUtil.runtime("Dynamic Param Size: " + paramSize + ", params Size: " + (null == params ? null : params.length));
+            ExceptionUtil.runtime("dynamic param Size: " + paramSize + ", params Size: " + (null == params ? null : params.length));
         Pattern pattern = Pattern.compile("\\$\\$\\{\\d+}");
         String source = json.toString();
         Matcher matcher = pattern.matcher(source);

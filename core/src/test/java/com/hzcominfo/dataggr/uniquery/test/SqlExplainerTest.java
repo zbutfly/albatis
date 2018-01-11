@@ -206,8 +206,10 @@ public class SqlExplainerTest {
 
     @Test
     public void u1() {
-//        String sql = "select u.d.f from person where keyword(home.address.secon) = 'hangzhou'";
-        String sql = "select keyword(u.n.f) from person where keyword(h.a.s.address.secon) = 'hangzhou' order by keyword(o.b.f) desc";
+        String sql = "select keyword(u.d.f) from person where keyword(home.address.first.\"second\") = 'hangzhou'";
+//        String sql = "select keyword(u.d.f) from person where keyword(home.address.secon) = 'hangzhou'";
+//        String sql = "select keyword(u.d.f) from person where keyword(home.address.secon.thrid) = 'hangzhou'";
+//        String sql = "select keyword(u.n.f) from person where keyword(h.a.s.address.secon) = 'hangzhou' order by keyword(o.b.f) desc";
 //        String sql = "select keyword(user.name.first) from person where keyword(home.addr.secon) = 'hangzhou'";
 //        String sql = "select keyword(a.b.c) from person where keyword(d.e.f) = 'kaka'";
 //        String sql = "select keyword(t1.PHONE_NUMBER.aa, t2.PHONE_MAC) from DATA_PHONE t1 inner join DATA_PHONE_MAC t2 on t1.ID = t2.ID";
@@ -224,6 +226,15 @@ public class SqlExplainerTest {
 //        String sql = "select keyword(u.n.f) from person where h.a.s.address.secon = 'hangzhou' order by f desc";
         String sql = "select u.n.f from person where h.a.s.address.secon = 'hangzhou' order by f desc";
         JsonObject object = SqlExplainer.explain(sql);
+        System.out.println(object);
+    }
+
+    @Test
+    public void a1() {
+        String sql = "select a.b as ab, ? as cd, e.f, g.h from t";
+        JsonObject object = SqlExplainer.explain(sql, "rzsj");
+//        String sql = "select a.b as ab, ? as cd, e.f, g.h as ? from t"; // 不支持这种语法
+//        JsonObject object = SqlExplainer.explain(sql, "rzsj", "gh");
         System.out.println(object);
     }
 
