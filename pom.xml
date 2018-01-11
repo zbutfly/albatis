@@ -20,7 +20,7 @@
 		<version.mongodb.fat>3.4.2</version.mongodb.fat>
 		<version.elastic>5.5.2</version.elastic>
 		<version.kudu>1.5.0</version.kudu>
-		<version.hbase>1.2.0-cdh5.12.0</version.hbase>
+		<version.hbase>1.3.1</version.hbase>
 		<version.solr>6.6.1</version.solr>
 		<version.arangodb>4.2.2</version.arangodb>
 		<version.neo4j>1.4.1</version.neo4j>
@@ -38,10 +38,10 @@
 		<module>hbase-io</module>
 		<module>kudu-io</module>
 		<module>kafka-io</module>
-<!-- 		<module>neo4j-io</module> -->
-<!-- 		<module>arangodb-io</module> -->
+		<!-- <module>neo4j-io</module> -->
+		<!-- <module>arangodb-io</module> -->
 		<module>demo</module>
-<!-- 		<module>util</module> -->
+		<!-- <module>util</module> -->
 	</modules>
 	<dependencies>
 		<dependency>
