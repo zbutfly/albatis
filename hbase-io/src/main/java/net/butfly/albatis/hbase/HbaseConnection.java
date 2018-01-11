@@ -2,8 +2,11 @@ package net.butfly.albatis.hbase;
 
 import static net.butfly.albacore.paral.Sdream.of;
 
+import java.io.BufferedWriter;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.net.InetSocketAddress;
 import java.util.Date;
 import java.util.List;
@@ -29,6 +32,7 @@ import com.hzcominfo.albatis.nosql.NoSqlConnection;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.paral.Exeter;
 import net.butfly.albacore.paral.Sdream;
+import net.butfly.albacore.serder.BsonSerder;
 import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.Texts;
 import net.butfly.albacore.utils.collection.Colls;
@@ -42,9 +46,10 @@ public class HbaseConnection extends NoSqlConnection<org.apache.hadoop.hbase.cli
 	private static final int GET_BATCH_SIZE = Integer.parseInt(Configs.gets("albatis.hbase.connection.get.batch.size", "100"));
 	private static final int GET_SCAN_OBJS = Integer.parseInt(Configs.gets("albatis.hbase.connection.get.scaner.queue", "500"));
 	private static final int GET_MAX_RETRIES = Integer.parseInt(Configs.gets("albatis.hbase.connection.get.retry", "2"));
-	private static final int GET_SCAN_BYTES = Integer.parseInt(Configs.gets("albatis.hbase.connection.get.result.bytes", "3145728"));
+	private static final int GET_SCAN_BYTES = Integer.parseInt(Configs.gets("albatis.hbase.connection.get.result.bytes", "3145728")); // 3M
 	private static final int GET_SCAN_LIMIT = Integer.parseInt(Configs.gets("albatis.hbase.connection.get.result.limit", "1"));
 	private static final long GET_STATS_STEP = Long.parseLong(Configs.gets("albatis.hbase.connection.get.stats.step", "-1"));
+	private static final long GET_DUMP_MIN_SIZE = Integer.parseInt(Configs.gets("albatis.hbase.connection.get.dump.min.bytes", "2097152")); // 2M
 	private final Map<String, Table> tables;
 	private final LinkedBlockingQueue<Scan> scans = new LinkedBlockingQueue<>(GET_SCAN_OBJS);
 
@@ -130,25 +135,28 @@ public class HbaseConnection extends NoSqlConnection<org.apache.hadoop.hbase.cli
 				return of(gets).map(g -> scan(table, g)).nonNull().list();
 			}
 		}));
-		return of(rr).peek(r -> dump(table, r)).map(r -> Hbases.Results.result(table, r)).list();
+		Sdream<Result> ss = of(rr);
+		if (GET_DUMP_MIN_SIZE > 0) ss = ss.peek(r -> dump(table, r));
+		return ss.map(r -> Hbases.Results.result(table, r)).list();
 	}
-
-	private static final long GET_DUMP_MIN_SIZE = 1024 * 1024 * 2;
 
 	private Result dump(String table, Result r) {
 		long size = Result.getTotalSizeOfCells(r);
 		if (size < GET_DUMP_MIN_SIZE) return r;
-		String fn = Bytes.toString(r.getRow()) + "-bytes-" + size + "-" + Texts.formatDate("hhMMssSSS", new Date());
+		String fn = Texts.formatDate("hhMMssSSS", new Date()) + "-ROWKEY:" + Bytes.toString(r.getRow()) + "-SIZE:" + size;
+		logger.error("Dump: " + fn);
 		try (FileOutputStream fs = new FileOutputStream(fn + ".bin")) {
 			fs.write(Hbases.toBytes(r));
 		} catch (Exception e) {
 			logger.error("Dump fail: " + e.getMessage());
 		}
 		Message m = Hbases.Results.result(table, r);
-		for (String key : m.keySet())
-			if (m.get(key) instanceof byte[]) m.put(key, Bytes.toString((byte[]) m.get(key)));
-		try (FileOutputStream fs = new FileOutputStream(fn + ".txt")) {
-			fs.write(m.toString().getBytes());
+		try (PrintWriter w = new PrintWriter(new BufferedWriter(new FileWriter(fn + ".txt")));) {
+			for (String key : m.keySet()) {
+				Object val = m.get(key);
+				w.println(key + ": ");
+				w.println("\t" + (val instanceof byte[] ? BsonSerder.map((byte[]) val).toString() : val.toString()));
+			}
 		} catch (Exception e) {
 			logger.error("Dump fail: " + e.getMessage());
 		}
