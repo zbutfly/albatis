@@ -2,8 +2,10 @@ package net.butfly.albatis.hbase;
 
 import static net.butfly.albacore.paral.Sdream.of;
 
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -28,6 +30,7 @@ import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.paral.Exeter;
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.Configs;
+import net.butfly.albacore.utils.Texts;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
@@ -120,14 +123,36 @@ public class HbaseConnection extends NoSqlConnection<org.apache.hadoop.hbase.cli
 	public List<Message> get(String table, List<Get> gets) {
 		if (gets == null || gets.isEmpty()) return Colls.list();
 		if (gets.size() == 1) return Colls.list(Hbases.Results.result(table, s.stats(scan(table, gets.get(0)))));
-		List<Result> rr = s.statsTiming(() -> table(table, t -> {
+		List<Result> rr = s.statsIns(() -> table(table, t -> {
 			try {
 				return Colls.list(t.get(gets));
 			} catch (IOException e) {
 				return of(gets).map(g -> scan(table, g)).nonNull().list();
 			}
 		}));
-		return of(rr).map(r -> Hbases.Results.result(table, r)).list();
+		return of(rr).peek(r -> dump(table, r)).map(r -> Hbases.Results.result(table, r)).list();
+	}
+
+	private static final long GET_DUMP_MIN_SIZE = 1024 * 1024 * 2;
+
+	private Result dump(String table, Result r) {
+		long size = Result.getTotalSizeOfCells(r);
+		if (size < GET_DUMP_MIN_SIZE) return r;
+		String fn = Bytes.toString(r.getRow()) + "-bytes-" + size + "-" + Texts.formatDate("hhMMssSSS", new Date());
+		try (FileOutputStream fs = new FileOutputStream(fn + ".bin")) {
+			fs.write(Hbases.toBytes(r));
+		} catch (Exception e) {
+			logger.error("Dump fail: " + e.getMessage());
+		}
+		Message m = Hbases.Results.result(table, r);
+		for (String key : m.keySet())
+			if (m.get(key) instanceof byte[]) m.put(key, Bytes.toString((byte[]) m.get(key)));
+		try (FileOutputStream fs = new FileOutputStream(fn + ".txt")) {
+			fs.write(m.toString().getBytes());
+		} catch (Exception e) {
+			logger.error("Dump fail: " + e.getMessage());
+		}
+		return r;
 	}
 
 	@Deprecated
