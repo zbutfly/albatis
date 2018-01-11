@@ -66,13 +66,17 @@ public class ElasticOutput extends SafeOutput<Message> {
 				@SuppressWarnings("rawtypes")
 				List<DocWriteRequest> reqs = of(remains.values()).map(Elastics::forWrite).list();
 				if (reqs.isEmpty()) return;
-				try {
-					process(remains, conn.client().bulk(s().stats(new BulkRequest().add(reqs))).get());
-				} catch (ExecutionException ex) {
-					logger().error("Elastic client fail: [" + ex.getCause() + "]");
-				} catch (Exception ex) {
-					logger().error("Elastic client fail: [" + ex + "]");
-				}
+				BulkRequest bulk = new BulkRequest().add(reqs);
+				process(remains, s().statsOut(bulk, b -> {
+					try {
+						return conn.client().bulk(b).get();
+					} catch (ExecutionException ex) {
+						logger().error("Elastic client fail: [" + ex.getCause() + "]");
+					} catch (Exception ex) {
+						logger().error("Elastic client fail: [" + ex + "]");
+					}
+					return null;
+				}));
 			}
 		} finally {
 			if (!remains.isEmpty()) failed(of(remains.values()));
@@ -87,7 +91,7 @@ public class ElasticOutput extends SafeOutput<Message> {
 		// int originalSize = remains.size();
 		if (respSize == 0) return;
 		List<Message> retries = Colls.list();
-		for (BulkItemResponse r : response) {
+		if (null != response) for (BulkItemResponse r : response) {
 			Message o = remains.remove(r.getId());
 			if (!r.isFailed()) succs++;
 			else if (null != o) {
