@@ -1,6 +1,7 @@
 package net.butfly.albatis.io;
 
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import net.butfly.albacore.base.Sizable;
 import net.butfly.albacore.io.Openable;
@@ -9,9 +10,8 @@ import net.butfly.albacore.utils.CaseFormat;
 import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Statistic;
-import net.butfly.albacore.utils.logger.Statistical;
 
-public interface IO extends Sizable, Openable, Statistical {
+public interface IO extends Sizable, Openable {
 	class Props {
 		static final String BATCH_SIZE = "batch.size";
 		static final String STATS_STEP = "stats.step";
@@ -43,10 +43,8 @@ public interface IO extends Sizable, Openable, Statistical {
 
 	@Override
 	default void open() {
-		long step = Props.PROPS.computeIfAbsent(this, io -> Maps.of()).computeIfAbsent(Props.STATS_STEP, //
-				k -> Props.propL(getClass(), k, -1)).longValue();
-		Statistic s;
-		if (step > 0 && null != (s = trace())) statistic(s.step(step));
+		s().step(Props.PROPS.computeIfAbsent(this, io -> Maps.of()).computeIfAbsent(Props.STATS_STEP, //
+				k -> Props.propL(getClass(), k, -1)).longValue());
 		Openable.super.open();
 	}
 
@@ -57,5 +55,18 @@ public interface IO extends Sizable, Openable, Statistical {
 	default int batchSize() {
 		return Props.PROPS.computeIfAbsent(this, io -> Maps.of()).computeIfAbsent(Props.BATCH_SIZE, //
 				k -> Props.propI(getClass(), k, 500)).intValue();
+	}
+
+	class Stats {
+		private static final Map<IO, Statistic> IO_STATS = new ConcurrentHashMap<>();
+	}
+
+	default Statistic s() {
+		return Stats.IO_STATS.computeIfAbsent(this, IO::trace);
+	}
+
+	default void statistic(Statistic s) {
+		if (null == s) Stats.IO_STATS.remove(this);
+		else Stats.IO_STATS.put(this, s);
 	}
 }

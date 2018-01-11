@@ -4,7 +4,6 @@ import static net.butfly.albacore.paral.Sdream.of;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -120,19 +119,21 @@ public class HbaseConnection extends NoSqlConnection<org.apache.hadoop.hbase.cli
 
 	public List<Message> get(String table, List<Get> gets) {
 		if (gets == null || gets.isEmpty()) return Colls.list();
-		if (gets.size() == 1) return Arrays.asList(scan(table, gets.get(0)));
-		return table(table, t -> {
+		if (gets.size() == 1) return Colls.list(Hbases.Results.result(table, s.stats(scan(table, gets.get(0)))));
+		List<Result> rr = s.statsTiming(() -> table(table, t -> {
 			try {
-				return of(s.stats(Colls.list(t.get(gets)))).map(r -> Hbases.Results.result(table, r)).list();
-			} catch (Exception ex) {
+				return Colls.list(t.get(gets));
+			} catch (IOException e) {
 				return of(gets).map(g -> scan(table, g)).nonNull().list();
 			}
-		});
+		}));
+		return of(rr).map(r -> Hbases.Results.result(table, r)).list();
 	}
 
+	@Deprecated
 	public List<Message> get1(String table, List<Get> gets) {
 		if (gets == null || gets.isEmpty()) return Colls.list();
-		if (gets.size() == 1) return Arrays.asList(scan(table, gets.get(0)));
+		if (gets.size() == 1) return Colls.list(Hbases.Results.result(table, s.stats(scan(table, gets.get(0)))));
 		return table(table, t -> {
 			LinkedBlockingQueue<Get> all = new LinkedBlockingQueue<>(gets);
 			List<Callable<List<Message>>> tasks = Colls.list();
@@ -143,7 +144,7 @@ public class HbaseConnection extends NoSqlConnection<org.apache.hadoop.hbase.cli
 					try {
 						return of(s.stats(Colls.list(t.get(batch)))).map(r -> Hbases.Results.result(table, r)).list();
 					} catch (Exception ex) {
-						return of(batch).map(g -> scan(table, g)).nonNull().list();
+						return of(batch).map(g -> Hbases.Results.result(table, s.stats(scan(table, gets.get(0))))).nonNull().list();
 					}
 				});
 			}
@@ -151,7 +152,7 @@ public class HbaseConnection extends NoSqlConnection<org.apache.hadoop.hbase.cli
 		});
 	}
 
-	private Message scan(String table, Get get) {
+	private Result scan(String table, Get get) {
 		byte[] row = get.getRow();
 		return table(table, t -> {
 			int retry = 0;
@@ -178,7 +179,7 @@ public class HbaseConnection extends NoSqlConnection<org.apache.hadoop.hbase.cli
 			int rt = retry;
 			logger().trace(() -> "Hbase get(scan) on [" + Bytes.toString(row) + "] with [" + rt + "] retries, size: [" + Result
 					.getTotalSizeOfCells(rr) + "]");
-			return Hbases.Results.result(table, s.stats(r));
+			return r;
 		});
 	}
 

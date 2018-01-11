@@ -13,6 +13,6 @@ public class DryOutput<V> extends Namedly implements Output<V> {
 
 	@Override
 	public void enqueue(Sdream<V> items) {
-		s().stats(items.list());
+		if (null != items) s().stats(items.list());
 	}
 }
