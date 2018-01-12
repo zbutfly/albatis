@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
 
 public class SqlExplainer {
     private static final Logger logger = Logger.getLogger(SqlExplainer.class);
-
+    public static final String KEYWORD_FUNCTION_STRING_NAME = "keyword";
     public static final int LIMIT_DEFAULT;
     public static SqlParser.ConfigBuilder DEFAULT_PARSER_CONFIG = SqlParser
             .configBuilder()
@@ -143,31 +143,23 @@ public class SqlExplainer {
     private static void analysisFields(List<SqlNode> selectList, JsonObject json) {
         JsonArray fields = new JsonArray();
         for (SqlNode n : selectList) {
-            SqlIdentifier identifier;
             JsonObject field = new JsonObject();
             switch (n.getKind()) {
                 case AS:
                     SqlNode nd = ((SqlCall) n).operand(0);
-                    String names;
-                    if (SqlIdentifier.class.isInstance(nd)) {
-                        names = sqlIdentifierNames((SqlIdentifier) nd);
-                    } else if (SqlDynamicParam.class.isInstance(nd)) {
-                        names = newDynamicParamMark();
-                    } else {
-                        throw new RuntimeException("unsupported SqlNode in AS: " + nd);
-                    }
-//                    identifier2Json(name, field);
+                    String names = SqlDynamicParam.class.isInstance(nd) ? newDynamicParamMark() : fieldNameFromSqlNode(nd);
                     field.addProperty("field", names);
-                    field.addProperty("alias", ((SqlIdentifier) ((SqlCall) n).operand(1)).getSimple());
+                    field.addProperty("alias", sqlIdentifierNames(((SqlCall) n).operand(1)));
                     break;
                 case IDENTIFIER:
-                    identifier = (SqlIdentifier) n;
-                    identifier2Json(identifier, field);
-                    field.addProperty("alias", sqlIdentifierNames(identifier));
+                    String identifierNames = sqlIdentifierNames((SqlIdentifier) n);
+                    field.addProperty("field", identifierNames);
+                    field.addProperty("alias", identifierNames);
 //                    field.addProperty("field", identifier.isStar() ? "*" : identifier.getSimple());
                     break;
                 case DYNAMIC_PARAM:
                     field.addProperty("field", newDynamicParamMark());
+//                    throw new RuntimeException("未指定 AS!");
                     break;
                 case SUM:
                 case SUM0:
@@ -175,18 +167,12 @@ public class SqlExplainer {
                 case COUNT:
                 case MAX:
                 case MIN:
-                	identifier = ((SqlCall) n).operand(0);
-                	String name = identifier.isStar() ? "*":identifier.getSimple();
-                	field.addProperty("field", ((SqlCall) n).getOperator().getName().toLowerCase() + "(" + name + ")");
+                	field.addProperty("field", fieldNameFromSqlNode(n));
+                	field.addProperty("alias", fieldNameFromSqlNode(n));
                 	break;
                 case OTHER_FUNCTION:
-                    String function = getFunctionNameFromSqlUnresolvedFunction(((SqlCall) n).getOperator());
-                    identifier = ((SqlCall) n).operand(0);
-                    if ("keyword".equals(function.toLowerCase())) {
-                        field.addProperty("field", identifier + "." + "keyword");
-                    } else {
-                        logger.warn("ignore unknown udf:" + function + " and it's params");
-                    }
+                    field.addProperty("field", fieldNameFromSqlNode(n));
+                    field.addProperty("alias", sqlIdentifierNames(((SqlCall) n).operand(0)));
                     break;
                 default:
                     throw new RuntimeException("Unsupported kind: " + n.getKind());
@@ -194,19 +180,6 @@ public class SqlExplainer {
             fields.add(field);
         }
         json.add("fields", fields);
-    }
-
-    private static String getFunctionNameFromSqlUnresolvedFunction(SqlOperator operator) {
-        SqlUnresolvedFunction op = (SqlUnresolvedFunction) operator;
-        return op.getSqlIdentifier().getSimple();
-    }
-
-    private static void identifier2Json(SqlIdentifier identifier, JsonObject json) {
-        ImmutableList<String> names = identifier.names.reverse();
-//        if (names.size() >= 3) json.addProperty("namespace", names.get(2));
-//        if (names.size() >= 2) json.addProperty("table", names.get(1));
-//        if (names.size() >= 1) json.addProperty("field", identifier.isStar() ? "*" : names.get(0));
-        json.addProperty("field", identifier.toString());
     }
 
     private static void analysisTables(SqlSelect select, JsonObject json) {
@@ -247,7 +220,6 @@ public class SqlExplainer {
     }
 
     private static void analysisConditionExpression(SqlNode condition, JsonObject tree) {
-//        System.out.println("\n" + condition);
         if (null == condition) return;
         SqlKind kind = condition.getKind();
         SqlCall sc = (SqlCall) condition;
@@ -321,12 +293,7 @@ public class SqlExplainer {
         String value = null;
         SqlNode node = sc.operand(0);
         if (node instanceof SqlDynamicParam) value = newDynamicParamMark();
-        else if (node instanceof SqlIdentifier) value = ((SqlIdentifier) node).getSimple();
-        else if (node instanceof SqlBasicCall) {
-            String operator = ((SqlBasicCall) node).getOperator().getName();
-            String identifier = ((SqlIdentifier) ((SqlBasicCall) node).operand(0)).getSimple();
-            value = operator + "(" + identifier + ")";
-        }
+        else value = fieldNameFromSqlNode(node);
         object.addProperty(sc.getKind().lowerName, value);
     }
 
@@ -338,27 +305,7 @@ public class SqlExplainer {
     private static void analysisBinaryConditionExpression(SqlCall sc, JsonObject json) {
         SqlNode node;
         node = sc.operand(0);
-        String field = null;
-        if (node instanceof  SqlIdentifier)
-            field = ((SqlIdentifier) node).names.stream().collect(Collectors.joining("."));
-        else if (node instanceof SqlBasicCall) {
-            SqlCall sbc = (SqlCall) node;
-            SqlOperator operator = sbc.getOperator();
-            String operatorName = sbc.toString();
-            if (operator instanceof SqlAggFunction) {
-                operatorName = operator.getName();
-                String identifier = ((SqlIdentifier) sbc.operand(0)).getSimple();
-                field = operatorName + "(" + identifier + ")";
-            } else if (operator instanceof SqlUnresolvedFunction) {
-                String function = getFunctionNameFromSqlUnresolvedFunction(((SqlCall) node).getOperator());
-                SqlIdentifier identifier = ((SqlCall) node).operand(0);
-                if ("keyword".equals(function.toLowerCase())) {
-                    field = identifier + "." + "keyword";
-                } else {
-                    logger.warn("ignore unknown udf:" + function + " and it's params");
-                }
-            } else throw new RuntimeException("operator : " + operator + " is not a agg func");
-        }
+        String field = fieldNameFromSqlNode(node);
         SqlNode v = sc.operand(1);
         if (v instanceof SqlIdentifier) {
             throw new RuntimeException("if " + ((SqlIdentifier) v).getSimple() + " (" + v.getParserPosition().toString() + ") is literal, please mark them by single quote");
@@ -389,7 +336,7 @@ public class SqlExplainer {
         List<SqlNode> operands = sc.getOperandList();
         SqlNode node;
         node = operands.get(0);
-        String field = ((node instanceof SqlDynamicParam) ? newDynamicParamMark() : ((SqlIdentifier) node).getSimple());
+        String field = (node instanceof SqlDynamicParam) ? newDynamicParamMark() : fieldNameFromSqlNode(node);
         node = operands.get(1);
         String start = ((node instanceof SqlDynamicParam) ? newDynamicParamMark() : ((SqlLiteral) node).toValue());
         node = operands.get(2);
@@ -412,7 +359,8 @@ public class SqlExplainer {
         String operator = sc.getKind().lowerName;
         String field;
         if (sc.operand(0) instanceof SqlDynamicParam) field = newDynamicParamMark();
-        else field = ((SqlIdentifier) sc.operand(0)).names.stream().collect(Collectors.joining("."));
+        else field = fieldNameFromSqlNode(sc.operand(0));
+
         SqlNode nodes = sc.operand(1);
         JsonObject object = new JsonObject();
         JsonArray array = new JsonArray();
@@ -461,26 +409,14 @@ public class SqlExplainer {
                 object.addProperty(sqlIdentifierNames((SqlIdentifier) node), "ASC");
                 array.add(object);
             } else if (node instanceof SqlBasicCall) {
-                SqlNode n = ((SqlBasicCall) node).operand(0);
                 String name;
-                if (n instanceof SqlIdentifier) {
-                    name = sqlIdentifierNames((SqlIdentifier) n);
-                } else if (n instanceof SqlBasicCall) {
-                    SqlOperator operator = ((SqlBasicCall) n).getOperator();
-                    if (SqlUnresolvedFunction.class.isInstance(operator)) {
-                        String function = getFunctionNameFromSqlUnresolvedFunction(operator).toLowerCase();
-                        if ("keyword".equals(function)) {
-                            name = sqlIdentifierNames(((SqlBasicCall) n).operand(0)) + "." + function;
-                        } else {
-                            throw new RuntimeException("unsupport function:" + function);
-                        }
-                    } else {
-                        throw new RuntimeException(operator.getName() + " now is not supported");
-                    }
+                if (SqlPostfixOperator.class.isInstance(((SqlBasicCall) node).getOperator())) {
+                    name = fieldNameFromSqlNode(((SqlBasicCall) node).operand(0));
+                    object.addProperty(name, "DESC");
                 } else {
-                    throw new RuntimeException("Not support node : " + n);
+                    name = fieldNameFromSqlNode(node);
+                    object.addProperty(name, "ASC");
                 }
-                object.addProperty(name, "DESC");
                 array.add(object);
             } else {
                 System.out.println("Error to parse ORDER BY from " + node);
@@ -489,7 +425,24 @@ public class SqlExplainer {
     }
 
     private static String sqlIdentifierNames(SqlIdentifier identifier) {
-        return identifier.names.stream().collect(Collectors.joining("."));
+        return identifier.toString();
+//        if (identifier.isStar()) return identifier.toString();
+//        return identifier.names.stream().collect(Collectors.joining("."));
+    }
+
+    private static String fieldNameFromSqlNode(SqlNode node) {
+        if (SqlIdentifier.class.isInstance(node))
+            return sqlIdentifierNames((SqlIdentifier) node);
+        else if (SqlBasicCall.class.isInstance(node)) {
+            SqlOperator operator = ((SqlBasicCall) node).getOperator();
+            String identifier = sqlIdentifierNames(((SqlBasicCall) node).operand(0));
+            if (SqlFunction.class.isInstance(operator)) {
+                String function = operator.getName();
+                return KEYWORD_FUNCTION_STRING_NAME.equals(function) ?
+                        identifier + "." + KEYWORD_FUNCTION_STRING_NAME :
+                        function + "(" + identifier + ")";
+            } else throw new RuntimeException("unsupported sql operator:" + operator);
+        } else throw new RuntimeException("cant not get field name from sql node: " + node);
     }
 
     private static void analysisOffset(SqlNode node, JsonObject json) {

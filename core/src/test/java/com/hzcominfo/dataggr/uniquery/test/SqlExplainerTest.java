@@ -220,11 +220,31 @@ public class SqlExplainerTest {
 
     @Test
     public void u2() {
-//        String sql = "select keyword(u.n.f) from person where keyword(h.a.s.address.secon) = 'hangzhou' order by keyword(o.b.f) desc";
-//        String sql = "select keyword(u.n.f) from person where keyword(h.a.s.address.secon) = 'hangzhou' order by o.b.f desc";
-//        String sql = "select keyword(u.n.f) from person where keyword(h.a.s.address.secon) = 'hangzhou' order by f desc";
-//        String sql = "select keyword(u.n.f) from person where h.a.s.address.secon = 'hangzhou' order by f desc";
-        String sql = "select u.n.f from person where h.a.s.address.secon = 'hangzhou' order by f desc";
+        /** udf in fields */
+        String sql = "select keyword(u.n.f) from person";
+//        String sql = "select keyword(u.n.f) as udf from person";
+//        String sql = "select count(u.n.f) from person";
+//        String sql = "select count(*) from person";
+        /** udf in order by */
+//        String sql = "select keyword(u.n.f) from person order by order_field";
+//        String sql = "select keyword(u.n.f) from person order by o.b.f";
+//        String sql = "select keyword(u.n.f) from person order by o.b.f desc";
+//        String sql = "select keyword(u.n.f) from person order by keyword(o.b.f)";
+//        String sql = "select keyword(u.n.f) from person order by keyword(o.b.f) desc";
+
+        /** unary condition test */
+//        String sql = "select u.n.f from person where h.a.s.address.\"second\" is not null";
+//        String sql = "select u.n.f from person where keyword(h.a.s.address.\"second\") is not null";
+        /** binary condition test */
+//        String sql = "select u.n.f from person where h.a.s.address.\"second\" = 'hangzhou'";
+//        String sql = "select u.n.f from person where keyword(h.a.s.address.\"second\") > 'hangzhou'";
+        /** ternary condition test */
+//        String sql = "select u.n.f from person where h.a.s.address.\"second\" between 1 and 9";
+//        String sql = "select u.n.f from person where keyword(h.a.s.address.\"second\") between 1 and 9";
+        /** multiple condition test */
+//        String sql = "select u.n.f from person where h.a.s.address.\"second\" in (1, 2, 3, 4, 5)";
+//        String sql = "select u.n.f from person where keyword(h.a.s.address.\"second\") in (1, 2, 3, 4, 5)";
+
         JsonObject object = SqlExplainer.explain(sql);
         System.out.println(object);
     }
