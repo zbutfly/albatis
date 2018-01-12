@@ -1,6 +1,6 @@
 package com.hzcominfo.dataggr.uniquery.es5;
 
-import static com.hzcominfo.dataggr.uniquery.es5.SearchRequestBuilderVistor.AGGRS_SUFFIX;
+import static com.hzcominfo.dataggr.uniquery.es5.SearchRequestBuilderVisitor.AGGRS_SUFFIX;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -33,7 +33,7 @@ public class Es5Adapter extends Adapter {
 	public SearchRequestBuilder queryAssemble(Connection connection, JsonObject sqlJson) {
 		TransportClient client = ((ElasticConnection) connection).client();
 		SearchRequestBuilder requestBuilder = client.prepareSearch("");
-		return new SearchRequestBuilderVistor(requestBuilder, sqlJson).get();
+		return new SearchRequestBuilderVisitor(requestBuilder, sqlJson).get();
 	}
 
 	@SuppressWarnings("unchecked")

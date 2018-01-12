@@ -1,30 +1,27 @@
 package com.hzcominfo.dataggr.uniquery.es5;
 
+import com.google.gson.JsonObject;
+import com.hzcominfo.dataggr.uniquery.*;
+import org.elasticsearch.action.search.SearchRequestBuilder;
+import org.elasticsearch.index.query.QueryBuilder;
+import org.elasticsearch.search.aggregations.AggregationBuilder;
+import org.elasticsearch.search.aggregations.AggregationBuilders;
+import org.elasticsearch.search.sort.*;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-import org.elasticsearch.action.search.SearchRequestBuilder;
-import org.elasticsearch.index.query.QueryBuilder;
-import org.elasticsearch.search.aggregations.AggregationBuilder;
-import org.elasticsearch.search.aggregations.AggregationBuilders;
-import org.elasticsearch.search.sort.SortOrder;
+import static com.hzcominfo.dataggr.uniquery.es5.Es5ConditionTransverter.isNestedField;
+import static com.hzcominfo.dataggr.uniquery.es5.Es5ConditionTransverter.nestedFieldPath;
 
-import com.google.gson.JsonObject;
-import com.hzcominfo.dataggr.uniquery.AggItem;
-import com.hzcominfo.dataggr.uniquery.FieldItem;
-import com.hzcominfo.dataggr.uniquery.GroupItem;
-import com.hzcominfo.dataggr.uniquery.JsonBasicVisitor;
-import com.hzcominfo.dataggr.uniquery.OrderItem;
-import com.hzcominfo.dataggr.uniquery.TableItem;
-
-public class SearchRequestBuilderVistor extends JsonBasicVisitor<SearchRequestBuilder> {
+public class SearchRequestBuilderVisitor extends JsonBasicVisitor<SearchRequestBuilder> {
 
     public static final String AGGRS_SUFFIX = "_aggrs";
     private List<AggItem> aggItems = new ArrayList<>();
 
-    public SearchRequestBuilderVistor(SearchRequestBuilder searchRequestBuilder, JsonObject json) {
+    public SearchRequestBuilderVisitor(SearchRequestBuilder searchRequestBuilder, JsonObject json) {
         super(searchRequestBuilder, json);
         visit(json);
     }
@@ -34,11 +31,15 @@ public class SearchRequestBuilderVistor extends JsonBasicVisitor<SearchRequestBu
         SearchRequestBuilder builder = super.get();
         boolean isStart = fields.stream().map(FieldItem::name).collect(Collectors.toSet()).contains("*");
         if (!isStart) {
-            builder.setFetchSource(fields.stream().map(FieldItem::name)
-                    .filter(field -> !field.contains("(") && !field.contains(")")).toArray(String[]::new), new String[]{});
+            builder.setFetchSource(fields.stream()
+                    .map(FieldItem::full)
+                    .filter(field -> !field.contains("(") && !field.contains(")"))
+                    .toArray(String[]::new), new String[]{});
         }
-        fields.stream().filter(fieldItem -> fieldItem.full().contains("(") && fieldItem.full().contains(")"))
-                .map(fieldItem -> AggItem.of(fieldItem.full(), fieldItem.alias())).forEach(item -> aggItems.add(item));
+        fields.stream()
+                .filter(fieldItem -> fieldItem.full().contains("(") && fieldItem.full().contains(")"))
+                .map(fieldItem -> AggItem.of(fieldItem.full(), fieldItem.alias()))
+                .forEach(item -> aggItems.add(item));
     }
 
     @Override
@@ -80,7 +81,7 @@ public class SearchRequestBuilderVistor extends JsonBasicVisitor<SearchRequestBu
     public void visitGroupBy(List<GroupItem> groups) {
         if (null == groups || groups.isEmpty()) return;
         AggregationBuilder subBuilder = null;
-        List<AggregationBuilder> aggs = aggItems.stream().map(SearchRequestBuilderVistor::toAggregationBuilder).collect(Collectors.toList());
+        List<AggregationBuilder> aggs = aggItems.stream().map(SearchRequestBuilderVisitor::toAggregationBuilder).collect(Collectors.toList());
         for (int i = groups.size() - 1; i >= 0; i--) {
             GroupItem groupItem = groups.get(i);
             if (i == groups.size() - 1) {
@@ -90,7 +91,7 @@ public class SearchRequestBuilderVistor extends JsonBasicVisitor<SearchRequestBu
                 subBuilder = AggregationBuilders.terms(groupItem.name() + AGGRS_SUFFIX).field(groupItem.name()).subAggregation(subBuilder);
             }
         }
-        System.out.println(subBuilder);
+//        System.out.println("subBuilder:" + subBuilder);
         SearchRequestBuilder builder = super.get();
         builder.setSize(0);
         builder.addAggregation(subBuilder);
@@ -118,7 +119,32 @@ public class SearchRequestBuilderVistor extends JsonBasicVisitor<SearchRequestBu
     public void visitOrderBy(List<OrderItem> orders) {
         assert null != orders;
         SearchRequestBuilder builder = super.get();
-        orders.forEach(order -> builder.addSort(order.name(), order.desc() ? SortOrder.DESC : SortOrder.ASC));
+        orders.forEach(order -> {
+            String field = order.name();
+            SortOrder sortOrder = order.desc() ? SortOrder.DESC : SortOrder.ASC;
+            if (field.equals(ScoreSortBuilder.NAME)) {
+                ScoreSortBuilder scoreSortBuilder = new ScoreSortBuilder();
+                // https://www.elastic.co/guide/en/elasticsearch/reference/5.2/search-request-sort.html#_sort_order
+                scoreSortBuilder.order(sortOrder); // 默认是降序的
+                builder.addSort(scoreSortBuilder);
+            } else {
+                FieldSortBuilder fieldSortBuilder = nestedFieldSortBuilderWrapper(
+                        // https://www.elastic.co/guide/en/elasticsearch/reference/5.2/search-request-sort.html#_sort_order
+                        SortBuilders.fieldSort(field).order(sortOrder)); // 默认是升序的
+                builder.addSort(fieldSortBuilder);
+            } // no script sort support
+        });
+    }
+
+    private FieldSortBuilder nestedFieldSortBuilderWrapper(FieldSortBuilder builder) {
+        String field = builder.getFieldName();
+        if (isNestedField(field)) {
+            throw new RuntimeException("`ORDER BY` NOT support nested field for now!");
+            // min max can use anywhere ? sum, avg, median cant use only in number based array field
+//            builder.sortMode(); // default sort mode is null;
+//            builder.setNestedPath(nestedFieldPath(field)); // open this line to support nested field sort
+        }
+        return builder;
     }
 
     @Override

@@ -2,7 +2,7 @@ package com.hzcominfo.dataggr.uniquery.es5.test;
 
 import com.google.gson.JsonObject;
 import com.hzcominfo.dataggr.uniquery.SqlExplainer;
-import com.hzcominfo.dataggr.uniquery.es5.SearchRequestBuilderVistor;
+import com.hzcominfo.dataggr.uniquery.es5.SearchRequestBuilderVisitor;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.SearchType;
@@ -81,7 +81,7 @@ public class Es5QueryTest {
         SearchRequestBuilder requestBuilder = client.prepareSearch("");
         System.out.println("==============explainResult=======================");
         System.out.println(json);
-        requestBuilder = new SearchRequestBuilderVistor(requestBuilder, json).get();
+        requestBuilder = new SearchRequestBuilderVisitor(requestBuilder, json).get();
         requestBuilder.setSearchType(SearchType.DFS_QUERY_THEN_FETCH);
 
         System.out.println("==============requestBuilder=======================");
