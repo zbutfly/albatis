@@ -32,6 +32,7 @@ public final class LoggerOutput extends net.butfly.albacore.base.Namedly impleme
 	}
 
 	private LoggerOutput(String loggerName, Level level) {
+		super("LoggerOutput:" + loggerName);
 		this.level = level;
 		this.logger = Instances.fetch(() -> Logger.getLogger(loggerName), Logger.class, loggerName);
 		loggings = new HashMap<>();

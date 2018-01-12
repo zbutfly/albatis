@@ -65,7 +65,7 @@ public final class SolrOutput extends SafeOutput<Message> {
 				List<Message> ms = map.get(core).get(op);
 				try {
 					switch (op) {
-					case Op.DELETE:;
+					case Op.DELETE:
 						solr.client().deleteById(core, Sdream.of(map.get(core).get(op)).map(Message::key).list(), DEFAULT_AUTO_COMMIT_MS);
 						break;
 					default:

@@ -16,7 +16,7 @@ public final class MongoUpdateOutput extends net.butfly.albacore.base.Namedly im
 	private final DBCollection collection;
 
 	public MongoUpdateOutput(String name, String uri) throws IOException {
-		this(name, new MongoConnection(uri));
+		this(name, new MongoConnection(new URISpec(uri)));
 	}
 
 	public MongoUpdateOutput(String name, MongoConnection conn) throws IOException {
@@ -32,7 +32,7 @@ public final class MongoUpdateOutput extends net.butfly.albacore.base.Namedly im
 	}
 
 	public MongoUpdateOutput(String name, String uri, boolean upsert) throws IOException {
-		this(name, new MongoConnection(uri), upsert);
+		this(name, new MongoConnection(new URISpec(uri)), upsert);
 	}
 
 	public MongoUpdateOutput(String name, MongoConnection conn, boolean upsert) throws IOException {
