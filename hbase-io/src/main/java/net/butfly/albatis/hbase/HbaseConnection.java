@@ -107,12 +107,11 @@ public class HbaseConnection extends NoSqlConnection<org.apache.hadoop.hbase.cli
 		}
 	}
 
-	public Message get(String table, Get get) {
-		return table(table, t -> {
-			Result r;
+	public Table table(String table) {
+		return tables.computeIfAbsent(table, t -> {
 			try {
-				r = t.get(get);
-			} catch (Exception e) {
+				return client().getTable(TableName.valueOf(t), Hbases.ex);
+			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}
 		});
@@ -124,6 +123,21 @@ public class HbaseConnection extends NoSqlConnection<org.apache.hadoop.hbase.cli
 
 	private final Statistic s = new Statistic(HbaseConnection.class).sizing(Result::getTotalSizeOfCells).step(GET_STATS_STEP).detailing(
 			() -> "Cached scaner object: " + scans.size());
+
+	public Message get(String table, Get get) {
+		return table(table, t -> {
+			Result r;
+			try {
+				r = t.get(get);
+			} catch (Exception e) {
+				logger().warn("Hbase scan fail: [" + e.getMessage() + "].");
+				return null;
+			}
+			if (null != r) return Hbases.Results.result(table, r);
+			logger().error("Hbase get/scan return null: \n\t" + get.toString());
+			return null;
+		});
+	}
 
 	public List<Message> get(String table, List<Get> gets) {
 		if (gets == null || gets.isEmpty()) return Colls.list();
