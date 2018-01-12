@@ -221,7 +221,7 @@ public class SqlExplainerTest {
     @Test
     public void u2() {
         /** udf in fields */
-        String sql = "select keyword(u.n.f) from person";
+//        String sql = "select keyword(u.n.f) from person";
 //        String sql = "select keyword(u.n.f) as udf from person";
 //        String sql = "select count(u.n.f) from person";
 //        String sql = "select count(*) from person";
@@ -244,7 +244,9 @@ public class SqlExplainerTest {
         /** multiple condition test */
 //        String sql = "select u.n.f from person where h.a.s.address.\"second\" in (1, 2, 3, 4, 5)";
 //        String sql = "select u.n.f from person where keyword(h.a.s.address.\"second\") in (1, 2, 3, 4, 5)";
-
+        /** udf in group by */
+        String sql = "select u.n.f from person group by u.d.f";
+//        String sql = "select u.n.f from person group by keyword(u.d.f)";
         JsonObject object = SqlExplainer.explain(sql);
         System.out.println(object);
     }

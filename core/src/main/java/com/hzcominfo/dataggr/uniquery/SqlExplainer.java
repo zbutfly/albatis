@@ -306,18 +306,16 @@ public class SqlExplainer {
         SqlNode node;
         node = sc.operand(0);
         String field = fieldNameFromSqlNode(node);
-        SqlNode v = sc.operand(1);
-        if (v instanceof SqlIdentifier) {
-            throw new RuntimeException("if " + ((SqlIdentifier) v).getSimple() + " (" + v.getParserPosition().toString() + ") is literal, please mark them by single quote");
-        }
-//        Object value = ((SqlLiteral) sc.operand(1)).getValue();
         node = sc.operand(1);
-        if (node.getKind() == SqlKind.DYNAMIC_PARAM) {
+        if (node.getKind() == SqlKind.IDENTIFIER) {
+            json.addProperty(field, sqlIdentifierNames(((SqlIdentifier) node)));
+            return;
+        } else if (node.getKind() == SqlKind.DYNAMIC_PARAM) {
             json.addProperty(field, newDynamicParamMark());
             return;
         }
         //todo 这种写法导致不支持浮点数, 还有一处类似的
-        Object value = ((SqlLiteral) sc.operand(1)).getValue();
+        Object value = ((SqlLiteral) node).getValue();
         if (value instanceof NlsString) {
             json.addProperty(field, ((NlsString) value).getValue());
         } else if (value instanceof BigDecimal) {
@@ -383,11 +381,13 @@ public class SqlExplainer {
         json.add("groupBy", array);
         if (null == groupList) return;
         groupList.getList().forEach(node -> {
-            if (node.getKind() == SqlKind.IDENTIFIER) {
+            String field = fieldNameFromSqlNode(node);
+            array.add(field);
+            /*if (node.getKind() == SqlKind.IDENTIFIER) {
                 array.add(((SqlIdentifier) node).names.stream().collect(Collectors.joining(".")));
             } else {
                 System.out.println("Unsupported GROUP kind " + node.getKind().name());
-            }
+            }*/
         });
     }
 
