@@ -11,9 +11,9 @@ import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albatis.io.Message;
 import net.butfly.albatis.io.Message.Op;
-import net.butfly.albatis.io.SafeOutput;
+import net.butfly.albatis.io.OutputBase;
 
-public final class SolrOutput extends SafeOutput<Message> {
+public final class SolrOutput extends OutputBase<Message> {
 	public static final @SolrProps String MAX_CONCURRENT_OP_PROP_NAME = SolrProps.OUTPUT_CONCURRENT_OPS;
 	public static final int MAX_CONCURRENT_OP_DEFAULT = 100;
 	public static final int SUGGEST_BATCH_SIZE = 200;

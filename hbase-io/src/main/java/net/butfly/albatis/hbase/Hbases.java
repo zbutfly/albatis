@@ -34,6 +34,7 @@ import org.apache.hadoop.hbase.client.Increment;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import net.butfly.albacore.paral.Sdream;
@@ -210,26 +211,13 @@ public final class Hbases extends Utils {
 		return Maps.of(p);
 	}
 
-	private static final Method SET_CHACHING;
-	private static final Method SET_BATCH;
-	private static final Method SET_MAX_RESULT_SIZE;
-	static {
-		try {
-			SET_CHACHING = Scan.class.getMethod("setCaching", int.class);
-			SET_BATCH = Scan.class.getMethod("setBatch", int.class);
-			SET_MAX_RESULT_SIZE = Scan.class.getMethod("setMaxResultSize", long.class);
-		} catch (NoSuchMethodException | SecurityException e) {
-			throw new RuntimeException(e);
-		}
-	}
-
 	public static Scan optimize(Scan s, int rowsPerRpc, int colsPerRpc, long maxBytes) {
 		// optimize scan for performance, but hbase throw strang exception...
 		try {
-			s.setCaching((int) rowsPerRpc);// rows per rpc
+			s.setCaching(rowsPerRpc);// rows per rpc
 		} catch (Throwable t) {
 			try {
-				SET_CHACHING.invoke(s, rowsPerRpc);
+				s.setCaching(rowsPerRpc);// rows per rpc
 			} catch (Throwable tt) {
 				logger.warn("Optimize scan Caching fail", tt);
 			}
@@ -238,16 +226,16 @@ public final class Hbases extends Utils {
 			s.setBatch(colsPerRpc);// cols per rpc
 		} catch (Throwable t) {
 			try {
-				SET_BATCH.invoke(s, colsPerRpc);// cols per rpc
+				s.setBatch(colsPerRpc);// cols per rpc
 			} catch (Throwable tt) {
 				logger.warn("Optimize scan Batch fail", tt);
 			}
 		}
 		try {
-			SET_MAX_RESULT_SIZE.invoke(s, maxBytes);
+			s.setMaxResultSize(maxBytes);
 		} catch (Throwable t) {
 			try {
-				SET_MAX_RESULT_SIZE.invoke(s, maxBytes);
+				s.setMaxResultSize(maxBytes);
 			} catch (Throwable tt) {
 				logger.warn("Optimize scan MaxResultSize fail", tt);
 			}

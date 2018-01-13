@@ -238,7 +238,7 @@ public class HbaseConnection extends NoSqlConnection<org.apache.hadoop.hbase.cli
 	}
 
 	private Scan scanOpen(byte[] row, Filter filter, byte[]... families) {
-		Scan s = optimize(new Scan());
+		Scan s = Hbases.optimize(new Scan(), GET_SCAN_LIMIT, GET_SCAN_LIMIT, GET_SCAN_BYTES);
 		s = s.setStartRow(row).setStopRow(row);
 		s.getFamilyMap().clear();
 		for (byte[] cf : families)
@@ -249,37 +249,5 @@ public class HbaseConnection extends NoSqlConnection<org.apache.hadoop.hbase.cli
 
 	private void scanClose(Scan s) {
 		// scans.offer(s);
-	}
-
-	private Scan optimize(Scan s) {
-		// optimize scan for performance, but hbase throw strang exception...
-		try {
-			s.setCaching(GET_SCAN_LIMIT);// rows per rpc
-		} catch (Throwable t) {
-			try {
-				s.setCaching(GET_SCAN_LIMIT);// rows per rpc
-			} catch (Throwable tt) {
-				logger().debug("Hbase setCaching fail", tt);
-			}
-		}
-		try {
-			s.setBatch(GET_SCAN_LIMIT);// cols per rpc
-		} catch (Throwable t) {
-			try {
-				s.setBatch(GET_SCAN_LIMIT);// cols per rpc
-			} catch (Throwable tt) {
-				logger().debug("Hbase setBatch fail", tt);
-			}
-		}
-		try {
-			s.setMaxResultSize(GET_SCAN_BYTES);
-		} catch (Throwable t) {
-			try {
-				s.setMaxResultSize(GET_SCAN_BYTES);
-			} catch (Throwable tt) {
-				logger().debug("Hbase setMaxResultSize fail", tt);
-			}
-		}
-		return s;
 	}
 }

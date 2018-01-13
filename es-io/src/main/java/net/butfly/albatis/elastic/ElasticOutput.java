@@ -21,9 +21,9 @@ import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albacore.utils.logger.Statistic;
 import net.butfly.albatis.io.Message;
-import net.butfly.albatis.io.SafeOutput;
+import net.butfly.albatis.io.OutputBase;
 
-public class ElasticOutput extends SafeOutput<Message> {
+public class ElasticOutput extends OutputBase<Message> {
 	static final Logger logger = Logger.getLogger(ElasticOutput.class);
 	public static final int MAX_RETRY = 3;
 	public static final int SUGGEST_BATCH_SIZE = 1000;
@@ -59,8 +59,7 @@ public class ElasticOutput extends SafeOutput<Message> {
 	protected void go(Map<String, Message> remains) {
 		// logger.error("INFO: es op task enter with [" + ops.get() + "] pendings.");
 		int retry = 0;
-		int size = remains.size();
-		long now = System.currentTimeMillis();
+		// int size = remains.size();
 		try {
 			while (!remains.isEmpty() && retry++ <= MAX_RETRY) {
 				@SuppressWarnings("rawtypes")
@@ -68,21 +67,22 @@ public class ElasticOutput extends SafeOutput<Message> {
 				if (reqs.isEmpty()) return;
 				BulkRequest bulk = new BulkRequest().add(reqs);
 				process(remains, s().statsOut(bulk, b -> {
+					// logger().error("Elastic step [" + size + "] begin.");
+					// long now = System.currentTimeMillis();
 					try {
 						return conn.client().bulk(b).get();
 					} catch (ExecutionException ex) {
 						logger().error("Elastic client fail: [" + ex.getCause() + "]");
 					} catch (Exception ex) {
 						logger().error("Elastic client fail: [" + ex + "]");
+						// } finally {
+						// logger().error("Elastic step [" + size + "] spent: " + (System.currentTimeMillis() - now) + " ms.");
 					}
 					return null;
 				}));
 			}
 		} finally {
 			if (!remains.isEmpty()) failed(of(remains.values()));
-			int ret = retry;
-			logger.trace(() -> "ElasticOutput ops [" + size + "] finished in [" + (System.currentTimeMillis() - now) + " ms], remain ["
-					+ remains.size() + "] after [" + ret + "] retries, pendins [" + opsPending.get() + "]");
 		}
 	}
 
