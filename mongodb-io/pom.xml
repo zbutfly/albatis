@@ -14,11 +14,6 @@
 			<version>${project.version}</version>
 		</dependency>
 		<dependency>
-			<groupId>net.butfly.albacore</groupId>
-			<artifactId>albacore-serder-json</artifactId>
-			<version>1.0.1</version>
-		</dependency>
-		<dependency>
 			<groupId>org.mongodb</groupId>
 			<artifactId>mongo-java-driver</artifactId>
 			<version>${version.mongodb.thin}</version>
