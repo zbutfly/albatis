@@ -50,7 +50,7 @@ public class BigqQueue<V> extends OddQueue<V> {
 	}
 
 	@Override
-	public boolean enqueue(V e) {
+	protected boolean enqueue0(V e) {
 		if (null == e) return false;
 		byte[] v;
 		try {

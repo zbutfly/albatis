@@ -8,9 +8,9 @@ import org.slf4j.event.Level;
 
 import net.butfly.albacore.utils.Instances;
 import net.butfly.albacore.utils.logger.Logger;
-import net.butfly.albatis.io.OddOutput;
+import net.butfly.albatis.io.OddOutputBase;
 
-public final class LoggerOutput extends net.butfly.albacore.base.Namedly implements OddOutput<String> {
+public final class LoggerOutput extends OddOutputBase<String> {
 	private final Map<Level, Consumer<String>> loggings;
 	private final Logger logger;
 	private final Level level;
@@ -47,7 +47,7 @@ public final class LoggerOutput extends net.butfly.albacore.base.Namedly impleme
 	}
 
 	@Override
-	public boolean enqueue(String item) {
+	protected boolean enqueue0(String item) {
 		loggings.get(level).accept(item);
 		return true;
 	}

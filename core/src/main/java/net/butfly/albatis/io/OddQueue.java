@@ -2,16 +2,8 @@ package net.butfly.albatis.io;
 
 import java.util.concurrent.atomic.AtomicLong;
 
-import net.butfly.albacore.base.Namedly;
-
-public abstract class OddQueue<V> extends Namedly implements Queue<V>, OddInput<V>, OddOutput<V> {
+public abstract class OddQueue<V> extends OddOutputBase<V> implements Queue<V>, OddInput<V> {
 	private final AtomicLong capacity;
-
-	@Deprecated
-	protected OddQueue(long capacity) {
-		super();
-		this.capacity = new AtomicLong(capacity);
-	}
 
 	protected OddQueue(String name, long capacity) {
 		super(name);

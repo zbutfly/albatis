@@ -11,14 +11,14 @@ public class JavaQueue<V> extends OddQueue<V> {
 
 	@Deprecated
 	public JavaQueue(long capacity) {
-		super(capacity);
+		super("", capacity);
 		this.impl = new LinkedBlockingQueue<>((int) capacity);
 		open();
 	}
 
 	@Deprecated
 	public JavaQueue(BlockingQueue<V> impl, long capacity) {
-		super(capacity);
+		super("", capacity);
 		this.impl = impl;
 		open();
 	}
@@ -36,7 +36,7 @@ public class JavaQueue<V> extends OddQueue<V> {
 	}
 
 	@Override
-	public final boolean enqueue(V e) {
+	protected boolean enqueue0(V e) {
 		if (null == e) return false;
 		do {} while (opened() && !impl.offer(e) && waitSleep());
 		return false;
