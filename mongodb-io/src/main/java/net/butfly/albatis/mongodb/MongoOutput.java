@@ -6,12 +6,11 @@ import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 
-import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albatis.io.Message;
-import net.butfly.albatis.io.Output;
+import net.butfly.albatis.io.OutputBase;
 
-public final class MongoOutput extends Namedly implements Output<Message> {
+public final class MongoOutput extends OutputBase<Message> {
 	private final boolean upsert;
 	private final MongoConnection conn;
 	private final DBCollection collection;
@@ -43,7 +42,7 @@ public final class MongoOutput extends Namedly implements Output<Message> {
 	}
 
 	@Override
-	public void enqueue(Sdream<Message> msgs) {
+	public void enqueue0(Sdream<Message> msgs) {
 		succeeded(upsert ? msgs.map(m -> collection.save(MongoConnection.dbobj(m)).getN()).reduce((i1, i2) -> i1 + i2)
 				: collection.insert(msgs.map(MongoConnection::dbobj).list().toArray(new BasicDBObject[0])).getN());
 	}

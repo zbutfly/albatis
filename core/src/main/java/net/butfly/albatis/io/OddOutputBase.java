@@ -3,8 +3,8 @@ package net.butfly.albatis.io;
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.paral.Task;
 
-public abstract class SafeOddOutput<V> extends SafeOutputBase<V> implements OddOutput<V> {
-	protected SafeOddOutput(String name) {
+public abstract class OddOutputBase<V> extends OutputSafeBase<V> implements OddOutput<V> {
+	protected OddOutputBase(String name) {
 		super(name);
 	}
 

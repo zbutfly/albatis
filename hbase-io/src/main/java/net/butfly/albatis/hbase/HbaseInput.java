@@ -1,6 +1,7 @@
 package net.butfly.albatis.hbase;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
@@ -14,11 +15,14 @@ import org.apache.hadoop.hbase.filter.FilterList;
 
 import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.paral.Sdream;
+import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.logger.Statistic;
 import net.butfly.albatis.io.Input;
 import net.butfly.albatis.io.Message;
 
 public final class HbaseInput extends Namedly implements Input<Message> {
+	private final long SCAN_BYTES = Props.propL(HbaseInput.class, "scan.bytes", 3145728); // 3M
+	private final int SCAN_ROWS = Props.propI(HbaseInput.class, "scan.rows", 1);
 	private final HbaseConnection hconn;
 	private final String htname;
 	private final Table htable;
@@ -36,9 +40,11 @@ public final class HbaseInput extends Namedly implements Input<Message> {
 		hconn = conn;
 		htname = table;
 		htable = hconn.table(table);
-		if (null != startRow && null != stopRow) scaner = htable.getScanner(new Scan(startRow, stopRow));
-		else if (null != startRow) scaner = htable.getScanner(new Scan(startRow));
-		else scaner = htable.getScanner(new Scan());
+		Scan sc;
+		if (null != startRow && null != stopRow) sc = new Scan(startRow, stopRow);
+		else if (null != startRow) sc = new Scan(startRow);
+		else sc = new Scan();
+		scaner = htable.getScanner(Hbases.optimize(sc, batchSize(), SCAN_ROWS, SCAN_BYTES));
 		scanerLock = new ReentrantReadWriteLock();
 		ended = new AtomicBoolean(false);
 		open();
@@ -50,13 +56,13 @@ public final class HbaseInput extends Namedly implements Input<Message> {
 		htname = table;
 		htable = hconn.table(table);
 
-		Scan scan = new Scan();
+		Scan sc = new Scan();
 		if (null != filters && filters.length > 0) {
 			Filter filter = filters.length == 1 ? filters[0] : new FilterList(filters);
 			logger().debug(name() + " filtered: " + filter.toString());
-			scan = scan.setFilter(filter);
+			sc = sc.setFilter(filter);
 		}
-		scaner = htable.getScanner(scan);
+		scaner = htable.getScanner(Hbases.optimize(sc, batchSize(), SCAN_ROWS, SCAN_BYTES));
 		scanerLock = new ReentrantReadWriteLock();
 		ended = new AtomicBoolean(false);
 		open();
@@ -91,16 +97,28 @@ public final class HbaseInput extends Namedly implements Input<Message> {
 		if (!ended.get() && scanerLock.writeLock().tryLock()) {
 			Result[] rs = null;
 			try {
-				rs = scaner.next(batchSize());
-			} catch (Exception ex) {
-				logger().warn("Hbase failed and continue: " + ex.toString());
+				rs = s().statsInA(() -> {
+					// logger().error("Hbase step [" + batchSize() + "] begin.");
+					// long now = System.currentTimeMillis();
+					try {
+						return scaner.next(batchSize());
+					} catch (Exception e) {
+						logger().warn("Hbase failed and continue: " + e.toString());
+						return null;
+						// } finally {
+						// logger().error("Hbase step [" + batchSize() + "] spent: " + (System.currentTimeMillis() - now) + " ms.");
+					}
+				});
 			} finally {
 				scanerLock.writeLock().unlock();
 			}
 			if (null != rs) {
 				ended.set(rs.length == 0);
 				if (rs.length > 0) {
-					using.accept(stats(Sdream.of(rs)).map(r -> Hbases.Results.result(htname, r)));
+					List<Message> ms = Colls.list();
+					for (Result r : rs)
+						if (null != r) ms.add(Hbases.Results.result(htname, r));
+					using.accept(Sdream.of(ms));
 				}
 			}
 		}

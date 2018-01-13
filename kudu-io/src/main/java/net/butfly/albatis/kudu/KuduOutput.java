@@ -23,9 +23,9 @@ import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albatis.io.Message;
-import net.butfly.albatis.io.SafeOddOutput;
+import net.butfly.albatis.io.OddOutputBase;
 
-public class KuduOutput extends SafeOddOutput<Message> {
+public class KuduOutput extends OddOutputBase<Message> {
 	public static final int SUGGEST_BATCH_SIZE = 200;
 	private final KuduConnectionBase<?, ?, ?> connect;
 

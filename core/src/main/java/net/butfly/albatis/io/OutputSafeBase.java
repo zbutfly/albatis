@@ -12,12 +12,13 @@ import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.paral.Task;
 import net.butfly.albacore.utils.Configs;
 
-abstract class SafeOutputBase<V> extends Namedly implements Output<V> {
+abstract class OutputSafeBase<V> extends Namedly implements Output<V> {
 	private static final String PARAL_LIMIT = "paral.limit";
+	protected final int BATCH_SIZE = batchSize();
 	protected final Supplier<Boolean> opExceeded;
 	protected final AtomicInteger opsPending;
 
-	protected SafeOutputBase(String name) {
+	protected OutputSafeBase(String name) {
 		super(name);
 		this.opsPending = new AtomicInteger(0);
 		int maxOps = detectMaxConcurrentOps();

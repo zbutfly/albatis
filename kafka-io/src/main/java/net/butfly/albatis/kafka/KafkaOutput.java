@@ -12,13 +12,13 @@ import net.butfly.albacore.exception.ConfigException;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albatis.io.Message;
-import net.butfly.albatis.io.SafeOutput;
+import net.butfly.albatis.io.OutputBase;
 import net.butfly.albatis.kafka.config.KafkaOutputConfig;
 
 /**
  * @author zx
  */
-public final class KafkaOutput extends SafeOutput<Message> {
+public final class KafkaOutput extends OutputBase<Message> {
 	private final URISpec uri;
 	private final KafkaOutputConfig config;
 	private final Producer<byte[], byte[]> producer;

@@ -32,6 +32,7 @@ import org.apache.hadoop.hbase.client.Increment;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import net.butfly.albacore.paral.Sdream;
@@ -206,5 +207,37 @@ public final class Hbases extends Utils {
 			if (null != is) p.load(is);
 		} catch (IOException e) {}
 		return Maps.of(p);
+	}
+
+	public static Scan optimize(Scan s, int rowsPerRpc, int colsPerRpc, long maxBytes) {
+		// optimize scan for performance, but hbase throw strang exception...
+		try {
+			s.setCaching(rowsPerRpc);// rows per rpc
+		} catch (Throwable t) {
+			try {
+				s.setCaching(rowsPerRpc);// rows per rpc
+			} catch (Throwable tt) {
+				logger.warn("Optimize scan Caching fail", tt);
+			}
+		}
+		try {
+			s.setBatch(colsPerRpc);// cols per rpc
+		} catch (Throwable t) {
+			try {
+				s.setBatch(colsPerRpc);// cols per rpc
+			} catch (Throwable tt) {
+				logger.warn("Optimize scan Batch fail", tt);
+			}
+		}
+		try {
+			s.setMaxResultSize(maxBytes);
+		} catch (Throwable t) {
+			try {
+				s.setMaxResultSize(maxBytes);
+			} catch (Throwable tt) {
+				logger.warn("Optimize scan MaxResultSize fail", tt);
+			}
+		}
+		return s;
 	}
 }
