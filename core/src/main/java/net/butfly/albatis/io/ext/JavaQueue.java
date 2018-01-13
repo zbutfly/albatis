@@ -36,7 +36,7 @@ public class JavaQueue<V> extends OddQueue<V> {
 	}
 
 	@Override
-	public final boolean enqueue(V e) {
+	protected boolean enqueue0(V e) {
 		if (null == e) return false;
 		do {} while (opened() && !impl.offer(e) && waitSleep());
 		return false;
