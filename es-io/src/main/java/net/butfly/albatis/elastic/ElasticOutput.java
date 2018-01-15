@@ -37,7 +37,9 @@ public class ElasticOutput extends OutputBase<Message> {
 
 	@Override
 	public Statistic trace() {
-		return new Statistic(this).sizing(BulkRequest::estimatedSizeInBytes).<BulkRequest> stepping(r -> (long) r.requests().size());
+		return new Statistic(this).sizing(BulkRequest::estimatedSizeInBytes)//
+				.<BulkRequest> batchSizeCalcing(r -> (long) r.requests().size())//
+				.<BulkRequest> sampling(r -> r.requests().isEmpty() ? null : r.requests().get(0).toString());
 	}
 
 	@Override

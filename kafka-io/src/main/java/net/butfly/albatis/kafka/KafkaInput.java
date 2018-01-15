@@ -115,11 +115,10 @@ public class KafkaInput extends net.butfly.albacore.base.Namedly implements OddI
 		open();
 	}
 
-	@SuppressWarnings("rawtypes")
 	@Override
 	public Statistic trace() {
-		return new Statistic(this).<MessageAndMetadata> sizing(km -> (long) km.rawMessage$1().payloadSize()) //
-				.detailing(Exeter.of()::toString);
+		return new Statistic(this).<MessageAndMetadata<byte[], byte[]>> sizing(km -> (long) km.rawMessage$1().payloadSize()) //
+				.<MessageAndMetadata<byte[], byte[]>> sampling(km -> new String(km.key())).detailing(Exeter.of()::toString);
 	}
 
 	@Override
