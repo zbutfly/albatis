@@ -4,6 +4,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.hzcominfo.dataggr.uniquery.ConditionTransverter;
+import org.apache.lucene.search.join.ScoreMode;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
@@ -86,6 +87,30 @@ public interface Es5ConditionTransverter extends ConditionTransverter {
         throw new RuntimeException("Can NOT parse " + json + "to Es5 Query");
     }
 
+    static boolean isNestedField(String field) {
+        if (null == field || field.isEmpty()) throw new RuntimeException("field can NOT be null or empty!");
+        return removeLastDotKeywordIfExist(field).indexOf('.') > -1;
+    }
+
+    static String removeLastDotKeywordIfExist(String field) {
+        return field.endsWith(".keyword") ? field.substring(0, field.lastIndexOf(".")) : field;
+    }
+
+    static String nestedFieldPath(String field) {
+        if (isNestedField(field)) {
+            int idx = removeLastDotKeywordIfExist(field).lastIndexOf('.');
+            return field.substring(0, idx);
+        } else {
+            return field;
+        }
+    }
+
+    static QueryBuilder nestedQueryWrapper(String field, QueryBuilder query) {
+        // https://www.elastic.co/guide/en/elasticsearch/reference/5.2/query-dsl-nested-query.html
+        // says: The score_mode allows to set how inner children matching affects scoring of parent. It defaults to avg, but can be sum, min, max and none.
+        return isNestedField(field) ? QueryBuilders.nestedQuery(nestedFieldPath(field), query, ScoreMode.Avg) : query;
+    }
+
     class UnrecognizedEs5ConditionTransverter implements Es5ConditionTransverter {
 
         @Override
@@ -133,7 +158,7 @@ public interface Es5ConditionTransverter extends ConditionTransverter {
 
         @Override
         public QueryBuilder toEs5Query() {
-            return QueryBuilders.termQuery(field, value);
+            return nestedQueryWrapper(field, QueryBuilders.termQuery(field, value));
         }
     }
 
@@ -148,7 +173,7 @@ public interface Es5ConditionTransverter extends ConditionTransverter {
 
         @Override
         public QueryBuilder toEs5Query() {
-            return QueryBuilders.boolQuery().mustNot(QueryBuilders.termQuery(field, value));
+            return nestedQueryWrapper(field, QueryBuilders.boolQuery().mustNot(QueryBuilders.termQuery(field, value)));
         }
     }
 
@@ -163,7 +188,7 @@ public interface Es5ConditionTransverter extends ConditionTransverter {
 
         @Override
         public QueryBuilder toEs5Query() {
-            return QueryBuilders.rangeQuery(field).to(value, false);
+            return nestedQueryWrapper(field, QueryBuilders.rangeQuery(field).to(value, false));
         }
     }
 
@@ -178,7 +203,7 @@ public interface Es5ConditionTransverter extends ConditionTransverter {
 
         @Override
         public QueryBuilder toEs5Query() {
-            return QueryBuilders.rangeQuery(field).to(value, true);
+            return nestedQueryWrapper(field, QueryBuilders.rangeQuery(field).to(value, true));
         }
     }
 
@@ -193,7 +218,7 @@ public interface Es5ConditionTransverter extends ConditionTransverter {
 
         @Override
         public QueryBuilder toEs5Query() {
-            return QueryBuilders.rangeQuery(field).from(value, false);
+            return nestedQueryWrapper(field, QueryBuilders.rangeQuery(field).from(value, false));
         }
     }
 
@@ -208,7 +233,7 @@ public interface Es5ConditionTransverter extends ConditionTransverter {
 
         @Override
         public QueryBuilder toEs5Query() {
-            return QueryBuilders.rangeQuery(field).from(value, true);
+            return nestedQueryWrapper(field, QueryBuilders.rangeQuery(field).from(value, true));
         }
     }
 
@@ -224,7 +249,7 @@ public interface Es5ConditionTransverter extends ConditionTransverter {
          */
         @Override
         public QueryBuilder toEs5Query() {
-            return QueryBuilders.boolQuery().mustNot(QueryBuilders.existsQuery(field));
+            return nestedQueryWrapper(field, QueryBuilders.boolQuery().mustNot(QueryBuilders.existsQuery(field)));
         }
     }
 
@@ -241,7 +266,7 @@ public interface Es5ConditionTransverter extends ConditionTransverter {
          */
         @Override
         public QueryBuilder toEs5Query() {
-            return QueryBuilders.boolQuery().must(QueryBuilders.existsQuery(field));
+            return nestedQueryWrapper(field, QueryBuilders.boolQuery().must(QueryBuilders.existsQuery(field)));
         }
     }
 
@@ -260,8 +285,8 @@ public interface Es5ConditionTransverter extends ConditionTransverter {
 
         @Override
         public QueryBuilder toEs5Query() {
-            return QueryBuilders.wildcardQuery(field,
-                    value.toString().replaceAll("%", "*").replaceAll("_", "?"));
+            return nestedQueryWrapper(field, QueryBuilders.wildcardQuery(field,
+                    value.toString().replaceAll("%", "*").replaceAll("_", "?")));
         }
     }
 
@@ -279,8 +304,8 @@ public interface Es5ConditionTransverter extends ConditionTransverter {
 
         @Override
         public QueryBuilder toEs5Query() {
-            return QueryBuilders.boolQuery().mustNot(QueryBuilders.wildcardQuery(field,
-                    value.toString().replaceAll("%", "*").replaceAll("_", "?")));
+            return nestedQueryWrapper(field, QueryBuilders.boolQuery().mustNot(QueryBuilders.wildcardQuery(field,
+                    value.toString().replaceAll("%", "*").replaceAll("_", "?"))));
         }
     }
 
@@ -299,7 +324,7 @@ public interface Es5ConditionTransverter extends ConditionTransverter {
 
         @Override
         public QueryBuilder toEs5Query() {
-            return QueryBuilders.rangeQuery(field).from(start, true).to(end, true);
+            return nestedQueryWrapper(field, QueryBuilders.rangeQuery(field).from(start, true).to(end, true));
         }
     }
 
@@ -315,8 +340,8 @@ public interface Es5ConditionTransverter extends ConditionTransverter {
 
         @Override
         public QueryBuilder toEs5Query() {
-            return QueryBuilders.boolQuery().mustNot(
-                    QueryBuilders.rangeQuery(field).from(start, true).to(end, true));
+            return nestedQueryWrapper(field, QueryBuilders.boolQuery().mustNot(
+                    QueryBuilders.rangeQuery(field).from(start, true).to(end, true)));
         }
     }
 
@@ -330,12 +355,18 @@ public interface Es5ConditionTransverter extends ConditionTransverter {
             this.values = values;
         }
 
-        @Override
+        /*@Override
         public QueryBuilder toEs5Query() {
             BoolQueryBuilder builder = QueryBuilders.boolQuery();
             values.forEach(obj -> builder.should(QueryBuilders.termQuery(field, obj)));
             builder.minimumShouldMatch(1);
-            return builder;
+            return nestedQueryWrapper(field, builder);
+        }*/
+
+        @Override
+        public QueryBuilder toEs5Query() {
+            QueryBuilder builder = QueryBuilders.termsQuery(field, values);
+            return nestedQueryWrapper(field, builder);
         }
     }
 
@@ -349,11 +380,17 @@ public interface Es5ConditionTransverter extends ConditionTransverter {
             this.values = values;
         }
 
-        @Override
+        /*@Override
         public QueryBuilder toEs5Query() {
             BoolQueryBuilder builder = QueryBuilders.boolQuery();
             values.forEach(obj -> builder.mustNot(QueryBuilders.termQuery(field, obj)));
-            return builder;
+            return nestedQueryWrapper(field,  builder);
+        }*/
+
+        @Override
+        public QueryBuilder toEs5Query() {
+            BoolQueryBuilder builder = QueryBuilders.boolQuery().mustNot(QueryBuilders.termsQuery(field, values));
+            return nestedQueryWrapper(field,  builder);
         }
     }
 

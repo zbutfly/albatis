@@ -15,6 +15,7 @@ import java.util.stream.Collectors;
 
 import static com.hzcominfo.dataggr.uniquery.es5.Es5ConditionTransverter.isNestedField;
 import static com.hzcominfo.dataggr.uniquery.es5.Es5ConditionTransverter.nestedFieldPath;
+import static com.hzcominfo.dataggr.uniquery.es5.Es5ConditionTransverter.removeLastDotKeywordIfExist;
 
 public class SearchRequestBuilderVisitor extends JsonBasicVisitor<SearchRequestBuilder> {
 
@@ -33,6 +34,10 @@ public class SearchRequestBuilderVisitor extends JsonBasicVisitor<SearchRequestB
         if (!isStart) {
             builder.setFetchSource(fields.stream()
                     .map(FieldItem::full)
+                    .map(str -> {
+                        if (str.endsWith(".keyword")) return str.substring(0, str.length() - ".keyword".length());
+                        else return str;
+                    })
                     .filter(field -> !field.contains("(") && !field.contains(")"))
                     .toArray(String[]::new), new String[]{});
         }
@@ -85,16 +90,28 @@ public class SearchRequestBuilderVisitor extends JsonBasicVisitor<SearchRequestB
         for (int i = groups.size() - 1; i >= 0; i--) {
             GroupItem groupItem = groups.get(i);
             if (i == groups.size() - 1) {
-                subBuilder = AggregationBuilders.terms(groupItem.name() + AGGRS_SUFFIX).field(groupItem.name());
-                for (AggregationBuilder agg : aggs) subBuilder.subAggregation(agg);
+                subBuilder = wrapperNestedAggregation(groupItem, aggs.toArray(new AggregationBuilder[]{}));
             } else {
-                subBuilder = AggregationBuilders.terms(groupItem.name() + AGGRS_SUFFIX).field(groupItem.name()).subAggregation(subBuilder);
+                subBuilder = wrapperNestedAggregation(groupItem, subBuilder);
             }
         }
-//        System.out.println("subBuilder:" + subBuilder);
         SearchRequestBuilder builder = super.get();
         builder.setSize(0);
         builder.addAggregation(subBuilder);
+    }
+
+    private AggregationBuilder wrapperNestedAggregation(GroupItem item, AggregationBuilder... subAggBuilders) {
+        String field = item.name();
+        AggregationBuilder builder = AggregationBuilders.terms(field + AGGRS_SUFFIX).field(field);
+        if (null != subAggBuilders && subAggBuilders.length > 0) {
+            for (AggregationBuilder agg : subAggBuilders) builder.subAggregation(agg);
+        }
+        if (isNestedField(field)) {
+            return AggregationBuilders.nested(removeLastDotKeywordIfExist(field) + "_nested" + AGGRS_SUFFIX,
+                    nestedFieldPath(field)).subAggregation(builder);
+        } else {
+            return builder;
+        }
     }
 
     private AggregationBuilder toSubTermAggregationBuilder(List<GroupItem> groups) {
