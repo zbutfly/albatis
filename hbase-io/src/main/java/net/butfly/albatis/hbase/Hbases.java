@@ -8,6 +8,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -209,13 +210,26 @@ public final class Hbases extends Utils {
 		return Maps.of(p);
 	}
 
+	private static final Method SET_CHACHING;
+	private static final Method SET_BATCH;
+	private static final Method SET_MAX_RESULT_SIZE;
+	static {
+		try {
+			SET_CHACHING = Scan.class.getMethod("setCaching", int.class);
+			SET_BATCH = Scan.class.getMethod("setBatch", int.class);
+			SET_MAX_RESULT_SIZE = Scan.class.getMethod("setMaxResultSize", long.class);
+		} catch (NoSuchMethodException | SecurityException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
 	public static Scan optimize(Scan s, int rowsPerRpc, int colsPerRpc, long maxBytes) {
 		// optimize scan for performance, but hbase throw strang exception...
 		try {
-			s.setCaching(rowsPerRpc);// rows per rpc
+			s.setCaching((int) rowsPerRpc);// rows per rpc
 		} catch (Throwable t) {
 			try {
-				s.setCaching(rowsPerRpc);// rows per rpc
+				SET_CHACHING.invoke(s, rowsPerRpc);
 			} catch (Throwable tt) {
 				logger.warn("Optimize scan Caching fail", tt);
 			}
@@ -224,16 +238,16 @@ public final class Hbases extends Utils {
 			s.setBatch(colsPerRpc);// cols per rpc
 		} catch (Throwable t) {
 			try {
-				s.setBatch(colsPerRpc);// cols per rpc
+				SET_BATCH.invoke(s, colsPerRpc);// cols per rpc
 			} catch (Throwable tt) {
 				logger.warn("Optimize scan Batch fail", tt);
 			}
 		}
 		try {
-			s.setMaxResultSize(maxBytes);
+			SET_MAX_RESULT_SIZE.invoke(s, maxBytes);
 		} catch (Throwable t) {
 			try {
-				s.setMaxResultSize(maxBytes);
+				SET_MAX_RESULT_SIZE.invoke(s, maxBytes);
 			} catch (Throwable tt) {
 				logger.warn("Optimize scan MaxResultSize fail", tt);
 			}
