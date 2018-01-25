@@ -16,7 +16,7 @@ import net.butfly.albacore.utils.collection.Maps;
 
 public class Message extends ConcurrentHashMap<String, Object> {
 	private static final long serialVersionUID = 2316795812336748252L;
-	protected String key;
+	protected Object key;
 	protected String table;
 	protected @Op int op;
 
@@ -53,7 +53,7 @@ public class Message extends ConcurrentHashMap<String, Object> {
 		this(table, (String) null);
 	}
 
-	public Message(String table, String key) {
+	public Message(String table, Object key) {
 		super();
 		this.table = table;
 		this.key = key;
@@ -70,7 +70,7 @@ public class Message extends ConcurrentHashMap<String, Object> {
 		this.table = table;
 	}
 
-	public Message(String table, String key, Map<? extends String, ? extends Object> values) {
+	public Message(String table, Object key, Map<? extends String, ? extends Object> values) {
 		this(table, values);
 		this.key = key;
 		op = Op.DEFAULT;
@@ -80,15 +80,15 @@ public class Message extends ConcurrentHashMap<String, Object> {
 		this(table, keyAndValues.v1(), keyAndValues.v2());
 	}
 
-	public Message(String table, String key, String firstFieldName, Object... firstFieldValueAndOthers) {
+	public Message(String table, Object key, String firstFieldName, Object... firstFieldValueAndOthers) {
 		this(table, key, Maps.of(firstFieldName, firstFieldValueAndOthers));
 	}
 
-	public String key() {
+	public Object key() {
 		return key;
 	}
 
-	public Message key(String key) {
+	public Message key(Object key) {
 		this.key = key;
 		return this;
 	}
@@ -138,9 +138,15 @@ public class Message extends ConcurrentHashMap<String, Object> {
 		}
 	}
 
+	public final byte[] keyBytes() {
+		if (null == key) return null;
+		if (key instanceof byte[]) return (byte[]) key;
+		if (key instanceof CharSequence) return key.toString().getBytes();
+		return key.toString().getBytes();// XXX
+	}
+
 	protected void write(OutputStream os) throws IOException {
-		IOs.writeBytes(os, null == table ? null : table.getBytes(), null == key ? null : key.getBytes(), BsonSerder.map(this), new byte[] {
-				(byte) op });
+		IOs.writeBytes(os, null == table ? null : table.getBytes(), keyBytes(), BsonSerder.map(this), new byte[] { (byte) op });
 	}
 
 	public Map<String, Object> map() {

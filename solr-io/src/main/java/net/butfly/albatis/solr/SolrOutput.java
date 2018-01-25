@@ -66,7 +66,8 @@ public final class SolrOutput extends OutputBase<Message> {
 				try {
 					switch (op) {
 					case Op.DELETE:
-						solr.client().deleteById(core, Sdream.of(map.get(core).get(op)).map(Message::key).list(), DEFAULT_AUTO_COMMIT_MS);
+						solr.client().deleteById(core, Sdream.of(map.get(core).get(op))//
+								.map(t -> null == t.key() ? null : t.key().toString()).list(), DEFAULT_AUTO_COMMIT_MS);
 						break;
 					default:
 						solr.client().add(core, Sdream.of(map.get(core).get(op)).map(m -> Solrs.input(m, keyFieldName)).list(),

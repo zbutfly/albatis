@@ -52,13 +52,13 @@ public class ElasticOutput extends OutputBase<Message> {
 
 	@Override
 	protected void enqueue0(Sdream<Message> msgs) {
-		Map<String, Message> remains = Maps.of();
+		Map<Object, Message> remains = Maps.of();
 		for (Message m : msgs.list())
 			remains.put(m.key(), conn.fixTable(m));
 		if (!remains.isEmpty()) go(remains);
 	}
 
-	protected void go(Map<String, Message> remains) {
+	protected void go(Map<Object, Message> remains) {
 		// logger.error("INFO: es op task enter with [" + ops.get() + "] pendings.");
 		int retry = 0;
 		// int size = remains.size();
@@ -88,7 +88,7 @@ public class ElasticOutput extends OutputBase<Message> {
 		}
 	}
 
-	void process(Map<String, Message> remains, BulkResponse response) {
+	void process(Map<Object, Message> remains, BulkResponse response) {
 		int succs = 0, respSize = remains.size();
 		// int originalSize = remains.size();
 		if (respSize == 0) return;
