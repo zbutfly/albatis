@@ -21,7 +21,7 @@ public class ElasticOutputAsync extends ElasticOutput {
 	}
 
 	@Override
-	protected final void go(Map<String, Message> remains) {
+	protected final void go(Map<Object, Message> remains) {
 		while (!remains.isEmpty()) {
 			@SuppressWarnings("rawtypes")
 			List<DocWriteRequest> reqs = of(remains.values()).map(Elastics::forWrite).list();
@@ -35,9 +35,9 @@ public class ElasticOutputAsync extends ElasticOutput {
 	}
 
 	protected final class EnqueueListener implements ActionListener<BulkResponse> {
-		private final Map<String, Message> remains;
+		private final Map<Object, Message> remains;
 
-		private EnqueueListener(Map<String, Message> remains) {
+		private EnqueueListener(Map<Object, Message> remains) {
 			this.remains = remains;
 		}
 
