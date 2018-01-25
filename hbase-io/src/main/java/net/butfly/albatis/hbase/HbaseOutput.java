@@ -5,6 +5,7 @@ import static net.butfly.albacore.utils.collection.Colls.list;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.apache.hadoop.hbase.client.Append;
 import org.apache.hadoop.hbase.client.Delete;
@@ -111,7 +112,7 @@ public final class HbaseOutput extends OutputBase<Message> {
 	}
 
 	private void incs(String table, List<Message> msgs, List<Message> origins, List<Mutation> puts) {
-		Map<String, List<Message>> incByKeys = Maps.of();
+		Map<Object, List<Message>> incByKeys = Maps.of();
 		for (Message m : msgs)
 			switch (m.op()) {
 			case Op.INCREASE:
@@ -132,7 +133,7 @@ public final class HbaseOutput extends OutputBase<Message> {
 				}
 			}
 
-		for (Map.Entry<String, List<Message>> e : incByKeys.entrySet()) {
+		for (Entry<Object, List<Message>> e : incByKeys.entrySet()) {
 			Message merge = new Message(table, e.getKey()).op(Op.INCREASE);
 			for (Message m : e.getValue())
 				for (Map.Entry<String, Object> f : m.entrySet())

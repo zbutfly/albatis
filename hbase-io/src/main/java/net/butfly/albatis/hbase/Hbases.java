@@ -158,8 +158,10 @@ public final class Hbases extends Utils {
 		@SuppressWarnings("unchecked")
 		static Mutation op(Message m) {
 			if (m.isEmpty()) return null;
-			String row = m.key();
-			if (row == null || row.isEmpty()) return null;
+			Object rowo = m.key();
+			if (null == rowo) return null;
+			String row = rowo.toString();
+			if (row.isEmpty()) return null;
 			byte[] rowk = Bytes.toBytes(row);
 			int fc = 0;
 			switch (m.op()) {

@@ -15,10 +15,10 @@ public interface Kafkas {
 	}
 
 	static ProducerRecord<byte[], byte[]> toProducer(Message m, Function<Map<String, Object>, byte[]> ser) {
-		return null == m.key() ? null : new ProducerRecord<byte[], byte[]>(m.table(), m.key().getBytes(), ser.apply(m.map()));
+		return null == m.key() ? null : new ProducerRecord<byte[], byte[]>(m.table(), m.keyBytes(), ser.apply(m.map()));
 	}
 
 	static KeyedMessage<byte[], byte[]> toKeyedMessage(Message m, Function<Map<String, Object>, byte[]> ser) {
-		return null == m.key() ? null : new KeyedMessage<>(m.table(), m.key().getBytes(), ser.apply(m.map()));
+		return null == m.key() ? null : new KeyedMessage<>(m.table(), m.keyBytes(), ser.apply(m.map()));
 	}
 }

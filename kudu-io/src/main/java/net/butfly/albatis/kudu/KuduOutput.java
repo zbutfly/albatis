@@ -11,6 +11,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.kudu.ColumnSchema;
@@ -41,16 +42,16 @@ public class KuduOutput extends OddOutputBase<Message> {
 		// sdumpDups();
 	}
 
-	protected final Map<String, Long> keys = Maps.of();
-	protected final AtomicReference<Pair<String, Long>> maxDup = new AtomicReference<>();
+	protected final Map<Object, Long> keys = Maps.of();
+	protected final AtomicReference<Pair<Object, Long>> maxDup = new AtomicReference<>();
 
 	protected void dumpDups() {
 		if (keys.isEmpty()) return;
-		Map<String, Long> dups = of(keys).filter(e -> e.getValue() > 1).partitions(e -> e.getKey(), e -> e.getValue());
+		Map<Object, Long> dups = of(keys).filter(e -> e.getValue() > 1).partitions(e -> e.getKey(), e -> e.getValue());
 		try (FileOutputStream fs = new FileOutputStream("duplicated-keys.dump");
 				OutputStreamWriter ow = new OutputStreamWriter(fs);
 				BufferedWriter ww = new BufferedWriter(ow);) {
-			for (Map.Entry<String, Long> e : dups.entrySet())
+			for (Entry<Object, Long> e : dups.entrySet())
 				ww.write(e.getKey() + ": " + e.getValue() + "\n");
 		} catch (IOException e) {
 			logger().error("Duplicated keys dump file open failed", e);
@@ -89,10 +90,10 @@ public class KuduOutput extends OddOutputBase<Message> {
 		if (null == t) return null;
 		switch (m.op()) {
 		case DELETE:
-			for (ColumnSchema cs : cols.values())
+			if (null != m.key()) for (ColumnSchema cs : cols.values())
 				if (cs.isKey()) {
 					Delete del = t.newDelete();
-					del.getRow().addString(cs.getName(), m.key());
+					del.getRow().addString(cs.getName(), m.key().toString());
 					return del;
 				}
 			return null;

@@ -78,7 +78,7 @@ public class Message extends ConcurrentHashMap<String, Object> {
 		this(table, keyAndValues.v1(), keyAndValues.v2());
 	}
 
-	public Message(String table, String key, String firstFieldName, Object... firstFieldValueAndOthers) {
+	public Message(String table, Object key, String firstFieldName, Object... firstFieldValueAndOthers) {
 		this(table, key, Maps.of(firstFieldName, firstFieldValueAndOthers));
 	}
 
@@ -136,9 +136,15 @@ public class Message extends ConcurrentHashMap<String, Object> {
 		}
 	}
 
+	public final byte[] keyBytes() {
+		if (null == key) return null;
+		if (key instanceof byte[]) return (byte[]) key;
+		if (key instanceof CharSequence) return key.toString().getBytes();
+		return key.toString().getBytes();// XXX
+	}
+
 	protected void write(OutputStream os) throws IOException {
-		IOs.writeBytes(os, null == table ? null : table.getBytes(), null == key ? null : key.getBytes(), BsonSerder.map(this), new byte[] {
-				(byte) op });
+		IOs.writeBytes(os, null == table ? null : table.getBytes(), keyBytes(), BsonSerder.map(this), new byte[] { (byte) op });
 	}
 
 	public Map<String, Object> map() {
