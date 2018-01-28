@@ -112,7 +112,6 @@ public class KafkaInput extends net.butfly.albacore.base.Namedly implements OddI
 				l.add(ks.iterator());
 		consumers = new LinkedBlockingQueue<>(l);
 		closing(this::closeKafka);
-		open();
 	}
 
 	@Override

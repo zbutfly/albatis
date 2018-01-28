@@ -5,7 +5,6 @@ import net.butfly.albatis.io.OddOutputBase;
 public class ConsoleOutput extends OddOutputBase<String> {
 	public ConsoleOutput() {
 		super("ConsoleOutput");
-		open();
 	}
 
 	@Override

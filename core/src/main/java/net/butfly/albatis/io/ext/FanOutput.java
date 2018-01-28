@@ -13,11 +13,17 @@ import net.butfly.albatis.io.Output;
 
 public class FanOutput<V> extends Namedly implements Output<V> {
 	private final List<Consumer<Sdream<V>>> tasks;
-	private final Iterable<? extends Output<V>> outputs;
+	private final List<? extends Output<V>> outputs;
 
 	public FanOutput(Iterable<? extends Output<V>> outputs) {
 		this("FanOutTo" + ":" + of(outputs).joinAsString(Output::name, "&"), outputs);
-		open();
+	}
+
+	@Override
+	public void open() {
+		for (int i = outputs.size() - 1; i >= 0; i--)
+			outputs.get(i).open();
+		Output.super.open();
 	}
 
 	@Override
@@ -30,7 +36,7 @@ public class FanOutput<V> extends Namedly implements Output<V> {
 	public FanOutput(String name, Iterable<? extends Output<V>> outputs) {
 		super(name);
 		tasks = Colls.list();
-		this.outputs = outputs;
+		this.outputs = Colls.list(outputs);
 		for (Output<V> o : outputs)
 			tasks.add(items -> {
 				o.enqueue(items);

@@ -30,7 +30,6 @@ public final class ElasticInput extends net.butfly.albacore.base.Namedly impleme
 		index = elastic.getDefaultIndex();
 		type = elastic.getDefaultType();
 		closing(elastic::close);
-		open();
 	}
 
 	public ElasticInput(String name, ElasticConnection conn, QueryBuilder query) throws IOException {
@@ -39,7 +38,6 @@ public final class ElasticInput extends net.butfly.albacore.base.Namedly impleme
 		elastic = conn;
 		index = elastic.getDefaultIndex();
 		type = elastic.getDefaultType();
-		open();
 	}
 
 	public int getScrolltime() {

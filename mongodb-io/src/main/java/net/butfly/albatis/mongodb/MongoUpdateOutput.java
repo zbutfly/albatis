@@ -49,7 +49,6 @@ public final class MongoUpdateOutput extends OddOutputBase<Pair<DBObject, DBObje
 		this.conn = conn;
 		this.collection = this.conn.db().getCollection(collection);
 		closing(this.conn::close);
-		open();
 	}
 
 	@Override

@@ -33,7 +33,6 @@ public final class MongoOutput extends OutputBase<Message> {
 		this.conn = conn;
 		this.collection = this.conn.db().getCollection(collection);
 		closing(this.conn::close);
-		open();
 	}
 
 	protected boolean enqueue(DBObject dbo) {

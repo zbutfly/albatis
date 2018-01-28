@@ -74,7 +74,6 @@ public class MongoLockedInput extends net.butfly.albacore.base.Namedly implement
 			}
 		}).filter(Lambdas.notNull()).list();
 		closing(this::closeMongo);
-		open();
 	}
 
 	public MongoLockedInput(String name, MongoConnection conn, Map<String, DBObject> tablesAndQueries) throws IOException {
@@ -100,7 +99,6 @@ public class MongoLockedInput extends net.butfly.albacore.base.Namedly implement
 			}
 		}).list();
 		closing(this::closeMongo);
-		open();
 	}
 
 	private void closeMongo() {

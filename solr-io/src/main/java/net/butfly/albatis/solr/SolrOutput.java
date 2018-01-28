@@ -29,7 +29,6 @@ public final class SolrOutput extends OutputBase<Message> {
 		super(name);
 		solr = conn;
 		this.keyFieldName = keyFieldName;
-		open();
 	}
 
 	@Override

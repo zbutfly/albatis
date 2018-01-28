@@ -266,4 +266,16 @@ public class HbaseConnection extends NoSqlConnection<org.apache.hadoop.hbase.cli
 			return Colls.list("hbase");
 		}
 	}
+
+	@Override
+	public HbaseInput input(String... table) throws IOException {
+		HbaseInput i = new HbaseInput("HbaseInput", this);
+		i.table(table);
+		return i;
+	}
+
+	@Override
+	public HbaseOutput output() throws IOException {
+		return new HbaseOutput("HbaseOutput", this);
+	}
 }

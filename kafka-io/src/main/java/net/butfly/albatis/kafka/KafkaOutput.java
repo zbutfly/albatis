@@ -31,7 +31,6 @@ public final class KafkaOutput extends OutputBase<Message> {
 		config = new KafkaOutputConfig(uri);
 		producer = new Producer<byte[], byte[]>(config.getConfig());
 		closing(producer::close);
-		open();
 	}
 
 	@Override

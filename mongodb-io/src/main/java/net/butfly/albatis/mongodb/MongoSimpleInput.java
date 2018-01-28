@@ -32,7 +32,6 @@ public class MongoSimpleInput extends net.butfly.albacore.base.Namedly implement
 			cursor = cursor.addOption(Bytes.QUERYOPTION_NOTIMEOUT);
 		});
 		closing(this::closeMongo);
-		open();
 	}
 
 	private void closeMongo() {

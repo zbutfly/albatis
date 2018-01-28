@@ -33,7 +33,6 @@ public class KuduOutput extends OddOutputBase<Message> {
 	public KuduOutput(String name, KuduConnectionBase<?, ?, ?> conn) throws IOException {
 		super(name);
 		connect = conn;
-		open();
 	}
 
 	@Override

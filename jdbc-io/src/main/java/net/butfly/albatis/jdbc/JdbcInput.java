@@ -47,7 +47,6 @@ public class JdbcInput extends net.butfly.albacore.base.Namedly implements OddIn
 		batch(100);
 		opening(this::openJdbc);
 		closing(this::closeJdbc);
-		open();
 	}
 
 	private void parseMeta() throws SQLException {

@@ -43,7 +43,6 @@ public final class LoggerOutput extends OddOutputBase<String> {
 			loggings.put(Level.WARN, s -> logger.warn(s));
 			loggings.put(Level.ERROR, s -> logger.error(s));
 		}
-		open();
 	}
 
 	@Override

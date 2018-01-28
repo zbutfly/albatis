@@ -8,7 +8,6 @@ import net.butfly.albatis.io.OddInput;
 public final class RandomStringInput extends net.butfly.albacore.base.Namedly implements OddInput<String> {
 	public RandomStringInput() {
 		super("RandomInput");
-		open();
 	}
 
 	public static final Input<String> INSTANCE = new RandomStringInput();
