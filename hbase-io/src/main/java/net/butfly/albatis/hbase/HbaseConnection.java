@@ -250,4 +250,20 @@ public class HbaseConnection extends NoSqlConnection<org.apache.hadoop.hbase.cli
 	private void scanClose(Scan s) {
 		// scans.offer(s);
 	}
+
+	public static class Driver implements com.hzcominfo.albatis.nosql.Connection.Driver<HbaseConnection> {
+		static {
+			DriverManager.register(new Driver());
+		}
+
+		@Override
+		public HbaseConnection connect(URISpec uriSpec) throws IOException {
+			return new HbaseConnection(uriSpec);
+		}
+
+		@Override
+		public List<String> schemas() {
+			return Colls.list("hbase");
+		}
+	}
 }

@@ -20,6 +20,7 @@ import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 
 import net.butfly.albacore.io.URISpec;
+import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
 
@@ -174,6 +175,22 @@ public class MongoConnection extends NoSqlConnection<MongoClient> {
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+		}
+	}
+
+	public static class Driver implements com.hzcominfo.albatis.nosql.Connection.Driver<MongoConnection> {
+		static {
+			DriverManager.register(new Driver());
+		}
+
+		@Override
+		public MongoConnection connect(URISpec uriSpec) throws IOException {
+			return new MongoConnection(uriSpec);
+		}
+
+		@Override
+		public List<String> schemas() {
+			return Colls.list("mongodb");
 		}
 	}
 }

@@ -37,6 +37,7 @@ import com.hzcominfo.albatis.nosql.NoSqlConnection;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.Reflections;
+import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.io.Input;
@@ -92,7 +93,7 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 	}
 
 	public SolrConnection(URISpec uri, Class<? extends ResponseParser> parserClass, boolean parsing) throws IOException {
-		super(uri, u -> create(u, parserClass), "solr", "zookeeper", "zk", "http", "zk:solr");
+		super(uri, u -> create(u, parserClass), "solr", "zk:solr", "zookeeper", "zk", "http");
 		meta = parsing ? parse() : null;
 	}
 
@@ -279,27 +280,7 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 
 		@Override
 		public List<String> schemas() {
-			return Colls.list("solr", "solr:zk");
+			return Colls.list("solr", "zk:solr");
 		}
-	}
-
-	@Override
-	public Input<Message> input(String... table) throws IOException {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	public SolrOutput output() throws IOException {
-		return new SolrOutput("SolrOutput", this);
-	}
-
-	public static void main(String... args) throws IOException {
-		testParse("http://data03:10180/solr/zhk_SJZYZH_MY_TRAINFO");
-		testParse("http://data03:10180/solr/");
-		testParse("http://data03:10180/solr");
-	}
-
-	private static void testParse(String u) throws IOException {
-		System.out.println("Parse Solr URI [" + u + "] => " + SolrMeta.parse(new URISpec(u)));
 	}
 }

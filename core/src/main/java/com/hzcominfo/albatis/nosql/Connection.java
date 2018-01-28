@@ -1,73 +1,93 @@
 package com.hzcominfo.albatis.nosql;
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
+import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.ServiceLoader;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.Pair;
-import net.butfly.albacore.utils.Reflections;
 import net.butfly.albacore.utils.collection.Maps;
+import net.butfly.albacore.utils.logger.Logger;
 
 public interface Connection extends AutoCloseable {
 	public static final String PARAM_KEY_BATCH = "batch";
 	public static final int DEFAULT_BATCH_SIZE = 500;
-	static final Map<String, Class<? extends Connection>> CONNECTION_MAP = loadConnections();
+	public static final Logger logger = Logger.getLogger(Connection.class);
 
 	String defaultSchema();
 
 	URISpec getURI();
 
-	public static <T extends Connection> T connect(String url, Class<T> clazz) throws Exception {
-		return connect(new URISpec(url), clazz);
+	static <T extends Connection> T connect(URISpec uriSpec) throws IOException {
+		return DriverManager.connect(uriSpec);
 	}
 
-	public static <T extends Connection> T connect(String url, Class<T> clazz, String... params) throws Exception {
-		Pair<String, Object[]> p = Maps.parseFirstKey((Object[]) params);
-		return connect(new URISpec(url), clazz, Maps.of(p.v1(), p.v2()));
+	interface Driver<C extends Connection> {
+		List<String> schemas();
+
+		C connect(URISpec uriSpec) throws IOException;
+
+		// Class<C> connectClass();
 	}
 
-	public static <T extends Connection> T connect(String url, Class<T> clazz, Map<String, String> props) throws Exception {
-		return connect(new URISpec(url), clazz, props);
-	}
+	@SuppressWarnings("rawtypes")
+	class DriverManager {
+		private final static Map<String, Driver> DRIVERS = Maps.of();
+		static {
+			loadConnections();
+			System.out.println("ConnectionManager initialized");
+		}
 
-	public static <T extends Connection> T connect(URISpec uri, Class<T> clazz) throws Exception {
-		return connect(uri, clazz, new HashMap<>());
-	}
-
-	public static <T extends Connection> T connect(URISpec uri, Class<T> clazz, String... params) throws Exception {
-		Pair<String, Object[]> p = Maps.parseFirstKey((Object[]) params);
-		return connect(uri, clazz, Maps.of(p.v1(), p.v2()));
-	}
-
-	public static <T extends Connection> T connect(URISpec uriSpec, Class<T> clazz, Map<String, String> props) throws Exception {
-		Constructor<T> con = clazz.getConstructor(new Class[] { URISpec.class });
-		return con.newInstance(uriSpec);
-	}
-
-	public static Map<String, Class<? extends Connection>> loadConnections() {
-		Map<String, Class<? extends Connection>> map = new HashMap<>();
-		Set<Class<? extends Connection>> set = Reflections.getSubClasses(Connection.class);
-		for (Class<? extends Connection> c : set) {
-			try {
-				if (c.getSuperclass().isAssignableFrom(NoSqlConnection.class)) {
-					Field[] fields = c.getDeclaredFields();
-					if (fields != null && fields.length > 0) {
-						for (Field f : fields) {
-							if ("schema".equals(f.getName())) {
-								f.setAccessible(true);
-								map.put((String) f.get(c), c);
-								break;
-							}
-						}
-					}
-				}
-			} catch (SecurityException | IllegalArgumentException | IllegalAccessException e) {
-				throw new RuntimeException("get field error", e);
+		private static void loadConnections() {
+			for (Driver driver : ServiceLoader.load(Driver.class)) {
+				// XXX why can't I do register here?
+				// for (String schema : (List<String>) driver.schemas())
+				// DRIVERS.put(schema, driver);
+				logger.debug("Connection driver loading: " + driver.getClass().toString());
 			}
 		}
-		return map;
+
+		@SuppressWarnings("unchecked")
+		public static void register(Driver driver) {
+			for (String schema : (List<String>) driver.schemas())
+				DRIVERS.put(schema, driver);
+			logger.debug("Connection driver loaded: " + driver.getClass().toString());
+		}
+
+		@SuppressWarnings("unchecked")
+		static <T extends Connection> T connect(URISpec uriSpec) throws IOException {
+			Driver d = DRIVERS.get(uriSpec.getScheme());
+			if (null == d) throw new RuntimeException("No matched connection for schema [" + uriSpec.getScheme() + "]");
+			// return Connect.connect(uriSpec, d.connectClass());
+			return (T) d.connect(uriSpec);
+		}
+	}
+
+	@Deprecated
+	class Connect {
+		public static <T extends Connection> T connect(URISpec uri, Class<T> clazz) throws IOException {
+			return connect(uri, clazz, new HashMap<>());
+		}
+
+		public static <T extends Connection> T connect(URISpec uri, Class<T> clazz, String... params) throws IOException {
+			Pair<String, Object[]> p = Maps.parseFirstKey((Object[]) params);
+			return connect(uri, clazz, Maps.of(p.v1(), p.v2()));
+		}
+
+		public static <T extends Connection> T connect(URISpec uriSpec, Class<T> clazz, Map<String, String> props) throws IOException {
+			try {
+				return clazz.getConstructor(new Class[] { URISpec.class }).newInstance(uriSpec);
+			} catch (NoSuchMethodException | SecurityException | InstantiationException | IllegalAccessException
+					| IllegalArgumentException e) {
+				throw new RuntimeException(e);
+			} catch (InvocationTargetException e) {
+				Throwable ee = e.getTargetException();
+				if (e instanceof InvocationTargetException && e.getTargetException() instanceof IOException) throw (IOException) ee;
+				throw new RuntimeException(e.getTargetException());
+			}
+		}
 	}
 }

@@ -3,6 +3,7 @@ package net.butfly.albatis.elastic;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -15,8 +16,9 @@ import com.hzcominfo.albatis.nosql.NoSqlConnection;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.serder.JsonSerder;
+import net.butfly.albacore.utils.collection.Colls;
 
-public class ElasticConnection extends NoSqlConnection<TransportClient>implements ElasticConnect {
+public class ElasticConnection extends NoSqlConnection<TransportClient> implements ElasticConnect {
 
 	public ElasticConnection(URISpec uri, Map<String, String> props) throws IOException {
 		super(uri, u -> ElasticConnect.Builder.buildTransportClient(u, props), 39300, "es", "elastic", "elasticsearch");
@@ -82,26 +84,19 @@ public class ElasticConnection extends NoSqlConnection<TransportClient>implement
 		logger().debug("ES connection thread pool terminated...");
 	}
 
-	public static void main(String[] args) {
-		String uri = "es://cominfo@hzga152:39300/";
-		URISpec uriSpec = new URISpec(uri);
-		
-		try {
-			Connection connection = Connection.connect(uriSpec, null);
-			ElasticConnection ec = (ElasticConnection) connection;
-			List<DiscoveryNode> nodes = ec.client().connectedNodes();
-			for (DiscoveryNode node : nodes) {
-				System.out.println(node.getHostAddress());
-			}
-			String source = "{\"hello\":\"world\"}";
-			IndexResponse indexResponse = ec.client().prepareIndex("test_search", "hello", "0").setSource(source).get();
-//			XContentBuilder builder = XContentFactory.jsonBuilder().startObject().field("hello", "world").endObject();
-//			UpdateResponse updateResponse = ec.client().prepareUpdate("test_search", "hello", "0").setDoc(builder)
-//					.get();
-			System.out.println(indexResponse.getVersion());
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+	public static class Driver implements com.hzcominfo.albatis.nosql.Connection.Driver<ElasticConnection> {
+		static {
+			DriverManager.register(new Driver());
+		}
+
+		@Override
+		public ElasticConnection connect(URISpec uriSpec) throws IOException {
+			return new ElasticConnection(uriSpec);
+		}
+
+		@Override
+		public List<String> schemas() {
+			return Colls.list("es");
 		}
 	}
 }
