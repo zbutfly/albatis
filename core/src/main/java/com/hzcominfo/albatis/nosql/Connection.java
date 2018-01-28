@@ -22,15 +22,15 @@ public interface Connection extends AutoCloseable {
 
 	String defaultSchema();
 
-	URISpec getURI();
+	URISpec uri();
 
 	static <T extends Connection> T connect(URISpec uriSpec) throws IOException {
 		return DriverManager.connect(uriSpec);
 	}
 
-	Input<Message> input() throws IOException;
+	Input<Message> input(String... table) throws IOException;
 
-	Output<Message> Output() throws IOException;
+	Output<Message> output() throws IOException;
 
 	interface Driver<C extends Connection> {
 		List<String> schemas();

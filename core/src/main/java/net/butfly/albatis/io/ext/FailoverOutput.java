@@ -38,7 +38,6 @@ public class FailoverOutput<M> extends Wrapper.WrapOutput<M, M> {
 			pool.close();
 		});
 		pool.open();
-		open();
 		failovering.open();
 	}
 

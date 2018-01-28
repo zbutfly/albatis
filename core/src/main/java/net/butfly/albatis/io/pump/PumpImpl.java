@@ -10,6 +10,7 @@ import net.butfly.albacore.io.Openable;
 import net.butfly.albacore.lambda.Runnable;
 import net.butfly.albacore.paral.Exeter;
 import net.butfly.albacore.utils.OpenableThread;
+import net.butfly.albacore.utils.collection.Colls;
 
 public abstract class PumpImpl<V, P extends PumpImpl<V, P>> extends Namedly implements Pump<V> {
 	protected static final int STATUS_OTHER = 0;
@@ -20,7 +21,7 @@ public abstract class PumpImpl<V, P extends PumpImpl<V, P>> extends Namedly impl
 	private final int parallelism;
 
 	private final List<OpenableThread> tasks = new ArrayList<>();
-	protected final List<AutoCloseable> dependencies;
+	protected final List<Openable> dependencies;
 
 	protected PumpImpl(String name, int parallelism) {
 		super(name);
@@ -28,7 +29,7 @@ public abstract class PumpImpl<V, P extends PumpImpl<V, P>> extends Namedly impl
 		if (parallelism < 0) this.parallelism = (int) Math.floor(Math.sqrt(Exeter.of().parallelism())) - parallelism;
 		else if (parallelism == 0) this.parallelism = 16;
 		else this.parallelism = parallelism;
-		dependencies = new ArrayList<>();
+		dependencies = Colls.list();
 		logger().info("Pump [" + name + "] created with parallelism: " + parallelism);
 	}
 

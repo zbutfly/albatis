@@ -102,12 +102,12 @@ public class ElasticConnection extends NoSqlConnection<TransportClient> implemen
 	}
 
 	@Override
-	public Input<Message> input() throws IOException {
+	public Input<Message> input(String... table) throws IOException {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	public ElasticOutput Output() throws IOException {
+	public ElasticOutput output() throws IOException {
 		return new ElasticOutput("ElasticOutput", this);
 	}
 }

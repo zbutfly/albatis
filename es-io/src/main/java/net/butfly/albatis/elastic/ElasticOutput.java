@@ -32,7 +32,6 @@ public class ElasticOutput extends OutputBase<Message> {
 	public ElasticOutput(String name, ElasticConnection conn) throws IOException {
 		super(name);
 		this.conn = conn;
-		open();
 	}
 
 	@Override

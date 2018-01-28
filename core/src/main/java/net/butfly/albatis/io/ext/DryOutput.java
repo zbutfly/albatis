@@ -8,7 +8,6 @@ import net.butfly.albatis.io.Output;
 public class DryOutput<V> extends Namedly implements Output<V> {
 	public DryOutput(Input<V> input) {
 		super(input.name() + "DryOutput");
-		open();
 	}
 
 	@Override

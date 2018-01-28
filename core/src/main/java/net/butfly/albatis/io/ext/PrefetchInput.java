@@ -24,7 +24,6 @@ public class PrefetchInput<V> extends Wrapper.WrapInput<V, V> {
 			pool.close();
 		});
 		pool.open();
-		open();
 		prefetching.open();
 	}
 

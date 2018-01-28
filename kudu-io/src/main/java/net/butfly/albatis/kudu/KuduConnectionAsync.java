@@ -31,8 +31,6 @@ import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.paral.Task;
 import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.Pair;
-import net.butfly.albatis.io.Input;
-import net.butfly.albatis.io.Message;
 
 @Deprecated
 public class KuduConnectionAsync extends KuduConnectionBase<KuduConnectionAsync, AsyncKuduClient, AsyncKuduSession> {

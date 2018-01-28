@@ -34,7 +34,6 @@ public final class HbaseOutput extends OutputBase<Message> {
 	public HbaseOutput(String name, HbaseConnection hconn, Function<Map<String, Object>, byte[]> ser) throws IOException {
 		super(name);
 		this.hconn = hconn;
-		open();
 	}
 
 	@Override

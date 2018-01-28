@@ -48,7 +48,7 @@ public class MongoConnection extends NoSqlConnection<MongoClient> {
 			}
 		} , "mongodb");
 		defaultDB = uri.getPathAt(0);
-		defaultCollection = uri.getPathAt(1);
+		defaultCollection = uri.getFile();
 		dbs = Maps.of();
 	}
 
@@ -195,12 +195,14 @@ public class MongoConnection extends NoSqlConnection<MongoClient> {
 	}
 
 	@Override
-	public MongoInput input() throws IOException {
-		return new MongoInput("MongoInput", this);
+	public MongoInput input(String... table) throws IOException {
+		MongoInput i = new MongoInput("MongoInput", this);
+		i.table(table);
+		return i;
 	}
 
 	@Override
-	public MongoOutput Output() throws IOException {
+	public MongoOutput output() throws IOException {
 		return new MongoOutput("MongoOutput", this);
 	}
 }

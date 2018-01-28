@@ -160,12 +160,12 @@ public abstract class KuduConnectionBase<C extends KuduConnectionBase<C, KC, S>,
 	}
 
 	@Override
-	public Input<Message> input() throws IOException {
+	public Input<Message> input(String... table) throws IOException {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	public KuduOutput Output() throws IOException {
+	public KuduOutput output() throws IOException {
 		return new KuduOutput("KuduOutput", this);
 	}
 }

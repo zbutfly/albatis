@@ -1,6 +1,7 @@
 package net.butfly.albatis.io.pump;
 
 import net.butfly.albacore.utils.Reflections;
+import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albatis.io.Input;
 import net.butfly.albatis.io.Output;
 
@@ -13,7 +14,7 @@ public class BasicPump<V> extends PumpImpl<V, BasicPump<V>> {
 		this.input = input;
 		this.output = output;
 		Reflections.noneNull("Pump source/destination should not be null", input, output);
-		depend(input, output);
+		depend(Colls.list(input, output));
 		pumping(input::empty, this::p);
 	}
 

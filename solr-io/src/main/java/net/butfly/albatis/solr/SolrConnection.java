@@ -285,12 +285,12 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 	}
 
 	@Override
-	public Input<Message> input() throws IOException {
+	public Input<Message> input(String... table) throws IOException {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	public SolrOutput Output() throws IOException {
+	public SolrOutput output() throws IOException {
 		return new SolrOutput("SolrOutput", this);
 	}
 }

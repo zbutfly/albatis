@@ -96,7 +96,7 @@ public abstract class NoSqlConnection<C> implements Connection, Loggable {
 	}
 
 	@Override
-	public URISpec getURI() {
+	public URISpec uri() {
 		return uri;
 	}
 }

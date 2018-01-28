@@ -78,12 +78,12 @@ public class ElasticRestConnection extends NoSqlConnection<RestClient> implement
 	}
 
 	@Override
-	public Input<Message> input() throws IOException {
+	public Input<Message> input(String... table) throws IOException {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	public Output<Message> Output() throws IOException {
+	public Output<Message> output() throws IOException {
 		throw new UnsupportedOperationException();
 	}
 }
