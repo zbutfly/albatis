@@ -191,4 +191,14 @@ public class MongoConnection extends NoSqlConnection<MongoClient> {
 			return Colls.list("mongodb");
 		}
 	}
+
+	@Override
+	public MongoInput input() throws IOException {
+		return new MongoInput("MongoInput", this);
+	}
+
+	@Override
+	public MongoOutput Output() throws IOException {
+		return new MongoOutput("MongoOutput", this);
+	}
 }

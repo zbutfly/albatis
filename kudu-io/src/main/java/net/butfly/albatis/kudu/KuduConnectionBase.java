@@ -26,6 +26,8 @@ import net.butfly.albacore.paral.Exeter;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
+import net.butfly.albatis.io.Input;
+import net.butfly.albatis.io.Message;
 
 @SuppressWarnings("unchecked")
 public abstract class KuduConnectionBase<C extends KuduConnectionBase<C, KC, S>, KC extends AutoCloseable, S extends SessionConfiguration>
@@ -155,5 +157,15 @@ public abstract class KuduConnectionBase<C extends KuduConnectionBase<C, KC, S>,
 		public List<String> schemas() {
 			return Colls.list("kudu:async");
 		}
+	}
+
+	@Override
+	public Input<Message> input() throws IOException {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public KuduOutput Output() throws IOException {
+		return new KuduOutput("KuduOutput", this);
 	}
 }

@@ -17,9 +17,10 @@ import com.hzcominfo.albatis.nosql.NoSqlConnection;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.serder.JsonSerder;
 import net.butfly.albacore.utils.collection.Colls;
+import net.butfly.albatis.io.Input;
+import net.butfly.albatis.io.Message;
 
-public class ElasticConnection extends NoSqlConnection<TransportClient>implements ElasticConnect {
-
+public class ElasticConnection extends NoSqlConnection<TransportClient> implements ElasticConnect {
 	public ElasticConnection(URISpec uri, Map<String, String> props) throws IOException {
 		super(uri, u -> ElasticConnect.Builder.buildTransportClient(u, props), 39300, "es", "elasticsearch");
 	}
@@ -95,5 +96,15 @@ public class ElasticConnection extends NoSqlConnection<TransportClient>implement
 		public List<String> schemas() {
 			return Colls.list("es");
 		}
+	}
+
+	@Override
+	public Input<Message> input() throws IOException {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public ElasticOutput Output() throws IOException {
+		return new ElasticOutput("ElasticOutput", this);
 	}
 }

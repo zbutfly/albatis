@@ -16,6 +16,9 @@ import com.hzcominfo.albatis.nosql.NoSqlConnection;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.serder.JsonSerder;
+import net.butfly.albatis.io.Input;
+import net.butfly.albatis.io.Message;
+import net.butfly.albatis.io.Output;
 
 public class ElasticRestConnection extends NoSqlConnection<RestClient> implements ElasticConnect {
 	public ElasticRestConnection(URISpec uri, Map<String, String> props) throws IOException {
@@ -77,5 +80,15 @@ public class ElasticRestConnection extends NoSqlConnection<RestClient> implement
 		} catch (IOException e) {
 			logger().error("Close failure", e);
 		}
+	}
+
+	@Override
+	public Input<Message> input() throws IOException {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public Output<Message> Output() throws IOException {
+		throw new UnsupportedOperationException();
 	}
 }
