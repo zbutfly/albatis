@@ -11,6 +11,9 @@ import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
+import net.butfly.albatis.io.Input;
+import net.butfly.albatis.io.Message;
+import net.butfly.albatis.io.Output;
 
 public interface Connection extends AutoCloseable {
 	public static final String PARAM_KEY_BATCH = "batch";
@@ -24,6 +27,10 @@ public interface Connection extends AutoCloseable {
 	static <T extends Connection> T connect(URISpec uriSpec) throws IOException {
 		return DriverManager.connect(uriSpec);
 	}
+
+	Input<Message> input() throws IOException;
+
+	Output<Message> Output() throws IOException;
 
 	interface Driver<C extends Connection> {
 		List<String> schemas();

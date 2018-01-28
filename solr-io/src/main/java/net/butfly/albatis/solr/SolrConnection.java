@@ -80,8 +80,8 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 	}
 
 	public SolrConnection(URISpec uri) throws IOException {
-		this(uri.getScheme().startsWith("solr:http") ? new URISpec(uri.toString().replace("solr:", "")):uri,
-				ResponseFormat.parse(uri.getParameter("parser", "XML")));
+		this(uri.getScheme().startsWith("solr:http") ? new URISpec(uri.toString().replace("solr:", "")) : uri, ResponseFormat.parse(uri
+				.getParameter("parser", "XML")));
 	}
 
 	public SolrConnection(URISpec uri, Class<? extends ResponseParser> parserClass) throws IOException {
@@ -282,5 +282,15 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 		public List<String> schemas() {
 			return Colls.list("solr", "zk:solr");
 		}
+	}
+
+	@Override
+	public Input<Message> input() throws IOException {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public SolrOutput Output() throws IOException {
+		return new SolrOutput("SolrOutput", this);
 	}
 }
