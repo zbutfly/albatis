@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.net.URISyntaxException;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.http.HttpRequestInterceptor;
@@ -36,6 +37,7 @@ import com.hzcominfo.albatis.nosql.NoSqlConnection;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.Reflections;
+import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
 
@@ -89,7 +91,7 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 	}
 
 	public SolrConnection(URISpec uri, Class<? extends ResponseParser> parserClass, boolean parsing) throws IOException {
-		super(uri, u -> create(u, parserClass), "solr", "zookeeper", "zk", "http", "zk:solr");
+		super(uri, u -> create(u, parserClass), "solr", "zk:solr", "zookeeper", "zk", "http");
 		meta = parsing ? parse() : null;
 	}
 
@@ -261,6 +263,22 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 					throw new IllegalArgumentException("Parser [" + id + "] not found.");
 				}
 			}
+		}
+	}
+
+	public static class Driver implements com.hzcominfo.albatis.nosql.Connection.Driver<SolrConnection> {
+		static {
+			DriverManager.register(new Driver());
+		}
+
+		@Override
+		public SolrConnection connect(URISpec uriSpec) throws IOException {
+			return new SolrConnection(uriSpec);
+		}
+
+		@Override
+		public List<String> schemas() {
+			return Colls.list("solr", "zk:solr");
 		}
 	}
 }

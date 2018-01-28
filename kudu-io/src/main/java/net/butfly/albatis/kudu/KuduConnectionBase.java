@@ -4,6 +4,7 @@ import static net.butfly.albacore.paral.Sdream.of;
 import static net.butfly.albacore.paral.Task.waitSleep;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
@@ -22,6 +23,7 @@ import com.hzcominfo.albatis.nosql.NoSqlConnection;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.paral.Exeter;
+import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
 
@@ -121,4 +123,37 @@ public abstract class KuduConnectionBase<C extends KuduConnectionBase<C, KC, S>,
 	public abstract void tableDrop(String table);
 
 	public abstract void tableCreate(String name, boolean drop, ColumnSchema... cols);
+
+	public static class Driver implements com.hzcominfo.albatis.nosql.Connection.Driver<KuduConnection> {
+		static {
+			DriverManager.register(new Driver());
+		}
+
+		@Override
+		public KuduConnection connect(URISpec uriSpec) throws IOException {
+			return new KuduConnection(uriSpec);
+		}
+
+		@Override
+		public List<String> schemas() {
+			return Colls.list("kudu");
+		}
+	}
+
+	@Deprecated
+	public static class AsyncDriver implements com.hzcominfo.albatis.nosql.Connection.Driver<KuduConnectionAsync> {
+		static {
+			DriverManager.register(new Driver());
+		}
+
+		@Override
+		public KuduConnectionAsync connect(URISpec uriSpec) throws IOException {
+			return new KuduConnectionAsync(uriSpec);
+		}
+
+		@Override
+		public List<String> schemas() {
+			return Colls.list("kudu:async");
+		}
+	}
 }
