@@ -35,6 +35,7 @@ public class MongoInput extends net.butfly.albacore.base.Namedly implements OddI
 
 	@Override
 	public void open() {
+		OddInput.super.open();
 		if (cursors.isEmpty()) {
 			if (null != conn.defaultCollection()) table(conn.defaultCollection());
 			else throw new RuntimeException("No table defined for input.");
