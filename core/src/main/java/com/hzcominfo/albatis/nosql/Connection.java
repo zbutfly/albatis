@@ -44,16 +44,11 @@ public interface Connection extends AutoCloseable {
 	class DriverManager {
 		private final static Map<String, Driver> DRIVERS = Maps.of();
 		static {
-			loadConnections();
-			System.out.println("ConnectionManager initialized");
-		}
-
-		private static void loadConnections() {
 			for (Driver driver : ServiceLoader.load(Driver.class)) {
 				// XXX why can't I do register here?
 				// for (String schema : (List<String>) driver.schemas())
 				// DRIVERS.put(schema, driver);
-				logger.debug("Connection driver loading: " + driver.getClass().toString());
+				logger.debug("Connection driver loaded: " + driver.getClass().toString());
 			}
 		}
 
@@ -61,7 +56,6 @@ public interface Connection extends AutoCloseable {
 		public static void register(Driver driver) {
 			for (String schema : (List<String>) driver.schemas())
 				DRIVERS.put(schema, driver);
-			logger.debug("Connection driver loaded: " + driver.getClass().toString());
 		}
 
 		@SuppressWarnings("unchecked")

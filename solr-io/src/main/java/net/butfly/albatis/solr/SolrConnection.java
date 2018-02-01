@@ -102,12 +102,14 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 			parserClass = XMLResponseParser.class;
 		ResponseParser p = PARSER_POOL.computeIfAbsent(parserClass, clz -> Reflections.construct(clz));
 		switch (uri.getScheme()) {
+		case "solr:http":
 		case "http":
 			logger.debug("Solr client create: " + uri);
 			Builder hb = new HttpSolrClient.Builder(uri.toString()).allowCompression(true).withHttpClient(HTTP_CLIENT)//
 					.withResponseParser(p);
 			return hb.build();
 		case "solr":
+		case "solr:zk":
 		case "zookeeper":
 		case "zk":
 		case "zk:solr":
@@ -280,7 +282,7 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 
 		@Override
 		public List<String> schemas() {
-			return Colls.list("solr", "zk:solr");
+			return Colls.list("solr", "solr:zk");
 		}
 	}
 
