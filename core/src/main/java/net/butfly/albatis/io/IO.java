@@ -43,8 +43,10 @@ public interface IO extends Sizable, Openable {
 
 	@Override
 	default void open() {
-		s().step(Props.PROPS.computeIfAbsent(this, io -> Maps.of()).computeIfAbsent(Props.STATS_STEP, //
-				k -> Props.propL(getClass(), k, -1)).longValue());
+		Map<String, Number> props = Props.PROPS.computeIfAbsent(this, io -> Maps.of());
+		long step = props.computeIfAbsent(Props.STATS_STEP, k -> Props.propL(getClass(), k, -1)).longValue();
+		logger().info("Step set to [" + step + "]");
+		s().step(step);
 		Openable.super.open();
 	}
 
