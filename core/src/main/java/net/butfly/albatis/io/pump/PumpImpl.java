@@ -9,6 +9,7 @@ import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.io.Openable;
 import net.butfly.albacore.lambda.Runnable;
 import net.butfly.albacore.paral.Exeter;
+import net.butfly.albacore.utils.Exceptions;
 import net.butfly.albacore.utils.OpenableThread;
 import net.butfly.albacore.utils.collection.Colls;
 
@@ -47,9 +48,9 @@ abstract class PumpImpl<V, P extends PumpImpl<V, P>> extends Namedly implements 
 	}
 
 	protected final void pumping(Supplier<Boolean> sourceEmpty, Runnable pumping) {
-		Runnable r = Runnable.exception(pumping::run, ex -> logger().error("Pump processing failure", ex)).until(() -> {
-			return !opened() || sourceEmpty.get();
-		});
+		Runnable r = Runnable.exception(pumping::run, //
+				ex -> logger().error("Pump processing failure for [" + ex.toString() + "] at: \n" + Exceptions.getStackTrace(ex)))//
+				.until(() -> !opened() || sourceEmpty.get());
 		for (int i = 0; i < parallelism; i++)
 			tasks.add(new OpenableThread(r, name() + "PumpThread#" + i));
 	}
