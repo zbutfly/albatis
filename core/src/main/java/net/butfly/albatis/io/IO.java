@@ -17,8 +17,12 @@ public interface IO extends Sizable, Openable {
 		static final String STATS_STEP = "stats.step";
 		static Map<IO, Map<String, Number>> PROPS = Maps.of();
 
+		public static String propName(Class<?> io, String suffix) {
+			return "albatis." + CaseFormat.UPPER_CAMEL.to(CaseFormat.LOWER_DOT, io.getSimpleName()) + "." + suffix;
+		}
+
 		public static String prop(Class<?> io, String suffix, String def) {
-			return Configs.gets("albatis." + CaseFormat.UPPER_CAMEL.to(CaseFormat.LOWER_DOT, io.getSimpleName()) + "." + suffix, def);
+			return Configs.gets(propName(io, suffix), def);
 		}
 
 		public static long propL(Class<?> io, String suffix, long def) {
@@ -45,7 +49,7 @@ public interface IO extends Sizable, Openable {
 	default void open() {
 		Map<String, Number> props = Props.PROPS.computeIfAbsent(this, io -> Maps.of());
 		long step = props.computeIfAbsent(Props.STATS_STEP, k -> Props.propL(getClass(), k, -1)).longValue();
-		logger().info("Step set to [" + step + "]");
+		logger().debug(() -> "Step set to [" + step + "] by [" + Props.propName(getClass(), Props.STATS_STEP) + "]");
 		s().step(step);
 		Openable.super.open();
 	}

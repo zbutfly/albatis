@@ -44,8 +44,11 @@ public class MongoInput extends net.butfly.albacore.base.Namedly implements OddI
 
 	@Override
 	public Statistic trace() {
-		return new Statistic(this).<DBObject> sizing(b -> (long) b.keySet().size()) //
+		return new Statistic(this).<DBObject> sizing(
+
+				b -> (long) b.keySet().size()) //
 				.<DBObject> sampling(DBObject::toString).detailing(() -> "[Stats Field Count, not Bytes]");
+
 	}
 
 	public void table(String... tables) {
@@ -61,10 +64,12 @@ public class MongoInput extends net.butfly.albacore.base.Namedly implements OddI
 
 	public void table(Map<String, DBObject> tablesAndQueries) {
 		if (null == tablesAndQueries || tablesAndQueries.isEmpty()) return;
-		logger.info("[" + name + "] from [" + conn.toString() + "], collection [" + tablesAndQueries.toString() + "]");
+		logger.info("[" + name + "] from [" + conn.uri().toString() + "], collection [" + tablesAndQueries.toString() + "]");
 		List<Runnable> queries = Colls.list();
 		for (String t : tablesAndQueries.keySet())
-			queries.add(() -> cursorsMap.computeIfAbsent(t, tt -> new Cursor(tt, tablesAndQueries.get(t))));
+			queries.add(() -> cursorsMap.computeIfAbsent(t,
+
+					tt -> new Cursor(tt, tablesAndQueries.get(t))));
 		Exeter.of().join(queries.toArray(new Runnable[queries.size()]));
 	}
 
@@ -100,6 +105,7 @@ public class MongoInput extends net.butfly.albacore.base.Namedly implements OddI
 				cursorsMap.remove(col);
 			}
 		}
+
 	}
 
 	private void closeMongo() {
@@ -118,35 +124,36 @@ public class MongoInput extends net.butfly.albacore.base.Namedly implements OddI
 	@Override
 	public Message dequeue() {
 		Cursor c;
+		Map<String, Object> m;
 		while (opened() && !empty())
-			if (null != (c = cursors.poll())) {
-				try {
-					if (c.cursor.hasNext()) {
-						@SuppressWarnings("rawtypes")
-						Map m = s().stats(c.cursor.next()).toMap();
-						try {
-							return new Message(c.col, (String) null, m);
-						} catch (NullPointerException e) {
-							for (Object k : m.keySet())
-								if (null == m.get(k)) {
-									logger.error("Mongo result field [" + k + "] null at table [" + c.col + "], id [" + m.get("_id")
-											+ "].");
-									m.remove(k);
-								}
-							return new Message(c.col, (String) null, m);
-						}
-					} else {
-						c.close();
-						c = null;
+			if (null != (c = cursors.poll())) try {
+				if (c.cursor.hasNext()) {
+					try {
+						m = s().stats(c.cursor.next()).toMap();
+					} catch (MongoException ex) {
+						logger.warn("Mongo fail fetch, ignore and continue retry...");
+						continue;
+					} catch (IllegalStateException ex) {
+						continue;
 					}
-				} catch (MongoException ex) {
-					logger.warn("Mongo fail fetch, ignore and continue retry...");
-				} catch (IllegalStateException ex) {
-					break;
-				} finally {
-					if (null != c) cursors.offer(c);
+					try {
+						return new Message(c.col, (String) null, m);
+					} catch (NullPointerException e) {
+						for (Object k : m.keySet())
+							if (null == m.get(k)) {
+								logger.error("Mongo result field [" + k + "] null at table [" + c.col + "], id [" + m.get("_id") + "].");
+								m.remove(k);
+							}
+						return new Message(c.col, (String) null, m);
+					}
+				} else {
+					c.close();
+					c = null;
 				}
+			} finally {
+				if (null != c) cursors.offer(c);
 			}
+
 		return null;
 	}
 }
