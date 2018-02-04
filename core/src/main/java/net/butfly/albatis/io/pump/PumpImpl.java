@@ -13,7 +13,7 @@ import net.butfly.albacore.utils.Exceptions;
 import net.butfly.albacore.utils.OpenableThread;
 import net.butfly.albacore.utils.collection.Colls;
 
-abstract class PumpImpl<V, P extends PumpImpl<V, P>> extends Namedly implements Pump<V> {
+public abstract class PumpImpl<V, P extends PumpImpl<V, P>> extends Namedly implements Pump<V> {
 	protected static final int STATUS_OTHER = 0;
 	protected static final int STATUS_RUNNING = 1;
 	protected static final int STATUS_STOPPED = 2;
