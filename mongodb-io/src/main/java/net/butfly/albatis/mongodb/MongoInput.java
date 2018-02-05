@@ -137,7 +137,7 @@ public class MongoInput extends net.butfly.albacore.base.Namedly implements OddI
 						continue;
 					}
 					try {
-						return new Message(c.col, (String) null, m);
+						return new Message(c.col, m.containsKey("_id") ? m.get("_id").toString() : null, m);
 					} catch (NullPointerException e) {
 						for (Object k : m.keySet())
 							if (null == m.get(k)) {

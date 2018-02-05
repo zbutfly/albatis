@@ -69,12 +69,16 @@ public class MongoConnection extends NoSqlConnection<MongoClient> {
 		return db().getCollection(defaultCollection);
 	}
 
+	private final Map<String, DBCollection> COLS = Maps.of();
+
 	public DBCollection collection(String collection) {
-		if (!db().collectionExists(collection)) {
-			logger.debug("Mongodb collection create on [" + db().toString() + "] with name: " + collection);
-			db().createCollection(collection, dbobj());
-		}
-		return db().getCollection(collection);
+		return COLS.computeIfAbsent(collection, c -> {
+			if (!db().collectionExists(collection)) {
+				logger.info("Mongodb collection create on [" + db().toString() + "] with name: " + collection);
+				db().createCollection(collection, dbobj());
+			}
+			return db().getCollection(collection);
+		});
 	}
 
 	public boolean collectionExists(String collectionName) {
