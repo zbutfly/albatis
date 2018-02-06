@@ -37,6 +37,7 @@
 - lib-uniquery/es5/pom.xml: uniquery-es5
 - lib-uniquery/auth/pom.xml: uniquery-auth
 - lib-uniquery/field-mask/pom.xml: uniquery-field-mask
+- lib-uniquery/mongo/pom.xml: uniquery-mongo
 
 ### 构建
 
