@@ -136,4 +136,21 @@ public class MongoQueryTest {
         cursor.iterator().forEachRemaining(o -> System.out.println(idx.incrementAndGet() + "--->" + o));
     }
 
+    /*order by test*/
+    @Test
+    public void o1() {
+//        String sql = "select SERVICE_CODE, USER_NAME from YJDB_GAZHK_WBXT_SWRY_XXB order by SERVICE_CODE";
+//        String sql = "select SERVICE_CODE, USER_NAME from YJDB_GAZHK_WBXT_SWRY_XXB order by SERVICE_CODE asc";
+//        String sql = "select SERVICE_CODE, USER_NAME from YJDB_GAZHK_WBXT_SWRY_XXB order by SERVICE_CODE desc";
+//        String sql = "select SERVICE_CODE, COMPUTER_NO from YJDB_GAZHK_WBXT_SWRY_XXB where SERVICE_CODE in ('3301040007', '3301040019') order by SERVICE_CODE desc, COMPUTER_NO DESC";
+        String sql = "select SERVICE_CODE, COMPUTER_NO from YJDB_GAZHK_WBXT_SWRY_XXB where SERVICE_CODE in ('3301040007', '3301040019') order by SERVICE_CODE desc, COMPUTER_NO";
+        JsonObject json = SqlExplainer.explain(sql);
+        MongoQuery mq = new MongoQueryVisitor(new MongoQuery(), json).get();
+        DBObject query = mq.getQuery();
+        DBObject fields = mq.getFields();
+        DBCursor cursor = collection.find(query, fields).sort(mq.getSort());
+        AtomicInteger idx = new AtomicInteger();
+        cursor.iterator().forEachRemaining(o -> System.out.println(idx.incrementAndGet() + "---->" + o));
+    }
+
 }

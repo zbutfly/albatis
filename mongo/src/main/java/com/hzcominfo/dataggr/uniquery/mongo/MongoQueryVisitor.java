@@ -2,6 +2,7 @@ package com.hzcominfo.dataggr.uniquery.mongo;
 
 import com.google.gson.JsonObject;
 import com.hzcominfo.dataggr.uniquery.*;
+import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
 
@@ -47,7 +48,11 @@ public class MongoQueryVisitor extends JsonBasicVisitor<MongoQuery> {
 
     @Override
     public void visitOrderBy(List<OrderItem> orders) {
-
+        BasicDBList order = new BasicDBList();
+        if (null != orders && !orders.isEmpty()) {
+            orders.forEach(oi -> order.add(new BasicDBObject(oi.name(), oi.desc() ? -1 : 1)));
+        }
+        get().setSort(order);
     }
 
     @Override

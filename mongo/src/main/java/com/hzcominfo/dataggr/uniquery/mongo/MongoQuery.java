@@ -5,6 +5,7 @@ import com.mongodb.DBObject;
 public class MongoQuery {
     private DBObject query;
     private DBObject fields;
+    private DBObject sort;
     private int offset;
     private int limit;
 
@@ -22,6 +23,14 @@ public class MongoQuery {
 
     void setFields(DBObject fields) {
         this.fields = fields;
+    }
+
+    public DBObject getSort() {
+        return sort;
+    }
+
+    public void setSort(DBObject sort) {
+        this.sort = sort;
     }
 
     public int getOffset() {
