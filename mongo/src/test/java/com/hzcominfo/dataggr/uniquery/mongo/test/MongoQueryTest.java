@@ -81,5 +81,60 @@ public class MongoQueryTest {
         });
     }
 
+    /* condition test */
+    @Test
+    public void w1() {
+        /*unrecognized*/
+//        String sql = "select _id, CERTIFICATE_CODE, USER_NAME from YJDB_GAZHK_WBXT_SWRY_XXB";
+        /*equals*/
+//        String sql = "select SERVICE_NAME, USER_NAME from YJDB_GAZHK_WBXT_SWRY_XXB where SERVICE_NAME = '智力网吧'";
+        /*not equals*/
+//        String sql = "select SERVICE_NAME, USER_NAME from YJDB_GAZHK_WBXT_SWRY_XXB where SERVICE_NAME != '智力网吧'";
+        /*less than*/
+//        String sql = "select SERVICE_NAME, SERVICE_CODE from YJDB_GAZHK_WBXT_SWRY_XXB where SERVICE_CODE < '3301060145'";
+        /*less than or equal*/
+//        String sql = "select SERVICE_NAME, SERVICE_CODE from YJDB_GAZHK_WBXT_SWRY_XXB where SERVICE_CODE <= '3301060145'";
+        /*great than*/
+//        String sql = "select SERVICE_NAME, SERVICE_CODE from YJDB_GAZHK_WBXT_SWRY_XXB where SERVICE_CODE > '3301060145'";
+        /*great or equal*/
+//        String sql = "select SERVICE_NAME, SERVICE_CODE from YJDB_GAZHK_WBXT_SWRY_XXB where SERVICE_CODE >= '3301060145'";
+        /*is null*/
+//        String sql = "select _id, SERVICE_CODE, USER_NAME from YJDB_GAZHK_WBXT_SWRY_XXB where OFFLINE_TIME IS NULL";
+        /*is not null*/
+//        String sql = "select _id, SERVICE_CODE, USER_NAME from YJDB_GAZHK_WBXT_SWRY_XXB where OFFLINE_TIME IS not NULL";
+        /*like*/
+//        String sql = "select SERVICE_CODE, SERVICE_NAME, USER_NAME from YJDB_GAZHK_WBXT_SWRY_XXB where SERVICE_NAME LIKE '%网咖'";
+//        String sql = "select SERVICE_CODE, SERVICE_NAME, USER_NAME from YJDB_GAZHK_WBXT_SWRY_XXB where SERVICE_NAME LIKE '新%'";
+//        String sql = "select SERVICE_CODE, SERVICE_NAME, USER_NAME from YJDB_GAZHK_WBXT_SWRY_XXB where SERVICE_NAME LIKE '新%网%'";
+//        String sql = "select SERVICE_CODE, SERVICE_NAME, USER_NAME from YJDB_GAZHK_WBXT_SWRY_XXB where SERVICE_NAME LIKE '新_网%'";
+//        String sql = "select SERVICE_CODE, SERVICE_NAME, USER_NAME from YJDB_GAZHK_WBXT_SWRY_XXB where SERVICE_NAME LIKE '新__网%'";
+        /*not like*/
+//        String sql = "select SERVICE_CODE, SERVICE_NAME, USER_NAME from YJDB_GAZHK_WBXT_SWRY_XXB where SERVICE_NAME not LIKE '%网咖'";
+//        String sql = "select SERVICE_CODE, SERVICE_NAME, USER_NAME from YJDB_GAZHK_WBXT_SWRY_XXB where SERVICE_NAME not LIKE '新%'";
+//        String sql = "select SERVICE_CODE, SERVICE_NAME, USER_NAME from YJDB_GAZHK_WBXT_SWRY_XXB where SERVICE_NAME not LIKE '新%网%'";
+//        String sql = "select SERVICE_CODE, SERVICE_NAME, USER_NAME from YJDB_GAZHK_WBXT_SWRY_XXB where SERVICE_NAME not LIKE '新_网%'";
+//        String sql = "select SERVICE_CODE, SERVICE_NAME, USER_NAME from YJDB_GAZHK_WBXT_SWRY_XXB where SERVICE_NAME not LIKE '新__网%'";
+        /*between*/
+//        String sql = "select SERVICE_CODE, SERVICE_NAME, USER_NAME from YJDB_GAZHK_WBXT_SWRY_XXB where SERVICE_CODE between '3301040007' and '3301040019'";
+        /*not between*/
+//        String sql = "select SERVICE_CODE, SERVICE_NAME, USER_NAME from YJDB_GAZHK_WBXT_SWRY_XXB where SERVICE_CODE not between '3301040007' and '3301040019'";
+        /*in*/
+//        String sql = "select SERVICE_CODE, SERVICE_NAME, USER_NAME from YJDB_GAZHK_WBXT_SWRY_XXB where SERVICE_CODE in ('3301040007', '3301040019')";
+        /*not in*/
+//        String sql = "select SERVICE_CODE, SERVICE_NAME, USER_NAME from YJDB_GAZHK_WBXT_SWRY_XXB where SERVICE_CODE not in ('3301040007', '3301040019')";
+        /*and*/
+//        String sql = "select SERVICE_CODE, SERVICE_NAME, USER_NAME from YJDB_GAZHK_WBXT_SWRY_XXB where SERVICE_NAME = '新丰网吧' and OFFLINE_TIME is null";
+        /*or*/
+        String sql = "select SERVICE_CODE, SERVICE_NAME, USER_NAME from YJDB_GAZHK_WBXT_SWRY_XXB where SERVICE_NAME = '丁丁网吧' or SERVICE_NAME = '仁和网吧'";
+
+        JsonObject json = SqlExplainer.explain(sql);
+        MongoQuery mq = new MongoQueryVistor(new MongoQuery(), json).get();
+        DBObject query = mq.getQuery();
+        DBObject fields = mq.getFields();
+        System.out.println("query: " + query);
+        DBCursor cursor = collection.find(query, fields);
+        AtomicInteger idx = new AtomicInteger();
+        cursor.iterator().forEachRemaining(o -> System.out.println(idx.incrementAndGet() + "--->" + o));
+    }
 
 }
