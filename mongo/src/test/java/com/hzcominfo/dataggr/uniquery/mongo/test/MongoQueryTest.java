@@ -64,14 +64,15 @@ public class MongoQueryTest {
     @Test
     public void f1() {
         /*unrecognized*/
-//        String sql = "select _id, CERTIFICATE_CODE, USER_NAME from YJDB_GAZHK_WBXT_SWRY_XXB";
-        /*equals*/
-        String sql = "select CERTIFICATE_CODE, USER_NAME from YJDB_GAZHK_WBXT_SWRY_XXB where USER_NAME = '颜魁'";
-        /**/
+//        String sql = "select * from YJDB_GAZHK_WBXT_SWRY_XXB";
+        /*recognized*/
+        String sql = "select _id, CERTIFICATE_CODE, USER_NAME from YJDB_GAZHK_WBXT_SWRY_XXB";
+        /*impure*/
+//        String sql = "select *, _id, CERTIFICATE_CODE, USER_NAME from YJDB_GAZHK_WBXT_SWRY_XXB";
+
         JsonObject json = SqlExplainer.explain(sql);
         MongoQuery mq = new MongoQueryVistor(new MongoQuery(), json).get();
         DBObject query = mq.getQuery();
-        System.out.println("query: " + query);
         DBObject fields = mq.getFields();
         DBCursor cursor = collection.find(query, fields);
         AtomicInteger idx = new AtomicInteger();
@@ -80,16 +81,5 @@ public class MongoQueryTest {
         });
     }
 
-    /* condition test */
-    @Test
-    public void w1() {
-        String sql = "select _id, CERTIFICATE_CODE, USER_NAME from YJDB_GAZHK_WBXT_SWRY_XXB";
-        JsonObject json = SqlExplainer.explain(sql);
-        MongoQuery mq = new MongoQueryVistor(new MongoQuery(), json).get();
-        DBObject query = mq.getQuery();
-        DBObject fields = mq.getFields();
-        DBCursor cursor = collection.find(query, fields);
-        AtomicInteger idx = new AtomicInteger();
-        cursor.iterator().forEachRemaining(o -> System.out.println(idx.incrementAndGet() + "--->" + o));
-    }
+
 }
