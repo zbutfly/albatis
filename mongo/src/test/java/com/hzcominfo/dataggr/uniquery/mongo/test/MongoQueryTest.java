@@ -35,7 +35,6 @@ public class MongoQueryTest {
     public void t1() {
         System.out.println(collection.getFullName() + " count: " + collection.count());
         // like
-//        String like = "浙A%";
         String like = "智力%";
         if (!like.startsWith("%")) like = "^" + like;
         if (!like.endsWith("%")) like = like + "$";
@@ -75,9 +74,7 @@ public class MongoQueryTest {
         DBObject fields = mq.getFields();
         DBCursor cursor = collection.find(query, fields);
         AtomicInteger idx = new AtomicInteger();
-        cursor.iterator().forEachRemaining(o -> {
-            System.out.println(idx.incrementAndGet() + "--->" + o);
-        });
+        cursor.iterator().forEachRemaining(o -> System.out.println(idx.incrementAndGet() + "--->" + o));
     }
 
     /* condition test */
@@ -139,6 +136,7 @@ public class MongoQueryTest {
     /*order by test*/
     @Test
     public void o1() {
+//        String sql = "select SERVICE_CODE, USER_NAME from YJDB_GAZHK_WBXT_SWRY_XXB";
 //        String sql = "select SERVICE_CODE, USER_NAME from YJDB_GAZHK_WBXT_SWRY_XXB order by SERVICE_CODE";
 //        String sql = "select SERVICE_CODE, USER_NAME from YJDB_GAZHK_WBXT_SWRY_XXB order by SERVICE_CODE asc";
 //        String sql = "select SERVICE_CODE, USER_NAME from YJDB_GAZHK_WBXT_SWRY_XXB order by SERVICE_CODE desc";
