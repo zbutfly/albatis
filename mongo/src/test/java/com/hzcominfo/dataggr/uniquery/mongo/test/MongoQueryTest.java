@@ -3,7 +3,7 @@ package com.hzcominfo.dataggr.uniquery.mongo.test;
 import com.google.gson.JsonObject;
 import com.hzcominfo.dataggr.uniquery.SqlExplainer;
 import com.hzcominfo.dataggr.uniquery.mongo.MongoQuery;
-import com.hzcominfo.dataggr.uniquery.mongo.MongoQueryVistor;
+import com.hzcominfo.dataggr.uniquery.mongo.MongoQueryVisitor;
 import com.mongodb.*;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albatis.mongodb.MongoConnection;
@@ -32,7 +32,7 @@ public class MongoQueryTest {
     }
 
     @Test
-    public void t1() throws IOException {
+    public void t1() {
         System.out.println(collection.getFullName() + " count: " + collection.count());
         // like
 //        String like = "浙A%";
@@ -41,7 +41,6 @@ public class MongoQueryTest {
         if (!like.endsWith("%")) like = like + "$";
 //        like = like.replaceAll("_", ".").replaceAll("%", ".*");
         like = like.replaceAll("_", ".").replaceAll("%", ".*");
-        System.out.println("3 like: " + like);
         Pattern pattern = Pattern.compile(like, Pattern.CASE_INSENSITIVE);
         QueryBuilder builder = QueryBuilder.start("SERVICE_NAME").regex(pattern);
         DBObject query = builder.get();
@@ -71,7 +70,7 @@ public class MongoQueryTest {
 //        String sql = "select *, _id, CERTIFICATE_CODE, USER_NAME from YJDB_GAZHK_WBXT_SWRY_XXB";
 
         JsonObject json = SqlExplainer.explain(sql);
-        MongoQuery mq = new MongoQueryVistor(new MongoQuery(), json).get();
+        MongoQuery mq = new MongoQueryVisitor(new MongoQuery(), json).get();
         DBObject query = mq.getQuery();
         DBObject fields = mq.getFields();
         DBCursor cursor = collection.find(query, fields);
@@ -128,7 +127,7 @@ public class MongoQueryTest {
         String sql = "select SERVICE_CODE, SERVICE_NAME, USER_NAME from YJDB_GAZHK_WBXT_SWRY_XXB where SERVICE_NAME = '丁丁网吧' or SERVICE_NAME = '仁和网吧'";
 
         JsonObject json = SqlExplainer.explain(sql);
-        MongoQuery mq = new MongoQueryVistor(new MongoQuery(), json).get();
+        MongoQuery mq = new MongoQueryVisitor(new MongoQuery(), json).get();
         DBObject query = mq.getQuery();
         DBObject fields = mq.getFields();
         System.out.println("query: " + query);

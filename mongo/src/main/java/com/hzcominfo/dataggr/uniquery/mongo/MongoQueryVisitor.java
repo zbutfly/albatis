@@ -7,9 +7,9 @@ import com.mongodb.DBObject;
 
 import java.util.List;
 
-public class MongoQueryVistor extends JsonBasicVisitor<MongoQuery> {
+public class MongoQueryVisitor extends JsonBasicVisitor<MongoQuery> {
 
-    public MongoQueryVistor(MongoQuery mongoQuery, JsonObject json) {
+    public MongoQueryVisitor(MongoQuery mongoQuery, JsonObject json) {
         super(mongoQuery, json);
         visit(json);
     }
