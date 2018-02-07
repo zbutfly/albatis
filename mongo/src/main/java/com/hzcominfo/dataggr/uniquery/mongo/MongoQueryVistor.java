@@ -17,6 +17,10 @@ public class MongoQueryVistor extends JsonBasicVisitor<MongoQuery> {
     @Override
     public void visitFields(List<FieldItem> fields, boolean distinct) {
         DBObject fieldss = new BasicDBObject();
+        if (fields.stream().map(FieldItem::name).anyMatch("*"::equals)) {
+            get().setFields(fieldss);
+            return;
+        }
         fields.forEach(item -> fieldss.put(item.name(), 1));
         get().setFields(fieldss);
     }
