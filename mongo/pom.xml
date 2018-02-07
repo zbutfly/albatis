@@ -20,11 +20,11 @@
 
     <dependencies>
 
-        <dependency>
+        <!--<dependency>
             <groupId>org.mongodb</groupId>
             <artifactId>mongo-java-driver</artifactId>
             <version>${mongo.driver.version}</version>
-        </dependency>
+        </dependency>-->
 
         <dependency>
             <groupId>com.hzcominfo.dataggr.uniquery</groupId>
@@ -37,12 +37,12 @@
             <groupId>net.butfly.albatis</groupId>
             <artifactId>albatis-mongodb-io</artifactId>
             <version>1.4.0-SNAPSHOT</version>
-            <exclusions>
+            <!--<exclusions>
                 <exclusion>
                     <groupId>org.mongodb</groupId>
                     <artifactId>mongo-java-driver</artifactId>
                 </exclusion>
-            </exclusions>
+            </exclusions>-->
         </dependency>
     </dependencies>
 
