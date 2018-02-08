@@ -133,9 +133,9 @@ public class MongoQueryTest {
         cursor.iterator().forEachRemaining(o -> System.out.println(idx.incrementAndGet() + "--->" + o));
     }
 
-    /*order by test*/
+    /*sort test*/
     @Test
-    public void o1() {
+    public void s1() {
 //        String sql = "select SERVICE_CODE, USER_NAME from YJDB_GAZHK_WBXT_SWRY_XXB";
 //        String sql = "select SERVICE_CODE, USER_NAME from YJDB_GAZHK_WBXT_SWRY_XXB order by SERVICE_CODE";
 //        String sql = "select SERVICE_CODE, USER_NAME from YJDB_GAZHK_WBXT_SWRY_XXB order by SERVICE_CODE asc";
@@ -147,6 +147,21 @@ public class MongoQueryTest {
         DBObject query = mq.getQuery();
         DBObject fields = mq.getFields();
         DBCursor cursor = collection.find(query, fields).sort(mq.getSort());
+        AtomicInteger idx = new AtomicInteger();
+        cursor.iterator().forEachRemaining(o -> System.out.println(idx.incrementAndGet() + "---->" + o));
+    }
+
+    /*offset and limit test*/
+    @Test
+    public void o1() {
+//        String sql = "select SERVICE_CODE, COMPUTER_NO from YJDB_GAZHK_WBXT_SWRY_XXB order by SERVICE_CODE";
+        String sql = "select SERVICE_CODE, COMPUTER_NO from YJDB_GAZHK_WBXT_SWRY_XXB order by SERVICE_CODE limit 10";
+//        String sql = "select SERVICE_CODE, COMPUTER_NO from YJDB_GAZHK_WBXT_SWRY_XXB order by SERVICE_CODE limit 10 offset 10 ";
+        JsonObject json = SqlExplainer.explain(sql);
+        MongoQuery mq = new MongoQueryVisitor(new MongoQuery(), json).get();
+        DBObject query = mq.getQuery();
+        DBObject fields = mq.getFields();
+        DBCursor cursor = collection.find(query, fields).sort(mq.getSort()).skip(mq.getOffset()).limit(mq.getLimit());
         AtomicInteger idx = new AtomicInteger();
         cursor.iterator().forEachRemaining(o -> System.out.println(idx.incrementAndGet() + "---->" + o));
     }
