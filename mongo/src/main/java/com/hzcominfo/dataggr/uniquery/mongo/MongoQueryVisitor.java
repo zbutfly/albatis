@@ -69,8 +69,10 @@ public class MongoQueryVisitor extends JsonBasicVisitor<MongoQuery> {
     @Override
     public void visitGroupBy(List<GroupItem> groups) {
         DBObject dbObject = new BasicDBObject();
+        if (groups == null || groups.isEmpty()) return;
         groups.forEach(group -> dbObject.put(group.name(), "$" + group.name()));
         get().setPipelineGroupId(dbObject);
+        get().setAggr(true);
     }
 
     @Override

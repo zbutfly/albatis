@@ -16,6 +16,7 @@ public class MongoQuery {
     private int offset;
     private int limit;
     private List<DBObject> pipeline;
+    private boolean aggr;
 
     public DBObject getQuery() {
         return query;
@@ -81,4 +82,12 @@ public class MongoQuery {
         pipeline.add(new BasicDBObject("$group", group));
         return pipeline;
     }
+
+	public boolean isAggr() {
+		return aggr;
+	}
+
+	public void setAggr(boolean aggr) {
+		this.aggr = aggr;
+	}
 }
