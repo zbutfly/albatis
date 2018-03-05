@@ -58,6 +58,7 @@ public class Es5Adapter extends Adapter {
 	}
 	
 	private ResultSet common(SearchHits hits) {
+//		Map<String, String> fMap = new HashMap<>();
 		ResultSet rs = new ResultSet();
 		List<Map<String, Object>> resultMap = new ArrayList<>();
 		for (SearchHit hit : hits.getHits()) {
@@ -65,7 +66,24 @@ public class Es5Adapter extends Adapter {
 			Map<String, Object> map = new HashMap<>();
 			Map<String, Object> sourceMap = hit.getSourceAsMap();
 			for(String key : sourceMap.keySet()) {
-				map.put(key, sourceMap.get(key));
+				/*Object object = sourceMap.get(key);
+				JsonElement fromJson = new Gson().fromJson(object.toString(), JsonElement.class);
+				if (fromJson.isJsonArray()) {
+					List<Map<String, Object>> nestList = new ArrayList<>();
+					fromJson.getAsJsonArray().forEach(t -> {
+						if (t.isJsonObject()) {
+							@SuppressWarnings("unchecked")
+							HashMap<String, Object> nest = new Gson().fromJson(object.toString(), HashMap.class);
+							for (String k : nest.keySet()) {
+								Object v = nest.get(k);
+								if (!fMap.containsKey(k) || !v.toString().contains(fMap.get(k)))
+									nest.remove(k);
+							}
+							nestList.add(nest);
+						}
+					});
+					map.put(key, nestList);
+				} else */map.put(key, sourceMap.get(key));
 			}
 			resultMap.add(map);
 		}

@@ -19,7 +19,8 @@ public class AppTest {
 		//执行查询
 //		String sql = "select * from uniquery.sell";
 //		String sql = "SELECT * FROM track_dev.ES_ORA_GAZHK_LGY_NB WHERE ZJHM_s.keyword = '33082518240610278X'";
-		String sql = "select count(*) from track_dev.ES_ORA_GAZHK_LGY_NB WHERE ZJHM_s.keyword = '33082518240610278X'";
+//		String sql = "select count(*) from track_dev.ES_ORA_GAZHK_LGY_NB WHERE ZJHM_s.keyword = '33082518240610278X'";
+		String sql = "select * from test_wj_tag.PERSON where target.keyword='36243018630709904X' and public_tags.\"user\"= '09876' limit 1";
 		ResultSet r = conn.execute(sql);
 		List<Map<String, Object>> result = r.getResults();
 		System.out.println(r.getTotal());

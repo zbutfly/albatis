@@ -39,7 +39,8 @@ public class Es5NestedQueryHZWA {
     @Before
     public void init() throws UnknownHostException {
         Settings settings = Settings.builder()
-                .put("cluster.name", "pseudo-elasticsearch")
+//                .put("cluster.name", "pseudo-elasticsearch")
+        		.put("cluster.name", "cidev")	
                 .build();
         client = new PreBuiltTransportClient(settings)
 //                .addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName("172.16.16.232"), 9300));
