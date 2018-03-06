@@ -1,12 +1,16 @@
 package net.butfly.albatis.kafka.config;
 
+import java.io.IOException;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Properties;
+import java.util.Set;
 
 import kafka.consumer.ConsumerConfig;
 import net.butfly.albacore.exception.ConfigException;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.Systems;
+import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
 
 /**
@@ -71,7 +75,7 @@ public class KafkaInputConfig extends KafkaConfigBase {
 		rebalanceRetries = Integer.parseInt(props.getOrDefault("rebalanceretries", "2"));
 		zookeeperSessionTimeoutMs = Long.parseLong(props.getOrDefault("zksessiontimeout", "30000"));
 
-		partitionParallelism = Integer.parseInt(props.getOrDefault("parallelism", "0").trim());
+		partitionParallelism = Integer.parseInt(props.getOrDefault("parallelism", "-1").trim());
 	}
 
 	/**
@@ -95,7 +99,7 @@ public class KafkaInputConfig extends KafkaConfigBase {
 		rebalanceRetries = Integer.parseInt(props.getProperty(PROP_PREFIX + "rebalance.retries", "2"));
 		zookeeperSessionTimeoutMs = Long.parseLong(props.getProperty(PROP_PREFIX + "zookeeper.session.timeout.ms", "30000"));
 
-		partitionParallelism = Integer.parseInt(props.getProperty(PROP_PREFIX + "partition.parallelism", "0").trim());
+		partitionParallelism = Integer.parseInt(props.getProperty(PROP_PREFIX + "partition.parallelism", "-1").trim());
 	}
 
 	private static String calcGroupId(String configGroupId) {
@@ -104,7 +108,7 @@ public class KafkaInputConfig extends KafkaConfigBase {
 		return configGroupId;
 	}
 
-	public int getPartitionParallelism() {
+	public int getDefaultPartitionParallelism() {
 		return partitionParallelism;
 	}
 
@@ -147,5 +151,21 @@ public class KafkaInputConfig extends KafkaConfigBase {
 
 	public String getGroupId() {
 		return groupId;
+	}
+
+	public Map<String, Integer> getTopicPartitions(Set<String> ts) {
+		Map<String, Integer> m = Maps.of();
+		if (null != zookeeperConnect) try (KafkaZkParser zk = new KafkaZkParser(zookeeperConnect)) {
+			Map<String, int[]> topicParts = zk.getTopicPartitions(ts.toArray(new String[ts.size()]));
+			for (Entry<String, int[]> e : topicParts.entrySet()) {
+				String t = e.getKey();
+				m.put(t, e.getValue().length);
+				if (logger.isDebugEnabled()) logger.debug("[" + zookeeperConnect + "] lag of " + groupId //
+						+ "@" + t + ": " + zk.getLag(t, groupId));
+			}
+		} catch (IOException e) {
+			logger.warn("Topic partition parsing fail on zk [" + zookeeperConnect + "]: " + e.getMessage());
+		}
+		return m;
 	}
 }

@@ -1,4 +1,4 @@
-package net.butfly.albatis.kafka;
+package net.butfly.albatis.kafka.config;
 
 import static net.butfly.albacore.paral.Sdream.of;
 
@@ -8,74 +8,27 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
 
-import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.ZooKeeper;
-
 import kafka.api.PartitionOffsetRequestInfo;
 import kafka.common.TopicAndPartition;
 import kafka.javaapi.OffsetRequest;
 import kafka.javaapi.consumer.SimpleConsumer;
 import kafka.utils.ZkUtils;
-import net.butfly.albacore.paral.Sdream;
-import net.butfly.albacore.serder.JsonSerder;
 import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.collection.Maps;
-import net.butfly.albacore.utils.logger.Logger;
 
-public class ZKConn implements AutoCloseable {
-	private final static Logger logger = Logger.getLogger(ZKConn.class);
-	final ZooKeeper zk;
-
-	public ZKConn(String zkconn) {
-		super();
-		try {
-			this.zk = new ZooKeeper(zkconn, 500, e -> {});
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
+class KafkaZkParser extends ZkConnection {
+	public KafkaZkParser(String zkconn) throws IOException {
+		super(zkconn);
 	}
 
-	private Sdream<String> fetchChildren(String path) {
-		try {
-			return of(zk.getChildren(path, false));
-		} catch (KeeperException e) {
-			throw new RuntimeException("ZK failure", e);
-		} catch (InterruptedException e) {
-			throw new RuntimeException("Kafka connecting [" + zk.toString() + "] path [" + path + "] interrupted.", e);
-		}
-	}
-
-	private String fetchText(String path) {
-		try {
-			byte[] b = zk.getData(path, false, null);
-			return null == b ? null : new String(b);
-		} catch (KeeperException e) {
-			logger.error("ZK failure: " + e.getMessage());
-			return null;
-		} catch (InterruptedException e) {
-			logger.error("Kafka connecting [" + zk.toString() + "] path [" + path + "] interrupted." + e.getMessage());
-			return null;
-		}
-	}
-
-	private <T> T fetchValue(String path, Class<T> cl) {
-		String text = fetchText(path);
-		return null == text ? null : JsonSerder.SERDER(cl).der(text, cl);
-	}
-
-	private Map<String, Object> fetchMap(String path) {
-		String text = fetchText(path);
-		return null == text ? null : JsonSerder.JSON_MAPPER.der(text);
-	}
-
-	public String[] getBorkers() {
+	public String[] getBrokers() {
 		return fetchChildren(ZkUtils.BrokerIdsPath()).map(bid -> {
-			Pair<String, Integer> addr = getBorkerAddr(Integer.parseInt(bid));
+			Pair<String, Integer> addr = getBrokerAddr(Integer.parseInt(bid));
 			return addr.v1() + ":" + addr.v2().toString();
 		}).list().toArray(new String[0]);
 	}
 
-	private Pair<String, Integer> getBorkerAddr(int id) {
+	private Pair<String, Integer> getBrokerAddr(int id) {
 		Map<String, Object> info = fetchMap(ZkUtils.BrokerIdsPath() + "/" + id);
 		return null == info ? null : new Pair<String, Integer>((String) info.getOrDefault("host", "127.0.0.1"), (Integer) info.get("port"));
 	}
@@ -84,8 +37,7 @@ public class ZKConn implements AutoCloseable {
 		return fetchChildren(ZkUtils.BrokerTopicsPath()).map(topic -> {
 			@SuppressWarnings("unchecked")
 			Map<String, List<Integer>> parts = (Map<String, List<Integer>>) fetchMap(ZkUtils.getTopicPath(topic)).get("partitions");
-			int[] ints = of(parts.keySet()).map(Integer::parseInt).list().stream().mapToInt(i -> i.intValue()).sorted().toArray();
-			Pair<String, int[]> t = new Pair<>(topic, ints);
+			Pair<String, int[]> t = new Pair<>(topic, parts.keySet().stream().mapToInt(Integer::parseInt).sorted().toArray());
 			return t;
 		}).partitions(t -> t.v1(), t -> t.v2());
 	}
@@ -129,47 +81,23 @@ public class ZKConn implements AutoCloseable {
 		return null == text ? 0 : Long.parseLong(text);
 	}
 
-	@SuppressWarnings("unchecked")
-	@Deprecated
-	protected <T> T fetchTree(String path, Class<T> cl) {
-		List<String> nodes = fetchChildren(path).list();
-		if (null == nodes || nodes.isEmpty()) {
-			Map<String, Object> map = fetchMap(path);
-			return null == map ? fetchValue(path, cl) : (T) map;
-		} else return (T) of(nodes).partitions(n -> n, node -> {
-			String subpath = "/".equals(path) ? "/" + node : path + "/" + node;
-			System.err.println("Scan zk: " + subpath);
-			Object sub = fetchTree(subpath, cl);
-			return new Pair<String, Object>(node, sub);
-		});
-	}
-
-	@Override
-	public void close() {
-		if (null != zk) try {
-			zk.close();
-		} catch (InterruptedException e) {
-			logger.warn("Kafka closing [" + zk.toString() + "]  interrupted and ignored.");
-		}
-	}
-
 	private SimpleConsumer getLeaderConsumer(String topic, String group) {
 		Map<String, Object> m = fetchMap("/brokers/topics/" + topic + "/partitions/0/state");
 		if (null == m) return null;
 		int leader = ((Integer) m.get("leader")).intValue();
-		Pair<String, Integer> addr = getBorkerAddr(leader);
+		Pair<String, Integer> addr = getBrokerAddr(leader);
 		return new SimpleConsumer(addr.v1(), addr.v2(), 500, 64 * 1024, group);
 	}
 
-	public static void main(String[] args) throws NumberFormatException, KeeperException, InterruptedException {
+	public static void main(String[] args) throws IOException {
 		String topic = "HZGA_GAZHK_LGY_NB";
 		String group = "HbaseFromKafkaTest_1";
-		try (ZKConn zk = new ZKConn("hzga136:2181,hzga137:2181,hzga138:2181/kafka")) {
+		String zkconn = "data01:2181,data02:2181,data03:2181/kafka";
+		try (KafkaZkParser zk = new KafkaZkParser(zkconn)) {
 			System.out.println(zk.getTopicPartitions());
 			System.out.println(zk.getTopicPartitions(topic));
 			System.out.println(group + "@" + topic + ":" + zk.getLag(topic, group));
-			System.out.println(ZkUtils.apply("hzga136:2181,hzga137:2181,hzga138:2181/kafka", 500, 500, false).getConsumerPartitionOwnerPath(
-					group, topic, 0));
+			System.out.println(ZkUtils.apply(zkconn, 500, 500, false).getConsumerPartitionOwnerPath(group, topic, 0));
 		}
 	}
 }
