@@ -10,6 +10,7 @@ import net.butfly.albacore.utils.Pair;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 public class MongoQueryVisitor extends JsonBasicVisitor<MongoQuery> {
 
@@ -68,10 +69,10 @@ public class MongoQueryVisitor extends JsonBasicVisitor<MongoQuery> {
 
     @Override
     public void visitGroupBy(List<GroupItem> groups) {
-        DBObject dbObject = new BasicDBObject();
         if (groups == null || groups.isEmpty()) return;
-        groups.forEach(group -> dbObject.put(group.name(), "$" + group.name()));
-        get().setPipelineGroupId(dbObject);
+        get().addPipelineGroupFields(
+                groups.stream().map(GroupItem::name).collect(Collectors.toList())
+        );
         get().setAggr(true);
     }
 
