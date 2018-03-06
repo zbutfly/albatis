@@ -66,28 +66,19 @@ public class KafkaInput extends net.butfly.albacore.base.Namedly implements OddI
 		skip = new AtomicLong(Long.parseLong(uri.getParameter("skip", "0")));
 		if (skip.get() > 0) logger().error("[" + name() + "] skip [" + skip.get()
 				+ "] for testing, the skip is estimated, especially in multiple topic subscribing.");
-		int kp = Props.propI(KafkaInput.class, "topic.paral", -1);
-		if (kp <= 0) kp = config.getPartitionParallelism();
-		else logger().debug("[" + name() + "] override topic parallelism by setting [" + kp + "]");
+		int configTopicParallinism = Props.propI(KafkaInput.class, "topic.paral", config.getDefaultPartitionParallelism());
+		if (configTopicParallinism > 0) //
+			logger().debug("[" + name() + "] default topic parallelism [" + configTopicParallinism + "]");
 		Set<String> ts = topics == null || topics.length == 0 ? new HashSet<>(config.topics()) : new HashSet<>(Arrays.asList(topics));
-		Map<String, int[]> topicParts;
-		try (ZKConn zk = new ZKConn(config.getZookeeperConnect())) {
-			topicParts = zk.getTopicPartitions(topics);
-			if (ts.isEmpty()) {
-				ts = topicParts.keySet();
-				logger().warn("[" + name() + "] not define topic, try to read all topic on kafka: " + ts.toString());
-			}
-			if (logger().isDebugEnabled()) for (String t : ts)
-				logger().debug("[" + name() + "] lag of " + config.getGroupId() + "@" + t + ": " + zk.getLag(t, config.getGroupId()));
-		}
+		Map<String, Integer> topicPartitions = config.getTopicPartitions(ts);
+
 		for (String t : ts) {
-			int[] zk = topicParts.get(t);
-			if (kp <= 0) kp = null != zk && zk.length > 0 ? topicParts.get(t).length : 1;
-			if (null != zk && zk.length > 0 && kp > topicParts.get(t).length) //
-				logger().warn("[" + name() + "] topic [" + t + "] define parallelism: [" + kp + "] " + //
-						"over partitions: [" + topicParts.get(t).length + "].");
-			allTopics.put(t, kp);
-			logger().info("[" + name() + "] topic [" + t + "] consumers creating as parallelism [" + kp + "]");
+			int parts = topicPartitions.getOrDefault(t, 1);
+			int p = configTopicParallinism <= 0 ? parts : configTopicParallinism;
+			allTopics.put(t, p);
+			if (p > parts) logger().warn("[" + name() + "] topic [" + t + "] define parallelism: [" + p + "] "
+					+ "over existed partitions: [" + parts + "].");
+			else logger().info("[" + name() + "] topic [" + t + "] consumers creating as parallelism [" + p + "]");
 		}
 		logger().trace("[" + name() + "] parallelism of topics: " + allTopics.toString() + ".");
 		// connect
