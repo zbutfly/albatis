@@ -16,10 +16,11 @@ public class AppTest {
 		URISpec uriSpec = new URISpec(uri);
 		Client conn = new Client(uriSpec);
 		//执行查询
-		/*String sql = "select _id, CERTIFICATE_CODE, USER_NAME from YJDB_GAZHK_WBXT_SWRY_XXB";
+//		String sql = "select _id, CERTIFICATE_CODE, USER_NAME from YJDB_GAZHK_WBXT_SWRY_XXB";
+		String sql = "select count(*) from YJDB_GAZHK_WBXT_SWRY_XXB";
 		ResultSet r = conn.execute(sql);
 		List<Map<String, Object>> result = r.getResults();
-		System.out.println(r.getTotal());*/
+		System.out.println(r.getTotal());
 		
 		// dynamic test
 		/*String sql = "select SERVICE_CODE, SERVICE_NAME, USER_NAME from YJDB_GAZHK_WBXT_SWRY_XXB where SERVICE_NAME = ? or SERVICE_NAME = ?";
@@ -29,11 +30,11 @@ public class AppTest {
 		System.out.println(r.getTotal());*/
 		
 		// group
-		String sql = "SELECT MIN(NL), MAX(NL) as max_nl, COUNT(*) as cnt FROM GROUP_TEST_COLLECTION GROUP BY XB, MZ";
+		/*String sql = "SELECT MIN(NL), MAX(NL) as max_nl, COUNT(*) as cnt FROM GROUP_TEST_COLLECTION GROUP BY XB, MZ";
 		Object[] params = {}; 
 		ResultSet r = conn.execute(sql, params);
 		List<Map<String, Object>> result = r.getResults();
-		System.out.println(r.getTotal());
+		System.out.println(r.getTotal());*/
 		
 		//释放连接
 		conn.close();

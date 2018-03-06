@@ -9,6 +9,7 @@ import com.google.gson.JsonObject;
 import com.hzcominfo.albatis.nosql.Connection;
 import com.hzcominfo.dataggr.uniquery.Adapter;
 import com.hzcominfo.dataggr.uniquery.dto.ResultSet;
+import com.hzcominfo.dataggr.uniquery.mongo.MongoQuery.QueryType;
 import com.mongodb.AggregationOptions;
 import com.mongodb.Cursor;
 import com.mongodb.DBCollection;
@@ -32,10 +33,13 @@ public class MongoAdapter extends Adapter {
 	public <T> T queryExecute(Connection connection, Object query, String table) {
 		MongoQuery mq = (MongoQuery) query;
         DBCollection coll = ((MongoConnection) connection).collection(table);
-    	if (mq.isAggr()) {
+    	if (mq.getQueryType() == QueryType.AGGR) {
     		List<DBObject> pipeline = mq.getPipeline();
     		Cursor cursor = coll.aggregate(pipeline, AggregationOptions.builder().allowDiskUse(true).build());
     		return (T) cursor;
+    	} else if (mq.getQueryType() == QueryType.COUNT) {
+    		long total = coll.count(mq.getQuery());
+    		return (T) count(total);
     	} else {
     		DBCursor cursor = coll.find(mq.getQuery(), mq.getFields()).sort(mq.getSort()).skip(mq.getOffset()).limit(mq.getLimit());
     		return (T) cursor;
@@ -83,5 +87,11 @@ public class MongoAdapter extends Adapter {
 		rs.setTotal(resultMap.size());
 		rs.setResults(resultMap);
 		return rs; 
+	}
+	
+	private ResultSet count(long total) {
+		ResultSet rs = new ResultSet();
+		rs.setTotal(total);
+		return rs;
 	}
 }

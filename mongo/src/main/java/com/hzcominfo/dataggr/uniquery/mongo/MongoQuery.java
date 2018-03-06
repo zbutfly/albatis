@@ -16,7 +16,11 @@ public class MongoQuery {
     private int offset;
     private int limit;
     private List<DBObject> pipeline;
-    private boolean aggr;
+    private QueryType queryType;
+    
+    public static enum QueryType {
+    	COMMON, AGGR, COUNT
+    }
 
     public DBObject getQuery() {
         return query;
@@ -97,11 +101,11 @@ public class MongoQuery {
         return pipeline;
     }
 
-	public boolean isAggr() {
-		return aggr;
+	public QueryType getQueryType() {
+		return queryType;
 	}
 
-	void setAggr(boolean aggr) {
-		this.aggr = aggr;
+	public void setQueryType(QueryType queryType) {
+		this.queryType = queryType;
 	}
 }

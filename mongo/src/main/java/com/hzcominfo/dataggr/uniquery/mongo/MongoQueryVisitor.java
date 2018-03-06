@@ -2,6 +2,7 @@ package com.hzcominfo.dataggr.uniquery.mongo;
 
 import com.google.gson.JsonObject;
 import com.hzcominfo.dataggr.uniquery.*;
+import com.hzcominfo.dataggr.uniquery.mongo.MongoQuery.QueryType;
 import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
@@ -70,10 +71,9 @@ public class MongoQueryVisitor extends JsonBasicVisitor<MongoQuery> {
     @Override
     public void visitGroupBy(List<GroupItem> groups) {
         if (groups == null || groups.isEmpty()) return;
-        get().addPipelineGroupFields(
-                groups.stream().map(GroupItem::name).collect(Collectors.toList())
-        );
-        get().setAggr(true);
+        groups.forEach(group -> dbObject.put(group.name(), "$" + group.name()));
+        get().setPipelineGroupId(dbObject);
+        get().setQueryType(QueryType.AGGR);
     }
 
     @Override
@@ -107,6 +107,7 @@ public class MongoQueryVisitor extends JsonBasicVisitor<MongoQuery> {
 
     @Override
     public void visitIsCount(boolean idGroup) {
-
+    	if (idGroup) return;
+    	get().setQueryType(QueryType.COUNT);
     }
 }
