@@ -12,6 +12,7 @@ import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.Systems;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
+import net.butfly.albatis.kafka.KafkaInput;
 
 /**
  * Valid prop names:
@@ -39,7 +40,7 @@ import net.butfly.albacore.utils.logger.Logger;
  */
 public class KafkaInputConfig extends KafkaConfigBase {
 	private static final long serialVersionUID = -3028341800709486625L;
-	private static final Logger logger = Logger.getLogger(KafkaInputConfig.class);
+	private static final Logger logger = Logger.getLogger(KafkaInput.class);
 	private static final String DEFAULT_AUTO_COMMIT_MS = "60000";
 
 	protected long zookeeperSyncTimeMs;

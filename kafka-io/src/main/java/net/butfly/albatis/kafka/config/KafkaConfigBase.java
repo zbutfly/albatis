@@ -73,18 +73,18 @@ public abstract class KafkaConfigBase implements Serializable {
 		case "zk:kafka":
 		case "zookeeper":
 		case "kafka":
-			String u = uri.getHost() + uri.getPath();
+			String path = uri.getPath();
 			String[] zks = new String[0];
 			do {
-				try (KafkaZkParser zk = new KafkaZkParser(u)) {
+				try (KafkaZkParser zk = new KafkaZkParser(uri.getHost() + path)) {
 					zks = zk.getBrokers();
 				} catch (Exception e) {
-					logger.warn("ZK [" + u + "] detecting failure: " + e.getMessage() + ", try parent uri as ZK.");
+					logger.warn("ZK [" + uri.getHost() + path + "] detecting failure, try parent uri as ZK.", e);
 				}
-			} while (zks.length == 0 && !(u = u.replaceAll("/[^/]*$", "")).isEmpty());
+			} while (zks.length == 0 && !(path = path.replaceAll("/[^/]*$", "")).isEmpty());
 			if (zks.length > 0) {
 				bootstrapServers = String.join(",", zks);
-				zookeeperConnect = u;
+				zookeeperConnect = uri.getHost() + path;
 			} else {
 				bootstrapServers = null;
 				zookeeperConnect = uri.getHost() + uri.getPath();
