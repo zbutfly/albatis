@@ -1,6 +1,5 @@
 package com.hzcominfo.dataggr.uniquery;
 
-import com.google.common.collect.ImmutableList;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -22,7 +21,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 public class SqlExplainer {
     private static final Logger logger = Logger.getLogger(SqlExplainer.class);
@@ -149,10 +147,10 @@ public class SqlExplainer {
                     SqlNode nd = ((SqlCall) n).operand(0);
                     String names = SqlDynamicParam.class.isInstance(nd) ? newDynamicParamMark() : fieldNameFromSqlNode(nd);
                     field.addProperty("field", names);
-                    field.addProperty("alias", sqlIdentifierNames(((SqlCall) n).operand(1)));
+                    field.addProperty("alias", sqlNodeNames(((SqlCall) n).operand(1)));
                     break;
                 case IDENTIFIER:
-                    String identifierNames = sqlIdentifierNames((SqlIdentifier) n);
+                    String identifierNames = sqlNodeNames((SqlIdentifier) n);
                     field.addProperty("field", identifierNames);
                     field.addProperty("alias", identifierNames);
 //                    field.addProperty("field", identifier.isStar() ? "*" : identifier.getSimple());
@@ -172,7 +170,7 @@ public class SqlExplainer {
                 	break;
                 case OTHER_FUNCTION:
                     field.addProperty("field", fieldNameFromSqlNode(n));
-                    field.addProperty("alias", sqlIdentifierNames(((SqlCall) n).operand(0)));
+                    field.addProperty("alias", sqlNodeNames(((SqlCall) n).operand(0)));
                     break;
                 default:
                     throw new RuntimeException("Unsupported kind: " + n.getKind());
@@ -308,7 +306,7 @@ public class SqlExplainer {
         String field = fieldNameFromSqlNode(node);
         node = sc.operand(1);
         if (node.getKind() == SqlKind.IDENTIFIER) {
-            json.addProperty(field, sqlIdentifierNames(((SqlIdentifier) node)));
+            json.addProperty(field, sqlNodeNames(((SqlIdentifier) node)));
             return;
         } else if (node.getKind() == SqlKind.DYNAMIC_PARAM) {
             json.addProperty(field, newDynamicParamMark());
@@ -406,7 +404,7 @@ public class SqlExplainer {
         for (SqlNode node : orderList.getList()) {
             JsonObject object = new JsonObject();
             if (node instanceof SqlIdentifier) {  // ASC
-                object.addProperty(sqlIdentifierNames((SqlIdentifier) node), "ASC");
+                object.addProperty(sqlNodeNames((SqlIdentifier) node), "ASC");
                 array.add(object);
             } else if (node instanceof SqlBasicCall) {
                 String name;
@@ -424,18 +422,26 @@ public class SqlExplainer {
         }
     }
 
-    private static String sqlIdentifierNames(SqlIdentifier identifier) {
-        return identifier.toString();
+    private static String sqlNodeNames(SqlNode node) {
+        switch (node.getKind()) {
+            case IDENTIFIER:
+                return ((SqlIdentifier) node).toString();
+            case LITERAL:
+                return ((SqlLiteral) node).toValue();
+            default:
+                return node.toString();
+        }
+//        return identifier.toString();
 //        if (identifier.isStar()) return identifier.toString();
 //        return identifier.names.stream().collect(Collectors.joining("."));
     }
 
     private static String fieldNameFromSqlNode(SqlNode node) {
         if (SqlIdentifier.class.isInstance(node))
-            return sqlIdentifierNames((SqlIdentifier) node);
+            return sqlNodeNames((SqlIdentifier) node);
         else if (SqlBasicCall.class.isInstance(node)) {
             SqlOperator operator = ((SqlBasicCall) node).getOperator();
-            String identifier = sqlIdentifierNames(((SqlBasicCall) node).operand(0));
+            String identifier = sqlNodeNames(((SqlBasicCall) node).operand(0));
             if (SqlFunction.class.isInstance(operator)) {
                 String function = operator.getName();
                 return KEYWORD_FUNCTION_STRING_NAME.equals(function) ?
