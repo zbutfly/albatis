@@ -1,14 +1,22 @@
 package com.hzcominfo.dataggr.uniquery.test;
 
-import com.google.gson.JsonObject;
-import com.hzcominfo.dataggr.uniquery.SqlExplainer;
-import org.apache.calcite.jdbc.CalcitePrepare;
-import org.junit.Test;
-
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.calcite.jdbc.CalcitePrepare;
+import org.junit.Test;
+
+import com.google.gson.JsonObject;
+import com.hzcominfo.dataggr.uniquery.SqlExplainer;
+
 public class SqlExplainerTest {
+	
+	public static void main(String[] args) {
+		String sql = "select lat,lon from class where geo_distance(lat_lon,330.00,220.00,10)";
+//		String sql = "select name from class where keyword(name)='chenw'";
+        JsonObject sqlJson = SqlExplainer.explain(sql);
+        System.out.println(sqlJson);
+	}
 
     @Test
     public void t2() throws Exception {
