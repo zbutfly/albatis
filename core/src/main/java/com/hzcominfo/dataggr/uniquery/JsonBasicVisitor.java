@@ -52,22 +52,41 @@ public abstract class JsonBasicVisitor<V> implements JsonVisitor<V> {
         }
         
         boolean isGroup = false;
-        
+
+        element = json.get("having");
+        if (null != element) {
+            visitHaving(element.getAsJsonObject());
+        }
+
         element = json.get("groupBy");
         if (null != element) {
         	List<GroupItem> groups = groupsJsonArray2List(element.getAsJsonArray());
         	isGroup = !groups.isEmpty();
     		visitGroupBy(groups);
         }
-        
+
         element = json.get("multiGroupBy");
         if (null != element) {
         	isGroup = true;
         	List<List<GroupItem>> groupsList = multiGroupsJsonArray2List(element.getAsJsonArray());
         	visitMultiGroupBy(groupsList);
         }
-        
-        visitIsCount(isGroup);
+
+        visitIsCount(isCount(isGroup, fields));
+    }
+    
+    private static boolean isCount(boolean isGroup, List<FieldItem> fields) {
+    	if (isGroup) return false;
+		List<String> funcFields = new ArrayList<>();
+		if (fields == null || fields.isEmpty()) return false;
+		fields.forEach(f -> {
+			if (f.name().contains("(") && f.name().contains(")")) {
+				funcFields.add(f.name());
+			}
+		});
+		if (funcFields.size() == 1 && funcFields.get(0).startsWith("COUNT"))
+			return true;
+		return false;
     }
 
     private static List<FieldItem> fieldsJsonArray2List(JsonArray array) {

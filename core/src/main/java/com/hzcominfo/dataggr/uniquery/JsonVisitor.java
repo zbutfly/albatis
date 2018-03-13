@@ -20,7 +20,7 @@ public interface JsonVisitor<V> {
 
     void visitOrderBy(List<OrderItem> orders);
 
-    void visitHaving();
+    void visitHaving(JsonObject json);
 
     void visitOffset(long offset);
 

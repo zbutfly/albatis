@@ -22,6 +22,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static org.apache.calcite.sql.SqlKind.DYNAMIC_PARAM;
+import static org.apache.calcite.sql.SqlKind.IDENTIFIER;
+import static org.apache.calcite.sql.SqlKind.LITERAL;
+
 public class SqlExplainer {
     private static final Logger logger = Logger.getLogger(SqlExplainer.class);
     public static final String KEYWORD_FUNCTION_STRING_NAME = "keyword";
@@ -105,8 +109,13 @@ public class SqlExplainer {
         return json;
     }
 
-    private static String newDynamicParamMark() {
-        return "$${" + DYNAMIC_PARAM_INDEX.incrementAndGet() + "}";
+    private static String newDynamicParamMark(SqlNode node) {
+//        return "$${" + DYNAMIC_PARAM_INDEX.incrementAndGet() + "}";
+        if (node.getKind() != DYNAMIC_PARAM)
+            throw new RuntimeException(node + "is not dynamic_param");
+        int idx = ((SqlDynamicParam) node).getIndex();
+        DYNAMIC_PARAM_INDEX.set(idx + 1);
+        return String.format("$${%d}", idx);
     }
 
     public static String explainAsJsonString(String sql, Object... params) throws Exception {
@@ -145,7 +154,7 @@ public class SqlExplainer {
             switch (n.getKind()) {
                 case AS:
                     SqlNode nd = ((SqlCall) n).operand(0);
-                    String names = SqlDynamicParam.class.isInstance(nd) ? newDynamicParamMark() : fieldNameFromSqlNode(nd);
+                    String names = SqlDynamicParam.class.isInstance(nd) ? newDynamicParamMark(nd) : fieldNameFromSqlNode(nd);
                     field.addProperty("field", names);
                     field.addProperty("alias", sqlNodeNames(((SqlCall) n).operand(1)));
                     break;
@@ -156,7 +165,7 @@ public class SqlExplainer {
 //                    field.addProperty("field", identifier.isStar() ? "*" : identifier.getSimple());
                     break;
                 case DYNAMIC_PARAM:
-                    field.addProperty("field", newDynamicParamMark());
+                    field.addProperty("field", newDynamicParamMark(n));
 //                    throw new RuntimeException("未指定 AS!");
                     break;
                 case SUM:
@@ -290,7 +299,7 @@ public class SqlExplainer {
     private static void analysisUnaryConditionExpression(SqlCall sc, JsonObject object) {
         String value = null;
         SqlNode node = sc.operand(0);
-        if (node instanceof SqlDynamicParam) value = newDynamicParamMark();
+        if (node instanceof SqlDynamicParam) value = newDynamicParamMark(node);
         else value = fieldNameFromSqlNode(node);
         object.addProperty(sc.getKind().lowerName, value);
     }
@@ -305,11 +314,11 @@ public class SqlExplainer {
         node = sc.operand(0);
         String field = fieldNameFromSqlNode(node);
         node = sc.operand(1);
-        if (node.getKind() == SqlKind.IDENTIFIER) {
+        if (node.getKind() == IDENTIFIER) {
             json.addProperty(field, sqlNodeNames(((SqlIdentifier) node)));
             return;
-        } else if (node.getKind() == SqlKind.DYNAMIC_PARAM) {
-            json.addProperty(field, newDynamicParamMark());
+        } else if (node.getKind() == DYNAMIC_PARAM) {
+            json.addProperty(field, newDynamicParamMark(node));
             return;
         }
         //todo 这种写法导致不支持浮点数, 还有一处类似的
@@ -332,11 +341,11 @@ public class SqlExplainer {
         List<SqlNode> operands = sc.getOperandList();
         SqlNode node;
         node = operands.get(0);
-        String field = (node instanceof SqlDynamicParam) ? newDynamicParamMark() : fieldNameFromSqlNode(node);
+        String field = (node instanceof SqlDynamicParam) ? newDynamicParamMark(node) : fieldNameFromSqlNode(node);
         node = operands.get(1);
-        String start = ((node instanceof SqlDynamicParam) ? newDynamicParamMark() : ((SqlLiteral) node).toValue());
+        String start = ((node instanceof SqlDynamicParam) ? newDynamicParamMark(node) : ((SqlLiteral) node).toValue());
         node = operands.get(2);
-        String end = ((node instanceof SqlDynamicParam) ? newDynamicParamMark() : ((SqlLiteral) node).toValue());
+        String end = ((node instanceof SqlDynamicParam) ? newDynamicParamMark(node) : ((SqlLiteral) node).toValue());
         JsonArray array = new JsonArray();
         array.add(start);
         array.add(end);
@@ -354,7 +363,7 @@ public class SqlExplainer {
 //        String operator = sc.getOperator().getName();
         String operator = sc.getKind().lowerName;
         String field;
-        if (sc.operand(0) instanceof SqlDynamicParam) field = newDynamicParamMark();
+        if (sc.operand(0).getKind() == DYNAMIC_PARAM) field = newDynamicParamMark(sc.operand(0));
         else field = fieldNameFromSqlNode(sc.operand(0));
 
         SqlNode nodes = sc.operand(1);
@@ -363,10 +372,10 @@ public class SqlExplainer {
         object.add(field, array);
         json.add(operator, object);
         for (SqlNode node : ((SqlNodeList) nodes).getList()) {
-            if (node instanceof SqlDynamicParam) {
-                array.add(newDynamicParamMark());
+            if (node.getKind() == DYNAMIC_PARAM) {
+                array.add(newDynamicParamMark(node));
             } else {
-                if (!( node instanceof SqlLiteral)) throw new RuntimeException(node + " is NOT a literal");
+                if (!( node.getKind() == LITERAL)) throw new RuntimeException(node + " is NOT a literal");
                 Object value = ((SqlLiteral) node).getValue();
                 if (value instanceof BigDecimal) array.add(((BigDecimal) value).longValue());
                 else if (value instanceof NlsString) array.add(((NlsString) value).getValue());
@@ -391,8 +400,9 @@ public class SqlExplainer {
 
     private static void analysisHaving(SqlNode having, JsonObject json) {
         if (null == having) return;
-        System.out.println(having);
+//        System.out.println(having);
         JsonObject object = new JsonObject();
+        object.addProperty("HAVING_SQL", having.toString().replaceAll("`", ""));
         analysisConditionExpression(having, object);
         json.add("having", object);
     }
@@ -482,7 +492,7 @@ public class SqlExplainer {
         while (matcher.find()) {
             String group = matcher.group();
             int index = Integer.valueOf(group.substring(0, group.length() - 1).substring(3));
-            source = source.replace(group, params[index-1].toString());
+            source = source.replace(group, params[index].toString());
         }
         return new JsonParser().parse(source).getAsJsonObject();
     }

@@ -237,6 +237,10 @@ public interface Es5ConditionTransverter extends ConditionTransverter {
         }
     }
 
+    /**
+     * 查询null值
+     * <a href=https://www.elastic.co/guide/en/elasticsearch/reference/5.5/null-value.html>null-value</a>
+     */
     class IsNullEs5ConditionTransverter implements Es5ConditionTransverter {
         private String field;
 
@@ -244,9 +248,6 @@ public interface Es5ConditionTransverter extends ConditionTransverter {
             this.field = field;
         }
 
-        /**
-         * see https://www.elastic.co/guide/en/elasticsearch/reference/5.5/null-value.html
-         */
         @Override
         public QueryBuilder toEs5Query() {
             return nestedQueryWrapper(field, QueryBuilders.boolQuery().mustNot(QueryBuilders.existsQuery(field)));
