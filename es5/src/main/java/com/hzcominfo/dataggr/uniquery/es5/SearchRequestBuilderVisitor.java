@@ -23,6 +23,7 @@ public class SearchRequestBuilderVisitor extends JsonBasicVisitor<SearchRequestB
 
     public static final String AGGRS_SUFFIX = "_aggrs";
     private List<AggItem> aggItems = new ArrayList<>();
+    private List<AggregationInfo> aggInfoList = new ArrayList<>();
     private BucketSelectorPipelineAggregationBuilder bspabuilder;
 
     public SearchRequestBuilderVisitor(SearchRequestBuilder searchRequestBuilder, JsonObject json) {
@@ -47,7 +48,15 @@ public class SearchRequestBuilderVisitor extends JsonBasicVisitor<SearchRequestB
         fields.stream()
                 .filter(fieldItem -> fieldItem.full().contains("(") && fieldItem.full().contains(")"))
                 .map(fieldItem -> AggItem.of(fieldItem.full(), fieldItem.alias()))
-                .forEach(item -> aggItems.add(item));
+                .forEach(item -> {
+                    aggItems.add(item);
+
+                    AggregationInfo info = new AggregationInfo();
+                    info.item = item;
+                    info.alias = item.alias();
+                    aggInfoList.add(info);
+                });
+        aggInfoList = aggInfoList.stream().map(this::patch).collect(Collectors.toList());
     }
 
     @Override
@@ -68,28 +77,103 @@ public class SearchRequestBuilderVisitor extends JsonBasicVisitor<SearchRequestB
         builder.setQuery(query);
     }
 
-    private static AggregationBuilder toAggregationBuilder(AggItem item) {
+    private AggregationBuilder toAggregationBuilder(AggItem item) {
+        List<String> fielNamesList = new ArrayList<>(Arrays.asList(item.field().split("\\.")));
+        // if the last one is `keyword`, remove it for getting the real field names
+        if ("keyword".equals(fielNamesList.get(fielNamesList.size() - 1))) {
+            fielNamesList.remove(fielNamesList.size() - 1);
+        }
+        AggregationBuilder result;
+        String aggregationName;
+        boolean nested = fielNamesList.size() > 1;
+        if (nested) { // nested count 函数名_最后一个字段名
+            String f = fielNamesList.remove(fielNamesList.size() - 1);
+            aggregationName = item.function().toLowerCase() + "_" + f;
+        } else {
+            aggregationName = item.name();
+        }
         switch (item.function()) {
             case "COUNT":
-                return AggregationBuilders.count(item.name()).field(item.field());
+                result = AggregationBuilders.count(aggregationName).field(item.field());
+                break;
             case "SUM":
-                return AggregationBuilders.sum(item.name()).field(item.field());
+                result = AggregationBuilders.sum(aggregationName).field(item.field());
+                break;
             case "AVG":
-                return AggregationBuilders.avg(item.name()).field(item.field());
+                result = AggregationBuilders.avg(aggregationName).field(item.field());
+                break;
             case "MIN":
-                return AggregationBuilders.min(item.name()).field(item.field());
+                return AggregationBuilders.min(aggregationName).field(item.field());
             case "MAX":
-                return AggregationBuilders.max(item.name()).field(item.field());
+                result = AggregationBuilders.max(aggregationName).field(item.field());
+                break;
             default:
                 throw new RuntimeException("Unsupported aggregation: " + item);
         }
+        if (nested) {
+            String nestedBuilderName = "nested_" + fielNamesList.stream().collect(Collectors.joining("_"));
+            String path = fielNamesList.stream().collect(Collectors.joining("."));
+            result = AggregationBuilders.nested(nestedBuilderName, path).subAggregation(result);
+        }
+        return result;
     }
+
+    private AggregationInfo patch(AggregationInfo info) {
+        AggItem item = info.item;
+        List<String> fielNamesList = new ArrayList<>(Arrays.asList(item.field().split("\\.")));
+        // if the last one is `keyword`, remove it for getting the real field names
+        if ("keyword".equals(fielNamesList.get(fielNamesList.size() - 1))) {
+            fielNamesList.remove(fielNamesList.size() - 1);
+        }
+        AggregationBuilder result;
+        String aggregationName;
+        boolean nested = fielNamesList.size() > 1;
+        if (nested) { // nested count 函数名_最后一个字段名
+            String f = fielNamesList.remove(fielNamesList.size() - 1);
+            aggregationName = item.function().toLowerCase() + "_" + f;
+        } else {
+            aggregationName = item.name();
+        }
+        switch (item.function()) {
+            case "COUNT":
+                result = AggregationBuilders.count(aggregationName).field(item.field());
+                break;
+            case "SUM":
+                result = AggregationBuilders.sum(aggregationName).field(item.field());
+                break;
+            case "AVG":
+                result = AggregationBuilders.avg(aggregationName).field(item.field());
+                break;
+            case "MIN":
+                result = AggregationBuilders.min(aggregationName).field(item.field());
+                break;
+            case "MAX":
+                result = AggregationBuilders.max(aggregationName).field(item.field());
+                break;
+            default:
+                throw new RuntimeException("Unsupported aggregation: " + item);
+        }
+
+        if (nested) {
+            String nestedBuilderName = "nested_" + fielNamesList.stream().collect(Collectors.joining("_"));
+            String path = fielNamesList.stream().collect(Collectors.joining("."));
+            result = AggregationBuilders.nested(nestedBuilderName, path).subAggregation(result);
+            info.path = nestedBuilderName + ">" + aggregationName;
+            info.builder = AggregationBuilders.nested(nestedBuilderName, path).subAggregation(result);
+        } else {
+            info.path = aggregationName;
+            info.builder = result;
+        }
+        return info;
+    }
+
 
     @Override
     public void visitGroupBy(List<GroupItem> groups) {
         if (null == groups || groups.isEmpty()) return;
         AggregationBuilder subBuilder = null;
-        List<AggregationBuilder> aggs = aggItems.stream().map(SearchRequestBuilderVisitor::toAggregationBuilder).collect(Collectors.toList());
+//        List<AggregationBuilder> aggs = aggItems.stream().map(SearchRequestBuilderVisitor::toAggregationBuilder).collect(Collectors.toList());
+        List<AggregationBuilder> aggs = aggItems.stream().map(this::toAggregationBuilder).collect(Collectors.toList());
         for (int i = groups.size() - 1; i >= 0; i--) {
             GroupItem groupItem = groups.get(i);
             if (i == groups.size() - 1) {
@@ -171,15 +255,16 @@ public class SearchRequestBuilderVisitor extends JsonBasicVisitor<SearchRequestB
     @Override
     public void visitHaving(JsonObject json) {
         if (null == json) return;
-        SearchRequestBuilder builder = super.get();
-//        String havingSql = json.get("HAVING_SQL").getAsString();
-//        String script = havingSql.replaceAll(" AND ", " && ").replaceAll(" OR ", " || ");
         String expression = json.remove("HAVING_SQL").getAsString()
                 .replaceAll(" AND ", " && ")
                 .replaceAll(" OR ", " || ")
                 .replaceAll(" = ", " == ");
         List<String> aggregationFields = getHavingAggregationFields(json).stream().distinct().collect(Collectors.toList());
-        Map<String, String> bsPathsMap = aggregationFields.stream().collect(Collectors.toMap(s -> s, s -> s));
+//        Map<String, String> bsPathsMap = aggregationFields.stream().collect(Collectors.toMap(s -> s, s -> "nested_LG.count_LGDM_LGMC_FORMAT_s"));
+        Map<String, String> bsPathsMap = new HashMap<>();
+        aggregationFields.forEach(f -> {
+            aggInfoList.stream().filter(i -> i.alias.equals(f)).findFirst().ifPresent(info -> bsPathsMap.put(f, info.path));
+        });
         Script script = new Script(Script.DEFAULT_SCRIPT_TYPE, "expression", expression, Collections.emptyMap());
         bspabuilder = PipelineAggregatorBuilders.bucketSelector("having-filter", bsPathsMap, script);
     }
@@ -221,4 +306,11 @@ public class SearchRequestBuilderVisitor extends JsonBasicVisitor<SearchRequestB
 			builder.setSize(0);
 		}
 	}
+
+	class AggregationInfo {
+        String alias;
+        AggItem item;
+        String path;
+        AggregationBuilder builder;
+    }
 }
