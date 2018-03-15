@@ -50,8 +50,15 @@ public class AppTest {
 		
 		// count test
 		/*String sql = "select count(*) from uniquery.sell";
-		long result = conn.execute(sql);
-		System.out.println(result);*/
+		ResultSet r = conn.execute(sql);
+		System.out.println(r.getTotal());*/
+		
+		// geo func search
+		String sql = "select LOCATION from test_hzwa.TEST_HZWA_WA_SOURCE_FJ_1001 where geo_distance(LOCATION,30.287797,120.052425,0.5)"; // 圆形
+//		sql = "select LOCATION from test_hzwa.TEST_HZWA_WA_SOURCE_FJ_1001 where geo_box(LOCATION,130, 0, 0, 40)"; // 矩形
+//		sql = "select LOCATION from test_hzwa.TEST_HZWA_WA_SOURCE_FJ_1001 where geo_polygon(LOCATION,50,140, 50,0, 20,0, 20,100, 0,100, 0,140, 50,140)"; // 多边形
+		ResultSet r = conn.execute(sql);
+		System.out.println(r);
 		
 		//释放连接
 		conn.close();
