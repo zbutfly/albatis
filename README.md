@@ -93,6 +93,15 @@
 				
 				Map<String, ResultSet> results = conn.batchExecute(request, request1);
 			~~~
+		1. geo func search
+			~~~java
+				String sql = "select geo_p from uniquery_solr_test where geo_distance(geo_p,33.00,22.00,5)"; // 圆形
+				//sql = "select geo_p from uniquery_solr_test where geo_box(geo_p,44.00,11.00,11.00,44.00)"; // 矩形
+				//sql = "select geo_p from uniquery_solr_test where geo_polygon(geo_srpt,-10,30, -40,40, -10,-20,40,0, 40,30, -10,30)"; // 多边形
+				ResultSet rs = conn.execute(sql, "");
+				List<Map<String, Object>> result = rs.getResults();
+				System.out.println(result);
+			~~~ 
 	
 	1. 关闭客户端
 		~~~java
@@ -129,3 +138,9 @@
 	    
 	1. 统计功能	
 		已支持数据统计：count(*)
+		
+	1. 空间搜索支持 （暂时仅支持solr）
+		支持空间搜索函数：
+			- 圆形  geo_distance(field,x,y,d)
+			- 矩形  geo_box(field,top,left,bottom,right)
+			- 多边形	  geo_polygon(field,x1,y1,x2,y2...xn,yn,x1,y1)
