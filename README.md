@@ -137,10 +137,10 @@
 	    1. 以HashMap方式简单支持 
 	    
 	1. 统计功能	
-		已支持数据统计：count(*)
+		已支持数据统计：count(*)	
 		
 	1. 空间搜索支持 （暂时仅支持solr）
-		支持空间搜索函数：
+		- 支持空间搜索函数：
 			- 圆形  geo_distance(field,x,y,d)
 			- 矩形  geo_box(field,top,left,bottom,right)
 			- 多边形	  geo_polygon(field,x1,y1,x2,y2...xn,yn,x1,y1)
