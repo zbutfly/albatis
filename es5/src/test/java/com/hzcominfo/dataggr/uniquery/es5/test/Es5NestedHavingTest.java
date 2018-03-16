@@ -68,20 +68,32 @@ public class Es5NestedHavingTest {
         System.out.println(response);
     }
 
+
+    /**
+     * 测试 满足 半年内，在拱墅区住过三次以上旅馆名称里面包括“如家”两个字的旅馆
+     */
     @Test
     public void q1() {
         SearchRequestBuilder requestBuilder = client.prepareSearch("");
         Map<String, String> pathsMap = new HashMap<>();
-        pathsMap.put("cnt", "nested_lg>cnt");
-        Script script = new Script(Script.DEFAULT_SCRIPT_TYPE, "expression", "cnt > 1", Collections.emptyMap());
+//        pathsMap.put("cnt", "nested_LG>count_LGDM_LGMC_FORMAT_s");
+        pathsMap.put("cnt", "nested_LG>filter_LG>_count");
+        Script script = new Script(Script.DEFAULT_SCRIPT_TYPE, "expression", "cnt > 3", Collections.emptyMap());
+        /*QueryBuilder fq = QueryBuilders.boolQuery()
+                .must(QueryBuilders.termQuery("LG.LGDM_LGMC_FORMAT_s", "横塘村十组旅馆"))
+                .must(QueryBuilders.rangeQuery("LG.RZSJ_month_s").from("201001").includeLower(true));*/
+        QueryBuilder fq = QueryBuilders.termQuery("LG.LGDM_LGMC_FORMAT_s", "横塘村十组旅馆");
+        QueryBuilder query = QueryBuilders.nestedQuery("LG", fq, ScoreMode.Avg);
         requestBuilder
                 .setIndices("tdl_uniquery_test")
                 .setTypes("person")
-//                .setQuery(QueryBuilders.matchAllQuery())
+                .setQuery(query)
                 .setSize(0)
-                .addAggregation(AggregationBuilders.terms("term_SFZH_s").field("SFZH_s")/*.size(0)*/
-                        .subAggregation(AggregationBuilders.nested("nested_lg", "LG")
-                                .subAggregation(AggregationBuilders.count("cnt").field("LG.LGDM_LGMC_FORMAT_s")))
+                .addAggregation(AggregationBuilders.terms("SFZH_s_aggrs").field("SFZH_s")/*.size(0)*/
+                        .subAggregation(AggregationBuilders.nested("nested_LG", "LG")
+                                .subAggregation(AggregationBuilders.filter("filter_LG", fq))
+//                                .subAggregation(AggregationBuilders.count("count_LGDM_LGMC_FORMAT_s").field("LG.LGDM_LGMC_FORMAT_s"))
+                        )
                         .subAggregation(PipelineAggregatorBuilders.bucketSelector("having-filter", pathsMap, script)));
 
 
