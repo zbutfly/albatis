@@ -33,6 +33,10 @@
 				String uri = "es://pseudo-elasticsearch@172.16.27.232:9300";
 				//String uri = "elasticsearch://pseudo-elasticsearch@172.16.27.232:9300";
 			~~~
+		1. mongo
+			~~~java
+				String uri = "mongodb://base:base1234@172.16.17.11:40012/basedb";
+			~~~	
 		~~~java
 			URISpec uriSpec = new URISpec(uri);
 		~~~
@@ -44,7 +48,7 @@
 		
 	1. 执行sql并得到结果
 		1. common query
-			1. solr 
+			1. solr, mongo 
 				~~~java
 					String sql = "select * from tdl_c1 where id=? and XB_FORMAT_s=?";
 					Object[] params = {"593fb635c00282f4af41bdd0","男"}; //动态参数
@@ -139,7 +143,7 @@
 	1. 统计功能	
 		已支持数据统计：count(*)	
 		
-	1. 空间搜索支持 （暂时仅支持solr）
+	1. 空间搜索支持 
 		- 支持空间搜索函数：
 			- 圆形  geo_distance(field,x,y,d)
 			- 矩形  geo_box(field,top,left,bottom,right)
