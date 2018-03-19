@@ -91,11 +91,6 @@ public class MongoQueryVisitor extends JsonBasicVisitor<MongoQuery> {
     }
 
     @Override
-    public void visitHaving() {
-
-    }
-
-    @Override
     public void visitOffset(long offset) {
         get().setOffset((int) offset);
     }
@@ -110,4 +105,10 @@ public class MongoQueryVisitor extends JsonBasicVisitor<MongoQuery> {
     	if (idGroup) return;
     	get().setQueryType(QueryType.COUNT);
     }
+
+	@Override
+	public void visitHaving(JsonObject json) {
+		// TODO Auto-generated method stub
+		
+	}
 }

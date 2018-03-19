@@ -1,5 +1,11 @@
 package com.hzcominfo.dataggr.uniquery.mongo;
 
+import static com.hzcominfo.dataggr.uniquery.ConditionTransverter.valueOf;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Pattern;
+
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -7,12 +13,6 @@ import com.hzcominfo.dataggr.uniquery.ConditionTransverter;
 import com.mongodb.BasicDBList;
 import com.mongodb.DBObject;
 import com.mongodb.QueryBuilder;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.regex.Pattern;
-
-import static com.hzcominfo.dataggr.uniquery.ConditionTransverter.valueOf;
 
 public interface MongoConditionTransverter extends ConditionTransverter {
     
@@ -24,6 +24,7 @@ public interface MongoConditionTransverter extends ConditionTransverter {
         JsonObject object, jl, jr;
         JsonArray array;
         String field;
+        List<Double> params;
         for (String key : json.keySet()) {
             switch (key) {
                 case "and":
@@ -82,10 +83,96 @@ public interface MongoConditionTransverter extends ConditionTransverter {
                     object.get(field).getAsJsonArray().forEach(e -> values.add(e.getAsString()));
                     return "in".equals(key) ? new InMongoConditionTransverter(field, values).toMongoQuery()
                             : new NotInMongoConditionTransverter(field, values).toMongoQuery();
+                case "geo_distance":
+    				object = json.getAsJsonObject(key);
+    				field = new ArrayList<>(object.keySet()).get(0);
+    				params = new ArrayList<>();
+    				object.get(field).getAsJsonArray().forEach(e -> params.add(e.getAsBigDecimal().doubleValue()));
+    				return new GeoDistanceMongoConditionTransverter(field, params).toMongoQuery();
+    			case "geo_box":
+    				object = json.getAsJsonObject(key);
+    				field = new ArrayList<>(object.keySet()).get(0);
+    				params = new ArrayList<>();
+    				object.get(field).getAsJsonArray().forEach(e -> params.add(e.getAsBigDecimal().doubleValue()));
+    				return new GeoBoxMongoConditionTransverter(field, params).toMongoQuery();
+    			case "geo_polygon":
+    				object = json.getAsJsonObject(key);
+    				field = new ArrayList<>(object.keySet()).get(0);
+    				params = new ArrayList<>();
+    				object.get(field).getAsJsonArray().forEach(e -> params.add(e.getAsBigDecimal().doubleValue()));
+    				return new GeoPolygonMongoConditionTransverter(field, params).toMongoQuery();
             }
         }
         throw new RuntimeException("Can NOT parse " + json + "to Mongo Query");
     }
+    
+ // geo_distance(field,x,y,d)
+ 	class GeoDistanceMongoConditionTransverter implements MongoConditionTransverter {
+ 		private String field;
+ 		private List<Double> params;
+
+ 		public GeoDistanceMongoConditionTransverter(String field, List<Double> params) {
+ 			this.field = field;
+ 			this.params = params;
+ 			if (params.size() != 3)
+ 				throw new RuntimeException("Incorrect params of GeoDistance");
+ 		}
+
+		@Override
+		public DBObject toMongoQuery() {
+			// 坐标系单位 m ？？
+//			return QueryBuilder.start(field).withinCenter(params.get(0), params.get(1), params.get(2) * 1000).get();
+			return QueryBuilder.start(field).withinCenter(params.get(0), params.get(1), params.get(2)).get();
+		}
+ 	}
+
+ 	// geo_box(field,top,left,bottom,right)
+ 	class GeoBoxMongoConditionTransverter implements MongoConditionTransverter {
+ 		private String field;
+ 		private List<Double> params;
+
+ 		public GeoBoxMongoConditionTransverter(String field, List<Double> params) {
+ 			this.field = field;
+ 			this.params = params;
+ 			if (params.size() != 4)
+ 				throw new RuntimeException("Incorrect params of GeoBox");
+ 		}
+
+		@Override
+		public DBObject toMongoQuery() {
+			return QueryBuilder.start(field).withinBox(params.get(1), params.get(2), params.get(3), params.get(0)).get();
+		}
+
+ 	}
+
+ 	// geo_polygon(field,x1,y1,x2,y2...xn,yn,x1,y1)
+ 	class GeoPolygonMongoConditionTransverter implements MongoConditionTransverter {
+ 		private String field;
+ 		private List<Double> params;
+
+ 		public GeoPolygonMongoConditionTransverter(String field, List<Double> params) {
+ 			this.field = field;
+ 			this.params = params;
+ 			if (params.size() < 6 || isOdd(params.size()))
+ 				throw new RuntimeException("Incorrect params of GeoPolygon");
+ 		}
+
+		@Override
+		public DBObject toMongoQuery() {
+			List<Double[]> points = new ArrayList<>();
+			for (int i = 0; i < params.size(); i++)
+				if (!isOdd(i))
+					points.add(new Double[]{params.get(i), params.get(i + 1)});
+			return QueryBuilder.start(field).withinPolygon(points).get();
+		}
+		
+		private boolean isOdd(int a) {
+ 			if ((a & 1) == 1) {
+ 				return true;
+ 			}
+ 			return false;
+ 		}
+ 	}
     
     class UnrecognizedMongoConditionTransverter implements MongoConditionTransverter {
 
