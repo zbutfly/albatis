@@ -92,7 +92,9 @@ public final class HbaseOutput extends OutputBase<Message> {
 				try {
 					hconn.table(table).batch(enqs, results);
 				} catch (Exception e) {
-					logger().error(name() + " write failed [" + Exceptions.unwrap(e).getMessage() + "], [" + enqs.size() + "] into fails.");
+					String err = Exceptions.unwrap(e).getMessage();
+					err = err.replaceAll("\n\\s+at .*\\)\n", ""); // shink stacktrace in error message
+					logger().debug(name() + " write failed [" + err + "], [" + enqs.size() + "] into fails.");
 					failed(Sdream.of(origins));
 				}
 			});
