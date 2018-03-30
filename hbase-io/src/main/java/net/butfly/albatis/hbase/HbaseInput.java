@@ -1,6 +1,7 @@
 package net.butfly.albatis.hbase;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
@@ -10,8 +11,13 @@ import java.util.function.Consumer;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.filter.BinaryComparator;
+import org.apache.hadoop.hbase.filter.ColumnPrefixFilter;
+import org.apache.hadoop.hbase.filter.CompareFilter.CompareOp;
+import org.apache.hadoop.hbase.filter.FamilyFilter;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterList;
+import org.apache.hadoop.hbase.filter.MultipleColumnPrefixFilter;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import io.netty.util.internal.shaded.org.jctools.queues.MessagePassingQueue.Supplier;
@@ -150,6 +156,43 @@ public final class HbaseInput extends Namedly implements Input<Message> {
 
 	public void table(String table) {
 		table(table, () -> new TableScaner(table));
+	}
+
+	public void tableWithFamily(String table, String... cf) {
+		Filter[] fs = filterFamily(cf);
+		if (null == fs) table(table);
+		else table(table, fs);
+	}
+
+	private Filter[] filterFamily(String... cf) {
+		if (null == cf || 0 == cf.length) return null;
+		return Arrays.stream(cf).map(c -> new FamilyFilter(CompareOp.EQUAL, new BinaryComparator(Bytes.toBytes(c)))).toArray(
+				i -> new Filter[i]);
+	}
+
+	private Filter filterPrefix(List<String> prefixes) {
+		if (null == prefixes || prefixes.isEmpty()) return null;
+		if (1 == prefixes.size()) return null == prefixes.get(0) ? null : new ColumnPrefixFilter(Bytes.toBytes(prefixes.get(0)));
+		byte[][] ps = prefixes.stream().filter(p -> null != p).map(Bytes::toBytes).filter(b -> null != b && b.length > 0).toArray(
+				i -> new byte[i][]);
+		if (null == ps || ps.length == 0) return null;
+		if (ps.length == 1) return new ColumnPrefixFilter(ps[0]);
+		else return new MultipleColumnPrefixFilter(ps);
+	}
+
+	public void tableWithPrefix(String table, String... prefix) {
+		Filter f = filterPrefix(Arrays.asList(prefix));
+		if (null == f) table(table);
+		else table(table, f);
+	}
+
+	public void tableWithFamilAndPrefix(String table, List<String> prefixes, String... cf) {
+		Filter pf = filterPrefix(prefixes);
+		Filter[] ff = filterFamily(cf);
+		List<Filter> filters = null == ff ? Colls.list() : Colls.list(ff);
+		if (null != pf) filters.add(pf);
+		if (filters.isEmpty()) table(table);
+		else table(table, filters.toArray(new Filter[(filters.size())]));
 	}
 
 	@Override
