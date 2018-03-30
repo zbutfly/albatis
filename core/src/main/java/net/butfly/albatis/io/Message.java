@@ -158,5 +158,4 @@ public class Message extends ConcurrentHashMap<String, Object> {
 		putAll(map);
 		return this;
 	}
-
 }
