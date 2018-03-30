@@ -5,7 +5,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -150,7 +149,14 @@ public class Message extends ConcurrentHashMap<String, Object> {
 	}
 
 	public Map<String, Object> map() {
-		return new HashMap<>(this);
+		Map<String, Object> m = Maps.of();
+		m.putAll(this);
+		return m;
 	}
 
+	public synchronized Message map(Map<String, Object> map) {
+		clear();
+		putAll(map);
+		return this;
+	}
 }

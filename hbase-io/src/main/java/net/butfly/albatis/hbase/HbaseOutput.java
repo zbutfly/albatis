@@ -25,6 +25,10 @@ import net.butfly.albatis.io.Message;
 import net.butfly.albatis.io.Message.Op;
 import net.butfly.albatis.io.OutputBase;
 
+/**
+ * Subject (embedded document serialized as BSON with prefixed column name)
+ * writer to hbase.
+ */
 public final class HbaseOutput extends OutputBase<Message> {
 	public static final @HbaseProps String MAX_CONCURRENT_OP_PROP_NAME = HbaseProps.OUTPUT_CONCURRENT_OPS;
 	public static final int MAX_CONCURRENT_OP_DEFAULT = Integer.MAX_VALUE;
@@ -93,7 +97,10 @@ public final class HbaseOutput extends OutputBase<Message> {
 					hconn.table(table).batch(enqs, results);
 				} catch (Exception e) {
 					String err = Exceptions.unwrap(e).getMessage();
-					err = err.replaceAll("\n\\s+at .*\\)\n", ""); // shink stacktrace in error message
+					err = err.replaceAll("\n\\s+at .*\\)\n", ""); // shink
+																	// stacktrace
+																	// in error
+																	// message
 					logger().debug(name() + " write failed [" + err + "], [" + enqs.size() + "] into fails.");
 					failed(Sdream.of(origins));
 				}
