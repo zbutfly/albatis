@@ -207,7 +207,7 @@ public final class Hbases extends Utils {
 	private static Map<String, String> props() {
 		Properties p = new Properties();
 		try {
-			InputStream is = HbaseSubInput.class.getResourceAsStream("/albatis-hbase.properties");
+			InputStream is = HbaseConnection.class.getResourceAsStream("/albatis-hbase.properties");
 			if (null != is) p.load(is);
 		} catch (IOException e) {}
 		return Maps.of(p);
