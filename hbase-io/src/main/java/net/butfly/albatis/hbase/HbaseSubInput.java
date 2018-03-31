@@ -39,6 +39,9 @@ public class HbaseSubInput extends Wrapper.WrapInput<SubMessage, Message> {
 
 		public SubMessage(String table, Object rowkey, String prefix, String colkey, String cf, Map<String, Object> data) {
 			super(table, rowkey, data);
+			put(".SUBJECT.COLKEY", colkey);
+			put(".SUBJECT.COLPREFIX", prefix);
+			put(".SUBJECT.COLFAMILY", cf);
 			this.prefix = prefix;
 			this.cf = cf;
 			this.colkey = colkey;
