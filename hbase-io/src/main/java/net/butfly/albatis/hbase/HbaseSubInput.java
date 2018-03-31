@@ -3,38 +3,31 @@ package net.butfly.albatis.hbase;
 import static net.butfly.albacore.paral.Sdream.of;
 
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 import net.butfly.albacore.paral.Sdream;
-import net.butfly.albacore.serder.BsonSerder;
 import net.butfly.albatis.hbase.HbaseSubInput.SubMessage;
+import net.butfly.albatis.io.Input;
 import net.butfly.albatis.io.Message;
+import net.butfly.albatis.io.Wrapper;
 
 /**
- * Subject (embedded document serialized as BSON with prefixed column name)
- * reader from hbase.
+ * Subject (embedded document serialized as BSON with prefixed column name) reader from hbase.
  */
-public final class HbaseSubInput extends HbaseBasicInput<SubMessage> {
+public class HbaseSubInput extends Wrapper.WrapInput<SubMessage, Message> {
 	private final char colkeySplit;
 	private final Function<byte[], Map<String, Object>> der;
 
-	public HbaseSubInput(String name, HbaseConnection conn, Function<byte[], Map<String, Object>> conv, char colkeySplit) {
-		super(name, conn);
+	HbaseSubInput(Input<? extends Message> hbaseInput, Function<byte[], Map<String, Object>> conv, char colkeySplit) {
+		super(hbaseInput, "Subject");
 		this.der = conv;
 		this.colkeySplit = colkeySplit;
 	}
 
-	private HbaseSubInput(String name, HbaseConnection conn, Function<byte[], Map<String, Object>> conv) {
-		this(name, conn, conv, '#');
-	}
-
-	public HbaseSubInput(String name, HbaseConnection conn) {
-		this(name, conn, BsonSerder::map);
-	}
-
 	@Override
-	protected Sdream<SubMessage> m(Sdream<Message> ms) {
-		return ms.mapFlat(m -> splitByPrefix(m));
+	public void dequeue(Consumer<Sdream<SubMessage>> using) {
+		base.dequeue(ms -> using.accept(ms.mapFlat(this::splitByPrefix)));
 	}
 
 	public class SubMessage extends Message {
