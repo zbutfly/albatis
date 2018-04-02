@@ -94,7 +94,7 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 
 	public SolrConnection(URISpec uri, Class<? extends ResponseParser> parserClass, boolean parsing) throws IOException {
 		super(uri, u -> create(u, parserClass), "solr", "zk:solr", "zookeeper", "zk", "http");
-		meta = parsing ? parse() : null;
+		meta = parsing ? SolrMeta.parse(uri) : null;
 	}
 
 	private static SolrClient create(URISpec uri, Class<? extends ResponseParser> parserClass) {
@@ -105,7 +105,7 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 		case "solr:http":
 		case "http":
 			logger.debug("Solr client create: " + uri);
-			Builder hb = new HttpSolrClient.Builder(uri.toString()).allowCompression(true).withHttpClient(HTTP_CLIENT)//
+			Builder hb = new HttpSolrClient.Builder(uri.toString().replaceAll("/$", "")).allowCompression(true).withHttpClient(HTTP_CLIENT)//
 					.withResponseParser(p);
 			return hb.build();
 		case "solr":
@@ -211,39 +211,44 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 			this.defCore = defCore;
 			this.allCores = allCores;
 		}
-	}
 
-	/**
-	 * @param uri
-	 * @return Tuple3: <baseURL, defaultCore[maybe null], allCores>, or null for invalid uri
-	 * @throws IOException
-	 * @throws SolrServerException
-	 * @throws URISyntaxException
-	 */
-	public SolrMeta parse() throws IOException {
-		String url = uri.toString();
-		CoreAdminRequest req = new CoreAdminRequest();
-		req.setAction(CoreAdminAction.STATUS);
-		try { // no core segment in uri
-			CoreAdminResponse resp = req.process(client());
-			String[] cores = new String[resp.getCoreStatus().size()];
-			for (int i = 0; i < resp.getCoreStatus().size(); i++)
-				cores[i] = resp.getCoreStatus().getName(i);
-			return new SolrMeta(url, null, cores);
-		} catch (SolrServerException | RemoteSolrException e) {
-			// has core segment in uri
-			String core = uri.getFile();
-			if (null == core)
-				throw new IOException("Solr uri invalid: " + uri);
-			URISpec base = uri.resolve("..");
+		@Override
+		public String toString() {
+			return "SolrMeta: " + baseUrl + " [default core: " + defCore + "]" + (allCores.length == 0 ? ""
+					: ", [all cores: " + String.join(",", allCores) + "]");
+		}
+
+		/**
+		 * @param uri
+		 * @return Tuple3: <baseURL, defaultCore[maybe null], allCores>, or null for invalid uri
+		 * @throws IOException
+		 * @throws SolrServerException
+		 * @throws URISyntaxException
+		 */
+		public static SolrMeta parse(URISpec uri) throws IOException {
+			try {
+				return parse0(uri.resolve("."), uri.getFile());
+			} catch (IOException e) {
+				if (null != uri.getFile()) try {
+					return parse0(new URISpec(uri.toString() + "/"), null);
+				} catch (IOException ee) {}
+				URISpec uri1 = uri.resolve("..").setFile(uri.getFile());
+				if (!uri1.equals(uri)) return parse(uri1);
+				throw new IOException("Solr uri base parsing failure: " + uri);
+			}
+		}
+
+		private static SolrMeta parse0(URISpec base, String file) throws IOException {
+			CoreAdminRequest req = new CoreAdminRequest();
+			req.setAction(CoreAdminAction.STATUS);
 			try (SolrConnection solr = new SolrConnection(base, false);) {
 				CoreAdminResponse resp = req.process(solr.client());
 				String[] cores = new String[resp.getCoreStatus().size()];
 				for (int i = 0; i < resp.getCoreStatus().size(); i++)
 					cores[i] = resp.getCoreStatus().getName(i);
-				return new SolrMeta(base.toString(), core, cores);
-			} catch (RemoteSolrException | SolrServerException ee) {
-				throw new IOException("Solr uri base parsing failure: " + url);
+				return new SolrMeta(base.toString().replaceAll("/$", ""), file, cores);
+			} catch (RemoteSolrException | SolrServerException e) {
+				throw new IOException(e);
 			}
 		}
 	}
@@ -294,5 +299,15 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 	@Override
 	public SolrOutput output() throws IOException {
 		return new SolrOutput("SolrOutput", this);
+	}
+
+	public static void main(String... args) throws IOException {
+		testParse("http://data03:10180/solr/zhk_SJZYZH_MY_TRAINFO");
+		testParse("http://data03:10180/solr/");
+		testParse("http://data03:10180/solr");
+	}
+
+	private static void testParse(String u) throws IOException {
+		System.out.println("Parse Solr URI [" + u + "] => " + SolrMeta.parse(new URISpec(u)));
 	}
 }
