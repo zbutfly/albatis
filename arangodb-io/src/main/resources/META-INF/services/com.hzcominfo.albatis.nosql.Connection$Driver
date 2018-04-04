@@ -1,1 +1,1 @@
-net.butfly.albatis.hbase.HbaseConnection$Driver
+net.butfly.albatis.arangodb.ArangoConnection.Driver
