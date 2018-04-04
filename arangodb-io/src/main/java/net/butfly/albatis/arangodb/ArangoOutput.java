@@ -1,14 +1,14 @@
 package net.butfly.albatis.arangodb;
 
-import java.io.IOException;
-
-import com.arangodb.entity.BaseDocument;
+import java.util.List;
+import java.util.Map;
 
 import net.butfly.albacore.paral.Sdream;
-import net.butfly.albacore.utils.logger.Statistic;
+import net.butfly.albacore.utils.collection.Colls;
+import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albatis.io.OutputBase;
 
-public class ArangoOutput extends OutputBase<AqlNestedMessage> {
+public class ArangoOutput extends OutputBase<EdgeMessage> {
 	private final ArangoConnection conn;
 
 	protected ArangoOutput(String name, ArangoConnection conn) {
@@ -17,22 +17,15 @@ public class ArangoOutput extends OutputBase<AqlNestedMessage> {
 	}
 
 	@Override
-	public void close() {
-		try {
-			conn.close();
-		} catch (IOException e) {
-			throw new RuntimeException();
-		}
-	}
-
-	@Override
-	protected void enqueue0(Sdream<AqlNestedMessage> edges) {
-		edges.map(e -> e.exec(conn, s())).eachs(ArangoConnection::get);
-	}
-
-	@Override
-	public Statistic trace() {
-		return new Statistic(this).<BaseDocument> sizing(b -> conn.sizeOf(b)) //
-				.<BaseDocument> sampling(BaseDocument::toString);
+	protected void enqueue0(Sdream<EdgeMessage> items) {
+		Map<String, List<EdgeMessage>> m = Maps.of();
+		items.eachs(e -> {
+			m.compute(e.table(), (t, o) -> {
+				if (null == o) o = Colls.list();
+				o.add(e);
+				return o;
+			});
+		});
+		m.forEach((t, ms) -> conn.db.collection(t).insertDocuments(ms));
 	}
 }
