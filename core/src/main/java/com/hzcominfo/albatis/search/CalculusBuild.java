@@ -2,6 +2,8 @@ package com.hzcominfo.albatis.search;
 
 import java.util.Collection;
 
+import net.sf.jsqlparser.expression.Expression;
+
 public class CalculusBuild {
 	public static Criteria and(Criteria... filter) {
 		return new Criteria.And(filter);
@@ -106,5 +108,9 @@ public class CalculusBuild {
 
 	public static SearchItem sub(String fristColumn, String secondColumn) {
 		return new SearchItem.Sub(fristColumn, secondColumn);
+	}
+	
+	public static Criteria between(String field, Expression left, Expression right) {
+		return new Criteria.Between(field, left, right);
 	}
 }

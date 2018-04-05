@@ -18,6 +18,8 @@ import java.util.regex.Pattern;
 
 import com.hzcominfo.albatis.search.exception.SearchAPIError;
 
+import net.sf.jsqlparser.expression.Expression;
+
 /**
  * @author ljx
  * @version 0.0.1
@@ -209,6 +211,18 @@ public interface Criteria extends Serializable {
 
 		public Exist(String field, V value) {
 			super(field, value);
+		}
+	}
+	
+	public static class Between implements Criteria {
+		private static final long serialVersionUID = -8507620888309748669L;
+		public String field;
+		public Expression left;
+		public Expression right;
+		public Between(String field, Expression left, Expression right) {
+			this.field = field;
+			this.left = left;
+			this.right = right;
 		}
 	}
 }
