@@ -144,7 +144,7 @@
 		已支持数据统计：count(*)	
 		
 	1. 空间搜索支持 
-		- 支持空间搜索函数（field为经纬度字段，x为经度坐标,y为纬度坐标，d为圆半径——km，top bottom对应矩形的 上 下纬度，left bottom对应矩形的 左右纬度）：
-			- 圆形  geo_distance(field,x,y,d)
+		- 支持空间搜索函数（field为坐标字段；lat为纬度，lon为经度；x为经度,y为纬度；d为圆半径——km；top bottom对应矩形 上 下纬度，left bottom对应矩形的 左右经度）：
+			- 圆形  geo_distance(field,lat,lon,d)
 			- 矩形  geo_box(field,top,left,bottom,right)
 			- 多边形	  geo_polygon(field,x1,y1,x2,y2...xn,yn,x1,y1)

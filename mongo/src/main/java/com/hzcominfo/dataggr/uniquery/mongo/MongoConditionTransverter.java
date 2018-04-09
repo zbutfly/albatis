@@ -122,7 +122,7 @@ public interface MongoConditionTransverter extends ConditionTransverter {
 		public DBObject toMongoQuery() {
 			// 坐标系单位 m ？？
 //			return QueryBuilder.start(field).withinCenter(params.get(0), params.get(1), params.get(2) * 1000).get();
-			return QueryBuilder.start(field).withinCenter(params.get(0), params.get(1), params.get(2)).get();
+			return QueryBuilder.start(field).withinCenter(params.get(1), params.get(0), params.get(2)).get();
 		}
  	}
 
@@ -140,7 +140,7 @@ public interface MongoConditionTransverter extends ConditionTransverter {
 
 		@Override
 		public DBObject toMongoQuery() {
-			return QueryBuilder.start(field).withinBox(params.get(1), params.get(2), params.get(3), params.get(0)).get();
+			return QueryBuilder.start(field).withinBox(params.get(1), params.get(0), params.get(3), params.get(2)).get();
 		}
 
  	}
@@ -162,7 +162,7 @@ public interface MongoConditionTransverter extends ConditionTransverter {
 			List<Double[]> points = new ArrayList<>();
 			for (int i = 0; i < params.size(); i++)
 				if (!isOdd(i))
-					points.add(new Double[]{params.get(i), params.get(i + 1)});
+					points.add(new Double[]{params.get(i + 1), params.get(i)});
 			return QueryBuilder.start(field).withinPolygon(points).get();
 		}
 		

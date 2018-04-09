@@ -171,7 +171,7 @@ public interface Es5ConditionTransverter extends ConditionTransverter {
 			List<GeoPoint> gps = new ArrayList<>();
 			for (int i = 0; i < params.size(); i++)
 				if (!isOdd(i))
-					gps.add(new GeoPoint(params.get(i), params.get(i + 1)));
+					gps.add(new GeoPoint(params.get(i + 1), params.get(i)));
 			return QueryBuilders.geoPolygonQuery(field, gps);
 		}
 
