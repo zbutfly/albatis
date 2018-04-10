@@ -46,9 +46,18 @@ public class MongoConnection extends NoSqlConnection<MongoClient> {
 			} catch (UnknownHostException e) {
 				throw new RuntimeException(e);
 			}
-		} , "mongodb");
-		defaultDB = uri.getPathAt(0);
-		defaultCollection = uri.getFile();
+		}, "mongodb");
+		if (uri.getPaths().length > 0) {
+			defaultDB = uri.getPaths()[0];
+			// Arrays.stream(uri.getFile().split(",")).filter(t -> !t.isEmpty()).toArray(i -> new String[i])
+			defaultCollection = null != uri.getFile() ? uri.getFile() : null;
+		} else if (null != uri.getFile()) {
+			defaultDB = uri.getFile();
+			defaultCollection = null;
+		} else {
+			defaultDB = null;
+			defaultCollection = null;
+		}
 		dbs = Maps.of();
 	}
 

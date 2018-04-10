@@ -67,9 +67,7 @@ public class MongoInput extends net.butfly.albacore.base.Namedly implements OddI
 		logger.info("[" + name + "] from [" + conn.uri().toString() + "], collection [" + tablesAndQueries.toString() + "]");
 		List<Runnable> queries = Colls.list();
 		for (String t : tablesAndQueries.keySet())
-			queries.add(() -> cursorsMap.computeIfAbsent(t,
-
-					tt -> new Cursor(tt, tablesAndQueries.get(t))));
+			queries.add(() -> cursorsMap.computeIfAbsent(t, tt -> new Cursor(tt, tablesAndQueries.get(t))));
 		Exeter.of().join(queries.toArray(new Runnable[queries.size()]));
 	}
 
