@@ -28,9 +28,9 @@ public interface Connection extends AutoCloseable {
 		return DriverManager.connect(uriSpec);
 	}
 
-	<I extends Input<M>, M extends Message> I input(String... table) throws IOException;
+	Input<? extends Message> input(String... table) throws IOException;
 
-	<O extends Output<M>, M extends Message> O output() throws IOException;
+	Output<? extends Message> output() throws IOException;
 
 	interface Driver<C extends Connection> {
 		List<String> schemas();
