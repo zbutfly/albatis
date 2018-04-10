@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
@@ -236,7 +237,11 @@ public class HbaseInput extends Namedly implements Input<Message> {
 			}
 	}
 
+	public HbaseSubInput subject(Function<byte[], Map<String, Object>> conv) {
+		return new HbaseSubInput(this, conv, '#');
+	}
+
 	public HbaseSubInput subject() {
-		return new HbaseSubInput(this, BsonSerder::map, '#');
+		return subject(BsonSerder::map);
 	}
 }

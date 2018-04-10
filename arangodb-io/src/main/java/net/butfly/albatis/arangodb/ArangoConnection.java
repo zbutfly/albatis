@@ -13,8 +13,6 @@ import com.hzcominfo.albatis.nosql.NoSqlConnection;
 import net.butfly.albacore.exception.NotImplementedException;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.collection.Colls;
-import net.butfly.albatis.io.Input;
-import net.butfly.albatis.io.Message;
 
 public class ArangoConnection extends NoSqlConnection<ArangoDBAsync> {
 	public final ArangoDatabaseAsync db;
@@ -46,7 +44,7 @@ public class ArangoConnection extends NoSqlConnection<ArangoDBAsync> {
 	}
 
 	@Override
-	public Input<Message> input(String... table) throws IOException {
+	public ArangoInput input(String... table) throws IOException {
 		throw new NotImplementedException();
 	}
 
