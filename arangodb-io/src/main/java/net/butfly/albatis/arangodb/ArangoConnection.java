@@ -34,8 +34,10 @@ public class ArangoConnection extends NoSqlConnection<ArangoDBAsync> {
 		} else if (null != uri.getFile()) {
 			this.db = client().db(uri.getFile());
 			this.tables = new String[0];
+		} else {
+			this.db = null;
+			this.tables = new String[0];
 		}
-		throw new IllegalArgumentException("ArangoDB uri [" + uri.toString() + "] has no db defined.");
 	}
 
 	@Override
@@ -65,7 +67,7 @@ public class ArangoConnection extends NoSqlConnection<ArangoDBAsync> {
 
 		@Override
 		public List<String> schemas() {
-			return Colls.list("hbase");
+			return Colls.list("arangodb", "arango");
 		}
 	}
 }
