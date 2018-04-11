@@ -11,6 +11,7 @@ public class EdgeMessage extends Message {
 	private static final long serialVersionUID = -7016058550224590870L;
 	final Message[] vertexes;
 	final List<Message> edges;
+	Runnable then = null;
 
 	public EdgeMessage(String tbl, Object key, Map<String, Object> values) {
 		super(tbl, key, values);
@@ -48,5 +49,9 @@ public class EdgeMessage extends Message {
 
 	public void edges(Collection<? extends Message> edges) {
 		this.edges.addAll(edges);
+	}
+
+	public void then(Runnable then) {
+		this.then = then;
 	}
 }
