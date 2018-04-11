@@ -36,4 +36,12 @@ public class EdgeMessage extends Message {
 	public void edge(Message edge) {
 		edges.add(edge);
 	}
+
+	@Override
+	public String toString() {
+		return super.toString() //
+				+ (null == vertexes[0] ? "" : "\n\tStart Vertex: " + vertexes[0].toString()) //
+				+ (null == vertexes[1] ? "" : "\n\t  End Vertex: " + vertexes[1].toString()) //
+				+ (edges.isEmpty() ? "" : "\n\t\t And [" + edges.size() + "] other edges.");
+	}
 }
