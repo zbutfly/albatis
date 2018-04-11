@@ -1,5 +1,6 @@
 package net.butfly.albatis.arangodb;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -43,5 +44,9 @@ public class EdgeMessage extends Message {
 				+ (null == vertexes[0] ? "" : "\n\tStart Vertex: " + vertexes[0].toString()) //
 				+ (null == vertexes[1] ? "" : "\n\t  End Vertex: " + vertexes[1].toString()) //
 				+ (edges.isEmpty() ? "" : "\n\t\t And [" + edges.size() + "] other edges.");
+	}
+
+	public void edges(Collection<? extends Message> edges) {
+		this.edges.addAll(edges);
 	}
 }
