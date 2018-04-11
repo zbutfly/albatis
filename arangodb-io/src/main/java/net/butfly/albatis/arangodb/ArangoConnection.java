@@ -5,6 +5,10 @@ import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 import com.arangodb.ArangoDBAsync;
@@ -80,5 +84,22 @@ public class ArangoConnection extends NoSqlConnection<ArangoDBAsync> {
 
 	public long sizeOf(BaseDocument b) {
 		return 0;
+	}
+
+	private static final int TIMEOUT_SECS = 2;
+
+	public static <T> T get(CompletableFuture<T> f) {
+		if (null == f) return null;
+		try {
+			return f.get(TIMEOUT_SECS, TimeUnit.SECONDS);
+		} catch (InterruptedException e) {
+			throw new RuntimeException(e);
+		} catch (ExecutionException e) {
+			Throwable ee = e.getCause();
+			throw ee instanceof RuntimeException ? (RuntimeException) ee : new RuntimeException(ee);
+		} catch (TimeoutException e) {
+			logger.error("aql timeout for " + TIMEOUT_SECS + " seconds");
+			return null;
+		}
 	}
 }
