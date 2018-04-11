@@ -4,10 +4,13 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import com.arangodb.ArangoDBAsync;
 import com.arangodb.ArangoDBAsync.Builder;
 import com.arangodb.ArangoDatabaseAsync;
+import com.arangodb.entity.BaseDocument;
 import com.hzcominfo.albatis.nosql.NoSqlConnection;
 
 import net.butfly.albacore.exception.NotImplementedException;
@@ -69,5 +72,13 @@ public class ArangoConnection extends NoSqlConnection<ArangoDBAsync> {
 		public List<String> schemas() {
 			return Colls.list("arangodb", "arango");
 		}
+	}
+
+	public String parseAqlAsBindParams(Map<String, Object> v) {
+		return "{" + v.keySet().stream().map(k -> k + ": @" + k).collect(Collectors.joining(", ")) + "}";
+	}
+
+	public long sizeOf(BaseDocument b) {
+		return 0;
 	}
 }
