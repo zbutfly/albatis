@@ -19,9 +19,14 @@ import com.hzcominfo.albatis.nosql.NoSqlConnection;
 
 import net.butfly.albacore.exception.NotImplementedException;
 import net.butfly.albacore.io.URISpec;
+import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.collection.Colls;
 
 public class ArangoConnection extends NoSqlConnection<ArangoDBAsync> {
+	private static final int MAX_CONNECTIONS = Integer.parseInt(Configs.gets("albatis.arango.connection.max", "2048"));
+	private static final int TIMEOUT_SECS = Integer.parseInt(Configs.gets("albatis.arango.connection.timeout", "0"));
+	private static final int CHUNK_SIZE = Integer.parseInt(Configs.gets("albatis.arango.chunk.size", Integer.toString(5 * 1024 * 1024)));
+
 	public final ArangoDatabaseAsync db;
 	public final String[] tables;
 
@@ -32,7 +37,7 @@ public class ArangoConnection extends NoSqlConnection<ArangoDBAsync> {
 				b.host(h.getHostName(), h.getPort());
 			if (null != u.getUsername()) b.user(u.getUsername());
 			if (null != u.getPassword()) b.password(u.getPassword());
-			return b.build();
+			return b.maxConnections(MAX_CONNECTIONS).chunksize(CHUNK_SIZE).build();
 		}, 8529, "arango", "arangodb");
 		if (uri.getPaths().length > 0) {
 			this.db = client().db(uri.getPaths()[0]);
@@ -86,12 +91,10 @@ public class ArangoConnection extends NoSqlConnection<ArangoDBAsync> {
 		return 0;
 	}
 
-	private static final int TIMEOUT_SECS = 2;
-
 	public static <T> T get(CompletableFuture<T> f) {
 		if (null == f) return null;
 		try {
-			return f.get(TIMEOUT_SECS, TimeUnit.SECONDS);
+			return TIMEOUT_SECS > 0 ? f.get(TIMEOUT_SECS, TimeUnit.SECONDS) : f.get();
 		} catch (InterruptedException e) {
 			throw new RuntimeException(e);
 		} catch (ExecutionException e) {
