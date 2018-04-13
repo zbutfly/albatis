@@ -32,14 +32,17 @@ public class ArangoConnection extends NoSqlConnection<ArangoDBAsync> {
 	public final String[] tables;
 
 	public ArangoConnection(URISpec uri) throws IOException {
-		super(uri, u -> {
-			Builder b = new ArangoDBAsync.Builder();
-			for (InetSocketAddress h : u.getInetAddrs())
-				b.host(h.getHostName(), h.getPort());
-			if (null != u.getUsername()) b.user(u.getUsername());
-			if (null != u.getPassword()) b.password(u.getPassword());
-			return b.maxConnections(MAX_CONNECTIONS).chunksize(CHUNK_SIZE).build();
-		}, 8529, "arango", "arangodb");
+		super(uri,
+
+				u -> {
+
+					Builder b = new ArangoDBAsync.Builder();
+					for (InetSocketAddress h : u.getInetAddrs())
+						b.host(h.getHostName(), h.getPort());
+					if (null != u.getUsername()) b.user(u.getUsername());
+					if (null != u.getPassword()) b.password(u.getPassword());
+					return b.maxConnections(MAX_CONNECTIONS).chunksize(CHUNK_SIZE).build();
+				}, 8529, "arango", "arangodb");
 		if (uri.getPaths().length > 0) {
 			this.db = client().db(uri.getPaths()[0]);
 			this.tables = null != uri.getFile() ? Arrays.stream(uri.getFile().split(",")).filter(t -> !t.isEmpty()).toArray(
@@ -63,6 +66,7 @@ public class ArangoConnection extends NoSqlConnection<ArangoDBAsync> {
 		throw new NotImplementedException();
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public ArangoOutput output() throws IOException {
 		return new ArangoOutput("ArangoOutput", this);
@@ -85,7 +89,10 @@ public class ArangoConnection extends NoSqlConnection<ArangoDBAsync> {
 	}
 
 	public String parseAqlAsBindParams(Map<String, Object> v) {
-		return "{" + v.keySet().stream().map(k -> k + ": @" + k).collect(Collectors.joining(", ")) + "}";
+		return "{" + v.keySet().stream().map(
+
+				k -> k + ": @" + k).collect(Collectors.joining(", ")) + "}";
+
 	}
 
 	public long sizeOf(BaseDocument b) {
@@ -106,5 +113,25 @@ public class ArangoConnection extends NoSqlConnection<ArangoDBAsync> {
 			logger.error("aql timeout for " + TIMEOUT_SECS + " seconds");
 			return null;
 		}
+	}
+
+	@SafeVarargs
+	public static List<BaseDocument> merge(List<BaseDocument>... c) {
+		List<BaseDocument> ll = Colls.list();
+		for (List<BaseDocument> l : c)
+			if (null != l && !l.isEmpty()) ll.addAll(l);
+		return ll.isEmpty() ? null : ll;
+	}
+
+	public static CompletableFuture<List<BaseDocument>> merge(List<CompletableFuture<List<BaseDocument>>> fs) {
+		if (null == fs || fs.isEmpty()) return CompletableFuture.completedFuture(Colls.list());
+		CompletableFuture<List<BaseDocument>> f = fs.get(0);
+		for (int i = 1; i < fs.size(); i++)
+			f = f.thenCombine(fs.get(i), ArangoConnection::merge);
+		return f;
+	}
+
+	public static CompletableFuture<List<BaseDocument>> merge(List<BaseDocument> l, CompletableFuture<List<BaseDocument>> f) {
+		return CompletableFuture.completedFuture(l).thenCombine(f, ArangoConnection::merge);
 	}
 }

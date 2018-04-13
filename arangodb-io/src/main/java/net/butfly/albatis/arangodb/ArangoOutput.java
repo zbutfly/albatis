@@ -18,6 +18,7 @@ import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.logger.Statistic;
 import net.butfly.albatis.io.Message;
 import net.butfly.albatis.io.OutputBase;
+import static net.butfly.albatis.arangodb.ArangoConnection.merge;
 
 public class ArangoOutput extends OutputBase<EdgeMessage> {
 	private final ArangoConnection conn;
@@ -38,23 +39,17 @@ public class ArangoOutput extends OutputBase<EdgeMessage> {
 		}
 	}
 
-	@SafeVarargs
-	private static List<BaseDocument> arangoStats(List<BaseDocument>... c) {
-		List<BaseDocument> ll = Colls.list();
-		for (List<BaseDocument> l : c)
-			if (null != l && !l.isEmpty()) ll.addAll(l);
-		return ll.isEmpty() ? null : ll;
-	}
-
 	@Override
 	protected void enqueue0(Sdream<EdgeMessage> edges) {
-		CompletableFuture<List<BaseDocument>> ff = edges.map(e -> edge((EdgeMessage) e).thenApply(l -> {
-			if (null != e.then) e.then.run();
-			return l;
-		})).reduce((f1, f2) -> {
+		CompletableFuture<List<BaseDocument>> ff = edges.map(e -> {
+			CompletableFuture<List<BaseDocument>> f1 = edge((EdgeMessage) e);
+			if (null == e.then) return f1;
+			CompletableFuture<List<BaseDocument>> f11 = e.then.get();
+			return f1.thenCompose(l -> merge(l, f11));
+		}).reduce((f1, f2) -> {
 			if (null == f1) return f2;
 			if (null == f2) return f1;
-			return f1.thenCombine(f2, ArangoOutput::arangoStats);
+			return f1.thenCombine(f2, ArangoConnection::merge);
 		});
 		if (null != ff) s().stats(get(ff));
 	}
@@ -63,15 +58,16 @@ public class ArangoOutput extends OutputBase<EdgeMessage> {
 		CompletableFuture<List<BaseDocument>> f = null;
 		Message v;
 		if (null != (v = ((EdgeMessage) e).start())) f = async(v);
-		if (null != (v = ((EdgeMessage) e).end())) f = null == f ? async(v) : f.thenCombine(async(v), ArangoOutput::arangoStats);
+		if (null != (v = ((EdgeMessage) e).end())) f = null == f ? async(v) : f.thenCombine(async(v), ArangoConnection::merge);
+		if (e.edges.isEmpty()) return f.thenCompose(l -> async(e));
 		return f.thenCompose(l -> {
 			AtomicReference<CompletableFuture<List<BaseDocument>>> ref = new AtomicReference<>(async(e));
-			((EdgeMessage) e).edges.forEach(ee -> ref.set(ref.get().thenCombine(async(ee), (t, u) -> arangoStats(t, u, l))));
+			e.edges.forEach(ee -> ref.set(ref.get().thenCombine(async(ee), (t, u) -> ArangoConnection.merge(t, u, l))));
 			return ref.get();
 		});
 	}
 
-	private static final Format AQL = new MessageFormat("upsert '{'_key: @_key} insert {1} update '{'} in {0} return {2}"); //
+	private static final Format AQL = new MessageFormat("upsert '{'_key: @_key} insert {1} update {1} in {0} return {2}"); //
 
 	private CompletableFuture<List<BaseDocument>> async(Message v) {
 		if (null == v.key() || null == v.table() || v.isEmpty()) return CompletableFuture.completedFuture(Colls.list());
