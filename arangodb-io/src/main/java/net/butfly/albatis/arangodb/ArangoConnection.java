@@ -9,6 +9,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.function.BinaryOperator;
 import java.util.stream.Collectors;
 
 import com.arangodb.ArangoDBAsync;
@@ -23,7 +24,7 @@ import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.collection.Colls;
 
 public class ArangoConnection extends NoSqlConnection<ArangoDBAsync> {
-	private static final int MAX_CONNECTIONS = Integer.parseInt(Configs.gets("albatis.arango.connection.max.conn", "2048"));
+	private static final int MAX_CONNECTIONS = Integer.parseInt(Configs.gets("albatis.arango.connection.max.conn", "10000"));
 	private static final int TIMEOUT_SECS = Integer.parseInt(Configs.gets("albatis.arango.connection.timeout", "0"));
 	private static final int CHUNK_SIZE = Integer.parseInt(Configs.gets("albatis.arango.connection.chunk.size", Integer.toString(5 * 1024
 			* 1024)));
@@ -124,7 +125,7 @@ public class ArangoConnection extends NoSqlConnection<ArangoDBAsync> {
 	}
 
 	public static CompletableFuture<List<BaseDocument>> merge(List<CompletableFuture<List<BaseDocument>>> fs) {
-		if (null == fs || fs.isEmpty()) return CompletableFuture.completedFuture(Colls.list());
+		if (null == fs || fs.isEmpty()) return empty();
 		CompletableFuture<List<BaseDocument>> f = fs.get(0);
 		for (int i = 1; i < fs.size(); i++)
 			f = f.thenCombine(fs.get(i), ArangoConnection::merge);
@@ -134,4 +135,14 @@ public class ArangoConnection extends NoSqlConnection<ArangoDBAsync> {
 	public static CompletableFuture<List<BaseDocument>> merge(List<BaseDocument> l, CompletableFuture<List<BaseDocument>> f) {
 		return CompletableFuture.completedFuture(l).thenCombine(f, ArangoConnection::merge);
 	}
+
+	public static CompletableFuture<List<BaseDocument>> empty() {
+		return CompletableFuture.completedFuture(Colls.list());
+	}
+
+	public static BinaryOperator<CompletableFuture<List<BaseDocument>>> REDUCING = (f1, f2) -> {
+		if (null == f1) return f2;
+		if (null == f2) return f1;
+		return f1.thenCombine(f2, ArangoConnection::merge);
+	};
 }
