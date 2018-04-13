@@ -12,7 +12,6 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import com.arangodb.ArangoCursorAsync;
 import com.arangodb.entity.BaseDocument;
 
 import net.butfly.albacore.paral.Sdream;
@@ -44,8 +43,14 @@ public class ArangoOutput extends OutputBase<EdgeMessage> {
 	@Override
 	protected void enqueue0(Sdream<EdgeMessage> edges) {
 		CompletableFuture<List<BaseDocument>> ff = edges.map(e -> {
-			CompletableFuture<List<BaseDocument>> f1 = edge((EdgeMessage) e);
-			return null == e.then ? f1 : f1.thenCompose(l -> merge(l, e.then.get()));
+			CompletableFuture<List<BaseDocument>> f = null;
+			Message v;
+			if (null != (v = e.start())) f = async(v);
+			if (null != (v = e.end())) f = null == f ? async(v) : f.thenCombine(async(v), ArangoConnection::merge);
+			f = f.thenCompose(l -> merge(l, async(e)));
+			f = e.edges.isEmpty() ? f
+					: f.thenCompose(l -> merge(l, e.edges.stream().map(ee -> async(ee)).reduce(REDUCING).orElse(ArangoConnection.empty())));
+			return null == e.then ? f : f.thenCompose(l -> merge(l, e.then.get()));
 		}).reduce(REDUCING);
 		if (null != ff) {
 			List<BaseDocument> l = get(ff);
@@ -55,16 +60,6 @@ public class ArangoOutput extends OutputBase<EdgeMessage> {
 		}
 	}
 
-	private CompletableFuture<List<BaseDocument>> edge(EdgeMessage e) {
-		CompletableFuture<List<BaseDocument>> f = null;
-		Message v;
-		if (null != (v = ((EdgeMessage) e).start())) f = async(v);
-		if (null != (v = ((EdgeMessage) e).end())) f = null == f ? async(v) : f.thenCombine(async(v), ArangoConnection::merge);
-		f = f.thenCompose(l -> async(e));
-		return e.edges.isEmpty() ? f
-				: f.thenCompose(l -> merge(l, e.edges.stream().map(ee -> async(ee)).reduce(REDUCING).orElse(ArangoConnection.empty())));
-	}
-
 	private static final Format AQL = new MessageFormat("upsert '{'_key: @_key} insert {1} update {1} in {0} return {2}"); //
 
 	private CompletableFuture<List<BaseDocument>> async(Message v) {
@@ -72,7 +67,12 @@ public class ArangoOutput extends OutputBase<EdgeMessage> {
 		Map<String, Object> d = v.map();
 		d.put("_key", v.key());
 		String aql = AQL.format(new String[] { v.table(), conn.parseAqlAsBindParams(d), returnExpr });
-		return conn.db.query(aql, d, null, BaseDocument.class).thenApply(ArangoCursorAsync<BaseDocument>::asListRemaining);
+		long t = System.currentTimeMillis();
+		logger().trace("Top aql[" + t + "]: " + aql);
+		return conn.db.query(aql, d, null, BaseDocument.class).thenApply(c -> {
+			logger().trace("Top aql[" + t + "] spent: [" + (System.currentTimeMillis() - t) + " ms].");
+			return c.asListRemaining();
+		});
 	}
 
 	@Override
