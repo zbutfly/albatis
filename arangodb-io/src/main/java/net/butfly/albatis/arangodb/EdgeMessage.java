@@ -3,6 +3,10 @@ package net.butfly.albatis.arangodb;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
+
+import com.arangodb.entity.BaseDocument;
 
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albatis.io.Message;
@@ -11,7 +15,7 @@ public class EdgeMessage extends Message {
 	private static final long serialVersionUID = -7016058550224590870L;
 	final Message[] vertexes;
 	final List<Message> edges;
-	Runnable then = null;
+	Supplier<CompletableFuture<List<BaseDocument>>> then = null;
 
 	public EdgeMessage(String tbl, Object key, Map<String, Object> values) {
 		super(tbl, key, values);
@@ -51,7 +55,7 @@ public class EdgeMessage extends Message {
 		this.edges.addAll(edges);
 	}
 
-	public void then(Runnable then) {
+	public void then(Supplier<CompletableFuture<List<BaseDocument>>> then) {
 		this.then = then;
 	}
 }
