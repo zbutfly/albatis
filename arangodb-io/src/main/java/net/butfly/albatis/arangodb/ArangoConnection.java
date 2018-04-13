@@ -20,6 +20,7 @@ import com.hzcominfo.albatis.nosql.NoSqlConnection;
 
 import net.butfly.albacore.exception.NotImplementedException;
 import net.butfly.albacore.io.URISpec;
+import net.butfly.albacore.paral.Exeter;
 import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.collection.Colls;
 
@@ -128,12 +129,13 @@ public class ArangoConnection extends NoSqlConnection<ArangoDBAsync> {
 		if (null == fs || fs.isEmpty()) return empty();
 		CompletableFuture<List<BaseDocument>> f = fs.get(0);
 		for (int i = 1; i < fs.size(); i++)
-			f = f.thenCombine(fs.get(i), ArangoConnection::merge);
+			f = f.thenCombineAsync(fs.get(i), ArangoConnection::merge, Exeter.of());
 		return f;
 	}
 
 	public static CompletableFuture<List<BaseDocument>> merge(List<BaseDocument> l, CompletableFuture<List<BaseDocument>> f) {
-		return CompletableFuture.completedFuture(l).thenCombine(f, ArangoConnection::merge);
+		CompletableFuture<List<BaseDocument>> ff = CompletableFuture.completedFuture(l);
+		return null == f ? ff : ff.thenCombineAsync(f, ArangoConnection::merge, Exeter.of());
 	}
 
 	public static CompletableFuture<List<BaseDocument>> empty() {
@@ -143,6 +145,6 @@ public class ArangoConnection extends NoSqlConnection<ArangoDBAsync> {
 	public static BinaryOperator<CompletableFuture<List<BaseDocument>>> REDUCING = (f1, f2) -> {
 		if (null == f1) return f2;
 		if (null == f2) return f1;
-		return f1.thenCombine(f2, ArangoConnection::merge);
+		return f1.thenCombineAsync(f2, ArangoConnection::merge, Exeter.of());
 	};
 }
