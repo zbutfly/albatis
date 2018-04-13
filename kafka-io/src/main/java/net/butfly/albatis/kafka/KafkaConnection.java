@@ -9,9 +9,6 @@ import net.butfly.albacore.exception.ConfigException;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.serder.BsonSerder;
 import net.butfly.albacore.utils.collection.Colls;
-import net.butfly.albatis.io.Input;
-import net.butfly.albatis.io.Message;
-import net.butfly.albatis.io.Output;
 
 public class KafkaConnection extends NoSqlConnection<Object> {
 	public KafkaConnection(URISpec uri) throws IOException {
@@ -19,7 +16,7 @@ public class KafkaConnection extends NoSqlConnection<Object> {
 	}
 
 	@Override
-	public Input<Message> input(String... topic) throws IOException {
+	public KafkaInput input(String... topic) throws IOException {
 		try {
 			return new KafkaInput("KafkaInput", uri, BsonSerder::map, topic);
 		} catch (ConfigException e) {
@@ -28,7 +25,7 @@ public class KafkaConnection extends NoSqlConnection<Object> {
 	}
 
 	@Override
-	public Output<Message> output() throws IOException {
+	public KafkaOutput output() throws IOException {
 		try {
 			return new KafkaOutput("KafkaInput", uri, BsonSerder::map);
 		} catch (ConfigException e) {

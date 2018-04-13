@@ -23,9 +23,10 @@ import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.collection.Colls;
 
 public class ArangoConnection extends NoSqlConnection<ArangoDBAsync> {
-	private static final int MAX_CONNECTIONS = Integer.parseInt(Configs.gets("albatis.arango.connection.max", "2048"));
+	private static final int MAX_CONNECTIONS = Integer.parseInt(Configs.gets("albatis.arango.connection.max.conn", "2048"));
 	private static final int TIMEOUT_SECS = Integer.parseInt(Configs.gets("albatis.arango.connection.timeout", "0"));
-	private static final int CHUNK_SIZE = Integer.parseInt(Configs.gets("albatis.arango.chunk.size", Integer.toString(5 * 1024 * 1024)));
+	private static final int CHUNK_SIZE = Integer.parseInt(Configs.gets("albatis.arango.connection.chunk.size", Integer.toString(5 * 1024
+			* 1024)));
 
 	public final ArangoDatabaseAsync db;
 	public final String[] tables;
@@ -99,6 +100,7 @@ public class ArangoConnection extends NoSqlConnection<ArangoDBAsync> {
 			throw new RuntimeException(e);
 		} catch (ExecutionException e) {
 			Throwable ee = e.getCause();
+			ee.printStackTrace();// TODO
 			throw ee instanceof RuntimeException ? (RuntimeException) ee : new RuntimeException(ee);
 		} catch (TimeoutException e) {
 			logger.error("aql timeout for " + TIMEOUT_SECS + " seconds");
