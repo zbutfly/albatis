@@ -5,14 +5,15 @@ import static net.butfly.albatis.arangodb.ArangoConnection.get;
 import static net.butfly.albatis.arangodb.ArangoConnection.merge;
 
 import java.io.IOException;
+import java.text.DecimalFormat;
 import java.text.Format;
 import java.text.MessageFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
-import com.arangodb.ArangoCursorAsync;
 import com.arangodb.entity.BaseDocument;
 
 import net.butfly.albacore.paral.Exeter;
@@ -45,7 +46,10 @@ public class ArangoOutput extends OutputBase<EdgeMessage> {
 
 	@Override
 	protected void enqueue0(Sdream<EdgeMessage> edges) {
-		CompletableFuture<List<BaseDocument>> ff = edges.map(e -> {
+		List<CompletableFuture<List<BaseDocument>>> fs = Colls.list();
+		edges.eachs(e -> {
+			if (!e.edges.isEmpty())//
+				logger().trace("Nested!");
 			CompletableFuture<List<BaseDocument>> f = null;
 			Message v;
 			if (null != (v = e.start())) f = async(v);
@@ -54,23 +58,19 @@ public class ArangoOutput extends OutputBase<EdgeMessage> {
 			f = e.edges.isEmpty() ? f
 					: f.thenComposeAsync(l -> merge(l, e.edges.stream().map(ee -> async(ee)).filter(t -> null != t).reduce(REDUCING).orElse(
 							ArangoConnection.empty())), Exeter.of());
-			return e.nested.isEmpty() ? f : f.thenComposeAsync(l -> merge(l, async(e.nested)), Exeter.of());
-		}).reduce(REDUCING);
-		if (null != ff) {
-			List<BaseDocument> l = get(ff);
-			if (null == l || l.isEmpty()) return;
-			logger().trace("Sencondary edges total: " + c.addAndGet(l.size()) + ", this: " + l.size());
-			s().stats(l);
-		}
+			f = e.nested.isEmpty() ? f : f.thenComposeAsync(l -> merge(l, async(e.nested)), Exeter.of());
+			if (null != f) fs.add(f);
+		});
+		if (fs.isEmpty()) return;
+		CompletableFuture<List<BaseDocument>> ff = merge(fs);
+		if (null != ff) s().stats(get(ff));
 	}
 
 	private CompletableFuture<List<BaseDocument>> async(List<NestedAqls> nested) {
 		if (nested.isEmpty()) return null;
-		logger().trace("Nested stage of [" + nested.size() + "] aql...................... ");
 		List<CompletableFuture<List<BaseDocument>>> fs = Colls.list();
 		for (NestedAqls n : nested) {
-			CompletableFuture<List<BaseDocument>> f = conn.db.query(n.aql, null, null, BaseDocument.class).thenApply(
-					ArangoCursorAsync<BaseDocument>::asListRemaining);
+			CompletableFuture<List<BaseDocument>> f = exec(n.aql, null);
 			if (null != n.andThens) f = f.thenCompose(docs -> {
 				List<CompletableFuture<List<BaseDocument>>> fs2 = Colls.list();
 				for (BaseDocument d : docs) {
@@ -94,10 +94,22 @@ public class ArangoOutput extends OutputBase<EdgeMessage> {
 		Map<String, Object> d = v.map();
 		d.put("_key", v.key());
 		String aql = AQL.format(new String[] { v.table(), conn.parseAqlAsBindParams(d), returnExpr });
+		return exec(aql, d);
+	}
+
+	private static final Format AVG = new DecimalFormat("0.00");
+	private final AtomicLong count = new AtomicLong(), spent = new AtomicLong();
+
+	private CompletableFuture<List<BaseDocument>> exec(String aql, Map<String, Object> param) {
 		long t = System.currentTimeMillis();
-		logger().trace("Top aql[" + t + "]: " + aql + "\n\twith params: " + d);
-		return conn.db.query(aql, d, null, BaseDocument.class).thenApplyAsync(c -> {
-			logger().trace("Top aql[" + t + "] spent: [" + (System.currentTimeMillis() - t) + " ms].");
+		return conn.db.query(aql, param, null, BaseDocument.class).thenApplyAsync(c -> {
+			long tt = System.currentTimeMillis() - t;
+			logger().trace(() -> {
+				long total = count.incrementAndGet();
+				String avg = AVG.format(((double) spent.addAndGet(tt)) / total);
+				return "AQL: [spent " + tt + " ms, total " + total + ", avg " + avg + " ms] with aql: " + aql //
+						+ (null == param || param.isEmpty() ? "" : "\n\tparams: " + param) + ".";
+			});
 			return c.asListRemaining();
 		}, Exeter.of());
 	}
