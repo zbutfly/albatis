@@ -16,6 +16,7 @@ import com.arangodb.ArangoDBAsync;
 import com.arangodb.ArangoDBAsync.Builder;
 import com.arangodb.ArangoDatabaseAsync;
 import com.arangodb.entity.BaseDocument;
+import com.arangodb.entity.LoadBalancingStrategy;
 import com.hzcominfo.albatis.nosql.NoSqlConnection;
 
 import net.butfly.albacore.exception.NotImplementedException;
@@ -25,26 +26,30 @@ import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.collection.Colls;
 
 public class ArangoConnection extends NoSqlConnection<ArangoDBAsync> {
-	private static final int MAX_CONNECTIONS = Integer.parseInt(Configs.gets("albatis.arango.connection.max.conn", "10000"));
+	private static final int MAX_CONNECTIONS = Integer.parseInt(Configs.gets("albatis.arango.connection.max.conn", "0"));
 	private static final int TIMEOUT_SECS = Integer.parseInt(Configs.gets("albatis.arango.connection.timeout", "0"));
-	private static final int CHUNK_SIZE = Integer.parseInt(Configs.gets("albatis.arango.connection.chunk.size", Integer.toString(5 * 1024
-			* 1024)));
+	private static final int CHUNK_SIZE = Integer.parseInt(Configs.gets("albatis.arango.connection.chunk.size", //
+			Integer.toString(5 * 1024 * 1024)));
 
 	public final ArangoDatabaseAsync db;
 	public final String[] tables;
 
 	public ArangoConnection(URISpec uri) throws IOException {
-		super(uri,
-
-				u -> {
-
-					Builder b = new ArangoDBAsync.Builder();
-					for (InetSocketAddress h : u.getInetAddrs())
-						b.host(h.getHostName(), h.getPort());
-					if (null != u.getUsername()) b.user(u.getUsername());
-					if (null != u.getPassword()) b.password(u.getPassword());
-					return b.maxConnections(MAX_CONNECTIONS).chunksize(CHUNK_SIZE).build();
-				}, 8529, "arango", "arangodb");
+		super(uri, u -> {
+			Builder b = new ArangoDBAsync.Builder();
+			for (InetSocketAddress h : u.getInetAddrs())
+				b.host(h.getHostName(), h.getPort());
+			if (null != u.getUsername()) b.user(u.getUsername());
+			if (null != u.getPassword()) b.password(u.getPassword());
+			if (MAX_CONNECTIONS > 0) b.maxConnections(MAX_CONNECTIONS);
+			else if (u.getInetAddrs().length > 1) b.maxConnections(u.getInetAddrs().length);
+			else b.maxConnections(8);
+			if (u.getInetAddrs().length > 1) {
+				b.loadBalancingStrategy(LoadBalancingStrategy.ROUND_ROBIN);
+				b.acquireHostList(true);
+			}
+			return b.chunksize(CHUNK_SIZE).build();
+		}, 8529, "arango", "arangodb");
 		if (uri.getPaths().length > 0) {
 			this.db = client().db(uri.getPaths()[0]);
 			this.tables = null != uri.getFile() ? Arrays.stream(uri.getFile().split(",")).filter(t -> !t.isEmpty()).toArray(
