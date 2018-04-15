@@ -4,13 +4,11 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.BinaryOperator;
-import java.util.stream.Collectors;
 
 import com.arangodb.ArangoDBAsync;
 import com.arangodb.ArangoDBAsync.Builder;
@@ -95,13 +93,6 @@ public class ArangoConnection extends NoSqlConnection<ArangoDBAsync> {
 		}
 	}
 
-	public String parseAqlAsBindParams(Map<String, Object> v) {
-		return "{" + v.keySet().stream().map(
-
-				k -> k + ": @" + k).collect(Collectors.joining(", ")) + "}";
-
-	}
-
 	public long sizeOf(BaseDocument b) {
 		return 0;
 	}
@@ -136,11 +127,6 @@ public class ArangoConnection extends NoSqlConnection<ArangoDBAsync> {
 		for (int i = 1; i < fs.size(); i++)
 			f = f.thenCombineAsync(fs.get(i), ArangoConnection::merge, Exeter.of());
 		return f;
-	}
-
-	public static CompletableFuture<List<BaseDocument>> merge(List<BaseDocument> l, CompletableFuture<List<BaseDocument>> f) {
-		CompletableFuture<List<BaseDocument>> ff = CompletableFuture.completedFuture(l);
-		return null == f ? ff : ff.thenCombineAsync(f, ArangoConnection::merge, Exeter.of());
 	}
 
 	public static CompletableFuture<List<BaseDocument>> empty() {
