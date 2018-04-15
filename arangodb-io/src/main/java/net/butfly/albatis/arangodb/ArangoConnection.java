@@ -119,23 +119,6 @@ public class ArangoConnection extends NoSqlConnection<ArangoDBAsync> {
 		}, Exeter.of());
 	}
 
-	public CompletableFuture<List<BaseDocument>> execNested(AqlMessage e, Statistic s) {
-		CompletableFuture<List<BaseDocument>> f = null;
-		AqlMessage v;
-		if (null != (v = e.start())) f = execNested(v, s);
-		if (null != (v = e.end())) f = null == f ? execNested(v, s)
-				: f.thenCombineAsync(execNested(v, s), ArangoConnection::merge, Exeter.of());
-		f = null == f ? exec(e.aql, e.map(), s) : f.thenComposeAsync(l -> exec(e.aql, e.map(), s), Exeter.of());
-		if (e.nested()) f = f.thenComposeAsync(l -> {
-			List<CompletableFuture<List<BaseDocument>>> fff = Colls.list();
-			for (BaseDocument d : l)
-				for (AqlMessage n : e.applyThen(d))
-					fff.add(execNested(n, s));
-			return fff.isEmpty() ? ArangoConnection.empty() : merge(fff);
-		}, Exeter.of());
-		return f;
-	}
-
 	public static <T> T get(CompletableFuture<T> f) {
 		if (null == f) return null;
 		try {

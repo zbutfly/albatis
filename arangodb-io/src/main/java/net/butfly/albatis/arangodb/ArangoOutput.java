@@ -8,7 +8,7 @@ import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.logger.Statistic;
 import net.butfly.albatis.io.OutputBase;
 
-public class ArangoOutput extends OutputBase<AqlMessage> {
+public class ArangoOutput extends OutputBase<AqlNestedMessage> {
 	private final ArangoConnection conn;
 
 	protected ArangoOutput(String name, ArangoConnection conn) {
@@ -26,8 +26,8 @@ public class ArangoOutput extends OutputBase<AqlMessage> {
 	}
 
 	@Override
-	protected void enqueue0(Sdream<AqlMessage> edges) {
-		edges.map(e -> conn.execNested(e, s())).eachs(ArangoConnection::get);
+	protected void enqueue0(Sdream<AqlNestedMessage> edges) {
+		edges.map(e -> e.exec(conn, s())).eachs(ArangoConnection::get);
 	}
 
 	@Override
