@@ -45,10 +45,6 @@ public abstract class AqlNestedMessage extends Message {
 	}
 
 	protected final List<AqlNestedMessage> applyThen(BaseDocument doc) {
-		if (null == nestedThen) return Colls.list();
-		if (null == doc) return nestedThen.apply(Maps.of());
-		Map<String, Object> m = doc.getProperties();
-		m.put("_key", doc.getKey());// fuck, no _key in props
-		return nestedThen.apply(m);
+		return null == nestedThen ? Colls.list() : nestedThen.apply(null == doc ? Maps.of() : doc.getProperties());
 	}
 }
