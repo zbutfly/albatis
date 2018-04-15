@@ -2,12 +2,16 @@ package net.butfly.albatis.arangodb;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.text.DecimalFormat;
+import java.text.Format;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BinaryOperator;
 
 import com.arangodb.ArangoDBAsync;
@@ -22,6 +26,7 @@ import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.paral.Exeter;
 import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.collection.Colls;
+import net.butfly.albacore.utils.logger.Statistic;
 
 public class ArangoConnection extends NoSqlConnection<ArangoDBAsync> {
 	private static final int MAX_CONNECTIONS = Integer.parseInt(Configs.gets("albatis.arango.connection.max.conn", "0"));
@@ -95,6 +100,40 @@ public class ArangoConnection extends NoSqlConnection<ArangoDBAsync> {
 
 	public long sizeOf(BaseDocument b) {
 		return 0;
+	}
+
+	private static final Format AVG = new DecimalFormat("0.00");
+	private final AtomicLong count = new AtomicLong(), spent = new AtomicLong();
+
+	public CompletableFuture<List<BaseDocument>> exec(String aql, Map<String, Object> param, Statistic s) {
+		long t = System.currentTimeMillis();
+		return db.query(aql, param, null, BaseDocument.class).thenApplyAsync(c -> {
+			long tt = System.currentTimeMillis() - t;
+			logger().trace(() -> {
+				long total = count.incrementAndGet();
+				String avg = AVG.format(((double) spent.addAndGet(tt)) / total);
+				return "AQL: [spent " + tt + " ms, total " + total + ", avg " + avg + " ms] with aql: " + aql //
+						+ (null == param || param.isEmpty() ? "" : "\n\tparams: " + param) + ".";
+			});
+			return s.stats(c.asListRemaining());
+		}, Exeter.of());
+	}
+
+	public CompletableFuture<List<BaseDocument>> execNested(AqlMessage e, Statistic s) {
+		CompletableFuture<List<BaseDocument>> f = null;
+		AqlMessage v;
+		if (null != (v = e.start())) f = execNested(v, s);
+		if (null != (v = e.end())) f = null == f ? execNested(v, s)
+				: f.thenCombineAsync(execNested(v, s), ArangoConnection::merge, Exeter.of());
+		f = null == f ? exec(e.aql, e.map(), s) : f.thenComposeAsync(l -> exec(e.aql, e.map(), s), Exeter.of());
+		if (e.nested()) f = f.thenComposeAsync(l -> {
+			List<CompletableFuture<List<BaseDocument>>> fff = Colls.list();
+			for (BaseDocument d : l)
+				for (AqlMessage n : e.applyThen(d))
+					fff.add(execNested(n, s));
+			return fff.isEmpty() ? ArangoConnection.empty() : merge(fff);
+		}, Exeter.of());
+		return f;
 	}
 
 	public static <T> T get(CompletableFuture<T> f) {
