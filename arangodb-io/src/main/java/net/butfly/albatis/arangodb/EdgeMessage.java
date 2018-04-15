@@ -57,9 +57,8 @@ public class EdgeMessage extends Message {
 		return null != nestedThen;
 	}
 
-	public EdgeMessage then(Function<Map<String, Object>, List<EdgeMessage>> nestedThen) {
+	public void then(Function<Map<String, Object>, List<EdgeMessage>> nestedThen) {
 		this.nestedThen = nestedThen;
-		return this;
 	}
 
 	public List<EdgeMessage> applyThen(BaseDocument doc) {
