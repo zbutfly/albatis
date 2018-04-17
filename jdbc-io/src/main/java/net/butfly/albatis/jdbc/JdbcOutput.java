@@ -130,6 +130,7 @@ public class JdbcOutput extends OutputBase<Message> {
         POSTGRESQL("jdbc:postgresql", 5432, "org.postgresql.Driver"),
         SQL_SERVER_2005("jdbc:sqlserver", 1433, "com.microsoft.sqlserver.jdbc.SQLServerDriver", "://", ";databasename="),
         SQL_SERVER_2008("jdbc:microsoft:sqlserver", 1433, "com.microsoft.jdbc.sqlserver.SQLServerDriver", "://", ";DatabaseName="),
+        SQL_SERVER_2013("jdbc:sqlserver", 1433, "com.microsoft.sqlserver.jdbc.SQLServerDriver", "://", ";databasename="),
         INFORMIX("jdbc:informix-sqli", 1533, "com.informix.jdbc.IfxDriver");
 
         private String schema;
