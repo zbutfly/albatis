@@ -5,7 +5,6 @@ import com.zaxxer.hikari.HikariDataSource;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.paral.Exeter;
 import net.butfly.albacore.paral.Sdream;
-import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.io.Message;
 import net.butfly.albatis.io.OutputBase;
 
@@ -17,7 +16,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 public class JdbcOutput extends OutputBase<Message> {
-    private static final Logger log = Logger.getLogger(JdbcOutput.class);
     private final HikariDataSource hds;
     private final boolean upsert;
     private static final String psql = "INSERT INTO %s (%s) VALUES (%s)";
@@ -57,7 +55,7 @@ public class JdbcOutput extends OutputBase<Message> {
         AtomicLong n = new AtomicLong();
         if (upsert) {
             //n.set(items.map(m -> conn.collection(m.table()).save(MongoConnection.dbobj(m)).getN()).reduce(Lambdas.sumInt()));
-            System.out.println("into upsert......................................do nothing");
+            logger().error("upsert is not supported for now, ignore all messages");
         } else {
             Map<String, List<Message>> mml = items.list().stream()
                     .filter(item -> {
@@ -66,7 +64,6 @@ public class JdbcOutput extends OutputBase<Message> {
                     }).collect(Collectors.groupingBy(Message::table));
             if (mml.isEmpty()) return;
             Exeter.of().join(entry -> {
-                System.out.println("entry: " + entry);
                 mml.forEach((t, l) -> {
                     if (l.isEmpty()) return;
                 List<Message> ml = l.stream().sorted((m1, m2) -> m2.size() - m1.size()).collect(Collectors.toList());
@@ -79,18 +76,18 @@ public class JdbcOutput extends OutputBase<Message> {
                             for (int i = 0; i < fl.size(); i++) {
                                 Object value = m.get(fl.get(i));
                                 try { ps.setObject(i + 1, value); } catch (SQLException e) {
-                                    log.warn(() -> "add `" + value + "` to sql parameter error, ignore this message and continue.", e);
+                                    logger().warn(() -> "add `" + value + "` to sql parameter error, ignore this message and continue.", e);
                                 }
                             }
                             try { ps.addBatch(); } catch (SQLException e) {
-                                log.warn(() -> "add `" + m + "` to batch error, ignore this message and continue.", e);
+                                logger().warn(() -> "add `" + m + "` to batch error, ignore this message and continue.", e);
                             }
                         });
                         int[] rs = ps.executeBatch();
                         long sucessed = Arrays.stream(rs).filter(r -> r >= 0).count();
                         n.addAndGet(sucessed);
                     } catch (SQLException e) {
-                        log.warn(() -> "execute batch(size: " + l.size() + ") error, operation may not take effect. reason:", e);
+                        logger().warn(() -> "execute batch(size: " + l.size() + ") error, operation may not take effect. reason:", e);
                     }
                 });
             }, mml.entrySet());
@@ -133,10 +130,10 @@ public class JdbcOutput extends OutputBase<Message> {
         SQL_SERVER_2013("jdbc:sqlserver", 1433, "com.microsoft.sqlserver.jdbc.SQLServerDriver", "://", ";databasename="),
         INFORMIX("jdbc:informix-sqli", 1533, "com.informix.jdbc.IfxDriver");
 
-        private String schema;
-        private int defaultPort;
-        private String driverClass;
-        private String sd, dd;
+        private final String schema;
+        private final int defaultPort;
+        private final String driverClass;
+        private final String sd, dd;
 
         private Type(String schema, int defaultPort, String driverClass) {
             this(schema, defaultPort, driverClass, "://", "/");
