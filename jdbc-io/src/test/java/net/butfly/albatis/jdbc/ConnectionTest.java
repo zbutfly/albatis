@@ -38,7 +38,7 @@ public class ConnectionTest {
     @Test
     public void t2() throws SQLException {
         String uri = "jdbc:mysql://ph_warning_rhfl_test:Ph_warning_rhfl@test123!@172.16.17.14:3306/ph_warning_rhfl_test?useUnicode=true&characterEncoding=UTF-8&zeroDateTimeBehavior=convertToNull&allowMultiQueries=true&useSSL=false";
-        Connection conn = Jdbcs.getConnection(uri);
+        Connection conn = null;//Jdbcs.getConnection(uri);
         try(PreparedStatement ps  = conn.prepareStatement("select * from WARNING_LEVEL");
         ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
