@@ -135,16 +135,11 @@ public class MongoInput extends net.butfly.albacore.base.Namedly implements OddI
 					String collection = c.col;
 					Object key = m.containsKey("_id") ? m.get("_id").toString() : null;
 					Message msg = new Message(collection, key);
-					m.entrySet().stream().filter(e -> {
-						String k = e.getKey();
-						Object v = e.getValue();
-						if (Objects.isNull(v)) {
+					m.forEach((k, v) -> {
+						if (null == v) {
 							logger.error("Mongo result field [" + k + "] null at table [" + collection + "], id [" + key + "].");
-							return false;
-						} else {
-							return true;
-						}
-					}).forEach(e -> msg.put(e.getKey(), e.getValue()));
+						} else { msg.put(k, v); }
+					});
 					return msg;
 				} else {
 					c.close();
