@@ -5,7 +5,7 @@ import net.butfly.albatis.io.pump.Pump;
 import java.net.URISyntaxException;
 import java.sql.SQLException;
 
-public class PumpTest {
+public class PumpTest4Mysql {
 
     public static void main(String[] args) throws SQLException, URISyntaxException {
         JdbcTestInput input = new JdbcTestInput("input");
