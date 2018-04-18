@@ -5,6 +5,7 @@ import static net.butfly.albatis.mongodb.MongoConnection.dbobj;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -131,16 +132,20 @@ public class MongoInput extends net.butfly.albacore.base.Namedly implements OddI
 					} catch (IllegalStateException ex) {
 						continue;
 					}
-					try {
-						return new Message(c.col, m.containsKey("_id") ? m.get("_id").toString() : null, m);
-					} catch (NullPointerException e) {
-						for (Object k : m.keySet())
-							if (null == m.get(k)) {
-								logger.error("Mongo result field [" + k + "] null at table [" + c.col + "], id [" + m.get("_id") + "].");
-								m.remove(k);
-							}
-						return new Message(c.col, (String) null, m);
-					}
+					String collection = c.col;
+					Object key = m.containsKey("_id") ? m.get("_id").toString() : null;
+					Message msg = new Message(collection, key);
+					m.entrySet().stream().filter(e -> {
+						String k = e.getKey();
+						Object v = e.getValue();
+						if (Objects.isNull(v)) {
+							logger.error("Mongo result field [" + k + "] null at table [" + collection + "], id [" + key + "].");
+							return false;
+						} else {
+							return true;
+						}
+					}).forEach(e -> msg.put(e.getKey(), e.getValue()));
+					return msg;
 				} else {
 					c.close();
 					c = null;
