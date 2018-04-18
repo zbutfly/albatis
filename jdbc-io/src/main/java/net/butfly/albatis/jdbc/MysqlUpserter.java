@@ -15,66 +15,76 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 public class MysqlUpserter extends Upserter {
-	private static final String psql = "INSERT INTO %s (%s) VALUES (%s) ON DUPLICATE KEY UPDATE %s";
+    private static final String psql = "INSERT INTO %s (%s) VALUES (%s) ON DUPLICATE KEY UPDATE %s";
+    public MysqlUpserter(Type type) {
+        super(type);
+    }
 
-	public MysqlUpserter(Type type) {
-		super(type);
-	}
+    @Override
+    public String urlAssemble(URISpec uriSpec) {
+        return null;
+    }
 
-	@Override
-	public String urlAssemble(URISpec uriSpec) {
-		return null;
-	}
+    @Override
+    String urlAssemble(String schema, String host, String database) {
+        return schema + "://" + host + "/" + database;
+    }
 
-	@Override
-	String urlAssemble(String schema, String host, String database) {
-		return schema + "://" + host + "/" + database;
-	}
-
-	protected String quota(String f) {
-		return '`' == f.charAt(0) && '`' == f.charAt(f.length() - 1) ? f : "`" + f + "`";
-	}
-
-	@Override
-	public long upsert(Map<String, List<Message>> mml, Connection conn) {
-		AtomicLong count = new AtomicLong();
-		Exeter.of().join(entry -> {
-            if (entry.getValue().isEmpty()) return;
-            String keyField = determineKeyField(entry.getValue());
-            if (null == keyField) logger().warn("can NOT determine KeyField");
-            List<Message> messages = entry.getValue();
-            for(int j =0;j<messages.size();j++ ){
-                List<String> fl = new ArrayList<>(messages.get(j).keySet());
-				String fields = fl.stream().map(this::quota).collect(Collectors.joining(", "));
-				String values = fl.stream().map(f -> "?").collect(Collectors.joining(", "));
-				List<String> ufields = fl.stream().filter(f -> !f.equals(keyField)).collect(Collectors.toList());
-				String updates = ufields.stream().map(f -> quota(f) + " = ?").collect(Collectors.joining(", "));
-                String sql = String.format(psql, entry.getKey(), fields, values, updates);
-				logger().debug("MYSQL upsert sql: " + sql);
-				try (PreparedStatement ps = conn.prepareStatement(sql)) {
-					int isize = fl.size();
-                        try {
-                            for (int i = 0; i < fl.size(); i++) {
-                            Object value = messages.get(j).get(fl.get(i));
-                                setObject(ps, i + 1, value);
+    @Override
+    public long upsert(Map<String, List<Message>> mml, Connection conn) {
+        AtomicLong count = new AtomicLong();
+        Exeter.of().join(entry -> {
+            mml.forEach((t, l) -> {
+                if (l.isEmpty()) return;
+                String keyField = determineKeyField(l);
+                if (null == keyField) logger().warn("can NOT determine KeyField");
+                List<Message> ml = l.stream().sorted((m1, m2) -> m2.size() - m1.size()).collect(Collectors.toList());
+                List<String> fl = new ArrayList<>(ml.get(0).keySet());
+                String fields = fl.stream().collect(Collectors.joining(", "));
+                String values = fl.stream().map(f -> "?").collect(Collectors.joining(", "));
+                List<String> ufields = fl.stream().filter(f -> !f.equals(keyField)).collect(Collectors.toList());
+                String updates = ufields.stream().map(f -> f + " = ?").collect(Collectors.joining(","));
+                String sql = String.format(psql, t, fields, values, updates);
+                System.out.println("mysql sql is " + sql);
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                    int isize = fl.size();
+                    ml.forEach(m -> {
+                        for (int i = 0; i < fl.size(); i++) {
+                            Object value = m.get(fl.get(i));
+                            try {
+                                ps.setObject(i + 1, value);
+                            } catch (SQLException e) {
+                                logger().warn(() -> "add `" + value + "` to sql parameter error, ignore this message and continue.", e);
                             }
-                            for (int i = 0; i < ufields.size(); i++) {
-                            Object value = messages.get(j).get(ufields.get(i));
-                                setObject(ps, isize + i + 1, value);
-                            }
-                            ps.addBatch();
-                        } catch (SQLException e) {
-                        logger().warn(() -> "add `" + entry.getValue() + "` to batch error, ignore this message and continue.", e);
                         }
-					int[] rs = ps.executeBatch();
-					long sucessed = Arrays.stream(rs).filter(r -> r >= 0).count();
-					count.set(sucessed);
-				} catch (SQLException e) {
-                    logger().warn(() -> "execute batch(size: " + entry.getValue().size() + ") error, operation may not take effect. reason:", e);
-				}
-            }
-		}, mml.entrySet());
-		return count.get();
-	}
+                        for (int i = 0; i < ufields.size(); i++) {
+                            Object value = m.get(ufields.get(i));
+                            try {
+                                ps.setObject(isize + i + 1, value);
+                            } catch (SQLException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                        try { ps.addBatch(); } catch (SQLException e) {
+                            logger().warn(() -> "add `" + m + "` to batch error, ignore this message and continue.", e);
+                        }
+                    });
+                    int[] rs = ps.executeBatch();
+                    long sucessed = Arrays.stream(rs).filter(r -> r >= 0).count();
+                    count.set(sucessed);
+                } catch (SQLException e) {
+                    logger().warn(() -> "execute batch(size: " + l.size() + ") error, operation may not take effect. reason:", e);
+                }
+            });
+        }, mml.entrySet());
+        return count.get();
+    }
 
+    private static String determineKeyField(List<Message> list) {
+        if (null == list || list.isEmpty()) return null;
+        Message msg = list.get(0);
+        Object key = msg.key();
+        if (null == key) return null;
+        return msg.entrySet().stream().filter(e -> key.equals(e.getValue())).map(Map.Entry::getKey).findFirst().orElse(null);
+    }
 }
