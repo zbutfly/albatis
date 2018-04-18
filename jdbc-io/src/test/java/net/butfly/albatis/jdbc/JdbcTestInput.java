@@ -4,7 +4,6 @@ import net.butfly.albacore.base.Namedly;
 import net.butfly.albatis.io.Message;
 import net.butfly.albatis.io.OddInput;
 
-import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -19,7 +18,7 @@ public class JdbcTestInput extends Namedly implements OddInput<Message> {
             Message m = new Message("test");
             m.put("id", i);
             m.key(i);
-            m.put("name", UUID.randomUUID().toString());
+//            m.put("name", UUID.randomUUID().toString());
             if (i % 2 == 0) m.put("address", UUID.randomUUID().toString());
             if (i % 5 == 0) m.put("id", "" + i);
             return m;
