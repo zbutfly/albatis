@@ -80,11 +80,4 @@ public class MysqlUpserter extends Upserter {
         return count.get();
     }
 
-    private static String determineKeyField(List<Message> list) {
-        if (null == list || list.isEmpty()) return null;
-        Message msg = list.get(0);
-        Object key = msg.key();
-        if (null == key) return null;
-        return msg.entrySet().stream().filter(e -> key.equals(e.getValue())).map(Map.Entry::getKey).findFirst().orElse(null);
-    }
 }
