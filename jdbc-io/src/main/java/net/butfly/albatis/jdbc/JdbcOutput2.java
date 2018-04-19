@@ -36,7 +36,7 @@ public class JdbcOutput2 extends OutputBase<Message> {
         super(name);
         upserter = Upserter.of(uriSpec.getScheme());
         hds = new HikariDataSource(toConfig(upserter, uriSpec));
-        this.closing(this::close);
+        closing(this::close);
         open();
     }
 
@@ -62,7 +62,7 @@ public class JdbcOutput2 extends OutputBase<Message> {
 
     @Override
     public void close() {
-        if (null != hds && hds.isRunning()) hds.close();
+        if (null != hds && !hds.isClosed()) hds.close();
     }
 
     private static HikariConfig toConfig(Upserter upserter, URISpec uriSpec) {
@@ -70,7 +70,6 @@ public class JdbcOutput2 extends OutputBase<Message> {
         HikariConfig config = new HikariConfig();
         config.setPoolName(upserter.type.name() + "-Hikari-Pool");
         config.setDriverClassName(upserter.type.driver);
-//        config.setJdbcUrl(upserter.urlAssemble(uriSpec));
         config.setJdbcUrl(upserter.urlAssemble(uriSpec.getScheme(), uriSpec.getHost(), uriSpec.getFile()));
         config.setUsername(uriSpec.getUsername());
         config.setPassword(uriSpec.getPassword());

@@ -57,7 +57,7 @@ public class ConnectionTest {
         /*String uri = "jdbc:oracle:thin://cominfo_test:cominfo_test1234@172.16.17.14:1521/citest";
         Connection conn = Jdbcs.getConnection(uri);*/
         Class.forName("oracle.jdbc.driver.OracleDriver");
-        String uri = "jdbc:oracle:thin:@172.16.17.14:1521/citest";
+        String uri = "jdbc:oracle:thin:@172.16.17.14:1521:citest"; //or     String uri = "jdbc:oracle:thin:@172.16.17.14:1521/citest";
         String username = "cominfo_test";
         String password = "cominfo_test1234";
         Connection conn = DriverManager.getConnection(uri, username, password);
