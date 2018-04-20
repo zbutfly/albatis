@@ -56,4 +56,17 @@
 		<developerConnection>https://butfly@bitbucket.org/butfly/albatis.git</developerConnection>
 		<url>https://bitbucket.org/butfly/albatis</url>
 	</scm>
+
+    <distributionManagement>
+        <repository>
+            <id>nexus</id>
+            <name>Releases</name>
+            <url>http://repos.corp.hzcominfo.com:6080/nexus/content/repositories/releases</url>
+        </repository>
+        <snapshotRepository>
+            <id>nexus</id>
+            <name>Snapshots</name>
+            <url>http://repos.corp.hzcominfo.com:6080/nexus/content/repositories/snapshots</url>
+        </snapshotRepository>
+    </distributionManagement>
 </project>
