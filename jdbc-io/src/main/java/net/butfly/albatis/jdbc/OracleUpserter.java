@@ -46,9 +46,8 @@ public class OracleUpserter extends Upserter {
                 List<String> ufields = fl.stream().filter(f -> !f.equals(keyField)).collect(Collectors.toList());
                 String updates = ufields.stream().map(f -> f + " = ?").collect(Collectors.joining(", "));
                 String sql = String.format(psql, t, dual, fields, values, updates);
-                logger().debug("ORACLE upsert SQL : " + sql);
+                logger().debug("ORACLE upsert SQL: " + sql);
                 try (PreparedStatement ps = conn.prepareStatement(sql)) {
-                    int isize = fl.size();
                     ml.forEach(m -> {
                         int offset = 0;
                         try {
@@ -66,10 +65,8 @@ public class OracleUpserter extends Upserter {
                                 ps.setObject(offset + i + 1, value);
                             }
                             offset += ufields.size();
+                            ps.addBatch();
                         } catch (SQLException e) {
-                            logger().warn(() -> "failed to set psql parameter ", e);
-                        }
-                        try { ps.addBatch(); } catch (SQLException e) {
                             logger().warn(() -> "add `" + m + "` to batch error, ignore this message and continue.", e);
                         }
                     });
