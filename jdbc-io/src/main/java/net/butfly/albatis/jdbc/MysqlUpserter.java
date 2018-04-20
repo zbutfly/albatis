@@ -43,29 +43,23 @@ public class MysqlUpserter extends Upserter {
                 String fields = fl.stream().collect(Collectors.joining(", "));
                 String values = fl.stream().map(f -> "?").collect(Collectors.joining(", "));
                 List<String> ufields = fl.stream().filter(f -> !f.equals(keyField)).collect(Collectors.toList());
-                String updates = ufields.stream().map(f -> f + " = ?").collect(Collectors.joining(","));
+                String updates = ufields.stream().map(f -> f + " = ?").collect(Collectors.joining(", "));
                 String sql = String.format(psql, t, fields, values, updates);
-                System.out.println("mysql sql is " + sql);
+                logger().debug("MYSQL upsert sql: " + sql);
                 try (PreparedStatement ps = conn.prepareStatement(sql)) {
                     int isize = fl.size();
                     ml.forEach(m -> {
-                        for (int i = 0; i < fl.size(); i++) {
-                            Object value = m.get(fl.get(i));
-                            try {
+                        try {
+                            for (int i = 0; i < fl.size(); i++) {
+                                Object value = m.get(fl.get(i));
                                 ps.setObject(i + 1, value);
-                            } catch (SQLException e) {
-                                logger().warn(() -> "add `" + value + "` to sql parameter error, ignore this message and continue.", e);
                             }
-                        }
-                        for (int i = 0; i < ufields.size(); i++) {
-                            Object value = m.get(ufields.get(i));
-                            try {
+                            for (int i = 0; i < ufields.size(); i++) {
+                                Object value = m.get(ufields.get(i));
                                 ps.setObject(isize + i + 1, value);
-                            } catch (SQLException e) {
-                                e.printStackTrace();
                             }
-                        }
-                        try { ps.addBatch(); } catch (SQLException e) {
+                            ps.addBatch();
+                        } catch (SQLException e) {
                             logger().warn(() -> "add `" + m + "` to batch error, ignore this message and continue.", e);
                         }
                     });

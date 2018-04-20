@@ -78,8 +78,8 @@ public class ConnectionTest {
     public void t4() throws SQLException, ClassNotFoundException {
         Class.forName("org.postgresql.Driver");
         String uri = "jdbc:postgresql://127.0.0.1:5432/postgres";
-        String username = "postgres";
-        String password = "!@#QAZ123qaz";
+        String username = "test";
+        String password = "Test001!";
         Connection conn = DriverManager.getConnection(uri, username, password);
         try(PreparedStatement ps  = conn.prepareStatement("select * from test");
             ResultSet rs = ps.executeQuery()) {
@@ -96,7 +96,9 @@ public class ConnectionTest {
         String username = "postgres";
         String password = "!@#QAZ123qaz";
         Connection conn = DriverManager.getConnection(uri, username, password);
-        String sql = "insert into test set id = 77, name ='def'";
+        // insert into "ATEST" (ID, NAME, ADDRESS) values(1,'pg', 'pgpg') ON CONFLICT("ID") do update set "NAME"="EXCLUDED"."NAME";
+        String sql = "insert into atest (id, name, address) values(1, 'pg', 'pgpg') ON CONFLICT(id) do update set name=EXCLUDED.name";
+//        String sql = "insert into t (id, name) values (3, '9898') ON CONFLICT(id)  do update set name=EXCLUDED.name";
         try(PreparedStatement ps  = conn.prepareStatement(sql)) {
 //            ps.setString(1, "test");
             ps.execute();
