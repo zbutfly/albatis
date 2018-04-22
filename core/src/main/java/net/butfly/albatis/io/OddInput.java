@@ -38,15 +38,16 @@ public interface OddInput<V> extends Input<V> {
 		@Override
 		public boolean tryAdvance(Consumer<? super V> using1) {
 			V v = null;
-			while (input.opened() && !input.empty() && est > 0 && null == (v = input.dequeue())) {}
-			if (null == v) {
-				est = 0;
-				return false;
-			} else {
-				est--;
-				using1.accept(v);
-				return true;
+			while (input.opened() && !input.empty() && est > 0) {
+				v = input.dequeue();
+				if (null != v) {
+					est--;
+					using1.accept(v);
+					return true;
+				} else break;
 			}
+			est = 0;
+			return false;
 		}
 
 		@Override
