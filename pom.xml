@@ -11,7 +11,7 @@
 	<version>1.5.0-SNAPSHOT</version>
 	<packaging>pom</packaging>
 	<properties>
-		<version.albacore>3.0.3-SNAPSHOT</version.albacore>
+		<version.albacore>3.0.3</version.albacore>
 		<!-- <version.kafka>0.8.2.2</version.kafka> -->
 		<version.kafka>0.9.0.1</version.kafka>
 		<!-- <version.kafka>0.10.2.1</version.kafka> -->
