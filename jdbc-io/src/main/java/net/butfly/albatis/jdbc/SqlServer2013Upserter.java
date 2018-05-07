@@ -1,7 +1,6 @@
 package net.butfly.albatis.jdbc;
 
 import net.butfly.albacore.io.URISpec;
-import net.butfly.albacore.paral.Sdream;
 import net.butfly.albatis.io.Message;
 
 import java.sql.Connection;
