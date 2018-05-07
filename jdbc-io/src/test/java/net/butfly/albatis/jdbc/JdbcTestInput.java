@@ -12,6 +12,10 @@ import java.util.stream.Stream;
 public class JdbcTestInput extends Namedly implements OddInput<Message> {
     private List<Message> list;
 
+    /**
+     * for mysql, all field should be upper case
+     * @param name
+     */
     public JdbcTestInput(String name) {
         super(name);
         list = Stream.iterate(1, i -> i + 1).limit(20).map(i -> {
