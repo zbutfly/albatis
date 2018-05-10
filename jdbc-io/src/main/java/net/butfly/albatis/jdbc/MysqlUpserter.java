@@ -52,11 +52,11 @@ public class MysqlUpserter extends Upserter {
                         try {
                             for (int i = 0; i < fl.size(); i++) {
                                 Object value = m.get(fl.get(i));
-                                ps.setObject(i + 1, value);
+                                setObject(ps, i + 1, value);
                             }
                             for (int i = 0; i < ufields.size(); i++) {
                                 Object value = m.get(ufields.get(i));
-                                ps.setObject(isize + i + 1, value);
+                                setObject(ps, isize + i + 1, value);
                             }
                             ps.addBatch();
                         } catch (SQLException e) {

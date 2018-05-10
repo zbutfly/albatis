@@ -52,22 +52,25 @@ public class OracleUpserter extends Upserter {
                         int offset = 0;
                         try {
                             { // set dual
-                                ps.setObject(offset + 1, m.key());
+//                                ps.setObject(offset + 1, m.key());
+                                setObject(ps, offset + 1, m.key());
                                 offset++;
                             }
                             for (int i = 0; i < fl.size(); i++) { // set insert fields value
                                 Object value = m.get(fl.get(i));
-                                ps.setObject(offset + i + 1, value);
+//                                ps.setObject(offset + i + 1, value);
+                                setObject(ps, offset + i + 1, value);
                             }
                             offset += fl.size();
                             for (int i = 0; i < ufields.size(); i++) { // set update fields value
                                 Object value = m.get(ufields.get(i));
-                                ps.setObject(offset + i + 1, value);
+//                                ps.setObject(offset + i + 1, value);
+                                setObject(ps, offset + i + 1, value);
                             }
                             offset += ufields.size();
                             ps.addBatch();
                         } catch (SQLException e) {
-                            logger().warn(() -> "add `" + m + "` to batch error, ignore this message and continue.", e);
+                            logger().warn(() -> "add `" + m + "` to batch error, ignore this message and continue." + e.getSQLState());
                         }
                     });
                     int[] rs = ps.executeBatch();
