@@ -55,7 +55,7 @@ public class PostgresqlUpserter extends Upserter {
                         try {
                             for (int i = 0; i < fl.size(); i++) {
                                 Object value = m.get(fl.get(i));
-                                ps.setObject(i + 1, value);
+                                setObject(ps, i + 1, value);
                             }
                             ps.addBatch(); } catch (SQLException e) {
                             logger().warn(() -> "add `" + m + "` to batch error, ignore this message and continue.", e);
