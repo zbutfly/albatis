@@ -4,6 +4,9 @@ import com.google.gson.JsonObject;
 import com.hzcominfo.dataggr.uniquery.SqlExplainer;
 import com.hzcominfo.dataggr.uniquery.es5.SearchRequestBuilderVisitor;
 import org.apache.lucene.search.join.ScoreMode;
+import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
+import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequestBuilder;
+import org.elasticsearch.action.index.IndexRequestBuilder;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.SearchType;
@@ -11,7 +14,7 @@ import org.elasticsearch.client.IndicesAdminClient;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
-import org.elasticsearch.index.query.InnerHitBuilder;
+import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.script.Script;
@@ -23,24 +26,51 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
 
 public class Es5NestedHavingTest {
+    private static String index = "subject_person", type = "person";
 
     private TransportClient client;
+    private IndicesAdminClient indexAdminClient;
 
     @Before
     public void init() throws UnknownHostException {
         Settings settings = Settings.builder()
-                .put("cluster.name", "cidev")
+                .put("cluster.name", "hzcominfo")
                 .build();
         client = new PreBuiltTransportClient(settings)
-                .addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName("172.16.17.11"), 39300))
-                .addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName("172.16.17.12"), 39300))
-                .addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName("172.16.17.13"), 39300));
+                .addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName("172.30.10.31"), 39300))
+                .addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName("172.30.10.32"), 39300))
+                .addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName("172.30.10.33"), 39300));
+        indexAdminClient = client.admin().indices();
+
+    }
+
+    @Test
+    public void prepare_test() throws IOException {
+
+        if (indexAdminClient.exists(new IndicesExistsRequest(index)).actionGet().isExists()) {
+            indexAdminClient.prepareDelete(index).get();
+        }
+        indexAdminClient.prepareCreate(index).get();
+        PutMappingRequestBuilder mappingRequestBuilder = indexAdminClient.preparePutMapping(index);
+        mappingRequestBuilder.setType(type);
+        String mapping = Files.lines(Paths.get("src/test/resources/person.json")).findFirst().get();
+        mappingRequestBuilder.setSource(mapping, XContentType.JSON);
+        mappingRequestBuilder.get();
+
+        // write data
+        Files.lines(Paths.get("src/test/resources/person.json")).skip(1).forEach(str -> {
+            IndexRequestBuilder builder = client.prepareIndex(index, type).setSource(str, XContentType.JSON);
+            builder.get();
+        });
     }
 
     @After
@@ -52,8 +82,8 @@ public class Es5NestedHavingTest {
     public void h1() {
         SearchRequestBuilder requestBuilder = client.prepareSearch("");
         requestBuilder
-                .setIndices("tdl_uniquery_test")
-                .setTypes("person")
+                .setIndices(index)
+                .setTypes(type)
                 .setQuery(QueryBuilders.matchAllQuery())
 //                .setQuery(QueryBuilders.nestedQuery("LG", QueryBuilders.matchAllQuery(), ScoreMode.Avg).innerHit(InnerHitBuilder.fromXContent("{}")))
                 .setSize(0)
@@ -85,13 +115,13 @@ public class Es5NestedHavingTest {
         QueryBuilder fq = QueryBuilders.termQuery("LG.LGDM_LGMC_FORMAT_s", "横塘村十组旅馆");
         QueryBuilder query = QueryBuilders.nestedQuery("LG", fq, ScoreMode.Avg);
         requestBuilder
-                .setIndices("tdl_uniquery_test")
-                .setTypes("person")
+                .setIndices(index)
+                .setTypes(type)
                 .setQuery(query)
                 .setSize(0)
                 .addAggregation(AggregationBuilders.terms("SFZH_s_aggrs").field("SFZH_s")/*.size(0)*/
                         .subAggregation(AggregationBuilders.nested("nested_LG", "LG")
-                                .subAggregation(AggregationBuilders.filter("filter_LG", fq))
+                                        .subAggregation(AggregationBuilders.filter("filter_LG", fq))
 //                                .subAggregation(AggregationBuilders.count("count_LGDM_LGMC_FORMAT_s").field("LG.LGDM_LGMC_FORMAT_s"))
                         )
                         .subAggregation(PipelineAggregatorBuilders.bucketSelector("having-filter", pathsMap, script)));
@@ -108,7 +138,10 @@ public class Es5NestedHavingTest {
     public void h2() {
 //        String sql = "select SFZH_s, XM_s, LG.LGDM_LGMC_FORMAT_s from tdl_uniquery_test.person where MODEL_NAME_s = 'gazhk_LGY_NB' limit 10";
 //        String sql = "select SFZH_s, XM_s, LG.LGDM_LGMC_FORMAT_s from tdl_uniquery_test.person where LG.LGDM_LGMC_FORMAT_s = '横塘村十组旅馆' limit 10";
-        String sql = "select SFZH_s, XM_s, LG.LGDM_LGMC_FORMAT_s, count(LG.LGDM_LGMC_FORMAT_s) as cnt from tdl_uniquery_test.person where LG.LGDM_LGMC_FORMAT_s = '横塘村十组旅馆' group by SFZH_s having cnt > 3";
+        String sql = "select SFZH_s, XM_s, LG.LGDM_LGMC_FORMAT_s, count(LG.LGDM_LGMC_FORMAT_s) as cnt from " + index + "." + type + " where LG.LGDM_LGMC_FORMAT_s = '横塘村十组旅馆' group by SFZH_s having cnt > 3";
+//        String sql = "select SFZH_s,  count(LG.LGDM_LGMC_FORMAT_s) as cnt from " + index + "." + type + " where LG.LGDM_LGMC_FORMAT_s = '横塘村十组旅馆' group by SFZH_s having cnt > 3";
+//        String sql = "select SFZH_s,  count(LG.LGDM_LGMC_FORMAT_s) as cnt from " + index + "." + type + " group by SFZH_s having cnt > 3";
+//        String sql = "select SFZH_s,  count(SFZH_s) as cnt from " + index + "." + type + " group by SFZH_s having cnt > 3";
         JsonObject json = SqlExplainer.explain(sql);
 
         SearchRequestBuilder requestBuilder = client.prepareSearch("");
@@ -137,7 +170,7 @@ public class Es5NestedHavingTest {
         srBuilder.setIndices("uniquery");
         srBuilder.setTypes("sellinfo");
         srBuilder.setSize(0);
-        srBuilder.setFetchSource(new String[] {"name"}, new String[] {});
+        srBuilder.setFetchSource(new String[]{"name"}, new String[]{});
         srBuilder.setQuery(QueryBuilders.rangeQuery("sell").from(10).includeLower(true));
         srBuilder.addAggregation(AggregationBuilders.terms("name_aggrs").field("name.keyword").subAggregation(
                 AggregationBuilders.count("cnt").field("name.keyword")

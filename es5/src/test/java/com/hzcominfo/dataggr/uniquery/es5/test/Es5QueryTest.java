@@ -35,13 +35,13 @@ public class Es5QueryTest {
                 .addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName("172.16.17.13"), 39300));
 */
         Settings settings = Settings.builder()
-                .put("cluster.name", "pseudo-elasticsearch")
+                .put("cluster.name", "hzcominfo")
 //                .put("client.transport.sniff", true)
 //                .put("client.transport.ignore_cluster_name", true)
                 .build();
         client = new PreBuiltTransportClient(settings)
 //                .addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName("172.16.16.232"), 9300));
-                .addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName("172.16.27.232"), 9300));
+                .addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName("172.30.10.31"), 39300));
     }
 
     @Test
@@ -75,7 +75,8 @@ public class Es5QueryTest {
 //        String sql = "select * from uniquery.sell where name.keyword not between 'xx' and 'yy'";
 
 //        String sql = "select name, years, count(sell) as s from uniquery.sell group by name.keyword, years"; // TODO: 2017/12/4 AS for agg fun has not support well
-        String sql = "select name, years as y, sum(sell), max(sell) from uniquery.sell group by name.keyword, years";
+//        String sql = "SELECT * FROM test_hzwa.WA_SOURCE_FJ_1001_TEST_JZ WHERE MAC_s.keyword = 'E0-3E-44-04-00-00' AND CAPTURE_TIME_s.keyword BETWEEN '1492012800' AND '1523635199'  ORDER BY CAPTURE_TIME_s.keyword ASC\n";
+        String sql = "SELECT * FROM test_hzwa.WA_SOURCE_FJ_1001_TEST_JZ WHERE MAC_s.keyword = 'E0-3E-44-04-00-00' ORDER BY CAPTURE_TIME_s.keyword ASC";
 
         JsonObject json = SqlExplainer.explain(sql);
         SearchRequestBuilder requestBuilder = client.prepareSearch("");

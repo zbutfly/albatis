@@ -13,7 +13,7 @@ public class AppTest {
 	public static void main(String[] args) throws Exception {
 		//建立连接
 //		String uri = "es://pseudo-elasticsearch@172.16.27.232:9300";
-		String uri = "elasticsearch://cidev@172.16.17.11:39300";
+		String uri = "elasticsearch://hzcominfo@172.30.10.31:39300";
 		URISpec uriSpec = new URISpec(uri);
 		Client conn = new Client(uriSpec);
 		//执行查询
@@ -54,7 +54,7 @@ public class AppTest {
 		System.out.println(r.getTotal());*/
 		
 		// geo func search
-		String sql = "select LOCATION from test_hzwa.TEST_HZWA_WA_SOURCE_FJ_1001 where geo_distance(LOCATION,30.287797,120.052425,0.5)"; // 圆形
+		String sql = "SELECT * FROM test_hzwa.WA_SOURCE_FJ_1001_TEST_JZ WHERE MAC_s.keyword = 'E0-3E-44-04-00-00' ORDER BY CAPTURE_TIME_s.keyword ASC"; // 圆形
 //		sql = "select LOCATION from test_hzwa.TEST_HZWA_WA_SOURCE_FJ_1001 where geo_box(LOCATION,130, 0, 0, 40)"; // 矩形
 //		sql = "select LOCATION from test_hzwa.TEST_HZWA_WA_SOURCE_FJ_1001 where geo_polygon(LOCATION,50,140, 50,0, 20,0, 20,100, 0,100, 0,140, 50,140)"; // 多边形
 		ResultSet r = conn.execute(sql);
