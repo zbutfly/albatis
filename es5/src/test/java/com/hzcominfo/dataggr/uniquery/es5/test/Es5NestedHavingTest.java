@@ -1,8 +1,14 @@
 package com.hzcominfo.dataggr.uniquery.es5.test;
 
-import com.google.gson.JsonObject;
-import com.hzcominfo.dataggr.uniquery.SqlExplainer;
-import com.hzcominfo.dataggr.uniquery.es5.SearchRequestBuilderVisitor;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 import org.apache.lucene.search.join.ScoreMode;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequestBuilder;
@@ -10,11 +16,9 @@ import org.elasticsearch.action.index.IndexRequestBuilder;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.SearchType;
-import org.elasticsearch.client.IndicesAdminClient;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
-import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.script.Script;
@@ -25,14 +29,11 @@ import org.elasticsearch.transport.client.PreBuiltTransportClient;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import static org.junit.Assert.*;
 
-import java.io.IOException;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.*;
-import java.util.stream.Collectors;
+import com.google.gson.JsonObject;
+import com.hzcominfo.dataggr.uniquery.SqlExplainer;
+import com.hzcominfo.dataggr.uniquery.es5.SearchRequestBuilderVisitor;
 
 public class Es5NestedHavingTest {
     private static String index = "subject_person", type = "person";
@@ -193,4 +194,8 @@ public class Es5NestedHavingTest {
         System.out.println("hello world");
     }
 
+    @Test
+	public void testQ1() {
+		fail("Not yet implemented");
+	}
 }
