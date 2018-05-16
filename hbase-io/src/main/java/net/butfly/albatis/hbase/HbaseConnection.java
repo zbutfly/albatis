@@ -26,6 +26,7 @@ import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.ipc.RemoteWithExtrasException;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.util.ClassSize;
 
 import com.hzcominfo.albatis.nosql.NoSqlConnection;
 
@@ -43,6 +44,14 @@ import net.butfly.albatis.io.Message;
 
 public class HbaseConnection extends NoSqlConnection<org.apache.hadoop.hbase.client.Connection> {
 	private final static Logger logger = Logger.getLogger(HbaseConnection.class);
+	static {
+		logger.warn(
+				"Hbase client common lib not support 2 digitals jdk version (checked by \"\\d\\.\\d\\..*\" in org.apache.hadoop.hbase.util.ClassSize:118) hacking into 9.0.4 -_-");
+		System.setProperty("java.version", "9.0.4");
+		// XXX: check
+		ClassSize.align(ClassSize.OBJECT + 2 * ClassSize.REFERENCE + 1 * Bytes.SIZEOF_LONG + ClassSize.REFERENCE + ClassSize.REFERENCE
+				+ ClassSize.TREEMAP);
+	}
 	private static final int GET_BATCH_SIZE = Integer.parseInt(Configs.gets("albatis.hbase.connection.get.batch.size", "100"));
 	private static final int GET_SCAN_OBJS = Integer.parseInt(Configs.gets("albatis.hbase.connection.get.scaner.queue", "500"));
 	private static final int GET_MAX_RETRIES = Integer.parseInt(Configs.gets("albatis.hbase.connection.get.retry", "2"));
