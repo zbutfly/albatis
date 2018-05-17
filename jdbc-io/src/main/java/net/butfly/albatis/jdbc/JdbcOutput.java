@@ -24,10 +24,10 @@ public class JdbcOutput extends OutputBase<Message> {
      * @param name output name
      * @param conn standard jdbc connection
      */
-    public JdbcOutput(String name, JdbcConnection conn, String... preExecutedSqlFile) {
+    public JdbcOutput(String name, JdbcConnection conn, String... preExecutedSqls) {
         super(name);
         this.jc = conn;
-        preExecute(jc, preExecutedSqlFile);
+        preExecute(jc, preExecutedSqls);
         closing(this::close);
         open();
     }
@@ -57,9 +57,9 @@ public class JdbcOutput extends OutputBase<Message> {
         jc.close();
     }
 
-    private void preExecute(JdbcConnection jc, String... files) {
-        if (null == files || files.length == 0) {
-            logger().info("no sql file need to execute before start JdbcOutput");
+    private void preExecute(JdbcConnection jc, String... sqls) {
+        if (null == sqls || sqls.length == 0) {
+            logger().info("no sql needs to be executed before starting JdbcOutput");
             return;
         }
         Connection conn = null;
@@ -69,30 +69,20 @@ public class JdbcOutput extends OutputBase<Message> {
             throw new RuntimeException("for run sql files", e);
         }
 
-        for (String file : files) {
-            if (null != file && !file.isEmpty()) executeSqlFile(conn, Paths.get(file));
+        for (String sql : sqls) {
+            if (null != sql && !sql.isEmpty()) executeSqlFile(conn, sql);
         }
     }
 
-    private void executeSqlFile(Connection conn, Path path) {
-        if (null == conn || null == path) return;
-        if (!Files.exists(path)) {
-            logger().info("file `" + path + "` not exist");
-            return;
-        }
-        if (!Files.isRegularFile(path)) {
-            logger().info("file `" + path + "` is not a regular file");
-            return;
-        }
+    private void executeSqlFile(Connection conn, String sql) {
         try {
-            String sql = Files.lines(path).collect(Collectors.joining(""));
             PreparedStatement ps = conn.prepareStatement(sql);
             ps.execute();
             logger().debug("execute ``````" + sql + "`````` success");
             ps.close();
-        } catch (IOException | SQLException e) {
-            logger().error("failed to execute sql from file `" + path + "`", e);
+        } catch (SQLException e) {
+            logger().error("failed to execute sql `" + sql + "`", e);
         }
     }
-
+    
 }
