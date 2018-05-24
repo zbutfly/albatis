@@ -34,6 +34,7 @@ import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.paral.Exeter;
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.serder.BsonSerder;
+import net.butfly.albacore.serder.JsonSerder;
 import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.Texts;
 import net.butfly.albacore.utils.collection.Colls;
@@ -61,6 +62,7 @@ public class HbaseConnection extends NoSqlConnection<org.apache.hadoop.hbase.cli
 	private static final long GET_DUMP_MIN_SIZE = Integer.parseInt(Configs.gets("albatis.hbase.connection.get.dump.min.bytes", "2097152")); // 2M
 	private final Map<String, Table> tables;
 	private final LinkedBlockingQueue<Scan> scans = new LinkedBlockingQueue<>(GET_SCAN_OBJS);
+	public final Function<Map<String, Object>, byte[]> conv;
 
 	public HbaseConnection() throws IOException {
 		this(new URISpec("hbase:///"));
@@ -94,6 +96,17 @@ public class HbaseConnection extends NoSqlConnection<org.apache.hadoop.hbase.cli
 				return null;
 			}
 		}, "hbase");
+		String sd = uri.getParameter("serder", "bson").toLowerCase();
+		switch (sd) {
+		case "bson":
+			conv = BsonSerder::map;
+			break;
+		case "json":
+			conv = m -> Bytes.toBytes(JsonSerder.JSON_MAPPER.ser(m));
+			break;
+		default:
+			throw new RuntimeException("Current only support \"serder=bson|json\", \"" + sd + "\" is not supported.");
+		}
 		tables = Maps.of();
 	}
 
@@ -159,11 +172,11 @@ public class HbaseConnection extends NoSqlConnection<org.apache.hadoop.hbase.cli
 			}
 		}));
 		Sdream<Result> ss = of(rr);
-		if (GET_DUMP_MIN_SIZE > 0) ss = ss.peek(r -> dump(table, r));
+		// if (GET_DUMP_MIN_SIZE > 0) ss = ss.peek(r -> dump(table, r));
 		return ss.map(r -> Hbases.Results.result(table, r)).list();
 	}
 
-	private Result dump(String table, Result r) {
+	public Result dump(String table, Result r, Function<byte[], Map<String, Object>> conv) {
 		long size = Result.getTotalSizeOfCells(r);
 		if (size < GET_DUMP_MIN_SIZE) return r;
 		String fn = Texts.formatDate("hhMMssSSS", new Date()) + "-ROWKEY:" + Bytes.toString(r.getRow()) + "-SIZE:" + size;
@@ -178,7 +191,7 @@ public class HbaseConnection extends NoSqlConnection<org.apache.hadoop.hbase.cli
 			for (String key : m.keySet()) {
 				Object val = m.get(key);
 				w.println(key + ": ");
-				w.println("\t" + (val instanceof byte[] ? BsonSerder.map((byte[]) val).toString() : val.toString()));
+				w.println("\t" + (val instanceof byte[] ? conv.apply((byte[]) val).toString() : val.toString()));
 			}
 		} catch (Exception e) {
 			logger.error("Dump fail: " + e.getMessage());
@@ -285,6 +298,6 @@ public class HbaseConnection extends NoSqlConnection<org.apache.hadoop.hbase.cli
 
 	@Override
 	public HbaseOutput output() throws IOException {
-		return new HbaseOutput("HbaseOutput", this);
+		return new HbaseOutput("HbaseOutput", this, conv);
 	}
 }

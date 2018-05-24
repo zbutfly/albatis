@@ -48,7 +48,7 @@ public class ElasticRestConnection extends NoSqlConnection<RestClient> implement
 	}
 
 	@Override
-	public void mapping(Map<String, Object> mapping, String... types) {
+	public void construct(Map<String, Object> mapping, String... types) {
 		logger().debug("Mapping constructing: " + mapping);
 		String mappings = JsonSerder.JSON_MAPPER.ser(mapping);
 		PutMappingRequest req = new PutMappingRequest(getDefaultIndex());

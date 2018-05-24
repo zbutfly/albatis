@@ -91,4 +91,9 @@ public interface Connection extends AutoCloseable {
 			}
 		}
 	}
+
+	// DDL
+	default void construct(Map<String, Object> params, String... name) {
+		throw new UnsupportedOperationException();
+	};
 }

@@ -45,7 +45,7 @@ public class EsConnTest {
 
 	public static void testConn() throws IOException {
 		try (ElasticConnection conn = new ElasticConnection("es://cominfo@hzga152/person_test/person");) {
-			conn.mapping(mapping());
+			conn.construct(mapping());
 		}
 	}
 

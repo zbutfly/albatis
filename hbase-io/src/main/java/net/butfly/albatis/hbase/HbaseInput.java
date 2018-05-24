@@ -9,7 +9,6 @@ import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
@@ -26,7 +25,6 @@ import org.apache.hadoop.hbase.util.Bytes;
 import io.netty.util.internal.shaded.org.jctools.queues.MessagePassingQueue.Supplier;
 import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.paral.Sdream;
-import net.butfly.albacore.serder.BsonSerder;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Statistic;
@@ -235,13 +233,5 @@ public class HbaseInput extends Namedly implements Input<Message> {
 					if (null != s) scans.offer(s);
 				}
 			}
-	}
-
-	public HbaseSubInput subject(Function<byte[], Map<String, Object>> conv) {
-		return new HbaseSubInput(this, conv, '#');
-	}
-
-	public HbaseSubInput subject() {
-		return subject(BsonSerder::map);
 	}
 }

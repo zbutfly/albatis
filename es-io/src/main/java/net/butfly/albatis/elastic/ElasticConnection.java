@@ -48,7 +48,7 @@ public class ElasticConnection extends NoSqlConnection<TransportClient> implemen
 	}
 
 	@Override
-	public void mapping(Map<String, Object> mapping, String... types) {
+	public void construct(Map<String, Object> mapping, String... types) {
 		PutMappingRequest req = new PutMappingRequest(getDefaultIndex());
 		req.source(mapping);
 		Set<String> tps = new HashSet<>(Arrays.asList(types));

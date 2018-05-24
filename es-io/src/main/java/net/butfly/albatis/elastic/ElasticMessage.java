@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Map;
+import java.util.function.Function;
 
 import org.elasticsearch.script.Script;
 import org.elasticsearch.script.ScriptType;
@@ -45,8 +46,8 @@ public class ElasticMessage extends Message {
 	}
 
 	@Override
-	protected void write(OutputStream os) throws IOException {
-		super.write(os);
+	protected void write(OutputStream os, Function<Map<String, Object>, byte[]> conv) throws IOException {
+		super.write(os, conv);
 		boolean s = null == script;
 		IOs.writeBytes(os, new byte[] { (byte) (s ? 0 : 1) });
 		if (s) IOs.writeBytes(os, script.getType().name().getBytes(), script.getLang().getBytes(), script.getIdOrCode().getBytes(),
@@ -58,7 +59,7 @@ public class ElasticMessage extends Message {
 	}
 
 	public ElasticMessage(InputStream is) throws IOException {
-		super(is);
+		super(is, BsonSerder::map);
 		if (0 != IOs.readBytes(is)[0]) {
 			byte[][] attrs = IOs.readBytesList(is);
 			this.script = new Script(ScriptType.valueOf(new String(attrs[0])), new String(attrs[1]), new String(attrs[2]), BsonSerder.map(

@@ -32,7 +32,7 @@ public class KafkaTest {
 				in.dequeue(s -> size.addAndGet(s.map(m -> {
 					count.incrementAndGet();
 					counts.compute(m.table(), (k, v) -> v + 1);
-					return m.toBytes().length;
+					return m.toBytes(BsonSerder::map).length;
 				}).reduce((i1, i2) -> i1 + i2)));
 				long curr = new Date().getTime();
 				total += (size.get() / 1024.0 / 1024);

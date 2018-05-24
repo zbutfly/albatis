@@ -2,10 +2,12 @@ package net.butfly.albatis.io;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 import net.butfly.albacore.io.Dequeuer;
@@ -24,6 +26,16 @@ public interface Input<V> extends IO, Dequeuer<V> {
 	@Override
 	default long capacity() {
 		return 0;
+	}
+
+	// TODO
+	default Input<V> filter(Map<String, Object> criteria) {
+		return this;
+	}
+
+	// TODO
+	default Input<V> filter(Predicate<V> predicater) {
+		return this;
 	}
 
 	default <V1> Input<V1> then(Function<V, V1> conv) {

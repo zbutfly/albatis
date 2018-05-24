@@ -7,8 +7,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 
-import net.butfly.albacore.serder.BsonSerder;
 import net.butfly.albacore.utils.IOs;
 import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.collection.Maps;
@@ -110,16 +110,16 @@ public class Message extends ConcurrentHashMap<String, Object> {
 		return this;
 	}
 
-	public Message(byte[] data) throws IOException {
-		this(new ByteArrayInputStream(data));
+	public Message(byte[] data, Function<byte[], Map<String, ?>> conv) throws IOException {
+		this(new ByteArrayInputStream(data), conv);
 	}
 
-	public Message(InputStream is) throws IOException {
+	public Message(InputStream is, Function<byte[], Map<String, ?>> conv) throws IOException {
 		super();
 		byte[][] attrs = IOs.readBytesList(is);
 		table = null != attrs[0] ? null : new String(attrs[0]);
 		key = null != attrs[1] ? null : new String(attrs[1]);
-		if (null == attrs[2]) putAll(BsonSerder.map(attrs[2]));
+		if (null == attrs[2]) putAll(conv.apply(attrs[2]));
 		op = attrs[3][0];
 	}
 
@@ -128,9 +128,9 @@ public class Message extends ConcurrentHashMap<String, Object> {
 		return "[Table: " + table + ", Key: " + key + ", Op: " + opname(op) + "] => " + super.toString();
 	}
 
-	public final byte[] toBytes() {
+	public final byte[] toBytes(Function<Map<String, Object>, byte[]> conv) {
 		try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-			write(baos);
+			write(baos, conv);
 			return baos.toByteArray();
 		} catch (IOException e) {
 			return null;
@@ -144,8 +144,8 @@ public class Message extends ConcurrentHashMap<String, Object> {
 		return key.toString().getBytes();// XXX
 	}
 
-	protected void write(OutputStream os) throws IOException {
-		IOs.writeBytes(os, null == table ? null : table.getBytes(), keyBytes(), BsonSerder.map(this), new byte[] { (byte) op });
+	protected void write(OutputStream os, Function<Map<String, Object>, byte[]> conv) throws IOException {
+		IOs.writeBytes(os, null == table ? null : table.getBytes(), keyBytes(), conv.apply(this), new byte[] { (byte) op });
 	}
 
 	public Map<String, Object> map() {
