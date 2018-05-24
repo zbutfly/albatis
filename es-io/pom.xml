@@ -14,6 +14,11 @@
 			<version>${project.version}</version>
 		</dependency>
 		<dependency>
+			<groupId>net.butfly.albacore</groupId>
+			<artifactId>albacore-serder-json</artifactId>
+			<version>1.0.1</version>
+		</dependency>
+		<dependency>
 			<groupId>io.netty</groupId>
 			<artifactId>netty-all</artifactId>
 		</dependency>

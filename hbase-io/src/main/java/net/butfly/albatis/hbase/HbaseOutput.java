@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.function.Function;
 
 import org.apache.hadoop.hbase.client.Append;
 import org.apache.hadoop.hbase.client.Delete;
@@ -26,8 +27,7 @@ import net.butfly.albatis.io.Message.Op;
 import net.butfly.albatis.io.OutputBase;
 
 /**
- * Subject (embedded document serialized as BSON with prefixed column name)
- * writer to hbase.
+ * Subject (embedded document serialized as BSON with prefixed column name) writer to hbase.
  */
 public final class HbaseOutput extends OutputBase<Message> {
 	public static final @HbaseProps String MAX_CONCURRENT_OP_PROP_NAME = HbaseProps.OUTPUT_CONCURRENT_OPS;
@@ -60,7 +60,7 @@ public final class HbaseOutput extends OutputBase<Message> {
 		for (String table : map.keySet()) {
 			List<Message> l = map.get(table);
 			if (l.isEmpty()) continue;
-			if (1 == l.size()) enq1(table, Hbases.Results.op(l.get(0)), l.get(0));
+			if (1 == l.size()) enq1(table, Hbases.Results.op(l.get(0), hconn.conv::apply), l.get(0));
 			else enq(table, l);
 		}
 	}
@@ -134,7 +134,7 @@ public final class HbaseOutput extends OutputBase<Message> {
 				logger().error("Message marked as delete but ignore: " + m.toString());
 				break;
 			default:
-				Mutation r = Hbases.Results.op(m);
+				Mutation r = Hbases.Results.op(m, hconn.conv::apply);
 				if (null != r) {
 					origins.add(m);
 					puts.add(r);
@@ -149,7 +149,7 @@ public final class HbaseOutput extends OutputBase<Message> {
 			for (String k : merge.keySet())
 				if (((Long) merge.get(k)).longValue() <= 0) merge.remove(k);
 			if (!merge.isEmpty()) {
-				Mutation r = Hbases.Results.op(merge);
+				Mutation r = Hbases.Results.op(merge, hconn.conv::apply);
 				if (null != r) {
 					origins.add(merge);
 					puts.add(r);

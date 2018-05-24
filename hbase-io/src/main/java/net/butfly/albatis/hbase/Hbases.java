@@ -38,7 +38,6 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import net.butfly.albacore.paral.Sdream;
-import net.butfly.albacore.serder.BsonSerder;
 import net.butfly.albacore.utils.IOs;
 import net.butfly.albacore.utils.Utils;
 import net.butfly.albacore.utils.collection.Maps;
@@ -156,7 +155,7 @@ public final class Hbases extends Utils {
 		}
 
 		@SuppressWarnings("unchecked")
-		static Mutation op(Message m) {
+		static Mutation op(Message m, Function<Map<String, Object>, byte[]> conv) {
 			if (m.isEmpty()) return null;
 			Object rowo = m.key();
 			if (null == rowo) return null;
@@ -175,7 +174,7 @@ public final class Hbases extends Utils {
 					else if (v instanceof CharSequence) {
 						String s = ((CharSequence) v).toString();
 						if (s.length() > 0) val = Bytes.toBytes(s);
-					} else if (v instanceof Map) val = BsonSerder.map((Map<String, Object>) v);
+					} else if (v instanceof Map) val = conv.apply((Map<String, Object>) v);
 					if (null == val || val.length == 0) return null;
 					byte[][] fqs = Results.parseFQ(e.getKey());
 					Cell c = CellUtil.createCell(rowk, fqs[0], fqs[1], HConstants.LATEST_TIMESTAMP, Type.Put.getCode(), (byte[]) val);

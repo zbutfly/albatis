@@ -24,13 +24,13 @@
 		</dependency>
 		<dependency>
 			<groupId>net.butfly.albacore</groupId>
-			<artifactId>albacore-meta</artifactId>
-			<version>${version.albacore}</version>
+			<artifactId>albacore-serder-core</artifactId>
+			<version>1.0.1</version>
 		</dependency>
 		<dependency>
 			<groupId>net.butfly.albacore</groupId>
-			<artifactId>albacore-serder-json</artifactId>
-			<version>1.0.1</version>
+			<artifactId>albacore-meta</artifactId>
+			<version>${version.albacore}</version>
 		</dependency>
 		<dependency>
 			<groupId>com.alibaba</groupId>
