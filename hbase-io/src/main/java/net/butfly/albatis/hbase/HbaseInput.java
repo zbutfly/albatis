@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
@@ -22,7 +23,6 @@ import org.apache.hadoop.hbase.filter.FilterList;
 import org.apache.hadoop.hbase.filter.MultipleColumnPrefixFilter;
 import org.apache.hadoop.hbase.util.Bytes;
 
-import io.netty.util.internal.shaded.org.jctools.queues.MessagePassingQueue.Supplier;
 import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.collection.Colls;
