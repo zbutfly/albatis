@@ -17,6 +17,7 @@ import com.hzcominfo.albatis.nosql.NoSqlConnection;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.serder.JsonSerder;
 import net.butfly.albacore.utils.collection.Colls;
+import net.butfly.albatis.ddl.fields.FieldDesc;
 import net.butfly.albatis.io.Input;
 import net.butfly.albatis.io.Message;
 
@@ -48,15 +49,17 @@ public class ElasticConnection extends NoSqlConnection<TransportClient> implemen
 	}
 
 	@Override
-	public void construct(Map<String, Object> mapping, String... types) {
+	public void construct(String type, FieldDesc... fields) {
+		MappingConstructor cstr = new MappingConstructor();
+		Map<String, Object> mapping = cstr.construct(fields);
+		logger().debug("Mapping constructing: " + mapping);
 		PutMappingRequest req = new PutMappingRequest(getDefaultIndex());
 		req.source(mapping);
-		Set<String> tps = new HashSet<>(Arrays.asList(types));
-		if (null != getDefaultType())
-			tps.add(getDefaultType());
-		for (String t : tps)
-			if (!client().admin().indices().putMapping(req.type(t)).actionGet().isAcknowledged())
-				logger().error("Mapping failed on type [" + t + "]" + req.toString());
+		// Set<String> tps = new HashSet<>(Arrays.asList(types));
+		// if (null != getDefaultType()) tps.add(getDefaultType());
+		PutMappingResponse r = client().admin().indices().putMapping(req.type(type)).actionGet();
+		if (!r.isAcknowledged()) logger().error("Mapping failed on type [" + type + "]" + req.toString());
+		else logger().info(() -> "Mapping on [" + type + "] construced sussesfully: \n\t" + JsonSerder.JSON_MAPPER.ser(mapping));
 	}
 
 	@Override
@@ -106,5 +109,19 @@ public class ElasticConnection extends NoSqlConnection<TransportClient> implemen
 	@Override
 	public ElasticOutput output() throws IOException {
 		return new ElasticOutput("ElasticOutput", this);
+	}
+
+	@Deprecated
+	public void construct(Map<String, Object> mapping, String... types) {
+		logger().debug("Mapping constructing: " + mapping);
+		PutMappingRequest req = new PutMappingRequest(getDefaultIndex());
+		req.source(mapping);
+		Set<String> tps = new HashSet<>(Arrays.asList(types));
+		if (null != getDefaultType()) tps.add(getDefaultType());
+		for (String t : tps) {
+			PutMappingResponse r = client().admin().indices().putMapping(req.type(t)).actionGet();
+			if (!r.isAcknowledged()) logger().error("Mapping failed on type [" + t + "]" + req.toString());
+			else logger().info(() -> "Mapping on [" + t + "] construced sussesfully: \n\t" + JsonSerder.JSON_MAPPER.ser(mapping));
+		}
 	}
 }

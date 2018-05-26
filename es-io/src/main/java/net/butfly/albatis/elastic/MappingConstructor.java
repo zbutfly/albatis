@@ -1,30 +1,29 @@
 package net.butfly.albatis.elastic;
 
 import static net.butfly.albacore.utils.collection.Maps.of;
-import static net.butfly.albatis.ddl.vals.ValType.Flags.BINARY;
-import static net.butfly.albatis.ddl.vals.ValType.Flags.BOOL;
-import static net.butfly.albatis.ddl.vals.ValType.Flags.CHAR;
-import static net.butfly.albatis.ddl.vals.ValType.Flags.DATE;
-import static net.butfly.albatis.ddl.vals.ValType.Flags.DOUBLE;
-import static net.butfly.albatis.ddl.vals.ValType.Flags.FLOAT;
-import static net.butfly.albatis.ddl.vals.ValType.Flags.GEO;
-import static net.butfly.albatis.ddl.vals.ValType.Flags.INT;
-import static net.butfly.albatis.ddl.vals.ValType.Flags.LONG;
-import static net.butfly.albatis.ddl.vals.ValType.Flags.STR;
-import static net.butfly.albatis.ddl.vals.ValType.Flags.UNKNOWN;
+import static net.butfly.albatis.ddl.ValType.Flags.BINARY;
+import static net.butfly.albatis.ddl.ValType.Flags.BOOL;
+import static net.butfly.albatis.ddl.ValType.Flags.CHAR;
+import static net.butfly.albatis.ddl.ValType.Flags.DATE;
+import static net.butfly.albatis.ddl.ValType.Flags.DOUBLE;
+import static net.butfly.albatis.ddl.ValType.Flags.FLOAT;
+import static net.butfly.albatis.ddl.ValType.Flags.GEO;
+import static net.butfly.albatis.ddl.ValType.Flags.INT;
+import static net.butfly.albatis.ddl.ValType.Flags.LONG;
+import static net.butfly.albatis.ddl.ValType.Flags.STR;
+import static net.butfly.albatis.ddl.ValType.Flags.UNKNOWN;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 import net.butfly.albacore.utils.logger.Logger;
-import net.butfly.albatis.ddl.FieldDesc;
-import net.butfly.albatis.ddl.vals.ValType;
+import net.butfly.albatis.ddl.ValType;
+import net.butfly.albatis.ddl.fields.FieldDesc;
 
 @SuppressWarnings("deprecation")
 public class MappingConstructor {
 	protected final Logger logger = Logger.getLogger(MappingConstructor.class);
-	public static final String DEFAULT_FULLTEXT_NAME = "fullText";
 
 	protected List<Map<String, Object>> templates() {
 		List<Map<String, Object>> templates = new ArrayList<>();
@@ -38,9 +37,9 @@ public class MappingConstructor {
 	}
 
 	public Map<String, Object> construct(FieldDesc... fields) {
-		Map<String, Object> props = of(DEFAULT_FULLTEXT_NAME, of("type", "string"));
+		Map<String, Object> props = of(FieldDesc.DEFAULT_FULLTEXT_NAME, of("type", "string"));
 		for (FieldDesc f : fields)
-			suffix(props, f.name, f.type, f.attr("fulltext"));
+			suffix(props, f.name, f.type, f.fulltext());
 		return of("include_in_all", true, "dynamic", true, "dynamic_templates", templates(), "properties", props);
 	}
 

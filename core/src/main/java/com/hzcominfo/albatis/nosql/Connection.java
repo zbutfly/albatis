@@ -11,6 +11,7 @@ import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
+import net.butfly.albatis.ddl.fields.FieldDesc;
 import net.butfly.albatis.io.Input;
 import net.butfly.albatis.io.Message;
 import net.butfly.albatis.io.Output;
@@ -93,7 +94,7 @@ public interface Connection extends AutoCloseable {
 	}
 
 	// DDL
-	default void construct(Map<String, Object> params, String... name) {
+	default void construct(String table, FieldDesc... fields) {
 		throw new UnsupportedOperationException();
-	};
+	}
 }
