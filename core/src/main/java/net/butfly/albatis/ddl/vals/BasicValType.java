@@ -1,4 +1,4 @@
-package net.butfly.albatis.ddl;
+package net.butfly.albatis.ddl.vals;
 
 public final class BasicValType extends ValType {
 	public final long length;

@@ -1,4 +1,4 @@
-package net.butfly.albatis.ddl;
+package net.butfly.albatis.ddl.vals;
 
 import java.nio.ByteBuffer;
 import java.sql.Types;

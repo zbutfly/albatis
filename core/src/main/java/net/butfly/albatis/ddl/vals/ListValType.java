@@ -1,4 +1,4 @@
-package net.butfly.albatis.ddl;
+package net.butfly.albatis.ddl.vals;
 
 import java.sql.Types;
 import java.util.List;
