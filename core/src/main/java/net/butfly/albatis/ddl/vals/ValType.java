@@ -8,30 +8,6 @@ import java.util.Map;
 import net.butfly.albacore.utils.collection.Maps;
 
 public abstract class ValType {
-	protected final static Map<String, ValType> MAPPING = Maps.of();
-
-	public static interface Flags {
-		@Deprecated
-		public static final String VOID = "v";
-		@Deprecated
-		public static final String UNKNOWN = "";
-		// basic type: primitive
-		public static final String BOOL = "bl";
-		public static final String CHAR = "c";
-		public static final String BYTE = "b";
-		public static final String SHORT = "sh";
-		public static final String INT = "i";
-		public static final String LONG = "l";
-		public static final String FLOAT = "f";
-		public static final String DOUBLE = "d";
-		// basic type: extended
-		public static final String STR = "s";
-		public static final String STRL = "strl";
-		public static final String BINARY = "bin";
-		public static final String DATE = "dt";
-		// assembly type
-		public static final String GEO = "g";
-	}
 
 	@Deprecated
 	public static final BasicValType VOID = new BasicValType(void.class, Void.class, Types.OTHER, Flags.VOID, "void");
@@ -85,8 +61,32 @@ public abstract class ValType {
 		return this;
 	}
 
+	protected final static Map<String, ValType> MAPPING = Maps.of();
+
 	public static ValType valueOf(String flag) {
 		return null == flag ? UNKNOWN : MAPPING.getOrDefault(flag, UNKNOWN);
 	}
 
+	public static interface Flags {
+		@Deprecated
+		public static final String VOID = "v";
+		@Deprecated
+		public static final String UNKNOWN = "";
+		// basic type: primitive
+		public static final String BOOL = "bl";
+		public static final String CHAR = "c";
+		public static final String BYTE = "b";
+		public static final String SHORT = "sh";
+		public static final String INT = "i";
+		public static final String LONG = "l";
+		public static final String FLOAT = "f";
+		public static final String DOUBLE = "d";
+		// basic type: extended
+		public static final String STR = "s";
+		public static final String STRL = "strl";
+		public static final String BINARY = "bin";
+		public static final String DATE = "dt";
+		// assembly type
+		public static final String GEO = "g";
+	}
 }

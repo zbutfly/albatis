@@ -1,9 +1,9 @@
 package net.butfly.albatis.jdbc;
 
-import static net.butfly.albatis.ddl.ValType.Flags.DATE;
-import static net.butfly.albatis.ddl.ValType.Flags.INT;
-import static net.butfly.albatis.ddl.ValType.Flags.LONG;
-import static net.butfly.albatis.ddl.ValType.Flags.STR;
+import static net.butfly.albatis.ddl.vals.ValType.Flags.DATE;
+import static net.butfly.albatis.ddl.vals.ValType.Flags.INT;
+import static net.butfly.albatis.ddl.vals.ValType.Flags.LONG;
+import static net.butfly.albatis.ddl.vals.ValType.Flags.STR;
 
 import java.io.IOException;
 import java.sql.Connection;
@@ -17,7 +17,7 @@ import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 
 import net.butfly.albacore.io.URISpec;
-import net.butfly.albatis.ddl.fields.FieldDesc;
+import net.butfly.albatis.ddl.FieldDesc;
 
 public class JdbcConnection extends NoSqlConnection<HikariDataSource> {
 	final Upserter upserter;

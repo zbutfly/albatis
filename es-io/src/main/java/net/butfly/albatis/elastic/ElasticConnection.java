@@ -17,7 +17,7 @@ import com.hzcominfo.albatis.nosql.NoSqlConnection;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.serder.JsonSerder;
 import net.butfly.albacore.utils.collection.Colls;
-import net.butfly.albatis.ddl.fields.FieldDesc;
+import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.io.Input;
 import net.butfly.albatis.io.Message;
 
