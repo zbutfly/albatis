@@ -1,15 +1,23 @@
 package net.butfly.albatis.jdbc;
 
+import static net.butfly.albatis.ddl.ValType.Flags.DATE;
+import static net.butfly.albatis.ddl.ValType.Flags.INT;
+import static net.butfly.albatis.ddl.ValType.Flags.LONG;
+import static net.butfly.albatis.ddl.ValType.Flags.STR;
+
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 
 import com.hzcominfo.albatis.nosql.NoSqlConnection;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 
 import net.butfly.albacore.io.URISpec;
+import net.butfly.albatis.ddl.fields.FieldDesc;
 
 public class JdbcConnection extends NoSqlConnection<HikariDataSource> {
 	final Upserter upserter;
@@ -22,15 +30,21 @@ public class JdbcConnection extends NoSqlConnection<HikariDataSource> {
 		upserter = Upserter.of(uri.getScheme());
 	}
 
-	public void construct(String sql) throws SQLException {
-		if (null == sql || sql.isEmpty()) {
-			logger().info("no sql needs to be executed.");
-			return;
-		}
-		try (Connection conn = client().getConnection(); PreparedStatement ps = conn.prepareStatement(sql);) {
-			ps.execute();
-			logger().debug("execute ``````" + sql + "`````` success");
-		}
+	@Override
+	public void construct(String table, FieldDesc... fields) {
+		try (Connection conn = client().getConnection();) {
+			if (uri.getScheme().startsWith("jdbc:oracle")) {
+				StringBuilder sql = new StringBuilder();
+				List<String> fieldSql = new ArrayList<>();
+				for (FieldDesc f : fields)
+					fieldSql.add(buildField(f));
+				sql.append("create table ").append(table).append("(").append(String.join(",", fieldSql.toArray(new String[0]))).append(")");
+				try (PreparedStatement ps = conn.prepareStatement(sql.toString());) {
+					ps.execute();
+					logger().debug("execute ``````" + sql + "`````` success");
+				} catch (SQLException e) {}
+			} else throw new UnsupportedOperationException("Jdbc table create not supported for:" + uri.getScheme());
+		} catch (SQLException e1) {}
 	}
 
 	private static HikariConfig toConfig(Upserter upserter, URISpec uriSpec) {
@@ -62,5 +76,27 @@ public class JdbcConnection extends NoSqlConnection<HikariDataSource> {
 	@Override
 	public JdbcOutput output() throws IOException {
 		return new JdbcOutput("JdbcOutput", this);
+	}
+
+	private static String buildField(FieldDesc field) {
+		StringBuilder sb = new StringBuilder();
+		switch (field.type.flag) {
+		case INT:
+			sb.append(field.name).append(" number(32, 0)");
+			break;
+		case LONG:
+			sb.append(field.name).append(" number(64, 0)");
+			break;
+		case STR:
+			sb.append(field.name).append(" varchar2(100)");
+			break;
+		case DATE:
+			sb.append(field.name).append(" date");
+			break;
+		default:
+			break;
+		}
+		if (field.rowkey) sb.append(" not null primary key");
+		return sb.toString();
 	}
 }

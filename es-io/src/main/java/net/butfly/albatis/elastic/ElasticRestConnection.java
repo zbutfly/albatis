@@ -1,21 +1,19 @@
 package net.butfly.albatis.elastic;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
+import org.apache.http.StatusLine;
 import org.apache.http.nio.entity.NStringEntity;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
-import org.elasticsearch.client.Response;
 import org.elasticsearch.client.RestClient;
 
 import com.hzcominfo.albatis.nosql.NoSqlConnection;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.serder.JsonSerder;
+import net.butfly.albatis.ddl.fields.FieldDesc;
 import net.butfly.albatis.io.Input;
 import net.butfly.albatis.io.Message;
 import net.butfly.albatis.io.Output;
@@ -48,23 +46,21 @@ public class ElasticRestConnection extends NoSqlConnection<RestClient> implement
 	}
 
 	@Override
-	public void construct(Map<String, Object> mapping, String... types) {
+	public void construct(String type, FieldDesc... fields) {
+		Map<String, Object> mapping;
+		MappingConstructor cstr = new MappingConstructor();
+		mapping = cstr.construct(fields);
 		logger().debug("Mapping constructing: " + mapping);
 		String mappings = JsonSerder.JSON_MAPPER.ser(mapping);
 		PutMappingRequest req = new PutMappingRequest(getDefaultIndex());
 		req.source(mapping);
-		Set<String> tps = new HashSet<>(Arrays.asList(types));
-		if (null != getDefaultType()) tps.add(getDefaultType());
-		Response rep;
-		for (String t : tps) {
-			try {
-				rep = client().performRequest("PUT", getDefaultIndex() + "/_mapping/" + t, new HashMap<>(), new NStringEntity(mappings));
-			} catch (IOException e) {
-				logger().error("Mapping failed on type [" + t + "]", e);
-				break;
-			}
-			if (200 != rep.getStatusLine().getStatusCode()) logger().error("Mapping failed on type [" + t + "]: \n\t" + rep.getStatusLine()
-					.getReasonPhrase());
+		// if (null != getDefaultType()) tps.add(getDefaultType());
+		try {
+			StatusLine r = client().performRequest("PUT", getDefaultIndex() + "/_mapping/" + type, new HashMap<>(), new NStringEntity(
+					mappings)).getStatusLine();
+			if (200 != r.getStatusCode()) logger().error("Mapping failed on type [" + type + "]: \n\t" + r.getReasonPhrase());
+		} catch (IOException ex) {
+			logger().error("Mapping failed on type [" + type + "]", ex);
 		}
 	}
 
