@@ -12,7 +12,7 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.InetSocketTransportAddress;
+import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.transport.client.PreBuiltTransportClient;
 
 import net.butfly.albacore.serder.JsonSerder;
@@ -39,7 +39,7 @@ public class EsConnTest {
 		settings.put("cluster.name", "cominfo");
 		// settings.put("client.transport.ignore_cluster_name", true);
 		try (TransportClient tc = new PreBuiltTransportClient(settings.build());) {
-			return tc.addTransportAddresses(new InetSocketTransportAddress(new InetSocketAddress("localhost", 39300)));
+			return tc.addTransportAddresses(new TransportAddress(new InetSocketAddress("localhost", 39300)));
 		}
 	}
 

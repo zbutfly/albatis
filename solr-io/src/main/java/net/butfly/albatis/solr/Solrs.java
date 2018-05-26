@@ -248,7 +248,7 @@ public final class Solrs extends Utils {
 		if (m.isEmpty() || null == m.key()) return null;
 		SolrInputDocument doc = new SolrInputDocument(of(m).map(e -> {
 			SolrInputField f = new SolrInputField(e.getKey());
-			f.setValue(e.getValue(), 1f);
+			f.setValue(e.getValue());
 			return f;
 		}).partitions(SolrInputField::getName, f -> f));
 		doc.addField(keyFieldName, m.key());

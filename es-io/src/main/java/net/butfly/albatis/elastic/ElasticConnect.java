@@ -13,7 +13,7 @@ import org.elasticsearch.client.Response;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.InetSocketTransportAddress;
+import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.transport.client.PreBuiltTransportClient;
 
 import com.hzcominfo.albatis.nosql.Connection;
@@ -113,8 +113,8 @@ public interface ElasticConnect extends Connection {
 		static TransportClient buildTransportClient(URISpec uri, Map<String, String> props) {
 			String rest = uri.fetchParameter("rest");
 			Settings.Builder settings = Settings.builder();
-			settings.put(uri.getParameters("script", "batch"));
-			if (null != props && !props.isEmpty()) settings.put(props);
+			uri.getParameters("script", "batch").forEach(settings::put);
+			if (null != props && !props.isEmpty()) props.forEach(settings::put);
 
 			Map<String, Object> meta = null == rest ? null : Parser.fetchMetadata(parseRestAddrs(rest, uri.getInetAddrs()));
 			String cn = Parser.checkClusterName(uri.getUsername(), null == meta ? null : (String) meta.get("cluster_name"));
@@ -128,11 +128,11 @@ public interface ElasticConnect extends Connection {
 
 			TransportClient tc = new PreBuiltTransportClient(settings.build());
 
-			InetSocketTransportAddress[] addrs = meta == null ? Arrays.stream(uri.getInetAddrs()).map(InetSocketTransportAddress::new)
-					.toArray(i -> new InetSocketTransportAddress[i])
-					: Arrays.stream(Parser.getNodes(meta)).map(n -> n.transport).toArray(i -> new InetSocketTransportAddress[i]);
+			TransportAddress[] addrs = meta == null ? //
+					Arrays.stream(uri.getInetAddrs()).map(TransportAddress::new).toArray(i -> new TransportAddress[i])
+					: Arrays.stream(Parser.getNodes(meta)).map(n -> n.transport).toArray(i -> new TransportAddress[i]);
 			_logger.debug(() -> "Elastic transport client construct, cluster: [" + cn + "]\n\t" + of(addrs).joinAsString(
-					InetSocketTransportAddress::toString, ","));
+					TransportAddress::toString, ","));
 
 			tc.addTransportAddresses(addrs);
 			return tc;
@@ -166,12 +166,12 @@ public interface ElasticConnect extends Connection {
 
 	static class Node {
 		final HttpHost rest;
-		final InetSocketTransportAddress transport;
+		final TransportAddress transport;
 
 		Node(String host, int restPort, int transportPort) {
 			super();
 			this.rest = new HttpHost(host, restPort);
-			this.transport = new InetSocketTransportAddress(new InetSocketAddress(host, transportPort));
+			this.transport = new TransportAddress(new InetSocketAddress(host, transportPort));
 		}
 
 		@Override
@@ -183,7 +183,7 @@ public interface ElasticConnect extends Connection {
 			return rest;
 		}
 
-		InetSocketTransportAddress transport() {
+		TransportAddress transport() {
 			return transport;
 		}
 	}
