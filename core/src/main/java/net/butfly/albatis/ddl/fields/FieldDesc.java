@@ -16,7 +16,6 @@ public class FieldDesc {
 	public final boolean rowkey;
 	public final boolean unique;
 	// extra
-	private boolean visiable = true;
 	private boolean nested = false;
 	private String fulltext = null;
 	private int segmode = 0;
@@ -41,7 +40,6 @@ public class FieldDesc {
 	public String toString() {
 		String s = name + "[" + type.toString();
 		if (rowkey) s += ",KEY";
-		if (visiable) s += ",SEARCH";
 		if (0 != segmode) {
 			s += ",TOKEN:";
 			switch (segmode) {
@@ -89,15 +87,6 @@ public class FieldDesc {
 			this.segmode = SEG_MODE_EN;
 			break;
 		}
-		return this;
-	}
-
-	public boolean visiable() {
-		return visiable;
-	}
-
-	public FieldDesc visiable(boolean visiable) {
-		this.visiable = visiable;
 		return this;
 	}
 
