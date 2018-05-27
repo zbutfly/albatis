@@ -70,7 +70,7 @@ abstract class OutputSafeBase<V> extends Namedly implements Output<V> {
 						}
 						String confn = conf.toString();
 						String info = "Output [" + oc.toString() + "] concurrent limit configurated by -D" + confn;
-						cop = Integer.parseInt(Configs.of().gets(confn, Integer.toString(defv)));
+						cop = Integer.parseInt(Configs.gets(confn, Integer.toString(defv)));
 						if (cop > 0) info += "=" + cop;
 						if (defv > 0) info += " [default:" + defv + "]";
 						logger().info(info + ".");

@@ -94,7 +94,7 @@ public class KuduConnection extends KuduConnectionBase<KuduConnection, KuduClien
 	}
 
 	@Override
-	public void tableDrop(String name) {
+	public void destruct(String name) {
 		try {
 			if (!client().tableExists(name)) logger.warn("Kudu table [" + name + "] not exised, need not dropped.");
 			else {
@@ -107,10 +107,9 @@ public class KuduConnection extends KuduConnectionBase<KuduConnection, KuduClien
 	}
 
 	@Override
-	public void tableCreate(String name, boolean drop, ColumnSchema... cols) {
-		if (drop) tableDrop(name);
+	public void construct(String table, ColumnSchema... cols) {
 		try {
-			if (client().tableExists(name)) {
+			if (client().tableExists(table)) {
 				logger.warn("Ask for creating new table but existed and not droped, ignore");
 				return;
 			}
@@ -128,14 +127,14 @@ public class KuduConnection extends KuduConnectionBase<KuduConnection, KuduClien
 		String info = "with bucket [" + buckets + "], can be defined by [-D" + KuduProps.TABLE_BUCKETS + "=8(default value)]";
 		if (replicas > 0) info = info + ", with replicas [" + replicas + "], can be defined by [-D" + KuduProps.TABLE_REPLICAS
 				+ "=xx(no default value)]";
-		logger.info("Kudu table [" + name + "] will be created with keys: [" + Joiner.on(',').join(keys) + "], " + info);
+		logger.info("Kudu table [" + table + "] will be created with keys: [" + Joiner.on(',').join(keys) + "], " + info);
 		CreateTableOptions opts = new CreateTableOptions().addHashPartitions(keys, buckets);
 		if (replicas > 0) opts = opts.setNumReplicas(replicas);
 		try {
-			client().createTable(name, new Schema(Arrays.asList(cols)), opts);
+			client().createTable(table, new Schema(Arrays.asList(cols)), opts);
 		} catch (KuduException e) {
 			throw new RuntimeException(e);
 		}
-		logger.info("Kudu table [" + name + "] created successfully.");
+		logger.info("Kudu table [" + table + "] created successfully.");
 	}
 }

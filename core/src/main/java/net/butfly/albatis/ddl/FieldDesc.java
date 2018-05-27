@@ -17,19 +17,21 @@ public class FieldDesc {
 	public final ValType type;
 	public final boolean rowkey;
 	public final boolean unique;
+	public final boolean nullable;
 	// extra
 	private final Map<String, Object> attrs = Maps.of();
 
-	public FieldDesc(String name, ValType type, boolean rowkey, boolean unique) {
+	public FieldDesc(String name, ValType type, boolean rowkey, boolean unique, boolean nullable) {
 		super();
 		this.name = name;
 		this.type = type;
 		this.rowkey = rowkey;
 		this.unique = unique;
+		this.nullable = rowkey ? false : nullable;
 	}
 
 	public FieldDesc(String name, ValType type, boolean rowkey) {
-		this(name, type, rowkey, false);
+		this(name, type, rowkey, false, !rowkey);
 	}
 
 	public FieldDesc(String name, ValType type) {
