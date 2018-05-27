@@ -26,6 +26,7 @@ import net.butfly.albacore.paral.Exeter;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
+import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.io.Input;
 import net.butfly.albatis.io.Message;
 
@@ -122,9 +123,15 @@ public abstract class KuduConnectionBase<C extends KuduConnectionBase<C, KC, S>,
 
 	public abstract void commit();
 
-	public abstract void tableDrop(String table);
+	@Override
+	public abstract void destruct(String table);
 
-	public abstract void tableCreate(String name, boolean drop, ColumnSchema... cols);
+	protected abstract void construct(String table, ColumnSchema... cols);
+
+	@Override
+	public final void construct(String table, FieldDesc... fields) {
+		construct(table, ColBuild.buildColumns(false, fields));
+	}
 
 	public static class Driver implements com.hzcominfo.albatis.nosql.Connection.Driver<KuduConnection> {
 		static {
@@ -157,6 +164,7 @@ public abstract class KuduConnectionBase<C extends KuduConnectionBase<C, KC, S>,
 		public List<String> schemas() {
 			return Colls.list("kudu:async");
 		}
+
 	}
 
 	@Override

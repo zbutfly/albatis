@@ -110,7 +110,7 @@ public class KuduConnectionAsync extends KuduConnectionBase<KuduConnectionAsync,
 	}
 
 	@Override
-	public void tableDrop(String table) {
+	public void destruct(String table) {
 		try {
 			if (client().tableExists(table).join()) {
 				logger.warn("Kudu table [" + table + "] exised and dropped.");
@@ -120,10 +120,9 @@ public class KuduConnectionAsync extends KuduConnectionBase<KuduConnectionAsync,
 	}
 
 	@Override
-	public void tableCreate(String name, boolean drop, ColumnSchema... cols) {
-		if (drop) tableDrop(name);
+	public void construct(String table, ColumnSchema... cols) {
 		try {
-			if (client().tableExists(name).join()) {
+			if (client().tableExists(table).join()) {
 				logger.warn("Ask for creating new table but existed and not droped, ignore");
 				return;
 			}
@@ -141,15 +140,15 @@ public class KuduConnectionAsync extends KuduConnectionBase<KuduConnectionAsync,
 		String info = "with bucket [" + buckets + "], can be defined by [-D" + KuduProps.TABLE_BUCKETS + "=8(default value)]";
 		if (replicas > 0) info = info + ", with replicas [" + replicas + "], can be defined by [-D" + KuduProps.TABLE_REPLICAS
 				+ "=xx(no default value)]";
-		logger.info("Kudu table [" + name + "] will be created with keys: [" + Joiner.on(',').join(keys) + "], " + info);
+		logger.info("Kudu table [" + table + "] will be created with keys: [" + Joiner.on(',').join(keys) + "], " + info);
 		CreateTableOptions opts = new CreateTableOptions().addHashPartitions(keys, buckets);
 		if (replicas > 0) opts = opts.setNumReplicas(replicas);
 		try {
-			client().createTable(name, new Schema(Arrays.asList(cols)), opts).join();
+			client().createTable(table, new Schema(Arrays.asList(cols)), opts).join();
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
-		logger.info("Kudu table [" + name + "] created successfully.");
+		logger.info("Kudu table [" + table + "] created successfully.");
 	}
 
 	@Override

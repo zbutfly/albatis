@@ -97,4 +97,12 @@ public interface Connection extends AutoCloseable {
 	default void construct(String table, FieldDesc... fields) {
 		throw new UnsupportedOperationException();
 	}
+
+	default void destruct(String table) {
+		throw new UnsupportedOperationException();
+	}
+
+	default void truncate(String table) {
+		throw new UnsupportedOperationException();
+	}
 }
