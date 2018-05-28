@@ -45,7 +45,7 @@ public class KafkaConnection extends NoSqlConnection<Object> {
 
 		@Override
 		public List<String> schemas() {
-			return Colls.list("mongodb");
+			return Colls.list("kafka");
 		}
 	}
 }
