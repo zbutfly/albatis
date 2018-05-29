@@ -9,7 +9,7 @@ import net.butfly.albatis.ddl.vals.ValType;
  * @author zx
  *
  */
-public final class FieldDesc {
+public class FieldDesc {
 	public final String name;
 	/**
 	 * cf:prefix#name
@@ -22,7 +22,7 @@ public final class FieldDesc {
 	// extra
 	private final Map<String, Object> attrs = Maps.of();
 
-	public FieldDesc(String name, ValType type, boolean rowkey, boolean unique, boolean nullable) {
+	public FieldDesc(String fullname, ValType type, boolean rowkey, boolean unique, boolean nullable) {
 		super();
 		String[] cfPrefixName = parse(fullname);
 		this.name = cfPrefixName[2];
@@ -31,10 +31,11 @@ public final class FieldDesc {
 		this.rowkey = rowkey;
 		this.unique = unique;
 		this.nullable = rowkey ? false : nullable;
+		attr("cf", cfPrefixName[0]).attr("prefix", cfPrefixName[1]);
 	}
 
-	public FieldDesc(String name, ValType type, boolean rowkey) {
-		this(name, type, rowkey, false, !rowkey);
+	public FieldDesc(String fullname, ValType type, boolean rowkey) {
+		this(fullname, type, rowkey, false, !rowkey);
 	}
 
 	public FieldDesc(String fullname, ValType type) {
