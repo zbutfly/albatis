@@ -9,7 +9,7 @@ import net.butfly.albatis.ddl.vals.ValType;
  * @author zx
  *
  */
-public class FieldDesc {
+public final class FieldDesc {
 	public final String name;
 	/**
 	 * cf:prefix#name
@@ -56,6 +56,11 @@ public class FieldDesc {
 	@SuppressWarnings("unchecked")
 	public <T> T attr(String attr) {
 		return (T) attrs.get(attr);
+	}
+
+	public FieldDesc attr(Map<String, ?> attrs) {
+		this.attrs.putAll(attrs);
+		return this;
 	}
 
 	@SuppressWarnings("unchecked")
