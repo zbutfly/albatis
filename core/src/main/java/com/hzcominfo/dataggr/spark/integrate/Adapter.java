@@ -1,23 +1,30 @@
 package com.hzcominfo.dataggr.spark.integrate;
 
+import java.io.Serializable;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SparkSession;
+
 import com.hzcominfo.dataggr.spark.integrate.util.ExceptionUtil;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.Reflections;
 
-public abstract class Adapter {
+public abstract class Adapter implements Serializable {
+	private static final long serialVersionUID = -7449826645946027806L;
+
 	public Adapter() {}
 
 	static final Map<String, Class<? extends Adapter>> ADAPTER_MAP = loadAdapters();
 
-	public abstract ReadConfig getConfig(URISpec uriSpec);
-
+	public abstract Dataset<Row> read(URISpec uriSpec, SparkSession spark);
+	
 	// 加载子类
 	static Map<String, Class<? extends Adapter>> loadAdapters() {
 		Map<String, Class<? extends Adapter>> map = new HashMap<>();

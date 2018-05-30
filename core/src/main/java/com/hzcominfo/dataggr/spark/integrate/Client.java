@@ -1,5 +1,6 @@
 package com.hzcominfo.dataggr.spark.integrate;
 
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -10,7 +11,8 @@ import org.apache.spark.sql.SparkSession;
 
 import net.butfly.albacore.io.URISpec;
 
-public class Client implements AutoCloseable {
+public class Client implements AutoCloseable, Serializable {
+	private static final long serialVersionUID = 5093686615279489589L;
 	private SparkSession spark;
 	static Map<String, String> defaultConfMap = new HashMap<>();
 	// private final static Map<String, Adapter> adapters = new
@@ -22,6 +24,7 @@ public class Client implements AutoCloseable {
 
 	static {
 		defaultConfMap.put("spark.sql.shuffle.partitions", "2001");
+		defaultConfMap.put("spark.mongodb.input.uri", "mongodb://user:pwd@localhost:80/db.tbl");
 	}
 
 	public Client(String name, URISpec uriSpec) {
@@ -40,13 +43,12 @@ public class Client implements AutoCloseable {
 	}
 
 	public Dataset<Row> read() {
-		ReadConfig conf = adapter.getConfig(uriSpec);
-		if (conf == null)
-			return null;
-		if (conf.isStream())
-			return spark.readStream().format(conf.getFormat()).options(conf.getOptions()).load();
-		else
-			return spark.read().format(conf.getFormat()).options(conf.getOptions()).load();
+		return adapter.read(uriSpec, spark);
+	}
+	
+	public Dataset<Row> read(URISpec uriSpec) {
+		Adapter adapter = adapt(uriSpec);
+		return adapter.read(uriSpec, spark);
 	}
 
 	@Override

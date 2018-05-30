@@ -9,19 +9,16 @@ import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.StructType;
 
 import com.hzcominfo.dataggr.spark.integrate.Client;
-import com.hzcominfo.dataggr.spark.integrate.ReadConfig;
 
 import net.butfly.albacore.io.URISpec;
 
 public class AppTest {
 
 	public static void main(String[] args) {
-		URISpec uri = new URISpec("bootstrap://data01:9092,data02:9092,data03:9092/ZHK_QBZX_LGZS_NEW");
-		spark(uri); // new Class1(URISpec uri)
-	}
-	
-	static void spark(URISpec uri) {
-		Client client = new Client(null ,uri);
+		//ZHK_QBZX_LGZS_NEW 无数据
+		//HZGA_WA_SOURCE_FJ_1001 5/30有数据
+		URISpec uri = new URISpec("bootstrap://data01:9092,data02:9092,data03:9092/HZGA_WA_SOURCE_FJ_1001");
+		Client client = new Client("kafka-apptest", uri);
 		Dataset<Row> dataset = client.read();
 
 		dataset.writeStream().foreach(new ForeachWriter<Row>() {
@@ -45,34 +42,10 @@ public class AppTest {
 					map.put(fn, row.getAs(fn));
 				}
 				System.out.println(map);
-//				System.out.println("Processing ${row}" + row);
 			}
 		}).start();
-//		dataset.writeStream().format("console").start();
-//		dataset.printSchema();
-//		List<Iterator<Row>> list = new ArrayList<>();
-//		dataset.toJavaRDD().foreachPartition(t -> list.add(t));
-//		System.out.println(list.get(0).next());
-		/*Iterator<Row> localIterator = dataset.javaRDD().toLocalIterator();
-		while(localIterator.hasNext()) {
-			Row row = localIterator.next();
-			System.err.println(row.get(0));
-		}*/
-		client.close();
 		
-	}
-	
-	static ReadConfig getConfig(URISpec uri) {
-		switch(uri.getScheme()) {
-		case "bootstrap":
-			Map<String, String> options = new HashMap<>();
-			options.put("kafka.bootstrap.servers", uri.getHost());
-			options.put("subscribe", uri.getFile());
-			options.put("startingOffsets", "earliest");
-			return new ReadConfig("kafka", options, true);
-		default:
-			break;
-		}
-		return null;
+		//debug模式调试，改行代码打下断点
+		client.close();
 	}
 }
