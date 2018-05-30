@@ -9,7 +9,7 @@ import net.butfly.albatis.ddl.vals.ValType;
  * @author zx
  *
  */
-public class FieldDesc {
+public final class FieldDesc {
 	public final String name;
 	/**
 	 * cf:prefix#name
