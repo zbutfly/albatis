@@ -4,9 +4,9 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<parent>
-		<groupId>com.hzcominfo.dataggr.spark.integrate</groupId>
-		<artifactId>spark-integrate</artifactId>
-		<version>0.0.1-SNAPSHOT</version>
+		<groupId>net.butfly.albatis</groupId>
+		<artifactId>albatis</artifactId>
+		<version>1.5.2-SNAPSHOT</version>
 	</parent>
 
 	<artifactId>spark-integrate-core</artifactId>
