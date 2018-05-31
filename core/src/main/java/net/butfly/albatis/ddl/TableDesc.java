@@ -13,34 +13,54 @@ import net.butfly.albacore.utils.logger.Logger;
 public class TableDesc extends Desc<TableDesc> {
 	private static final Logger logger = Logger.getLogger(TableDesc.class);
 	public final String name;
+	/**
+	 * name.cf:prefix#
+	 */
+	public final String fullname;
 	public final Map<String, FieldDesc> fields = Maps.of();
-	// private final Map<String, Object> options = Maps.of();
 	// options
 	public final List<List<String>> keys = Colls.list();
 	// extras, deprecated into options
-	public Map<String, Object> construct;
-	public boolean destruct;
+	public Map<String, Object> construct = null;
+	public boolean destruct = false;
+	@Deprecated
 	private String referTable;
 
-	TableDesc(TableDesc parent, String prefix) {
-		name = parent.name + "." + prefix;
-		attw(parent.attrs);
-		construct = parent.construct;
-		destruct = parent.destruct;
-		referTable = parent.referTable;
-		for (String fieldName : parent.fields.keySet())
-			if (fieldName.startsWith(prefix)) fields.put(fieldName, parent.fields.get(fieldName));
+	/**
+	 * @param parent
+	 * @param sub
+	 *            cf:prefix#
+	 */
+	public static TableDesc of(TableDesc parent, String sub) {
+		if (null == sub || sub.isEmpty()) return parent;
+		TableDesc t = new TableDesc(parent.name + "." + sub, parent.destruct).attw(parent.attrs);
+		if (null != parent.construct) {
+			t.construct = Maps.of();
+			t.construct.putAll(parent.construct);
+		}
+		t.referTable = parent.referTable;
+		t.parse(t.fullname);
+		String prefix = t.attr(Desc.COL_PREFIX);
+		if (null != prefix) for (String fieldName : parent.fields.keySet())
+			if (fieldName.startsWith(prefix)) t.fields.put(fieldName, parent.fields.get(fieldName));
 		for (List<String> ks : parent.keys) {
 			List<String> kk = Colls.list();
 			for (String k : ks)
-				if (fields.containsKey(k)) kk.add(k);
-			if (!kk.isEmpty()) keys.add(kk);
+				if (t.fields.containsKey(k)) kk.add(k);
+			if (!kk.isEmpty()) t.keys.add(kk);
 		}
+		return t;
 	}
 
-	public TableDesc(String name) {
+	public TableDesc(String fullname) {
+		this(fullname, false);
+	}
+
+	private TableDesc(String fullname, boolean desctuct) {
 		super();
-		this.name = name;
+		this.fullname = fullname;
+		this.destruct = desctuct;
+		this.name = parse(fullname);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -56,14 +76,10 @@ public class TableDesc extends Desc<TableDesc> {
 	@SuppressWarnings("unchecked")
 	public TableDesc options(Map<String, Object> opts) {
 		Object v;
-		attw(opts);
-
-		v = attr(Desc.TABLE_KEYS);
-		if (null != v) keys.addAll(TableDesc.parseKeys(v));
-
-		v = attr(Desc.TABLE_CONSTRUCT);
-		if (null == v) construct = null;
-		else {
+		if (null != (v = opts.remove("keys"))) keys.addAll(TableDesc.parseKeys(v));
+		destruct = null == (v = opts.remove("destruct")) ? false : Boolean.parseBoolean(v.toString());
+		referTable = null == (v = opts.remove("refer")) ? null : v.toString();
+		if (null != (v = opts.remove("construct"))) {
 			if (v instanceof Boolean) construct = Maps.of();
 			else if (v instanceof Map) construct = (Map<String, Object>) v;
 			else {
@@ -72,12 +88,7 @@ public class TableDesc extends Desc<TableDesc> {
 				construct = Maps.of();
 			}
 		}
-
-		v = attr(Desc.TABLE_DESTRUCT);
-		destruct = null == v ? false : Boolean.parseBoolean(v.toString());
-
-		v = attr(Desc.TABLE_REFER);
-		referTable = null == v ? null : v.toString();
+		attw(opts);
 		return this;
 	}
 
@@ -95,7 +106,7 @@ public class TableDesc extends Desc<TableDesc> {
 	}
 
 	@SuppressWarnings({ "rawtypes", "unchecked" })
-	static List<List<String>> parseKeys(Object v) {
+	public static List<List<String>> parseKeys(Object v) {
 		List<List<String>> keys = Colls.list();
 		if (null == v) return keys;
 		if (v instanceof CharSequence) keys.add(Colls.list(v.toString()));
@@ -121,20 +132,29 @@ public class TableDesc extends Desc<TableDesc> {
 		return ck;
 	}
 
-	FieldDesc field(String fieldName) {
+	public FieldDesc field(String fieldName) {
 		return fields.get(fieldName);
-	}
-
-	public TableDesc(String name, boolean construct, boolean destruct) {
-		this.name = name;
-		this.construct = construct ? Maps.of() : null;
-		this.destruct = destruct;
-		referTable = null;
 	}
 
 	@Deprecated
 	public Map<String, FieldDesc> fields() {
 		return fields;
+	}
+
+	private String parse(String qf) {
+		String name, cf = null, prefix = null;
+		String[] s = qf.split(".", 2);
+		name = s[0];
+		if (s.length > 1) {
+			s = s[1].split(":", 2);
+			cf = s[0];
+			if (s.length > 1) {
+				prefix = s[1];
+				if (prefix.endsWith("#")) prefix = prefix.substring(0, prefix.length() - 1);
+			}
+		}
+		attw(Desc.COL_FAMILY, cf).attw(Desc.COL_PREFIX, prefix);
+		return name;
 	}
 
 	@Override

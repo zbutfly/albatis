@@ -22,8 +22,8 @@ public abstract class Builder {
 	@Deprecated
 	public static FieldDesc field(String fullname, ValType type, boolean rowkey, String format, String validExpr, int segmode,
 			String... copyto) {
-		return new FieldDesc(fullname, type, rowkey).attw(Desc.FORMAT, format).attw(Desc.VALIDATE, validExpr).attw(Desc.SEGMODE, segmode)
-				.attw(Desc.FULLTEXT, copyto);
+		return new FieldDesc(fullname, type, rowkey).attw(Desc.FORMAT, format).attw(Desc.VALIDATE, expr(validExpr))//
+				.attw(Desc.SEGMODE, segmode).attw(Desc.FULLTEXT, copyto);
 	}
 
 	private static ValType type(Map<String, ?> ops) {
@@ -33,5 +33,9 @@ public abstract class Builder {
 		if (null != val && val instanceof Number && (len = (Number) val).intValue() > 0) //
 			t = t.len(len.longValue());
 		return t;
+	}
+
+	public static String expr(String expr) {
+		return expr.startsWith("=") ? expr.substring(1) : expr;
 	}
 }

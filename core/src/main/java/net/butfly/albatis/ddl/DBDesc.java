@@ -23,7 +23,7 @@ public final class DBDesc extends Desc<DBDesc> {
 		models.put(db.name, db);
 	}
 
-	public static DBDesc of(String name) {
+	public static DBDesc db(String name) {
 		return models.get(name);
 	}
 
@@ -68,9 +68,8 @@ public final class DBDesc extends Desc<DBDesc> {
 		this(null, uri);
 	}
 
-	@Deprecated
-	public Map<String, TableDesc> tables() {
-		return tables;
+	public TableDesc table(String name) {
+		return tables.get(name);
 	}
 
 	@Override
