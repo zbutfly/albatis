@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 
 import net.butfly.albacore.utils.logger.Logger;
+import net.butfly.albatis.ddl.Desc;
 import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.ddl.vals.ValType;
 
@@ -40,7 +41,7 @@ public class MappingConstructor {
 	public Map<String, Object> construct(FieldDesc... fields) {
 		Map<String, Object> props = of(DEFAULT_FULLTEXT_NAME, of("type", "string"));
 		for (FieldDesc f : fields)
-			suffix(props, f.name, f.type, f.attr("fulltext"));
+			suffix(props, f.name, f.type, f.attr(Desc.FULLTEXT));
 		return of("include_in_all", true, "dynamic", true, "dynamic_templates", templates(), "properties", props);
 	}
 

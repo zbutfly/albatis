@@ -1,15 +1,12 @@
 package net.butfly.albatis.ddl;
 
-import java.util.Map;
-
-import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albatis.ddl.vals.ValType;
 
 /**
  * @author zx
  *
  */
-public final class FieldDesc {
+public final class FieldDesc extends Desc<FieldDesc> {
 	public final String name;
 	/**
 	 * cf:prefix#name
@@ -20,7 +17,6 @@ public final class FieldDesc {
 	public final boolean unique;
 	public final boolean nullable;
 	// extra
-	private final Map<String, Object> attrs = Maps.of();
 
 	public FieldDesc(String fullname, ValType type, boolean rowkey, boolean unique, boolean nullable) {
 		super();
@@ -31,7 +27,7 @@ public final class FieldDesc {
 		this.rowkey = rowkey;
 		this.unique = unique;
 		this.nullable = rowkey ? false : nullable;
-		attr("cf", cfPrefixName[0]).attr("prefix", cfPrefixName[1]);
+		attw(Desc.COL_FAMILY, cfPrefixName[0]).attw(Desc.COL_PREFIX, cfPrefixName[1]);
 	}
 
 	public FieldDesc(String fullname, ValType type, boolean rowkey) {
@@ -45,32 +41,6 @@ public final class FieldDesc {
 	@Override
 	public String toString() {
 		return name + "[" + type.toString() + (rowkey ? ",KEY" : "") + "]";
-	}
-
-	public <T> FieldDesc attr(String attr, T value) {
-		if (null != value) attrs.put(attr, value);
-		else attrs.remove(attr);
-		return this;
-	}
-
-	@SuppressWarnings("unchecked")
-	public <T> T attr(String attr) {
-		return (T) attrs.get(attr);
-	}
-
-	public FieldDesc attr(Map<String, ?> attrs) {
-		this.attrs.putAll(attrs);
-		return this;
-	}
-
-	@SuppressWarnings("unchecked")
-	public <T> T attrTyp(String attr, Class<T> required) {
-		return (T) attrs.get(attr);
-	}
-
-	@SuppressWarnings("unchecked")
-	public <T> T attrDef(String attr, T def) {
-		return (T) attrs.getOrDefault(attr, def);
 	}
 
 	protected static String[] parse(String qf) {
