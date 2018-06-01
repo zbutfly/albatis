@@ -127,7 +127,7 @@ public class ArangoConnection extends NoSqlConnection<ArangoDBAsync> {
 			throw new RuntimeException(e);
 		} catch (ExecutionException e) {
 			Throwable ee = e.getCause();
-			ee.printStackTrace();// TODO
+			logger.error("fail", ee);
 			throw ee instanceof RuntimeException ? (RuntimeException) ee : new RuntimeException(ee);
 		} catch (TimeoutException e) {
 			logger.error("aql timeout for " + TIMEOUT_SECS + " seconds");

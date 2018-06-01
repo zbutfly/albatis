@@ -9,11 +9,11 @@ import org.apache.solr.client.solrj.SolrServerException;
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
-import net.butfly.albatis.io.Message;
-import net.butfly.albatis.io.Message.Op;
+import net.butfly.albatis.io.R;
+import net.butfly.albatis.io.R.Op;
 import net.butfly.albatis.io.OutputBase;
 
-public final class SolrOutput extends OutputBase<Message> {
+public final class SolrOutput extends OutputBase<R> {
 	public static final @SolrProps String MAX_CONCURRENT_OP_PROP_NAME = SolrProps.OUTPUT_CONCURRENT_OPS;
 	public static final int MAX_CONCURRENT_OP_DEFAULT = 100;
 	public static final int SUGGEST_BATCH_SIZE = 200;
@@ -48,8 +48,8 @@ public final class SolrOutput extends OutputBase<Message> {
 	}
 
 	@Override
-	protected void enqueue0(Sdream<Message> msgs) {
-		Map<String, Map<Integer, List<Message>>> map = Maps.of();
+	protected void enqueue0(Sdream<R> msgs) {
+		Map<String, Map<Integer, List<R>>> map = Maps.of();
 		msgs.eachs(m -> map.compute(m.table(), (core, cores) -> {
 			if (null == cores) cores = Maps.of();
 			cores.compute(m.op(), (op, ops) -> {
@@ -61,7 +61,7 @@ public final class SolrOutput extends OutputBase<Message> {
 		}));
 		for (String core : map.keySet())
 			for (int op : map.get(core).keySet()) {
-				List<Message> ms = map.get(core).get(op);
+				List<R> ms = map.get(core).get(op);
 				try {
 					switch (op) {
 					case Op.DELETE:

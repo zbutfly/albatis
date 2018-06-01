@@ -9,10 +9,10 @@ import com.mongodb.DBObject;
 import com.mongodb.MongoException;
 
 import net.butfly.albacore.utils.logger.Logger;
-import net.butfly.albatis.io.Message;
+import net.butfly.albatis.io.R;
 import net.butfly.albatis.io.OddInput;
 
-public class MongoSimpleInput extends net.butfly.albacore.base.Namedly implements OddInput<Message> {
+public class MongoSimpleInput extends net.butfly.albacore.base.Namedly implements OddInput<R> {
 	private static final Logger logger = Logger.getLogger(MongoSimpleInput.class);
 	private final MongoConnection conn;
 	private DBCursor cursor;
@@ -56,12 +56,12 @@ public class MongoSimpleInput extends net.butfly.albacore.base.Namedly implement
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public Message dequeue() {
+	public R dequeue() {
 		boolean hasNext = true;
 		do {
 			if (lock.writeLock().tryLock()) try {
 				if (!(hasNext = cursor.hasNext())) return null;
-				else return new Message(table, (String) null, cursor.next().toMap());
+				else return new R(table, (String) null, cursor.next().toMap());
 			} catch (MongoException ex) {
 				logger.warn("Mongo fail fetch, ignore and continue retry...");
 			} catch (IllegalStateException ex) {

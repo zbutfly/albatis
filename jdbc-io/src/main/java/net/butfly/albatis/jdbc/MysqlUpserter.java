@@ -2,7 +2,7 @@ package net.butfly.albatis.jdbc;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.paral.Exeter;
-import net.butfly.albatis.io.Message;
+import net.butfly.albatis.io.R;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -36,13 +36,13 @@ public class MysqlUpserter extends Upserter {
 	}
 
 	@Override
-	public long upsert(Map<String, List<Message>> mml, Connection conn) {
+    public long upsert(Map<String, List<R>> mml, Connection conn) {
 		AtomicLong count = new AtomicLong();
 		Exeter.of().join(entry -> {
             if (entry.getValue().isEmpty()) return;
             String keyField = determineKeyField(entry.getValue());
                 if (null == keyField) logger().warn("can NOT determine KeyField");
-            List<Message> messages = entry.getValue();
+                List<R> ml = l.stream().sorted((m1, m2) -> m2.size() - m1.size()).collect(Collectors.toList());
             for(int j =0;j<messages.size();j++ ){
                 List<String> fl = new ArrayList<>(messages.get(j).keySet());
 				String fields = fl.stream().map(this::quota).collect(Collectors.joining(", "));

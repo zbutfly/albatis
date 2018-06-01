@@ -8,10 +8,10 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 import net.butfly.albacore.paral.Sdream;
-import net.butfly.albatis.io.Message;
+import net.butfly.albatis.io.R;
 import net.butfly.albatis.io.OutputBase;
 
-public class JdbcOutput extends OutputBase<Message> {
+public class JdbcOutput extends OutputBase<R> {
 	private final JdbcConnection jc;
 
 	/**
@@ -30,12 +30,12 @@ public class JdbcOutput extends OutputBase<Message> {
 	}
 
 	@Override
-	protected void enqueue0(Sdream<Message> items) {
+	protected void enqueue0(Sdream<R> items) {
 		AtomicLong n = new AtomicLong(0);
-		Map<String, List<Message>> mml = items.list().stream().filter(item -> {
+		Map<String, List<R>> mml = items.list().stream().filter(item -> {
 			String table = item.table();
 			return null != table && !table.isEmpty();
-		}).collect(Collectors.groupingBy(Message::table));
+		}).collect(Collectors.groupingBy(R::table));
 		if (mml.isEmpty()) {
 			succeeded(0);
 			return;

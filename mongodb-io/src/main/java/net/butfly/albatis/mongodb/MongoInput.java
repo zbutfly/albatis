@@ -18,10 +18,10 @@ import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albacore.utils.logger.Statistic;
-import net.butfly.albatis.io.Message;
+import net.butfly.albatis.io.R;
 import net.butfly.albatis.io.OddInput;
 
-public class MongoInput extends net.butfly.albacore.base.Namedly implements OddInput<Message> {
+public class MongoInput extends net.butfly.albacore.base.Namedly implements OddInput<R> {
 	private static final Logger logger = Logger.getLogger(MongoInput.class);
 	private final MongoConnection conn;
 	private final BlockingQueue<Cursor> cursors = new LinkedBlockingQueue<>();
@@ -117,7 +117,7 @@ public class MongoInput extends net.butfly.albacore.base.Namedly implements OddI
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public Message dequeue() {
+	public R dequeue() {
 		Cursor c;
 		Map<String, Object> m;
 		while (opened() && !empty())
@@ -133,7 +133,7 @@ public class MongoInput extends net.butfly.albacore.base.Namedly implements OddI
 					}
 					String collection = c.col;
 					Object key = m.containsKey("_id") ? m.get("_id").toString() : null;
-					Message msg = new Message(collection, key);
+					R msg = new R(collection, key);
 					m.forEach((k, v) -> {
 						if (null == v) {
 							logger.error("Mongo result field [" + k + "] null at table [" + collection + "], id [" + key + "].");

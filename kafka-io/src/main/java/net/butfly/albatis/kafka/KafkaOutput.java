@@ -11,14 +11,14 @@ import kafka.producer.KeyedMessage;
 import net.butfly.albacore.exception.ConfigException;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.paral.Sdream;
-import net.butfly.albatis.io.Message;
+import net.butfly.albatis.io.R;
 import net.butfly.albatis.io.OutputBase;
 import net.butfly.albatis.kafka.config.KafkaOutputConfig;
 
 /**
  * @author zx
  */
-public final class KafkaOutput extends OutputBase<Message> {
+public final class KafkaOutput extends OutputBase<R> {
 	private final URISpec uri;
 	private final KafkaOutputConfig config;
 	private final Producer<byte[], byte[]> producer;
@@ -34,8 +34,8 @@ public final class KafkaOutput extends OutputBase<Message> {
 	}
 
 	@Override
-	protected void enqueue0(Sdream<Message> messages) {
-		List<Message> msgs = messages.list();
+	protected void enqueue0(Sdream<R> messages) {
+		List<R> msgs = messages.list();
 		List<KeyedMessage<byte[], byte[]>> ms = of(msgs).map(m -> Kafkas.toKeyedMessage(m, coder)).nonNull().list();
 		if (!ms.isEmpty()) try {
 			int s = ms.size();

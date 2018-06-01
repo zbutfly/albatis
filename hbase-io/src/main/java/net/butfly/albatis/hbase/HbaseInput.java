@@ -29,9 +29,9 @@ import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Statistic;
 import net.butfly.albatis.io.Input;
-import net.butfly.albatis.io.Message;
+import net.butfly.albatis.io.R;
 
-public class HbaseInput extends Namedly implements Input<Message> {
+public class HbaseInput extends Namedly implements Input<R> {
 	private final long SCAN_BYTES = Props.propL(HbaseInput.class, "scan.bytes", 3145728); // 3M
 	private final int SCAN_ROWS = Props.propI(HbaseInput.class, "scan.rows", 1);
 	private final HbaseConnection hconn;
@@ -209,7 +209,7 @@ public class HbaseInput extends Namedly implements Input<Message> {
 	}
 
 	@Override
-	public void dequeue(Consumer<Sdream<Message>> using) {
+	public void dequeue(Consumer<Sdream<R>> using) {
 		TableScaner s;
 		while (opened() && !empty())
 			if (null != (s = scans.poll())) {
@@ -217,7 +217,7 @@ public class HbaseInput extends Namedly implements Input<Message> {
 					Result[] results = s.next(batchSize());
 					if (null != results) {
 						if (results.length > 0) {
-							List<Message> ms = Colls.list();
+							List<R> ms = Colls.list();
 							for (Result r : results)
 								if (null != r) ms.add(Hbases.Results.result(s.name, r));
 							if (!ms.isEmpty()) {

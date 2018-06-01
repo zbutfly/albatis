@@ -13,7 +13,7 @@ import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.io.Input;
-import net.butfly.albatis.io.Message;
+import net.butfly.albatis.io.R;
 import net.butfly.albatis.io.Output;
 
 public interface Connection extends AutoCloseable {
@@ -29,9 +29,9 @@ public interface Connection extends AutoCloseable {
 		return DriverManager.connect(uriSpec);
 	}
 
-	<M extends Message> Input<M> input(String... table) throws IOException;
+	<M extends R> Input<M> input(String... table) throws IOException;
 
-	<M extends Message> Output<M> output() throws IOException;
+	<M extends R> Output<M> output() throws IOException;
 
 	interface Driver<C extends Connection> {
 		List<String> schemas();

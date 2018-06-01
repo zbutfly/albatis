@@ -28,7 +28,7 @@ import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.io.Input;
-import net.butfly.albatis.io.Message;
+import net.butfly.albatis.io.R;
 
 @SuppressWarnings("unchecked")
 public abstract class KuduConnectionBase<C extends KuduConnectionBase<C, KC, S>, KC extends AutoCloseable, S extends SessionConfiguration>
@@ -168,7 +168,7 @@ public abstract class KuduConnectionBase<C extends KuduConnectionBase<C, KC, S>,
 	}
 
 	@Override
-	public Input<Message> input(String... table) throws IOException {
+	public Input<R> input(String... table) throws IOException {
 		throw new UnsupportedOperationException();
 	}
 

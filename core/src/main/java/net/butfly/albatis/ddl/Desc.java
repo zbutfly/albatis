@@ -16,8 +16,8 @@ public abstract class Desc<D extends Desc<D>> {
 	public static final String FULLTEXT = "fulltext";
 	// field aggr
 	public static final String AGGR_MODE = "aggr";
-	public static final String AGGR_SUB_KEY = "aggr_subkey";
-	public static final String AGGR_SUB_GROUPBY = "aggr_subgroupby";
+	public static final String AGGR_SUB_KEY = "aggr.sub.key";
+	public static final String AGGR_SUB_GROUPBY = "aggr.sub.groupby";
 
 	// table desc
 	public static final String COL_FAMILY = "colfamily";
@@ -28,6 +28,10 @@ public abstract class Desc<D extends Desc<D>> {
 	// public static final String TABLE_CONSTRUCT = "construct";
 	// public static final String TABLE_DESTRUCT = "destruct";
 	// public static final String TABLE_REFER = "refertbl";
+
+	// for debug, dpc db config info
+	public static final String DPC_ID = "dpc.id";
+	public static final String DPC_NAME = "dpc.name";
 
 	public <T> T attr(String attr) {
 		return (T) attrs.get(attr);
@@ -54,6 +58,10 @@ public abstract class Desc<D extends Desc<D>> {
 	public D attw(Map<String, ?> attrs) {
 		this.attrs.putAll(attrs);
 		return (D) this;
+	}
+
+	public D attw(Desc<D> attrs) {
+		return attw(attrs.attrs);
 	}
 
 	@Override

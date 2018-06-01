@@ -14,10 +14,10 @@ import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.parallel.Lambdas;
-import net.butfly.albatis.io.Message;
+import net.butfly.albatis.io.R;
 import net.butfly.albatis.io.OutputBase;
 
-public final class MongoOutput extends OutputBase<Message> {
+public final class MongoOutput extends OutputBase<R> {
 	private final boolean upsert;
 	private final MongoConnection conn;
 	private final DBCollection collection;
@@ -48,11 +48,11 @@ public final class MongoOutput extends OutputBase<Message> {
 	}
 
 	@Override
-	public void enqueue0(Sdream<Message> msgs) {
+	public void enqueue0(Sdream<R> msgs) {
 		AtomicLong n = new AtomicLong();
 		if (upsert) n.set(msgs.map(m -> conn.collection(m.table()).save(MongoConnection.dbobj(m)).getN()).reduce(Lambdas.sumInt()));
 		else {
-			Map<String, List<Message>> l = Maps.of();
+			Map<String, List<R>> l = Maps.of();
 			msgs.eachs(m -> l.computeIfAbsent(m.table(), t -> Colls.list()).add(m));
 			Exeter.of().join(e -> n.addAndGet(conn.collection(e.getKey()).insert(Sdream.of(e.getValue()).map(MongoConnection::dbobj).list()
 					.toArray(new BasicDBObject[0])).getN()), l.entrySet());

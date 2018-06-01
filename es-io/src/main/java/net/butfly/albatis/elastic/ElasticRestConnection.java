@@ -15,7 +15,7 @@ import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.serder.JsonSerder;
 import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.io.Input;
-import net.butfly.albatis.io.Message;
+import net.butfly.albatis.io.R;
 import net.butfly.albatis.io.Output;
 
 public class ElasticRestConnection extends NoSqlConnection<RestClient> implements ElasticConnect {
@@ -79,12 +79,12 @@ public class ElasticRestConnection extends NoSqlConnection<RestClient> implement
 	}
 
 	@Override
-	public Input<Message> input(String... table) throws IOException {
+	public Input<R> input(String... table) throws IOException {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	public Output<Message> output() throws IOException {
+	public Output<R> output() throws IOException {
 		throw new UnsupportedOperationException();
 	}
 }

@@ -5,7 +5,7 @@
 //import java.io.ObjectInputStream;
 //import java.util.Map;
 //
-//import net.butfly.albatis.io.Message;
+//import net.butfly.albatis.io.R;
 //
 //public class KuduResult extends Message<String, Map<String, Object>, KuduResult> {
 //	private static final long serialVersionUID = -5843704512434056538L;

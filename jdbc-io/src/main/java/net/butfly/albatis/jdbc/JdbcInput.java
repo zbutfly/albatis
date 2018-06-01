@@ -10,10 +10,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 
-import net.butfly.albatis.io.Message;
 import net.butfly.albatis.io.OddInput;
+import net.butfly.albatis.io.R;
 
-public class JdbcInput extends net.butfly.albacore.base.Namedly implements OddInput<Message> {
+public class JdbcInput extends net.butfly.albacore.base.Namedly implements OddInput<R> {
 	private final JdbcConnection jdbc;
 	//
 	private Connection conn;
@@ -92,7 +92,7 @@ public class JdbcInput extends net.butfly.albacore.base.Namedly implements OddIn
 	private final ReentrantLock lock = new ReentrantLock();
 
 	@Override
-	public Message dequeue() {
+	public R dequeue() {
 		if (!next || !lock.tryLock()) return null;
 		try {
 			Map<String, Object> r = new HashMap<>();
@@ -107,7 +107,7 @@ public class JdbcInput extends net.butfly.albacore.base.Namedly implements OddIn
 					}
 					r.put(colNames[i], v);
 				}
-				return new Message(r);
+				return new R(r);
 			} finally {
 				try {
 					next = rs.next();

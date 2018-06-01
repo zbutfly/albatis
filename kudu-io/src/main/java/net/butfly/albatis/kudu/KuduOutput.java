@@ -1,10 +1,10 @@
 package net.butfly.albatis.kudu;
 
 import static net.butfly.albacore.paral.Sdream.of;
-import static net.butfly.albatis.io.Message.Op.DELETE;
-import static net.butfly.albatis.io.Message.Op.INSERT;
-import static net.butfly.albatis.io.Message.Op.UPDATE;
-import static net.butfly.albatis.io.Message.Op.UPSERT;
+import static net.butfly.albatis.io.R.Op.DELETE;
+import static net.butfly.albatis.io.R.Op.INSERT;
+import static net.butfly.albatis.io.R.Op.UPDATE;
+import static net.butfly.albatis.io.R.Op.UPSERT;
 
 import java.io.BufferedWriter;
 import java.io.FileOutputStream;
@@ -23,10 +23,10 @@ import org.apache.kudu.client.Upsert;
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.collection.Maps;
-import net.butfly.albatis.io.Message;
+import net.butfly.albatis.io.R;
 import net.butfly.albatis.io.OddOutputBase;
 
-public class KuduOutput extends OddOutputBase<Message> {
+public class KuduOutput extends OddOutputBase<R> {
 	public static final int SUGGEST_BATCH_SIZE = 200;
 	private final KuduConnectionBase<?, ?, ?> connect;
 
@@ -58,7 +58,7 @@ public class KuduOutput extends OddOutputBase<Message> {
 		}
 	}
 
-	protected void regDups(Message m) {
+	protected void regDups(R m) {
 		long ccc = keys.compute(m.key(), (k, cc) -> null == cc ? 1L : cc + 1);
 		maxDup.accumulateAndGet(new Pair<>(m.key(), ccc), (origin, get) -> {
 			if (get.v2() <= 1) return origin;
@@ -73,7 +73,7 @@ public class KuduOutput extends OddOutputBase<Message> {
 	}
 
 	@Override
-	protected boolean enqueue0(Message m) {
+	protected boolean enqueue0(R m) {
 		if (null == m || m.isEmpty()) return false;
 		connect.apply(op(m), (op, e) -> failed(Sdream.of1(m)));
 		return true;
@@ -83,7 +83,7 @@ public class KuduOutput extends OddOutputBase<Message> {
 		return connect.status() + "\n\tDistinct keys: " + keys.size() + ", max duplication times of key: " + maxDup.get();
 	}
 
-	private Operation op(Message m) {
+	private Operation op(R m) {
 		KuduTable t = connect.table(m.table());
 		Map<String, ColumnSchema> cols = connect.schemas(m.table());
 		ColumnSchema c;

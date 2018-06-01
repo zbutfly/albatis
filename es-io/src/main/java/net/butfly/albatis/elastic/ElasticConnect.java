@@ -23,7 +23,7 @@ import net.butfly.albacore.serder.JsonSerder;
 import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.Utils;
 import net.butfly.albacore.utils.logger.Logger;
-import net.butfly.albatis.io.Message;
+import net.butfly.albatis.io.R;
 
 public interface ElasticConnect extends Connection {
 	static final Logger _logger = Logger.getLogger(ElasticConnection.class);
@@ -32,7 +32,7 @@ public interface ElasticConnect extends Connection {
 
 	String getDefaultType();
 
-	public default Message fixTable(Message m) {
+	public default R fixTable(R m) {
 		Pair<String, String> p = Elastics.dessemble(m.table());
 		if (null == p.v1()) p.v1(getDefaultIndex());
 		if (null == p.v2()) p.v2(getDefaultType());

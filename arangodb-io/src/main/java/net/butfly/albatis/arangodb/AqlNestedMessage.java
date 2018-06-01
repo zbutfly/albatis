@@ -10,9 +10,9 @@ import com.arangodb.entity.BaseDocument;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Statistic;
-import net.butfly.albatis.io.Message;
+import net.butfly.albatis.io.R;
 
-public abstract class AqlNestedMessage extends Message {
+public abstract class AqlNestedMessage extends R {
 	private static final long serialVersionUID = 6783506759570424659L;
 	private List<BaseDocument> nestedResults = null;
 	private Function<Map<String, Object>, List<AqlNestedMessage>> nestedThen;
