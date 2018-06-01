@@ -143,7 +143,7 @@ public class TableDesc extends Desc<TableDesc> {
 
 	private String parse(String qf) {
 		String name, cf = null, prefix = null;
-		String[] s = qf.split(".", 2);
+		String[] s = qf.split("\\.", 2);
 		name = s[0];
 		if (s.length > 1) {
 			s = s[1].split(":", 2);

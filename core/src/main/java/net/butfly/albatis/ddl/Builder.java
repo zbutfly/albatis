@@ -36,6 +36,6 @@ public abstract class Builder {
 	}
 
 	public static String expr(String expr) {
-		return expr.startsWith("=") ? expr.substring(1) : expr;
+		return null == expr ? null : expr.startsWith("=") ? expr.substring(1) : expr;
 	}
 }
