@@ -2,7 +2,6 @@ package net.butfly.albatis.jdbc;
 
 import java.io.IOException;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -15,39 +14,34 @@ import net.butfly.albatis.io.Message;
 import net.butfly.albatis.io.OddInput;
 
 public class JdbcInput extends net.butfly.albacore.base.Namedly implements OddInput<Message> {
-	private final Connection conn;
-	private final PreparedStatement stat;
-
+	private final JdbcConnection jdbc;
+	//
+	private Connection conn;
+	private PreparedStatement stat;
 	private ResultSet rs;
-
 	// resultset infomation
 	private boolean next;
 	private ResultSetMetaData meta;
 	private int colCount;
 	private String[] colNames;
 
-	public JdbcInput(final String name, String jdbc, final int batch, final String sql, final Object... params) throws IOException,
-			SQLException {
-		this(name, DriverManager.getConnection(jdbc), batch, sql, params);
+	public JdbcInput(final String name, JdbcConnection conn) throws IOException, SQLException {
+		super(name);
+		this.jdbc = conn;
+		opening(this::openJdbc);
+		closing(this::closeJdbc);
 	}
 
-	public JdbcInput(final String name, Connection conn, final int batch, final String sql, final Object... params) throws IOException,
-			SQLException {
-		super(name);
-		logger().debug("[" + name + "] from [" + conn.getClientInfo() + "], sql: \n\t" + sql);
-		this.conn = conn;
-		// this.conn.setAutoCommit(true);
-		this.conn.setTransactionIsolation(Connection.TRANSACTION_READ_UNCOMMITTED);
+	public void query(String sql, Object... params) throws SQLException {
 		logger().debug("[" + name + "] query begin...");
+		conn = jdbc.client().getConnection();
+		conn.setTransactionIsolation(Connection.TRANSACTION_READ_UNCOMMITTED);
 		stat = conn.prepareStatement(sql);
 		stat.setFetchDirection(ResultSet.FETCH_FORWARD);
-
+		stat.setFetchSize(100);
 		int i = 1;
 		for (Object p : params)
 			stat.setObject(i++, p);
-		batch(100);
-		opening(this::openJdbc);
-		closing(this::closeJdbc);
 	}
 
 	private void parseMeta() throws SQLException {
@@ -87,6 +81,7 @@ public class JdbcInput extends net.butfly.albacore.base.Namedly implements OddIn
 		try {
 			conn.close();
 		} catch (SQLException e) {}
+		jdbc.close();
 	}
 
 	@Override
@@ -124,14 +119,5 @@ public class JdbcInput extends net.butfly.albacore.base.Namedly implements OddIn
 		} finally {
 			lock.unlock();
 		}
-	}
-
-	private JdbcInput batch(int batching) {
-		try {
-			stat.setFetchSize(batching);
-		} catch (SQLException e) {
-			logger().error("SQL Error on JDBC fetching size setting", e);
-		}
-		return this;
 	}
 }

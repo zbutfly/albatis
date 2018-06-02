@@ -61,10 +61,14 @@ public interface Connection extends AutoCloseable {
 
 		@SuppressWarnings("unchecked")
 		static <T extends Connection> T connect(URISpec uriSpec) throws IOException {
-			Driver d = DRIVERS.get(uriSpec.getScheme());
-			if (null == d) throw new RuntimeException("No matched connection for schema [" + uriSpec.getScheme() + "]");
+			String s = uriSpec.getScheme();
+			Driver d;
+			while (!s.isEmpty()) {
+				if (null != (d = DRIVERS.get(s))) return (T) d.connect(uriSpec);
+				else s = s.substring(0, s.lastIndexOf(":"));
+			}
 			// return Connect.connect(uriSpec, d.connectClass());
-			return (T) d.connect(uriSpec);
+			throw new RuntimeException("No matched connection for schema [" + uriSpec.getScheme() + "]");
 		}
 	}
 
