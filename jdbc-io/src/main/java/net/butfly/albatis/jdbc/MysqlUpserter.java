@@ -41,7 +41,7 @@ public class MysqlUpserter extends Upserter {
 		Exeter.of().join(entry -> {
             if (entry.getValue().isEmpty()) return;
             String keyField = determineKeyField(entry.getValue());
-            if (null == keyField) logger().warn("can NOT determine KeyField");
+                if (null == keyField) logger().warn("can NOT determine KeyField");
             List<Message> messages = entry.getValue();
             for(int j =0;j<messages.size();j++ ){
                 List<String> fl = new ArrayList<>(messages.get(j).keySet());
@@ -53,19 +53,19 @@ public class MysqlUpserter extends Upserter {
 				logger().debug("MYSQL upsert sql: " + sql);
 				try (PreparedStatement ps = conn.prepareStatement(sql)) {
 					int isize = fl.size();
-                        try {
-                            for (int i = 0; i < fl.size(); i++) {
+						try {
+							for (int i = 0; i < fl.size(); i++) {
                             Object value = messages.get(j).get(fl.get(i));
-                                setObject(ps, i + 1, value);
-                            }
-                            for (int i = 0; i < ufields.size(); i++) {
+								setObject(ps, i + 1, value);
+							}
+							for (int i = 0; i < ufields.size(); i++) {
                             Object value = messages.get(j).get(ufields.get(i));
-                                setObject(ps, isize + i + 1, value);
-                            }
-                            ps.addBatch();
-                        } catch (SQLException e) {
+								setObject(ps, isize + i + 1, value);
+							}
+							ps.addBatch();
+						} catch (SQLException e) {
                         logger().warn(() -> "add `" + entry.getValue() + "` to batch error, ignore this message and continue.", e);
-                        }
+						}
 					int[] rs = ps.executeBatch();
 					long sucessed = Arrays.stream(rs).filter(r -> r >= 0).count();
 					count.set(sucessed);

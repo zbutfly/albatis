@@ -65,11 +65,7 @@ public interface Connection extends AutoCloseable {
 			Driver d;
 			while (!s.isEmpty()) {
 				if (null != (d = DRIVERS.get(s))) return (T) d.connect(uriSpec);
-				else {
-					int c = s.lastIndexOf(":");
-					if (c >= 0) s = s.substring(0, c);
-					else break;
-				}
+				else s = s.substring(0, s.lastIndexOf(":"));
 			}
 			// return Connect.connect(uriSpec, d.connectClass());
 			throw new RuntimeException("No matched connection for schema [" + uriSpec.getScheme() + "]");
