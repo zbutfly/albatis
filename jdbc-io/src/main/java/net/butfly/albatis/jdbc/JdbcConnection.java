@@ -12,14 +12,17 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.sql.DataSource;
+
 import com.hzcominfo.albatis.nosql.NoSqlConnection;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 
 import net.butfly.albacore.io.URISpec;
+import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albatis.ddl.FieldDesc;
 
-public class JdbcConnection extends NoSqlConnection<HikariDataSource> {
+public class JdbcConnection extends NoSqlConnection<DataSource> {
 	final Upserter upserter;
 
 	public JdbcConnection(URISpec uri) throws IOException {
@@ -60,22 +63,44 @@ public class JdbcConnection extends NoSqlConnection<HikariDataSource> {
 
 	@Override
 	public void close() {
-		HikariDataSource hds = client();
-		if (null != hds && hds.isRunning()) hds.close();
+		DataSource hds = client();
+		if (null != hds && hds instanceof AutoCloseable) try {
+			((AutoCloseable) hds).close();
+		} catch (Exception e) {}
 	}
 
 	@Override
-	public JdbcInput input(String... table) throws IOException {
-		// TODO: 2018/5/7 unmatched function
-		/*
-		 * JdbcInput input = new JdbcInput(); input.table(table); return input;
-		 */
-		return null;
+	public JdbcInput input(String... sql) throws IOException {
+		if (sql.length > 1) throw new UnsupportedOperationException("Multiple sql input");
+		JdbcInput i;
+		try {
+			i = new JdbcInput("JdbcInput", this);
+			i.query("select * from " + sql);
+		} catch (SQLException e) {
+			throw new IOException(e);
+		}
+		return i;
 	}
 
 	@Override
 	public JdbcOutput output() throws IOException {
 		return new JdbcOutput("JdbcOutput", this);
+	}
+
+	public static class Driver implements com.hzcominfo.albatis.nosql.Connection.Driver<JdbcConnection> {
+		static {
+			DriverManager.register(new Driver());
+		}
+
+		@Override
+		public JdbcConnection connect(URISpec uriSpec) throws IOException {
+			return new JdbcConnection(uriSpec);
+		}
+
+		@Override
+		public List<String> schemas() {
+			return Colls.list("jdbc");
+		}
 	}
 
 	private static String buildField(FieldDesc field) {

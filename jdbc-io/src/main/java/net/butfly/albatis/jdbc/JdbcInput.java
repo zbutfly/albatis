@@ -14,9 +14,10 @@ import net.butfly.albatis.io.Message;
 import net.butfly.albatis.io.OddInput;
 
 public class JdbcInput extends net.butfly.albacore.base.Namedly implements OddInput<Message> {
-	private final Connection conn;
-	private final PreparedStatement stat;
-
+	private final JdbcConnection jdbc;
+	//
+	private Connection conn;
+	private PreparedStatement stat;
 	private ResultSet rs;
 	// resultset infomation
 	private boolean next;
@@ -41,9 +42,6 @@ public class JdbcInput extends net.butfly.albacore.base.Namedly implements OddIn
 		int i = 1;
 		for (Object p : params)
 			stat.setObject(i++, p);
-		batch(100);
-		opening(this::openJdbc);
-		closing(this::closeJdbc);
 	}
 
 	private void parseMeta() throws SQLException {

@@ -21,8 +21,17 @@ public interface IO extends Sizable, Openable {
 			return "albatis." + CaseFormat.UPPER_CAMEL.to(CaseFormat.LOWER_DOT, io.getSimpleName()) + "." + suffix;
 		}
 
+		private static String propDefName(Class<?> io, String suffix) {
+			String name = CaseFormat.UPPER_CAMEL.to(CaseFormat.LOWER_DOT, io.getSimpleName());
+			if (name.endsWith(".input")) name = "*.input";
+			else if (name.endsWith(".output")) name = "*.output";
+			else if (name.endsWith(".queue")) name = "*.queue";
+			else name = "*";
+			return "albatis." + name + "." + suffix;
+		}
+
 		public static String prop(Class<?> io, String suffix, String def) {
-			return Configs.gets(propName(io, suffix), def);
+			return Configs.gets(propName(io, suffix), Configs.gets(propDefName(io, suffix), def));
 		}
 
 		public static long propL(Class<?> io, String suffix, long def) {
