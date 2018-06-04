@@ -1,6 +1,5 @@
 package com.hzcominfo.dataggr.spark.integrate.kafka.test;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
