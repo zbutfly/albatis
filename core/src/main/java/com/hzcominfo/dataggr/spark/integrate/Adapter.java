@@ -11,7 +11,7 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 
-import com.hzcominfo.dataggr.spark.integrate.util.ExceptionUtil;
+import com.hzcominfo.dataggr.spark.util.ExceptionUtil;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.Reflections;
@@ -24,6 +24,10 @@ public abstract class Adapter implements Serializable {
 	static final Map<String, Class<? extends Adapter>> ADAPTER_MAP = loadAdapters();
 
 	public abstract Dataset<Row> read(URISpec uriSpec, SparkSession spark);
+	
+
+	public abstract void write(URISpec uriSpec, SparkSession spark, Dataset<Row> dataset);
+
 	
 	// 加载子类
 	static Map<String, Class<? extends Adapter>> loadAdapters() {

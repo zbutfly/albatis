@@ -15,16 +15,15 @@ public class Client implements AutoCloseable, Serializable {
 	private static final long serialVersionUID = 5093686615279489589L;
 	private SparkSession spark;
 	static Map<String, String> defaultConfMap = new HashMap<>();
-	// private final static Map<String, Adapter> adapters = new
-	// ConcurrentHashMap<>();
 	private final URISpec uriSpec;
 	private final Adapter adapter;
 	private static String master = "local[*]";
 	private String appName = "Simulation";
 
 	static {
-		defaultConfMap.put("spark.sql.shuffle.partitions", "2001");
+		defaultConfMap.put("spark.sql.shuffle.partitions", "1");
 		defaultConfMap.put("spark.mongodb.input.uri", "mongodb://user:pwd@localhost:80/db.tbl");
+		defaultConfMap.put("spark.mongodb.output.uri", "mongodb://user:pwd@localhost:80/db.tbl");
 	}
 
 	public Client(String name, URISpec uriSpec) {
@@ -37,8 +36,6 @@ public class Client implements AutoCloseable, Serializable {
 	}
 
 	private Adapter adapt(URISpec uriSpec) {
-		// return adapters.compute(uriSpec.getScheme(), (u, a) -> null == a ?
-		// Adapter.adapt(uriSpec) : a);
 		return Adapter.adapt(uriSpec);
 	}
 
@@ -49,6 +46,15 @@ public class Client implements AutoCloseable, Serializable {
 	public Dataset<Row> read(URISpec uriSpec) {
 		Adapter adapter = adapt(uriSpec);
 		return adapter.read(uriSpec, spark);
+	}
+	
+	public void write(Dataset<Row> dataset) {
+		adapter.write(uriSpec, spark, dataset);
+	}
+	
+	public void write(URISpec uriSpec, Dataset<Row> dataset) {
+		Adapter adapter = adapt(uriSpec);
+		adapter.write(uriSpec, spark, dataset);
 	}
 
 	@Override

@@ -30,4 +30,10 @@ public class KafkaAdapter extends Adapter {
 		options.put("startingOffsets", "earliest");
 		return options;
 	}
+
+	@Override
+	public void write(URISpec uriSpec, SparkSession spark, Dataset<Row> dataset) {
+		// TODO Auto-generated method stub
+		
+	}
 }

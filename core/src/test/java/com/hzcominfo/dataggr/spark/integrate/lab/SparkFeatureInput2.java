@@ -1,4 +1,4 @@
-package com.hzcominfo.dataggr.spark.integrate;
+package com.hzcominfo.dataggr.spark.integrate.lab;
 
 import java.io.Serializable;
 import java.util.HashMap;
@@ -11,6 +11,8 @@ import org.apache.spark.sql.ForeachWriter;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.streaming.DataStreamWriter;
 import org.apache.spark.sql.types.StructType;
+
+import com.hzcominfo.dataggr.spark.integrate.Client;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.paral.Sdream;
@@ -39,15 +41,18 @@ public class SparkFeatureInput2 implements Input<Message>, Serializable {
 		closing(this::close);
 	}
 
+	private static interface Writing extends Consumer<Sdream<Message>>, Serializable {
+	}
+
 	private class ForeachWriter$anonfun$ extends ForeachWriter<Row> implements Serializable {
 		private static final long serialVersionUID = -6782476040095757847L;
 
 		public ForeachWriter$anonfun$(Consumer<Sdream<Message>> using) {
 			super();
-			this.using = using;
+			this.using = using::accept;
 		}
 
-		private Consumer<Sdream<Message>> using;
+		private Writing using;
 
 		@Override
 		public void close(Throwable arg0) {
@@ -73,22 +78,6 @@ public class SparkFeatureInput2 implements Input<Message>, Serializable {
 		}
 	}
 
-	private class Using implements Consumer<Sdream<Message>>, Serializable {
-		private static final long serialVersionUID = -4119278416216117061L;
-		private final Consumer<Sdream<Message>> base;
-
-		public Using(Consumer<Sdream<Message>> base) {
-			super();
-			this.base = base;
-		}
-
-		@Override
-		public void accept(Sdream<Message> t) {
-			base.accept(t);
-		}
-
-	}
-
 	@Override
 	public void dequeue(Consumer<Sdream<Message>> using) {
 		if (dataset == null)
@@ -96,7 +85,8 @@ public class SparkFeatureInput2 implements Input<Message>, Serializable {
 
 		if (dataset.isStreaming()) {
 			DataStreamWriter<Row> s = dataset.writeStream();
-			ForeachWriter$anonfun$ fw = new ForeachWriter$anonfun$(new Using(using));
+			ForeachWriter$anonfun$ fw = new ForeachWriter$anonfun$(
+					(Consumer<Sdream<Message>> & Serializable) using::accept);
 			s.foreach(fw);
 		} else {
 			dataset.foreach(row -> {

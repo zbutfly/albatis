@@ -9,11 +9,11 @@ import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.StructType;
 
 import com.hzcominfo.dataggr.spark.integrate.Client;
-import com.hzcominfo.dataggr.spark.integrate.util.BytesUtils;
+import com.hzcominfo.dataggr.spark.util.BytesUtils;
 
 import net.butfly.albacore.io.URISpec;
 
-public class AppTest {
+public class KafkaWriteTest {
 
 	public static void main(String[] args) {
 		//ZHK_QBZX_LGZS_NEW 无数据

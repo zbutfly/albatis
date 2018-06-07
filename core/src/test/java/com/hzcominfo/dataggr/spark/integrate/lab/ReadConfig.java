@@ -1,4 +1,4 @@
-package com.hzcominfo.dataggr.spark.integrate;
+package com.hzcominfo.dataggr.spark.integrate.lab;
 
 import java.util.Map;
 

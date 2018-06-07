@@ -1,4 +1,4 @@
-package com.hzcominfo.dataggr.spark.integrate.util;
+package com.hzcominfo.dataggr.spark.util;
 
 public class ExceptionUtil {
 
