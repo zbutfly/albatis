@@ -7,23 +7,21 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 
-import com.hzcominfo.dataggr.spark.integrate.Adapter;
+import com.hzcominfo.dataggr.spark.io.SparkOutput;
 
 import net.butfly.albacore.io.URISpec;
 
-public class KafkaAdapter extends Adapter {
+public class SparkKafkaOutput extends SparkOutput {
 	private static final long serialVersionUID = 9003837433163351306L;
 	private static final String format = "kafka";
-	final static String schema = "bootstrap";
-	
-	public KafkaAdapter() {}
-	
-	@Override
-	public Dataset<Row> read(URISpec uriSpec, SparkSession spark) {
-		return spark.readStream().format(format).options(options(uriSpec)).load();
+	final static String schema = "kafka";
+
+	SparkKafkaOutput(SparkSession spark, URISpec targetUri) {
+		super(spark, targetUri);
 	}
 
-	private Map<String, String> options(URISpec uriSpec) {
+	@Override
+	protected Map<String, String> options(URISpec uriSpec) {
 		Map<String, String> options = new HashMap<>();
 		options.put("kafka.bootstrap.servers", uriSpec.getHost());
 		options.put("subscribe", uriSpec.getFile());
@@ -32,8 +30,7 @@ public class KafkaAdapter extends Adapter {
 	}
 
 	@Override
-	public void write(URISpec uriSpec, SparkSession spark, Dataset<Row> dataset) {
+	public void enqueue(Dataset<Row> dataset) {
 		// TODO Auto-generated method stub
-		
 	}
 }
