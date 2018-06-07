@@ -46,7 +46,7 @@ public abstract class SparkIO {
 			Class<O> c = (Class<O>) ADAPTER_MAP.get(s);
 			if (null == c) s = s.substring(0, s.lastIndexOf(':'));
 			else try {
-				return c.getConstructor().newInstance();
+				return c.getConstructor(SparkSession.class, URISpec.class).newInstance(spark, uri);
 			} catch (NoSuchMethodException | SecurityException | InstantiationException | IllegalAccessException | IllegalArgumentException
 					| InvocationTargetException e) {
 				throw new RuntimeException(e);
@@ -62,7 +62,7 @@ public abstract class SparkIO {
 			Class<I> c = (Class<I>) ADAPTER_MAP.get(s);
 			if (null == c) s = s.substring(0, s.lastIndexOf(':'));
 			else try {
-				return c.getConstructor().newInstance();
+				return c.getConstructor(SparkSession.class, URISpec.class).newInstance(spark, uri);
 			} catch (NoSuchMethodException | SecurityException | InstantiationException | IllegalAccessException | IllegalArgumentException
 					| InvocationTargetException e) {
 				throw new RuntimeException(e);
