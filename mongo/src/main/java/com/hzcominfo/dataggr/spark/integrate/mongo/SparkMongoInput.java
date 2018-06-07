@@ -15,7 +15,6 @@ import net.butfly.albacore.io.URISpec;
 
 public class SparkMongoInput extends SparkInput {
 	private static final long serialVersionUID = -6246162473887054138L;
-	private static final String format = "mongo";
 	final static String schema = "mongodb";
 
 	protected SparkMongoInput(SparkSession spark, URISpec targetUri) {
@@ -33,5 +32,10 @@ public class SparkMongoInput extends SparkInput {
 	protected Map<String, String> options(URISpec uriSpec) {
 		// TODO Auto-generated method stub
 		return null;
+	}
+
+	@Override
+	protected Row selectItems(Row r) {
+		return super.defaultSelectItems(r);
 	}
 }

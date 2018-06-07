@@ -13,7 +13,6 @@ import net.butfly.albacore.io.URISpec;
 
 public class SparkKafkaOutput extends SparkOutput {
 	private static final long serialVersionUID = 9003837433163351306L;
-	private static final String format = "kafka";
 	final static String schema = "kafka";
 
 	SparkKafkaOutput(SparkSession spark, URISpec targetUri) {

@@ -16,8 +16,8 @@ public class SparkKafkaInput extends SparkInput {
 	private static final String format = "kafka";
 	final static String schema = "kafka";
 
-	SparkKafkaInput(SparkSession spark, URISpec targetUri) {
-		super(spark, targetUri);
+	SparkKafkaInput(SparkSession spark, URISpec targetUri, String... fields) {
+		super(spark, targetUri, fields);
 	}
 
 	@Override
@@ -32,5 +32,10 @@ public class SparkKafkaInput extends SparkInput {
 		options.put("subscribe", uriSpec.getFile());
 		options.put("startingOffsets", "earliest");
 		return options;
+	}
+
+	@Override
+	protected Row selectItems(Row r) {
+		return super.defaultSelectItems(r);
 	}
 }
