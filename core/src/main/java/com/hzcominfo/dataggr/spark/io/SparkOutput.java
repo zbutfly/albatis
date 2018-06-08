@@ -13,13 +13,11 @@ import net.butfly.albatis.io.Output;
 
 public abstract class SparkOutput extends SparkIO implements Output<Row>, Serializable {
 	private static final long serialVersionUID = 7339834746933783020L;
-	protected ForeachWriter<Row> writer;
 
 	public SparkOutput() {}
 
 	protected SparkOutput(SparkSession spark, URISpec targetUri) {
 		super(spark, targetUri);
-		writer = writerFor(this::write);
 	}
 
 	public abstract void write(Row row);
@@ -29,13 +27,15 @@ public abstract class SparkOutput extends SparkIO implements Output<Row>, Serial
 		items.eachs(this::write);
 	}
 
-	public static <T> ForeachWriter<T> writerFor(Consumer<T> using) {
-		return new ForeachWriter<T>() {
+	
+
+	public ForeachWriter<Row> writer() {
+		return new ForeachWriter<Row>() {
 			private static final long serialVersionUID = 3602739322755312373L;
 
 			@Override
-			public void process(T m) {
-				using.accept(m);
+			public void process(Row r) {
+				write(r);
 			}
 
 			@Override

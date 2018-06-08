@@ -3,12 +3,11 @@ package com.hzcominfo.dataggr.spark.integrate.mongo;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.streaming.StreamingQuery;
 
 import com.hzcominfo.dataggr.spark.io.SparkInput;
+import com.hzcominfo.dataggr.spark.util.RowConsumer;
 import com.mongodb.spark.MongoSpark;
 import com.mongodb.spark.config.ReadConfig;
 
@@ -26,10 +25,10 @@ public class SparkMongoInput extends SparkInput {
 	}
 
 	@Override
-	public Dataset<Row> read() {
-		JavaSparkContext jsc = new JavaSparkContext(spark.sparkContext());
+	public StreamingQuery read(RowConsumer using) {
 		ReadConfig readConfig = ReadConfig.create(jsc).withOptions(options());
-		return MongoSpark.load(jsc, readConfig).toDF();
+		MongoSpark.load(jsc, readConfig).toDF().foreach(using::accept);
+		return null;
 	}
 
 	@Override

@@ -15,7 +15,6 @@ import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 
 import net.butfly.albacore.io.URISpec;
-import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.collection.Colls;
 import scala.collection.JavaConversions;
 import scala.collection.JavaConverters;
@@ -47,13 +46,13 @@ public class FuncUtil implements Serializable {
 
 	private static final DataType classType(Class<?> c) {
 		if (CharSequence.class.isAssignableFrom(c)) return DataTypes.StringType;
-		if (int.class.isAssignableFrom(c) && Integer.class.isAssignableFrom(c)) return DataTypes.IntegerType;
-		if (long.class.isAssignableFrom(c) && Long.class.isAssignableFrom(c)) return DataTypes.LongType;
-		if (boolean.class.isAssignableFrom(c) && Boolean.class.isAssignableFrom(c)) return DataTypes.BooleanType;
-		if (double.class.isAssignableFrom(c) && Double.class.isAssignableFrom(c)) return DataTypes.DoubleType;
-		if (float.class.isAssignableFrom(c) && Float.class.isAssignableFrom(c)) return DataTypes.FloatType;
-		if (byte.class.isAssignableFrom(c) && Byte.class.isAssignableFrom(c)) return DataTypes.ByteType;
-		if (short.class.isAssignableFrom(c) && Short.class.isAssignableFrom(c)) return DataTypes.ShortType;
+		if (int.class.isAssignableFrom(c) || Integer.class.isAssignableFrom(c)) return DataTypes.IntegerType;
+		if (long.class.isAssignableFrom(c) || Long.class.isAssignableFrom(c)) return DataTypes.LongType;
+		if (boolean.class.isAssignableFrom(c) || Boolean.class.isAssignableFrom(c)) return DataTypes.BooleanType;
+		if (double.class.isAssignableFrom(c) || Double.class.isAssignableFrom(c)) return DataTypes.DoubleType;
+		if (float.class.isAssignableFrom(c) || Float.class.isAssignableFrom(c)) return DataTypes.FloatType;
+		if (byte.class.isAssignableFrom(c) || Byte.class.isAssignableFrom(c)) return DataTypes.ByteType;
+		if (short.class.isAssignableFrom(c) || Short.class.isAssignableFrom(c)) return DataTypes.ShortType;
 		if (byte[].class.isAssignableFrom(c)) return DataTypes.BinaryType;
 		if (Date.class.isAssignableFrom(c)) return DataTypes.DateType;
 		if (Timestamp.class.isAssignableFrom(c)) return DataTypes.TimestampType;
@@ -71,8 +70,8 @@ public class FuncUtil implements Serializable {
 		return new GenericRowWithSchema(map.values().toArray(), DataTypes.createStructType(fields));
 	}
 
-	public static <T> Seq<T> dataset(Sdream<T> rows) {
-		return JavaConverters.asScalaIteratorConverter(rows.list().iterator()).asScala().toSeq();
+	public static <T> Seq<T> dataset(Iterable<T> rows) {
+		return JavaConverters.asScalaIteratorConverter(rows.iterator()).asScala().toSeq();
 	}
 
 	// public Dataset<Map> mapize(Dataset<Row> ds) {

@@ -3,8 +3,6 @@ package com.hzcominfo.dataggr.spark.io;
 import java.io.Serializable;
 import java.util.Map;
 
-import org.apache.spark.sql.Row;
-import org.apache.spark.sql.streaming.DataStreamWriter;
 import org.apache.spark.sql.streaming.StreamingQuery;
 import org.apache.spark.sql.streaming.StreamingQueryException;
 
@@ -20,14 +18,14 @@ public class SparkPump extends Namedly implements Pump<Map<String, Object>>, Ser
 	private final SparkInput input;
 	private final SparkOutput output;
 
-	private final DataStreamWriter<Row> writing;
+	private StreamingQuery writing;
 
 	public SparkPump(SparkInput input, SparkOutput output) {
 		super(input.name() + ">" + output.name());
 		this.input = input;
 		this.output = output;
 		Reflections.noneNull("Pump source/destination should not be null", input, output);
-		writing = input.dataset.isStreaming() ? input.dataset.writeStream().foreach(output.writer) : null;
+
 	}
 
 	@Override
@@ -35,13 +33,15 @@ public class SparkPump extends Namedly implements Pump<Map<String, Object>>, Ser
 		output.open();
 		Pump.super.open();
 		input.open();
+
+		writing = input.read(output::write);
+		// input.dataset.isStreaming() ? input.dataset.writeStream().foreach(output.writerFor(output::write)) : null;
 		if (null != writing) {
-			StreamingQuery q = writing.start();
 			logger.info("Spark streaming pumping started.");
 			input.closing(() -> {
 				try {
 					logger.info("Spark streaming pumping terminating...");
-					q.awaitTermination();
+					writing.awaitTermination();
 				} catch (StreamingQueryException e) {}
 			});
 		} else input.dataset.foreach(output::write);

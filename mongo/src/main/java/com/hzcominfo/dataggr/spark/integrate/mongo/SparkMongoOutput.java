@@ -5,25 +5,24 @@ import java.util.Map;
 
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
+import org.bson.Document;
 
 import com.hzcominfo.dataggr.spark.io.SparkOutput;
 import com.hzcominfo.dataggr.spark.util.FuncUtil;
-import com.mongodb.BasicDBObject;
-import com.mongodb.DB;
-import com.mongodb.DBCollection;
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientURI;
+import com.mongodb.spark.MongoSpark;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.logger.Logger;
 
 public class SparkMongoOutput extends SparkOutput {
-	private static final Logger logger = Logger.getLogger(SparkMongoOutput.class);
 	private static final long serialVersionUID = -887072515139730517L;
+	private static final Logger logger = Logger.getLogger(SparkMongoOutput.class);
+
 	private static final String writeconcern = "majority";
-	// private WriteConfig writeConfig;
-	private DBCollection coll;
-	private MongoClient mongoClient;
+//	private WriteConfig writeConfig;
+	private MongoSpark mongo;
+	private String dbName;
+	private String collectionName;
 
 	public SparkMongoOutput() {
 		super();
@@ -32,17 +31,17 @@ public class SparkMongoOutput extends SparkOutput {
 	public SparkMongoOutput(SparkSession spark, URISpec targetUri) {
 		super(spark, targetUri);
 		Map<String, String> opts = options();
-		// writeConfig = WriteConfig.create(jsc).withOptions(opts);
-		mongoClient = new MongoClient(new MongoClientURI(opts.get("uri")));
-		@SuppressWarnings("deprecation")
-		DB db = mongoClient.getDB(opts.get("database"));
-		coll = db.getCollection(opts.get("collection"));
+//		writeConfig = WriteConfig.create(jsc).withOptions(opts);
+		mongo = MongoSpark.builder().javaSparkContext(jsc).options(opts).build();
+		// mongoClient = new MongoClient(new MongoClientURI(opts.get("uri")));
+		this.dbName = opts.get("database");
+		this.collectionName = opts.get("collection");
 	}
 
 	@Override
 	public void close() {
 		super.close();
-		mongoClient.close();
+		// mongoClient.close();
 	}
 
 	@Override
@@ -64,9 +63,12 @@ public class SparkMongoOutput extends SparkOutput {
 
 	@Override
 	public void write(Row row) {
-		coll.insert(new BasicDBObject(FuncUtil.rowMap(row)));
+		mongo.connector().mongoClientFactory().create().getDatabase(dbName).getCollection(collectionName).insertOne(new Document(FuncUtil
+				.rowMap(row)));
+		// Dataset<Row> ds = spark
+		// mongo.sparkSession().createDataset(Colls.list(row), RowEncoder.apply(row.schema()));
+		// MongoSpark.save(ds, writeConfig);
 		logger.info("inserted: " + row.toString());
-		// MongoSpark.save(ds, writeConfig );
 	}
 
 	@Override
