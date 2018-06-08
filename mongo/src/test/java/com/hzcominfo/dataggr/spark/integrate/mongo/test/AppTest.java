@@ -12,8 +12,9 @@ public class AppTest {
 	public static void main(String[] args) {
 		URISpec uri = new URISpec("mongodb://devdb:Devdb1234@172.30.10.31:40012/devdb.PH_ZHK_CZRK");
 		SparkConnection client = new SparkConnection("mongodb-apptest", uri);
-		Dataset<Row> dataset = client.input(uri).load();
-		FuncUtil.func.accept(dataset.first());
+
+		Dataset<Row> dataset = client.input(uri).read();
+		System.out.println(FuncUtil.rowMap(dataset.first()));
 		client.close();
 	}
 }

@@ -42,12 +42,14 @@ public class SparkConnection implements Connection, Serializable {
 		}
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	@Deprecated
 	public SparkInput input(String... table) throws IOException {
 		throw new UnsupportedOperationException();
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	@Deprecated
 	public SparkOutput output() throws IOException {
@@ -58,8 +60,8 @@ public class SparkConnection implements Connection, Serializable {
 		return SparkIO.output(spark, uri);
 	}
 
-	public <I extends SparkInput> I input(URISpec uri,  String... fields) {
-		return SparkIO.input(spark, uri, fields);
+	public <I extends SparkInput> I input(URISpec uri) {
+		return SparkIO.input(spark, uri);
 	}
 
 	@Override

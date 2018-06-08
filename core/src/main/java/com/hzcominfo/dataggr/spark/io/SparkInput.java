@@ -5,19 +5,18 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.ForeachWriter;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
-import org.apache.spark.sql.streaming.StreamingQuery;
 
 import net.butfly.albacore.exception.NotImplementedException;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albatis.io.Input;
 
+
 public abstract class SparkInput extends SparkIO implements Input<Row>, Serializable {
 	private static final long serialVersionUID = 6966901980613011951L;
-	private Dataset<Row> dataset;
+	Dataset<Row> dataset;
 
 	public SparkInput() {
 		super();
@@ -25,14 +24,10 @@ public abstract class SparkInput extends SparkIO implements Input<Row>, Serializ
 
 	protected SparkInput(SparkSession spark, URISpec targetUri) {
 		super(spark, targetUri);
-		dataset = load();
+		dataset = read();
 	}
 
-	public abstract Dataset<Row> load();
-
-	public StreamingQuery start(ForeachWriter<Row> writer) {
-		return dataset.writeStream().foreach(writer).start();
-	}
+	public abstract Dataset<Row> read();
 
 	@Override
 	public void close() {
@@ -51,4 +46,5 @@ public abstract class SparkInput extends SparkIO implements Input<Row>, Serializ
 		throw new NotImplementedException();
 		// return new SparkJoinedInput(...);
 	}
+
 }

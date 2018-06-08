@@ -3,40 +3,56 @@ package com.hzcominfo.dataggr.spark.integrate.mongo;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
-import org.apache.spark.sql.streaming.StreamingQueryException;
 
 import com.hzcominfo.dataggr.spark.io.SparkOutput;
-import com.mongodb.spark.MongoSpark;
-import com.mongodb.spark.config.WriteConfig;
+import com.hzcominfo.dataggr.spark.util.FuncUtil;
+import com.mongodb.BasicDBObject;
+import com.mongodb.DB;
+import com.mongodb.DBCollection;
+import com.mongodb.MongoClient;
+import com.mongodb.MongoClientURI;
 
 import net.butfly.albacore.io.URISpec;
+import net.butfly.albacore.utils.logger.Logger;
 
 public class SparkMongoOutput extends SparkOutput {
+	private static final Logger logger = Logger.getLogger(SparkMongoOutput.class);
 	private static final long serialVersionUID = -887072515139730517L;
 	private static final String writeconcern = "majority";
-	private final WriteConfig writeConfig;
-	final static String schema = "mongodb";
+	// private WriteConfig writeConfig;
+	private DBCollection coll;
+	private MongoClient mongoClient;
 
-	public SparkMongoOutput(SparkSession spark, URISpec destUri) {
-		super(spark, destUri);
-		JavaSparkContext jsc = new JavaSparkContext(spark.sparkContext());
-		Map<String, String> options = options(destUri);
-		this.writeConfig = WriteConfig.create(jsc).withOptions(options);
+	public SparkMongoOutput() {
+		super();
+	}
+
+	public SparkMongoOutput(SparkSession spark, URISpec targetUri) {
+		super(spark, targetUri);
+		Map<String, String> opts = options();
+		// writeConfig = WriteConfig.create(jsc).withOptions(opts);
+		mongoClient = new MongoClient(new MongoClientURI(opts.get("uri")));
+		@SuppressWarnings("deprecation")
+		DB db = mongoClient.getDB(opts.get("database"));
+		coll = db.getCollection(opts.get("collection"));
 	}
 
 	@Override
-	protected Map<String, String> options(URISpec uriSpec) {
-		String file = uriSpec.getFile();
-		String[] path = uriSpec.getPaths();
-		if (path.length != 1)
-			throw new RuntimeException("Mongodb uriSpec is incorrect");
+	public void close() {
+		super.close();
+		mongoClient.close();
+	}
+
+	@Override
+	protected Map<String, String> options() {
+		String file = targetUri.getFile();
+		String[] path = targetUri.getPaths();
+		if (path.length != 1) throw new RuntimeException("Mongodb URI is incorrect");
 		String database = path[0];
 		String collection = file;
-		String uri = uriSpec.getScheme() + "://" + uriSpec.getAuthority() + "/" + database;
+		String uri = targetUri.getScheme() + "://" + targetUri.getAuthority() + "/" + database;
 
 		Map<String, String> options = new HashMap<String, String>();
 		options.put("uri", uri);
@@ -47,15 +63,14 @@ public class SparkMongoOutput extends SparkOutput {
 	}
 
 	@Override
-	public void enqueue(Dataset<Row> dataset) {
-		if (dataset.isStreaming()) {
-			MongoStreamWriter writer = new MongoStreamWriter(options(targetUri));
-			try {
-				dataset.writeStream().foreach(writer).start().awaitTermination();
-			} catch (StreamingQueryException e) {
-				throw new RuntimeException("streaming query: " + e);
-			};
-		} else
-			MongoSpark.save(dataset, writeConfig);
+	public void write(Row row) {
+		coll.insert(new BasicDBObject(FuncUtil.rowMap(row)));
+		logger.info("inserted: " + row.toString());
+		// MongoSpark.save(ds, writeConfig );
+	}
+
+	@Override
+	protected String schema() {
+		return "mongodb";
 	}
 }

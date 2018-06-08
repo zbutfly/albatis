@@ -1,55 +1,33 @@
 package com.hzcominfo.dataggr.spark.io;
 
 import java.io.Serializable;
+import java.util.Map;
 
-import org.apache.spark.sql.ForeachWriter;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.streaming.DataStreamWriter;
 import org.apache.spark.sql.streaming.StreamingQuery;
 import org.apache.spark.sql.streaming.StreamingQueryException;
 
-import com.hzcominfo.dataggr.spark.util.FuncUtil;
-
 import net.butfly.albacore.base.Namedly;
-import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.Reflections;
-import net.butfly.albatis.io.Message;
+import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.io.pump.Pump;
 
-public class SparkPump extends Namedly implements Pump<Message>, Serializable {
+public class SparkPump extends Namedly implements Pump<Map<String, Object>>, Serializable {
 	private static final long serialVersionUID = -6842560101323305087L;
+	private static final Logger logger = Logger.getLogger(SparkPump.class);
 
 	private final SparkInput input;
 	private final SparkOutput output;
-	private final ForeachWriter<Row> writer;
-	private final StreamingQuery queue;
+
+	private final DataStreamWriter<Row> writing;
 
 	public SparkPump(SparkInput input, SparkOutput output) {
 		super(input.name() + ">" + output.name());
 		this.input = input;
 		this.output = output;
 		Reflections.noneNull("Pump source/destination should not be null", input, output);
-		writer = new ForeachWriter<Row>() {
-			private static final long serialVersionUID = 3602739322755312373L;
-
-			@Override
-			public void process(Row row) {
-				output.enqueue(Sdream.of(new Message[] { new Message(FuncUtil.rowMap(row)) }));
-			}
-
-			@Override
-			public boolean open(long partitionId, long version) {
-				return true;
-			}
-
-			@Override
-			public void close(Throwable err) {}
-		};
-		queue = input.start(writer);
-		input.closing(() -> {
-			try {
-				queue.awaitTermination();
-			} catch (StreamingQueryException e) {}
-		});
+		writing = input.dataset.isStreaming() ? input.dataset.writeStream().foreach(output.writer) : null;
 	}
 
 	@Override
@@ -57,6 +35,16 @@ public class SparkPump extends Namedly implements Pump<Message>, Serializable {
 		output.open();
 		Pump.super.open();
 		input.open();
+		if (null != writing) {
+			StreamingQuery q = writing.start();
+			logger.info("Spark streaming pumping started.");
+			input.closing(() -> {
+				try {
+					logger.info("Spark streaming pumping terminating...");
+					q.awaitTermination();
+				} catch (StreamingQueryException e) {}
+			});
+		} else input.dataset.foreach(output::write);
 	}
 
 	@Override
