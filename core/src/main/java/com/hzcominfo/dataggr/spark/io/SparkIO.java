@@ -6,9 +6,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.spark.sql.SparkSession;
-import org.apache.spark.sql.types.DataTypes;
-import org.apache.spark.sql.types.StructField;
-import org.apache.spark.sql.types.StructType;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.Reflections;
@@ -17,19 +14,15 @@ public abstract class SparkIO {
 	private static final Map<String, Class<? extends SparkInput>> ADAPTER_INPUT = loadInputAdapters();
 	private static final Map<String, Class<? extends SparkOutput>> ADAPTER_OUTPUT = loadOutputAdapters();
 
-	protected final SparkSession spark;
-	protected final URISpec targetUri;
-	protected final String[] fields;
+	protected SparkSession spark;
+	protected URISpec targetUri;
+
+	public SparkIO() {}
 
 	protected SparkIO(SparkSession spark, URISpec targetUri) {
-		this(spark, targetUri, new String[] {});
-	}
-	
-	protected SparkIO(SparkSession spark, URISpec targetUri, String... fields) {
 		super();
 		this.spark = spark;
 		this.targetUri = targetUri;
-		this.fields = fields;
 	}
 
 	private static Map<String, Class<? extends SparkInput>> loadInputAdapters() {
@@ -50,19 +43,17 @@ public abstract class SparkIO {
 	private static void loadAdapters(Map map, Class<?> c) {
 		try {
 			Field[] fields = c.getDeclaredFields();
-			if (fields != null && fields.length > 0)
-				for (Field f : fields)
-					if ("schema".equals(f.getName())) {
-						f.setAccessible(true);
-						String schema = (String) f.get(c);
-						if (schema.contains(",")) {
-							String[] split = schema.split(",");
-							for (String s : split)
-								map.put(s, c);
-						} else
-							map.put(schema, c);
-						break;
-					}
+			if (fields != null && fields.length > 0) for (Field f : fields)
+				if ("schema".equals(f.getName())) {
+					f.setAccessible(true);
+					String schema = (String) f.get(c);
+					if (schema.contains(",")) {
+						String[] split = schema.split(",");
+						for (String s : split)
+							map.put(s, c);
+					} else map.put(schema, c);
+					break;
+				}
 		} catch (SecurityException | IllegalArgumentException | IllegalAccessException e) {
 			throw new RuntimeException("get field error", e);
 		}
@@ -73,15 +64,13 @@ public abstract class SparkIO {
 		while (!s.isEmpty()) {
 			@SuppressWarnings("unchecked")
 			Class<O> c = (Class<O>) ADAPTER_OUTPUT.get(s);
-			if (null == c)
-				break;
-			else
-				try {
-					return c.getConstructor(SparkSession.class, URISpec.class).newInstance(spark, uri);
-				} catch (NoSuchMethodException | SecurityException | InstantiationException | IllegalAccessException
-						| IllegalArgumentException | InvocationTargetException e) {
-					throw new RuntimeException(e);
-				}
+			if (null == c) break;
+			else try {
+				return c.getConstructor(SparkSession.class, URISpec.class).newInstance(spark, uri);
+			} catch (NoSuchMethodException | SecurityException | InstantiationException | IllegalAccessException | IllegalArgumentException
+					| InvocationTargetException e) {
+				throw new RuntimeException(e);
+			}
 		}
 		throw new RuntimeException("No matched adapter with scheme: " + s);
 	}
@@ -91,30 +80,16 @@ public abstract class SparkIO {
 		while (!s.isEmpty()) {
 			@SuppressWarnings("unchecked")
 			Class<I> c = (Class<I>) ADAPTER_INPUT.get(s);
-			if (null == c)
-				break;
-			else
-				try {
-					if (fields == null || fields.length < 1)
-						return c.getConstructor(SparkSession.class, URISpec.class).newInstance(spark, uri);
-					else
-						return c.getConstructor(SparkSession.class, URISpec.class, String[].class).newInstance(spark,
-								uri, fields);
-				} catch (NoSuchMethodException | SecurityException | InstantiationException | IllegalAccessException
-						| IllegalArgumentException | InvocationTargetException e) {
-					throw new RuntimeException(e);
-				}
+			if (null == c) s = s.substring(0, s.lastIndexOf(':'));
+			else try {
+				return c.getConstructor(SparkSession.class, URISpec.class, String[].class).newInstance(spark, uri, fields);
+			} catch (NoSuchMethodException | SecurityException | InstantiationException | IllegalAccessException | IllegalArgumentException
+					| InvocationTargetException e) {
+				throw new RuntimeException(e);
+			}
 		}
 		throw new RuntimeException("No matched adapter with scheme: " + s);
 	}
 
 	protected abstract Map<String, String> options(URISpec uriSpec);
-	
-	protected StructType getType() {
-		String[] fields = new String[] {"CERTIFIED_ID", "TRAIN_DAY"};
-		StructField[] sfields = new StructField[fields.length];
-		for (int i = 0; i < fields.length; i++)
-			sfields[i] = DataTypes.createStructField(fields[i], DataTypes.StringType, true);
-		return DataTypes.createStructType(sfields);
-	}
 }

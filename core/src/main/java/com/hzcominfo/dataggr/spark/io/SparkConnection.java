@@ -2,10 +2,13 @@ package com.hzcominfo.dataggr.spark.io;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.spark.SparkConf;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Encoders;
 import org.apache.spark.sql.SparkSession;
 
 import com.hzcominfo.albatis.nosql.Connection;
@@ -67,5 +70,9 @@ public class SparkConnection implements Connection, Serializable {
 	@Override
 	public URISpec uri() {
 		return uriSpec;
+	}
+
+	public <T> Dataset<T> toDS(List<T> rows, Class<T> clazz) {
+		return spark.createDataset(rows, Encoders.bean(clazz));
 	}
 }

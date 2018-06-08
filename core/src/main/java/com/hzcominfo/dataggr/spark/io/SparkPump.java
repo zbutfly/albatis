@@ -1,14 +1,13 @@
 package com.hzcominfo.dataggr.spark.io;
 
 import java.io.Serializable;
-import java.util.HashMap;
-import java.util.Map;
 
 import org.apache.spark.sql.ForeachWriter;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.streaming.StreamingQuery;
 import org.apache.spark.sql.streaming.StreamingQueryException;
-import org.apache.spark.sql.types.StructType;
+
+import com.hzcominfo.dataggr.spark.util.FuncUtil;
 
 import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.paral.Sdream;
@@ -34,13 +33,7 @@ public class SparkPump extends Namedly implements Pump<Message>, Serializable {
 
 			@Override
 			public void process(Row row) {
-				StructType schema = row.schema();
-				String[] fieldNames = schema.fieldNames();
-				Map<String, Object> map = new HashMap<>();
-				for (String fn : fieldNames)
-					map.put(fn, row.getAs(fn));
-				if (map.isEmpty()) return;
-				output.enqueue(Sdream.of(new Message[] { new Message(map) }));
+				output.enqueue(Sdream.of(new Message[] { new Message(FuncUtil.rowMap(row)) }));
 			}
 
 			@Override

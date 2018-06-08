@@ -19,28 +19,22 @@ public class SparkMongoInput extends SparkInput {
 	private static final String partitioner = "MongoSamplePartitioner";
 	final static String schema = "mongodb";
 
-	protected SparkMongoInput(SparkSession spark, URISpec targetUri, String... fields) {
-		super(spark, targetUri, fields);
+	protected SparkMongoInput(SparkSession spark, URISpec targetUri) {
+		super(spark, targetUri);
 	}
 
 	@Override
-	public Dataset<Row> dequeue() {
+	public Dataset<Row> load() {
 		JavaSparkContext jsc = new JavaSparkContext(spark.sparkContext());
 		ReadConfig readConfig = ReadConfig.create(jsc).withOptions(options(targetUri));
-		MongoSpark.load(jsc, readConfig).toDF();
-		Dataset<Row> dataset = MongoSpark.load(jsc, readConfig).toDF();
-		if (fields != null && fields.length > 0)
-			return super.map(dataset);
-		else
-			return dataset;
+		return MongoSpark.load(jsc, readConfig).toDF();
 	}
 
 	@Override
 	protected Map<String, String> options(URISpec uriSpec) {
 		String file = uriSpec.getFile();
 		String[] path = uriSpec.getPaths();
-		if (path.length != 1)
-			throw new RuntimeException("Mongodb uriSpec is incorrect");
+		if (path.length != 1) throw new RuntimeException("Mongodb uriSpec is incorrect");
 		String database = path[0];
 		String collection = file;
 		String uri = uriSpec.getScheme() + "://" + uriSpec.getAuthority() + "/" + database;
@@ -51,10 +45,5 @@ public class SparkMongoInput extends SparkInput {
 		options.put("database", database);
 		options.put("collection", collection);
 		return options;
-	}
-
-	@Override
-	protected Row selectItems(Row r) {
-		return super.defaultSelectItems(r);
 	}
 }

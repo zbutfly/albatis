@@ -1,32 +1,37 @@
 package com.hzcominfo.dataggr.spark.io;
 
 import java.io.Serializable;
+import java.util.Map;
 import java.util.function.Consumer;
 
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.ForeachWriter;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.SparkSession;
-import org.apache.spark.sql.catalyst.encoders.RowEncoder;
 import org.apache.spark.sql.streaming.StreamingQuery;
 
+import net.butfly.albacore.exception.NotImplementedException;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albatis.io.Input;
-import net.butfly.albatis.io.Message;
 
-public abstract class SparkInput extends SparkIO implements Input<Message>, Serializable {
+public abstract class SparkInput extends SparkIO implements Input<Row>, Serializable {
 	private static final long serialVersionUID = 6966901980613011951L;
-	private final Dataset<Row> dataset;
+	private Dataset<Row> dataset;
 
-	protected SparkInput(SparkSession spark, URISpec targetUri) {
-		this(spark, targetUri, new String[] {});
+	public SparkInput() {
+		super();
 	}
 
-	protected SparkInput(SparkSession spark, URISpec targetUri, String... fields) {
-		super(spark, targetUri, fields);
-		dataset = dequeue();
+	protected SparkInput(SparkSession spark, URISpec targetUri) {
+		super(spark, targetUri);
+		dataset = load();
+	}
+
+	public abstract Dataset<Row> load();
+
+	public StreamingQuery start(ForeachWriter<Row> writer) {
+		return dataset.writeStream().foreach(writer).start();
 	}
 
 	@Override
@@ -35,36 +40,15 @@ public abstract class SparkInput extends SparkIO implements Input<Message>, Seri
 		spark.close();
 	}
 
-	protected abstract Dataset<Row> dequeue();
-	
-	public Dataset<Row> load() {
-		return dataset;
-	};
-
 	@Override
-	public final void dequeue(Consumer<Sdream<Message>> using) {
-		using.accept(conv(dequeue()));
+	public final void dequeue(Consumer<Sdream<Row>> using) {
+		throw new UnsupportedOperationException();
+		// using.accept(conv(dataset));
 	}
 
-	private Sdream<Message> conv(Dataset<Row> dequeue) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	public StreamingQuery start(ForeachWriter<Row> writer) {
-		return dataset.writeStream().foreach(writer).start();
-	}
-
-	protected abstract Row selectItems(Row r);
-
-	protected Row defaultSelectItems(Row r) {
-		Object[] arr = new Object[fields.length];
-		for (int i = 0; i < fields.length; i++)
-			arr[i] = r.getAs(fields[i]);
-		return RowFactory.create(arr);
-	}
-
-	protected Dataset<Row> map(Dataset<Row> dataset) {
-		return dataset.map(this::selectItems, RowEncoder.apply(super.getType()));
+	// TODO
+	public SparkInput join(String selfKeyFieldName, Map<String, SparkInput> sencendaryInput) {
+		throw new NotImplementedException();
+		// return new SparkJoinedInput(...);
 	}
 }
