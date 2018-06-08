@@ -10,9 +10,6 @@ import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.catalyst.encoders.RowEncoder;
 import org.apache.spark.sql.streaming.StreamingQuery;
-import org.apache.spark.sql.types.DataTypes;
-import org.apache.spark.sql.types.StructField;
-import org.apache.spark.sql.types.StructType;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.paral.Sdream;
@@ -22,21 +19,14 @@ import net.butfly.albatis.io.Message;
 public abstract class SparkInput extends SparkIO implements Input<Message>, Serializable {
 	private static final long serialVersionUID = 6966901980613011951L;
 	private final Dataset<Row> dataset;
-	protected String[] fields;
-	protected StructType stype;
+
+	protected SparkInput(SparkSession spark, URISpec targetUri) {
+		this(spark, targetUri, new String[] {});
+	}
 
 	protected SparkInput(SparkSession spark, URISpec targetUri, String... fields) {
-		super(spark, targetUri);
-		if (fields == null || fields.length < 1)
-			dataset = dequeue();
-		else {
-			this.fields = fields;
-			StructField[] sfields = new StructField[fields.length];
-			for (int i = 0; i < fields.length; i++)
-				sfields[i] = DataTypes.createStructField(fields[i], DataTypes.StringType, true);
-			stype = DataTypes.createStructType(sfields);
-			dataset = dequeue().map(this::selectItems, RowEncoder.apply(stype));
-		}
+		super(spark, targetUri, fields);
+		dataset = dequeue();
 	}
 
 	@Override
@@ -45,7 +35,11 @@ public abstract class SparkInput extends SparkIO implements Input<Message>, Seri
 		spark.close();
 	}
 
-	public abstract Dataset<Row> dequeue();
+	protected abstract Dataset<Row> dequeue();
+	
+	public Dataset<Row> load() {
+		return dataset;
+	};
 
 	@Override
 	public final void dequeue(Consumer<Sdream<Message>> using) {
@@ -62,11 +56,15 @@ public abstract class SparkInput extends SparkIO implements Input<Message>, Seri
 	}
 
 	protected abstract Row selectItems(Row r);
-	
+
 	protected Row defaultSelectItems(Row r) {
-		Object[] arr = new Object[stype.fieldNames().length];
+		Object[] arr = new Object[fields.length];
 		for (int i = 0; i < fields.length; i++)
 			arr[i] = r.getAs(fields[i]);
 		return RowFactory.create(arr);
+	}
+
+	protected Dataset<Row> map(Dataset<Row> dataset) {
+		return dataset.map(this::selectItems, RowEncoder.apply(super.getType()));
 	}
 }

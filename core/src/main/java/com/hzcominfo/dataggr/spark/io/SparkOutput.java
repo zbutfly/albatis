@@ -19,7 +19,7 @@ public abstract class SparkOutput extends SparkIO implements Output<Message>, Se
 	}
 
 	private Dataset<Row> conv(Sdream<Message> ms) {
-		return null;// TODO
+		return null;// TODO: ms -> rows -> dataset
 	}
 
 	public abstract void enqueue(Dataset<Row> dataset);

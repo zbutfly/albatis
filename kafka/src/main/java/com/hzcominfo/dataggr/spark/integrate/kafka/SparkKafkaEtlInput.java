@@ -15,6 +15,10 @@ public class SparkKafkaEtlInput extends SparkKafkaInput {
 	private static final long serialVersionUID = -8077483839198954L;
 	final static String schema = "kafka:etl";
 
+	protected SparkKafkaEtlInput(SparkSession spark, URISpec targetUri) {
+		this(spark, targetUri, new String[] {});
+	}
+
 	public SparkKafkaEtlInput(SparkSession spark, URISpec targetUri, String... fields) {
 		super(spark, targetUri, fields);
 	}
@@ -30,7 +34,8 @@ public class SparkKafkaEtlInput extends SparkKafkaInput {
 		Map<String, Object> der = BytesUtils.der(bytes);
 		@SuppressWarnings("unchecked")
 		Map<String, Object> value = (Map<String, Object>) der.get("value");
-		Object[] arr = new Object[stype.fieldNames().length];
+		String[] fields = new String[] {"CERTIFIED_ID", "TRAIN_DAY"};
+		Object[] arr = new Object[fields.length];
 		for (int i = 0; i < fields.length; i++)
 			arr[i] = value.get(fields[i]);
 		return RowFactory.create(arr);

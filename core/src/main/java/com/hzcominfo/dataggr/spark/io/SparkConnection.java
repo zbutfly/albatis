@@ -22,9 +22,8 @@ public class SparkConnection implements Connection, Serializable {
 
 	public SparkConnection(String name, URISpec uriSpec) {
 		this.uriSpec = uriSpec;
-		// this.adapter = adapt(uriSpec);
 		SparkConf sparkConf = new SparkConf();
-		parameters.put("spark.sql.shuffle.partitions", "1");
+		parameters.put("spark.sql.shuffle.partitions", "2001");
 		parameters.put("spark.mongodb.input.uri", "mongodb://user:pwd@localhost:80/db.tbl");
 		parameters.put("spark.mongodb.output.uri", "mongodb://user:pwd@localhost:80/db.tbl");
 		parameters.forEach((key, value) -> sparkConf.set(key, value));
@@ -56,8 +55,8 @@ public class SparkConnection implements Connection, Serializable {
 		return SparkIO.output(spark, uri);
 	}
 
-	public <I extends SparkInput> I input(URISpec uri) {
-		return SparkIO.input(spark, uri);
+	public <I extends SparkInput> I input(URISpec uri,  String... fields) {
+		return SparkIO.input(spark, uri, fields);
 	}
 
 	@Override
