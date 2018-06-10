@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.spark.SparkConf;
 import org.apache.spark.sql.Dataset;
@@ -14,6 +13,8 @@ import org.apache.spark.sql.SparkSession;
 import com.hzcominfo.albatis.nosql.Connection;
 
 import net.butfly.albacore.io.URISpec;
+import net.butfly.albacore.utils.collection.Colls;
+import net.butfly.albacore.utils.collection.Maps;
 
 public class SparkConnection implements Connection, Serializable {
 	private static final long serialVersionUID = 5093686615279489589L;
@@ -21,7 +22,7 @@ public class SparkConnection implements Connection, Serializable {
 
 	public final SparkSession spark;
 	private final URISpec uriSpec;
-	private final Map<String, String> parameters = new ConcurrentHashMap<>();
+	private final Map<String, String> parameters = Maps.of();
 
 	public SparkConnection(String name, URISpec uriSpec) {
 		this.uriSpec = uriSpec;
@@ -44,9 +45,10 @@ public class SparkConnection implements Connection, Serializable {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	@Deprecated
 	public SparkInput input(String... table) throws IOException {
-		throw new UnsupportedOperationException();
+		if (table.length == 0) throw new IllegalArgumentException("Spark connection open input with first argument as target db uri");
+		String[] ts = Colls.list(table).subList(1, table.length - 1).toArray(new String[0]);
+		return input(new URISpec(table[0]), ts);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -60,7 +62,7 @@ public class SparkConnection implements Connection, Serializable {
 		return SparkIO.output(spark, uri);
 	}
 
-	public <I extends SparkInput> I input(URISpec uri) {
+	public <I extends SparkInput> I input(URISpec uri, String... table) {
 		return SparkIO.input(spark, uri);
 	}
 

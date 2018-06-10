@@ -1,26 +1,19 @@
 package com.hzcominfo.dataggr.spark.io;
 
 import java.io.Serializable;
-import java.util.Map;
-
-import org.apache.spark.sql.streaming.StreamingQuery;
-import org.apache.spark.sql.streaming.StreamingQueryException;
+import org.apache.spark.sql.Row;
 
 import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.utils.Reflections;
-import net.butfly.albacore.utils.logger.Logger;
+import net.butfly.albatis.io.OddOutput;
 import net.butfly.albatis.io.pump.Pump;
 
-public class SparkPump extends Namedly implements Pump<Map<String, Object>>, Serializable {
+class SparkPump extends Namedly implements Pump<Row>, Serializable {
 	private static final long serialVersionUID = -6842560101323305087L;
-	private static final Logger logger = Logger.getLogger(SparkPump.class);
-
 	private final SparkInput input;
-	private final SparkOutput output;
+	private final OddOutput<Row> output;
 
-	private StreamingQuery writing;
-
-	public SparkPump(SparkInput input, SparkOutput output) {
+	SparkPump(SparkInput input, OddOutput<Row> output) {
 		super(input.name() + ">" + output.name());
 		this.input = input;
 		this.output = output;
@@ -31,20 +24,18 @@ public class SparkPump extends Namedly implements Pump<Map<String, Object>>, Ser
 	@Override
 	public void open() {
 		output.open();
-		Pump.super.open();
 		input.open();
+		Pump.super.open();
+		input.start(output);
+		input.await();
 
-		writing = input.read(output::write);
-		// input.dataset.isStreaming() ? input.dataset.writeStream().foreach(output.writerFor(output::write)) : null;
-		if (null != writing) {
-			logger.info("Spark streaming pumping started.");
-			input.closing(() -> {
-				try {
-					logger.info("Spark streaming pumping terminating...");
-					writing.awaitTermination();
-				} catch (StreamingQueryException e) {}
-			});
-		} else input.dataset.foreach(output::write);
+		boolean b = true;
+		while (b && opened())
+			try {
+				Thread.sleep(500);
+			} catch (InterruptedException e) {
+				b = false;
+			}
 	}
 
 	@Override

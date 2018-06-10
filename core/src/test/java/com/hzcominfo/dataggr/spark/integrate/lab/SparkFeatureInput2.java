@@ -3,7 +3,7 @@
 //import java.io.Serializable;
 //import java.util.HashMap;
 //import java.util.List;
-//import java.util.Map;
+//import org.apache.spark.sql.Row;
 //import java.util.function.Consumer;
 //
 //import org.apache.spark.sql.Dataset;
@@ -26,7 +26,7 @@
 // * @author chenw
 // *
 // */
-//public class SparkFeatureInput2 implements Input<Map<String, Object>>, Serializable {
+//public class SparkFeatureInput2 implements Input<Row>, Serializable {
 //	private static final long serialVersionUID = -4742008582795468309L;
 //	private final SparkConnection client;
 //	private final Dataset<Row> dataset;
@@ -41,12 +41,12 @@
 //		closing(this::close);
 //	}
 //
-//	private static interface Writing extends Consumer<Sdream<Map<String, Object>>>, Serializable {}
+//	private static interface Writing extends Consumer<Sdream<Row>>, Serializable {}
 //
 //	private class ForeachWriter$anonfun$ extends ForeachWriter<Row> implements Serializable {
 //		private static final long serialVersionUID = -6782476040095757847L;
 //
-//		public ForeachWriter$anonfun$(Consumer<Sdream<Map<String, Object>>> using) {
+//		public ForeachWriter$anonfun$(Consumer<Sdream<Row>> using) {
 //			super();
 //			this.using = using::accept;
 //		}
@@ -70,19 +70,19 @@
 //				map.put(fn, row.getAs(fn));
 //			}
 //			Map<String, Object> message = new Map<String, Object>(map);
-//			List<Map<String, Object>> ms = Colls.list();
+//			List<Row> ms = Colls.list();
 //			ms.add(message);
 //			using.accept(Sdream.of(ms));
 //		}
 //	}
 //
 //	@Override
-//	public void dequeue(Consumer<Sdream<Map<String, Object>>> using) {
+//	public void dequeue(Consumer<Sdream<Row>> using) {
 //		if (dataset == null) return;
 //
 //		if (dataset.isStreaming()) {
 //			DataStreamWriter<Row> s = dataset.writeStream();
-//			ForeachWriter$anonfun$ fw = new ForeachWriter$anonfun$((Consumer<Sdream<Map<String, Object>>> & Serializable) using::accept);
+//			ForeachWriter$anonfun$ fw = new ForeachWriter$anonfun$((Consumer<Sdream<Row>> & Serializable) using::accept);
 //			s.foreach(fw);
 //		} else {
 //			dataset.foreach(row -> {
@@ -94,7 +94,7 @@
 //				}
 //				System.out.println(map); //
 //				Map<String, Object> message = new Map<String, Object>(map);
-//				List<Map<String, Object>> ms = Colls.list();
+//				List<Row> ms = Colls.list();
 //				ms.add(message);
 //				using.accept(Sdream.of(ms));
 //			});

@@ -2,7 +2,7 @@
 //
 //import java.util.HashMap;
 //import java.util.List;
-//import java.util.Map;
+//import org.apache.spark.sql.Row;
 //
 //import org.apache.spark.sql.ForeachWriter;
 //import org.apache.spark.sql.Row;
@@ -12,9 +12,9 @@
 //
 //public class MyForeachWriter extends ForeachWriter<Row> {
 //	private static final long serialVersionUID = -1072922526110204753L;
-//	private List<Map<String, Object>> ms = Colls.list();
+//	private List<Row> ms = Colls.list();
 //
-//	public List<Map<String, Object>> getMs() {
+//	public List<Row> getMs() {
 //		return ms;
 //	}
 //

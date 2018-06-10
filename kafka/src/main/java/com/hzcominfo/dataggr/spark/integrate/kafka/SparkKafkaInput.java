@@ -1,17 +1,13 @@
 package com.hzcominfo.dataggr.spark.integrate.kafka;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
-import org.apache.spark.sql.streaming.StreamingQuery;
 
 import com.hzcominfo.dataggr.spark.io.SparkInput;
-import com.hzcominfo.dataggr.spark.util.RowConsumer;
 
 import net.butfly.albacore.io.URISpec;
+import net.butfly.albacore.utils.collection.Maps;
 
 public class SparkKafkaInput extends SparkInput {
 	private static final long serialVersionUID = 9003837433163351306L;
@@ -25,9 +21,11 @@ public class SparkKafkaInput extends SparkInput {
 	}
 
 	@Override
-	public StreamingQuery read(RowConsumer using) {
-		Dataset<Row> ds = spark.readStream().format(format()).options(options()).load();
-		return ds.writeStream().foreach(using.writer()).start();
+	protected Dataset<Row> load() {
+		return spark.readStream().format(format()).options(options()).load();
+		// Encoder<Row> enc = ds.org$apache$spark$sql$Dataset$$encoder;
+		// spark.implicits().newMapEncoder(evidence$3)
+		// return FuncUtil.mapize(ds);
 	}
 
 	@Override
@@ -36,8 +34,8 @@ public class SparkKafkaInput extends SparkInput {
 	}
 
 	@Override
-	protected Map<String, String> options() {
-		Map<String, String> options = new HashMap<>();
+	protected java.util.Map<String, String> options() {
+		java.util.Map<String, String> options = Maps.of();
 		options.put("kafka.bootstrap.servers", targetUri.getHost());
 		options.put("subscribe", targetUri.getFile());
 		options.put("startingOffsets", "earliest");
