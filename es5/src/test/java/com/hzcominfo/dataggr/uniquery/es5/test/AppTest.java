@@ -58,6 +58,16 @@ public class AppTest {
 //		sql = "select LOCATION from test_hzwa.TEST_HZWA_WA_SOURCE_FJ_1001 where geo_box(LOCATION,130, 0, 0, 40)"; // 矩形
 //		sql = "select LOCATION from test_hzwa.TEST_HZWA_WA_SOURCE_FJ_1001 where geo_polygon(LOCATION,50,140, 50,0, 20,0, 20,100, 0,100, 0,140, 50,140)"; // 多边形
 		ResultSet r = conn.execute(sql);
+		System.out.println(r);*/
+		
+		// nested having
+		/*String sql = "select * from subject_person.person  \n"
++ "where LG.LGDM_LGMC_FORMAT_s = '横塘村十组旅馆'  \n"
++ "group by SFZH_s, LG.ZKLSH_s   \n"
++ "having count(LG.ZKLSH_s) >= 3";*/
+		
+		String sql = "SELECT * FROM test_phga_search.dpc_solr_czrk where  XX.keyword='１６幢４０５室' or LXDBID.keyword='１６幢４０５室' or ZJXY.keyword='１６幢４０５室' or QWDSSXQ.keyword='１６幢４０５室' or ZWCJJGDM.keyword='１６幢４０５室' or HLX_FORMAT.keyword='１６幢４０５室' or XXJB.keyword='１６幢４０５室' or FWCS.keyword='１６幢４０５室' or HH.keyword='１６幢４０５室' or MLPID.keyword='１６幢４０５室' or XB_FORMAT.keyword='１６幢４０５室' or JGSSXQ_FORMAT.keyword='１６幢４０５室' or PCS_FORMAT.keyword='１６幢４０５室' Limit 0,1000";
+		ResultSet r = conn.execute(sql);
 		System.out.println(r);
 		
 		//释放连接
