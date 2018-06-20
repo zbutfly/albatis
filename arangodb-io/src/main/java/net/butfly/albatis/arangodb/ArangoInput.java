@@ -1,12 +1,125 @@
 package net.butfly.albatis.arangodb;
 
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+
+import com.arangodb.ArangoCursorAsync;
+import com.arangodb.ArangoDBException;
+import com.arangodb.entity.BaseDocument;
+
+import net.butfly.albacore.utils.collection.Colls;
+import net.butfly.albacore.utils.collection.Maps;
+import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.io.OddInput;
 import net.butfly.albatis.io.R;
 
-public class ArangoInput implements OddInput<R> {
+public class ArangoInput extends net.butfly.albacore.base.Namedly implements OddInput<R> {
+	private static final Logger logger = Logger.getLogger(ArangoInput.class);
+	private ArangoConnection conn;
+	private final BlockingQueue<CursorAsync> cursors = new LinkedBlockingQueue<CursorAsync>();
+	private final Map<String, CursorAsync> cursorsMap = Maps.of();
+	
+	public ArangoInput(String name, ArangoConnection conn) throws IOException {
+		super(name);
+		this.conn = conn;
+		closing(this::close);
+	}
+
+	@Override
+	public void open() {
+		OddInput.super.open();
+		if (cursors.isEmpty()) {
+			if (null != conn) {
+				String[] tables = conn.tables;
+				Arrays.asList(tables).forEach(p ->{
+					List<Runnable> queries = Colls.list();
+					queries.add(() -> cursorsMap.computeIfAbsent(p, pp -> new CursorAsync(p)));
+				});
+			} else throw new RuntimeException("No table defined for input.");
+		}
+	}
+	
+	@Override
+	public boolean empty() {
+		return cursorsMap.isEmpty();
+	}
+	
 	@Override
 	public R dequeue() {
-		// TODO Auto-generated method stub
+		CursorAsync c;
+		Map<String, Object> m;
+		while (opened() && !empty())
+			if (null != (c = cursors.poll())) try {
+				if (c.cursor.hasNext()) {
+					try {
+						m = c.cursor.next().getProperties();
+					} catch (ArangoDBException ex) {
+						logger.warn("Mongo fail fetch, ignore and continue retry...");
+						continue;
+					} catch (IllegalStateException ex) {
+						continue;
+					}
+					Object key = m.containsKey("_id") ? m.get("_id").toString() : null;
+					String collection = c.col;
+					R msg = new R(collection, key);
+					m.forEach((k, v) -> {
+						if (null == v) {
+							logger.error("arango result field [" + k + "] null at table [" + collection + "], id [" + key + "].");
+						} else { msg.put(k, v); }
+					});
+					return msg;
+				} else {
+					try {
+						c.close();
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+					c = null;
+				}
+			} finally {
+				if (null != c) cursors.offer(c);
+			}
 		return null;
+	}
+	
+
+
+	private class CursorAsync{
+		String col;
+		ArangoCursorAsync<BaseDocument> cursor;
+
+		public CursorAsync(String col) {
+			super();
+			String aql = "for data in "+col+" return data";
+			this.col = col;
+			ArangoCursorAsync<BaseDocument> c;
+			try {
+				c = conn.cursor(aql).get();
+				if (c.hasNext()) {
+					logger.info("ArangoDB query [" + col + "] successed, count: [" + c.getCount() + "].");
+					cursors.add(this);
+				} else {
+					logger.warn("ArangoDB query [" + col + "] finished but empty.");
+					c = null;
+				}
+			} catch (Exception ex) {
+				logger.error("ArangoDB query [" + col + "] failed", ex);
+				c = null;
+			}
+			cursor = c;
+		}
+
+		public void close() throws IOException {
+			try {
+				cursor.close();
+			} finally {
+				cursorsMap.remove(col);
+			}
+		}
+
 	}
 }

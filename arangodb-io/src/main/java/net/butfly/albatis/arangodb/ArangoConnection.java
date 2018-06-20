@@ -14,6 +14,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BinaryOperator;
 
+import com.arangodb.ArangoCursorAsync;
 import com.arangodb.ArangoDBAsync;
 import com.arangodb.ArangoDBAsync.Builder;
 import com.arangodb.ArangoDatabaseAsync;
@@ -21,7 +22,6 @@ import com.arangodb.entity.BaseDocument;
 import com.arangodb.entity.LoadBalancingStrategy;
 import com.hzcominfo.albatis.nosql.NoSqlConnection;
 
-import net.butfly.albacore.exception.NotImplementedException;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.paral.Exeter;
 import net.butfly.albacore.utils.Configs;
@@ -73,7 +73,8 @@ public class ArangoConnection extends NoSqlConnection<ArangoDBAsync> {
 
 	@Override
 	public ArangoInput input(String... table) throws IOException {
-		throw new NotImplementedException();
+		ArangoInput i = new ArangoInput("ArangoInput", this);
+		return i;
 	}
 
 	@SuppressWarnings("unchecked")
@@ -160,4 +161,16 @@ public class ArangoConnection extends NoSqlConnection<ArangoDBAsync> {
 		if (null == f2) return f1;
 		return f1.thenCombineAsync(f2, ArangoConnection::merge, Exeter.of());
 	};
+	
+	
+	
+	
+	public boolean collectionExists(String collectionName) {
+		return db.collection(collectionName).exists().isDone();
+	}
+	
+	
+	public CompletableFuture<ArangoCursorAsync<BaseDocument>> cursor(String aql) {
+		return db.query(aql, null, null, BaseDocument.class);
+	}
 }
