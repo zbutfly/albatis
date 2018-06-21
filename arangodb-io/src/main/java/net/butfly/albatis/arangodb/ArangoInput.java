@@ -6,11 +6,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.function.Function;
 
 import com.arangodb.ArangoCursorAsync;
 import com.arangodb.ArangoDBException;
 import com.arangodb.entity.BaseDocument;
 
+import net.butfly.albacore.paral.Exeter;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
@@ -35,10 +37,16 @@ public class ArangoInput extends net.butfly.albacore.base.Namedly implements Odd
 		if (cursors.isEmpty()) {
 			if (null != conn) {
 				String[] tables = conn.tables;
+				List<Runnable> queries = Colls.list();
 				Arrays.asList(tables).forEach(p ->{
-					List<Runnable> queries = Colls.list();
-					queries.add(() -> cursorsMap.computeIfAbsent(p, pp -> new CursorAsync(p)));
+					queries.add(() -> cursorsMap.computeIfAbsent(p, new Function<String, CursorAsync>() {
+						@Override
+						public CursorAsync apply(String pp) {
+							return new CursorAsync(p);
+						}
+					}));
 				});
+				Exeter.of().join(queries.toArray(new Runnable[queries.size()]));
 			} else throw new RuntimeException("No table defined for input.");
 		}
 	}
