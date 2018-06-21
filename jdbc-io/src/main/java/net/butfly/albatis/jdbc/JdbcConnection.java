@@ -44,8 +44,10 @@ public class JdbcConnection extends NoSqlConnection<DataSource> {
 				sql.append("create table ").append(table).append("(").append(String.join(",", fieldSql.toArray(new String[0]))).append(")");
 				try (PreparedStatement ps = conn.prepareStatement(sql.toString());) {
 					ps.execute();
-					logger().debug("execute ``````" + sql + "`````` success");
-				} catch (SQLException e) {}
+					logger().info("Table constructed by:\n\t" + sql);
+				} catch (SQLException e) {
+					logger.error("Table construct failed", e);
+				}
 			} else throw new UnsupportedOperationException("Jdbc table create not supported for:" + uri.getScheme());
 		} catch (SQLException e1) {}
 	}
