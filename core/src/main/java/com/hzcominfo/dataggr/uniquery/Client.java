@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Logger;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -15,15 +16,14 @@ import com.hzcominfo.dataggr.uniquery.dto.ResultSet;
 import com.hzcominfo.dataggr.uniquery.utils.ExceptionUtil;
 
 import net.butfly.albacore.io.URISpec;
+import net.butfly.albacore.utils.logger.Loggable;
 import net.butfly.albacore.utils.parallel.Parals;
 
-public class Client implements AutoCloseable {
-    private static final Logger logger = Logger.getLogger(Client.class);
-
+public class Client implements AutoCloseable, Loggable {
 	private final static Map<String, Connection> connections = new ConcurrentHashMap<>();
 	private final static Map<String, Adapter> adapters = new ConcurrentHashMap<>();
 	private static transient AtomicInteger running;
-	private static final int cap = Runtime.getRuntime().availableProcessors(); 
+	private static final int cap = Runtime.getRuntime().availableProcessors();
 
 	private final URISpec uriSpec;
 	private Connection conn;
@@ -37,7 +37,7 @@ public class Client implements AutoCloseable {
 		} catch (Exception e) {
 			ExceptionUtil.runtime("connect error", e);
 		}
-		System.out.println("cap: " + cap);
+		logger().debug("cap: " + cap);
 	}
 	
 	private Connection connect(URISpec uriSpec) {
@@ -69,12 +69,15 @@ public class Client implements AutoCloseable {
 			JsonObject tableJson = sqlJson.has("tables") ? sqlJson.getAsJsonObject("tables"):null;
 			String table = tableJson != null && tableJson.has("table") ? tableJson.get("table").getAsString():null;
 			Object query = adapter.queryAssemble(conn, sqlJson);
-			logger.debug(query.toString());
+			logger().warn("Warn:" + query);
 			long start = System.currentTimeMillis();
 			Object result = adapter.queryExecute(conn, query, table);
-			System.out.println("query spends: " + (System.currentTimeMillis() - start) + "ms");
+			logger().debug("query spends: " + (System.currentTimeMillis() - start) + "ms");
 			return adapter.resultAssemble(result);
 		} catch (Exception e) {
+			logger().error("Parse sql:" + sql);
+			logger().error("sqlJson:" + SqlExplainer.explain(sql, params));
+			e.printStackTrace();
 			ExceptionUtil.runtime("connect error", e);
 		}
 		return null;
@@ -99,7 +102,7 @@ public class Client implements AutoCloseable {
             logger.debug(query.toString());
             long start = System.currentTimeMillis();
 			Object result = adapter.queryExecute(conn, query, table);
-			System.out.println("query spends: " + (System.currentTimeMillis() - start) + "ms");
+			logger().debug("query spends: " + (System.currentTimeMillis() - start) + "ms");
 			return adapter.resultAssemble(result);
 		} catch (Exception e) {
 			ExceptionUtil.runtime("connect error", e);

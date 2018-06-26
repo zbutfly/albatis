@@ -14,8 +14,9 @@ import com.hzcominfo.dataggr.uniquery.utils.ExceptionUtil;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.Reflections;
+import net.butfly.albacore.utils.logger.Loggable;
 
-public abstract class Adapter {
+public abstract class Adapter implements Loggable {
 	public Adapter() {}
 	
 	static final Map<String, Class<? extends Adapter>> ADAPTER_MAP = loadAdapters();
