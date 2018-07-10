@@ -32,7 +32,6 @@ import org.apache.solr.client.solrj.response.DelegationTokenResponse.JsonMapResp
 import org.apache.solr.common.params.CoreAdminParams.CoreAdminAction;
 import org.apache.solr.common.params.ModifiableSolrParams;
 
-import com.hzcominfo.albatis.nosql.Connection;
 import com.hzcominfo.albatis.nosql.NoSqlConnection;
 
 import net.butfly.albacore.io.URISpec;
@@ -48,28 +47,6 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 	private static final CloseableHttpClient HTTP_CLIENT = SolrHttpContext.createDefaultHttpclient();
 	private static final Map<Class<? extends ResponseParser>, ResponseParser> PARSER_POOL = Maps.of();
 	private final SolrMeta meta;
-
-	public enum ResponseFormat {
-		XML(XMLResponseParser.class), JSON(JsonMapResponseParser.class), BINARY(BinaryResponseParser.class);
-		private final Class<? extends ResponseParser> parser;
-
-		private <P extends ResponseParser> ResponseFormat(Class<P> parser) {
-			this.parser = parser;
-		}
-
-		@SuppressWarnings("unchecked")
-		private static Class<? extends ResponseParser> parse(String id) {
-			try {
-				return ResponseFormat.valueOf(id.toUpperCase()).parser;
-			} catch (Exception e) {
-				try {
-					return (Class<? extends ResponseParser>) Class.forName(id);
-				} catch (ClassNotFoundException e1) {
-					throw new IllegalArgumentException("Parser [" + id + "] not found.");
-				}
-			}
-		}
-	}
 
 	public SolrConnection(String connection) throws IOException {
 		this(new URISpec(connection));
@@ -98,8 +75,7 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 	}
 
 	private static SolrClient create(URISpec uri, Class<? extends ResponseParser> parserClass) {
-		if (null == parserClass)
-			parserClass = XMLResponseParser.class;
+		if (null == parserClass) parserClass = XMLResponseParser.class;
 		ResponseParser p = PARSER_POOL.computeIfAbsent(parserClass, clz -> Reflections.construct(clz));
 		switch (uri.getScheme()) {
 		case "solr:http":
@@ -154,8 +130,7 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 			params.set(HttpClientUtil.PROP_FOLLOW_REDIRECTS, false);
 			params.set(HttpClientUtil.PROP_CONNECTION_TIMEOUT, SolrHttpContext.SOLR_HTTP_CONN_TIMEOUT);
 			params.set(HttpClientUtil.PROP_SO_TIMEOUT, SolrHttpContext.SOLR_HTTP_SO_TIMEOUT);
-			HttpClientUtil.addRequestInterceptor((req, ctx) -> {
-			});
+			HttpClientUtil.addRequestInterceptor((req, ctx) -> {});
 			return HttpClientUtil.createClient(params);
 		}
 
@@ -166,8 +141,7 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 			m.setMaxTotal(SolrHttpContext.SOLR_HTTP_MAX_TOTAL);
 			m.setDefaultMaxPerRoute(SolrHttpContext.SOLR_HTTP_MAX_PER_ROUTE);
 			m.setDefaultSocketConfig(SocketConfig.custom().setSoTimeout(SolrHttpContext.SOLR_HTTP_SO_TIMEOUT).build());
-			m.setDefaultConnectionConfig(
-					ConnectionConfig.custom().setBufferSize(SolrHttpContext.SOLR_HTTP_BUFFER_SIZE).build());
+			m.setDefaultConnectionConfig(ConnectionConfig.custom().setBufferSize(SolrHttpContext.SOLR_HTTP_BUFFER_SIZE).build());
 			return HttpClientBuilder.create()//
 					.addInterceptorLast(SolrHttpContext.SOLR_HTTP_ICPT)//
 					.setConnectionManager(m)//

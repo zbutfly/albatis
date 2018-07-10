@@ -8,13 +8,13 @@ import java.util.Map;
 
 import org.bson.BSONObject;
 
-import com.hzcominfo.albatis.nosql.Connection;
+import com.google.common.base.Joiner;
 import com.hzcominfo.albatis.nosql.NoSqlConnection;
 import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;
-import com.mongodb.Cursor;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
+import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
@@ -40,8 +40,7 @@ public class MongoConnection extends NoSqlConnection<MongoClient> {
 			try {
 				String str = u.getScheme() + "://" + u.getAuthority() + "/";
 				String db = u.getPathAt(0);
-				if (null != db)
-					str += db;
+				if (null != db) str += db;
 				return new MongoClient(new MongoClientURI(str));
 			} catch (UnknownHostException e) {
 				throw new RuntimeException(e);
@@ -125,9 +124,8 @@ public class MongoConnection extends NoSqlConnection<MongoClient> {
 	public static BasicDBObject dbobj(BSONObject... origin) {
 		BasicDBObject dbo = new BasicDBObject();
 		for (BSONObject o : origin)
-			if (null != o)
-				for (String k : o.keySet())
-					putDeeply(dbo, k, o.get(k));
+			if (null != o) for (String k : o.keySet())
+				putDeeply(dbo, k, o.get(k));
 		return dbo;
 	}
 
@@ -146,23 +144,17 @@ public class MongoConnection extends NoSqlConnection<MongoClient> {
 
 	@SuppressWarnings("unchecked")
 	private static void putDeeply(BasicDBObject dbo, String k, Object v) {
-		if (null == v)
-			dbo.put(k, v);
-		else if (v instanceof BSONObject)
-			dbo.put(k, dbobj((BSONObject) v));
-		else if (v instanceof Map)
-			dbo.put(k, dbobj((Map<String, ?>) v));
-		else
-			dbo.put(k, v);
+		if (null == v) dbo.put(k, v);
+		else if (v instanceof BSONObject) dbo.put(k, dbobj((BSONObject) v));
+		else if (v instanceof Map) dbo.put(k, dbobj((Map<String, ?>) v));
+		else dbo.put(k, v);
 	}
 
 	public static BasicDBObject dbobj(String key, Object... valueAndKeys) {
 		BasicDBObject dbo = dbobj();
-		if (null != valueAndKeys[0])
-			dbo.put(key, valueAndKeys[0]);
+		if (null != valueAndKeys[0]) dbo.put(key, valueAndKeys[0]);
 		for (int i = 1; i + 1 < valueAndKeys.length; i += 2)
-			if (null != valueAndKeys[i + 1])
-				dbo.put(((CharSequence) valueAndKeys[i]).toString(), valueAndKeys[i + 1]);
+			if (null != valueAndKeys[i + 1]) dbo.put(((CharSequence) valueAndKeys[i]).toString(), valueAndKeys[i + 1]);
 		return dbo;
 	}
 
@@ -173,20 +165,35 @@ public class MongoConnection extends NoSqlConnection<MongoClient> {
 		return dbl;
 	}
 
-	public static void main(String[] args) {
-		String uri = "mongodb://migrater:migrater1234@hzga137:30017/migrater";
-		try {
-			MongoConnection mc = Connection.connect(uri, MongoConnection.class);
-			Cursor cursor = mc.collection("TEST_SRC").find();
-			while (cursor.hasNext()) {
-				DBObject obj = cursor.next();
-				System.out.println(obj.toString());
+	public DBCursor cursor(String table, DBObject... filter) {
+		DBCursor cursor;
+		if (!collectionExists(table)) throw new IllegalArgumentException("Collection [" + table + "] not existed for input");
+		DBCollection col = collection(table);
+		long now;
+		if (null == filter || filter.length == 0) {
+			now = System.nanoTime();
+			cursor = col.find();
+		} else {
+			logger.info("Mongodb [" + table + "] filters: \n\t" + Joiner.on("\n\t").join(filter) + "\nnow count:");
+			if (filter.length == 1) {
+				now = System.nanoTime();
+				cursor = col.find(filter[0]);
+			} else {
+				BasicDBList filters = new BasicDBList();
+				for (DBObject f : filter)
+					filters.add(f);
+				now = System.nanoTime();
+				cursor = col.find(dbobj("$and", filters));
 			}
-			mc.close();
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		}
+		String p = getParameter("limit");
+		if (p != null) cursor.limit(Integer.parseInt(p));
+		p = getParameter("skip");
+		if (p != null) cursor.skip(Integer.parseInt(p));
+		int count = cursor.count();
+		logger.debug(() -> "Mongodb [" + table + "] find [" + count + " records], end in [" + (System.nanoTime() - now) / 1000 + " ms].");
+		logger.trace(() -> "Mongodb [" + table + "] find [" + cursor.size() + " records].");
+		return cursor;
 	}
 
 	public static class Driver implements com.hzcominfo.albatis.nosql.Connection.Driver<MongoConnection> {
