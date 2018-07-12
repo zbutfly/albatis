@@ -1,7 +1,6 @@
 package com.hzcominfo.dataggr.uniquery.es5;
 
 import static com.hzcominfo.dataggr.uniquery.ConditionTransverter.valueOf;
-import static com.hzcominfo.dataggr.uniquery.es5.Es5ConditionTransverter.nestedQueryWrapper;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -111,9 +110,25 @@ public interface Es5ConditionTransverter extends ConditionTransverter {
 				params = new ArrayList<>();
 				object.get(field).getAsJsonArray().forEach(e -> params.add(e.getAsBigDecimal().doubleValue()));
 				return new GeoPolygonEs5ConditionTransverter(field, params).toEs5Query();
+			case "query_all":
+				String v = json.get(key).getAsString();
+				return new QueryAllEs5ConditionTransverter(v).toEs5Query();
 			}
 		}
 		throw new RuntimeException("Can NOT parse " + json + "to Es5 Query");
+	}
+
+	class QueryAllEs5ConditionTransverter implements Es5ConditionTransverter {
+		private String v;
+
+		public QueryAllEs5ConditionTransverter(String v) {
+			this.v = v;
+		}
+
+		@Override
+		public QueryBuilder toEs5Query() {
+			return QueryBuilders.queryStringQuery(v);
+		}
 	}
 
 	// geo_distance(field,x,y,d)
@@ -149,8 +164,9 @@ public interface Es5ConditionTransverter extends ConditionTransverter {
 
 		@Override
 		public QueryBuilder toEs5Query() {
-			return QueryBuilders.geoBoundingBoxQuery(field).setCorners(params.get(0), params.get(1), params.get(2),
-					params.get(3)).setValidationMethod(GeoValidationMethod.COERCE);
+			return QueryBuilders.geoBoundingBoxQuery(field)
+					.setCorners(params.get(0), params.get(1), params.get(2), params.get(3))
+					.setValidationMethod(GeoValidationMethod.COERCE);
 		}
 	}
 
@@ -462,11 +478,10 @@ public interface Es5ConditionTransverter extends ConditionTransverter {
 		}
 
 		/*
-		 * @Override public QueryBuilder toEs5Query() { BoolQueryBuilder builder
-		 * = QueryBuilders.boolQuery(); values.forEach(obj ->
+		 * @Override public QueryBuilder toEs5Query() { BoolQueryBuilder builder =
+		 * QueryBuilders.boolQuery(); values.forEach(obj ->
 		 * builder.should(QueryBuilders.termQuery(field, obj)));
-		 * builder.minimumShouldMatch(1); return nestedQueryWrapper(field,
-		 * builder); }
+		 * builder.minimumShouldMatch(1); return nestedQueryWrapper(field, builder); }
 		 */
 
 		@Override
@@ -487,8 +502,8 @@ public interface Es5ConditionTransverter extends ConditionTransverter {
 		}
 
 		/*
-		 * @Override public QueryBuilder toEs5Query() { BoolQueryBuilder builder
-		 * = QueryBuilders.boolQuery(); values.forEach(obj ->
+		 * @Override public QueryBuilder toEs5Query() { BoolQueryBuilder builder =
+		 * QueryBuilders.boolQuery(); values.forEach(obj ->
 		 * builder.mustNot(QueryBuilders.termQuery(field, obj))); return
 		 * nestedQueryWrapper(field, builder); }
 		 */

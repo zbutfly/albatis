@@ -65,8 +65,7 @@ public class AppTest {
 + "where LG.LGDM_LGMC_FORMAT_s = '横塘村十组旅馆'  \n"
 + "group by SFZH_s, LG.ZKLSH_s   \n"
 + "having count(LG.ZKLSH_s) >= 3";*/
-		
-		String sql = "SELECT * FROM test_phga_search.dpc_solr_czrk where  XX.keyword='１６幢４０５室' or LXDBID.keyword='１６幢４０５室' or ZJXY.keyword='１６幢４０５室' or QWDSSXQ.keyword='１６幢４０５室' or ZWCJJGDM.keyword='１６幢４０５室' or HLX_FORMAT.keyword='１６幢４０５室' or XXJB.keyword='１６幢４０５室' or FWCS.keyword='１６幢４０５室' or HH.keyword='１６幢４０５室' or MLPID.keyword='１６幢４０５室' or XB_FORMAT.keyword='１６幢４０５室' or JGSSXQ_FORMAT.keyword='１６幢４０５室' or PCS_FORMAT.keyword='１６幢４０５室' Limit 0,1000";
+		String sql = "SELECT * FROM test_phga_search.dpc_solr_czrk where query_all('chenw')";
 		ResultSet r = conn.execute(sql);
 		System.out.println(r);
 		

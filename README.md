@@ -148,3 +148,7 @@
 			- 圆形  geo_distance(field,lat,lon,d)
 			- 矩形  geo_box(field,top,left,bottom,right)
 			- 多边形	  geo_polygon(field,x1,y1,x2,y2...xn,yn,x1,y1)
+	
+	1. 全文检索功能
+		- 已支持solr,es5的全文检索：query_all('v')
+		

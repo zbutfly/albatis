@@ -12,8 +12,9 @@ import com.hzcominfo.dataggr.uniquery.SqlExplainer;
 public class SqlExplainerTest {
 	
 	public static void main(String[] args) {
-		String sql = "select lat,lon from class where geo_distance(lat_lon,330.00,220.00,10)";
+//		String sql = "select slat,lon from class where geo_distance(lat_lon,330.00,220.00,10)";
 //		String sql = "select name from class where keyword(name)='chenw'";
+		String sql = "select lat,lon from class where query_all('chenw')";
         JsonObject sqlJson = SqlExplainer.explain(sql);
         System.out.println(sqlJson);
 	}
