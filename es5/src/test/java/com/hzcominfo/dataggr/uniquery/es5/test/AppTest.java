@@ -65,7 +65,10 @@ public class AppTest {
 + "where LG.LGDM_LGMC_FORMAT_s = '横塘村十组旅馆'  \n"
 + "group by SFZH_s, LG.ZKLSH_s   \n"
 + "having count(LG.ZKLSH_s) >= 3";*/
-		String sql = "SELECT * FROM test_phga_search.dpc_solr_czrk where query_all('chenw')";
+//		String sql = "SELECT * FROM test_phga_search.dpc_solr_czrk where query_all('chenw')";
+		
+		//test
+		String sql = "select * from test_hzwa_all.ES_WA_SOURCE_FJ_1001 where _id='118396_1_30_1526010307622_2058' limit 1"; 
 		ResultSet r = conn.execute(sql);
 		System.out.println(r);
 		

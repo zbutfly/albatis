@@ -65,6 +65,7 @@ public class Es5Adapter extends Adapter {
 			if (!hit.hasSource()) continue;
 			Map<String, Object> map = new HashMap<>();
 			Map<String, Object> sourceMap = hit.getSourceAsMap();
+			map.put("_id", hit.docId());
 			for(String key : sourceMap.keySet()) {
 				/*Object object = sourceMap.get(key);
 				JsonElement fromJson = new Gson().fromJson(object.toString(), JsonElement.class);
