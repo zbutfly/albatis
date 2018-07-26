@@ -13,8 +13,8 @@ public class MongoQuery {
     private DBObject sort;
     private List<String> groupFields;
     private List<Pair<String, DBObject>> pipelineGroupAggItem;
-    private int offset;
-    private int limit;
+    private Integer offset;
+    private Integer limit;
     private List<DBObject> pipeline;
     private QueryType queryType;
     
@@ -86,8 +86,8 @@ public class MongoQuery {
         pipeline = new ArrayList<>();
         pipeline.add(new BasicDBObject("$match", query));
         if (null != sort && sort.keySet().size() > 0) pipeline.add(new BasicDBObject("$sort", sort));
-        pipeline.add(new BasicDBObject("$skip", offset));
-        pipeline.add(new BasicDBObject("$limit", limit));
+        if (null != offset) pipeline.add(new BasicDBObject("$skip", offset));
+        if (null != limit) pipeline.add(new BasicDBObject("$limit", limit));
         BasicDBObject group = new BasicDBObject();
         group.append("_id", getPipelineGroupId());
         pipelineGroupAggItem.forEach(pair -> group.append(pair.v1(), pair.v2()));
