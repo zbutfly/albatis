@@ -24,7 +24,7 @@ public final class FieldDesc extends Desc<FieldDesc> {
 	}
 
 	public FieldDesc(String fullname, ValType type, boolean rowkey) {
-		this(fullname, type, rowkey, false, !rowkey);
+		this(fullname, type, rowkey, false, rowkey);
 	}
 
 	public FieldDesc(String fullname, ValType type) {

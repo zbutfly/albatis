@@ -88,4 +88,9 @@ public final class DBDesc extends Desc<DBDesc> {
 		return b.toString();
 
 	}
+
+	public TableDesc reg(TableDesc tbl) {
+		if (null != tbl) tables.putIfAbsent(tbl.name, tbl);
+		return tbl;
+	}
 }
