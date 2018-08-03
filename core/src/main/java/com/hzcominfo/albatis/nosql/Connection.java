@@ -2,19 +2,25 @@ package com.hzcominfo.albatis.nosql;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.ServiceLoader;
+import java.util.function.Function;
+
+import com.hzcominfo.albatis.nosql.EnvironmentConnection.$env$;
 
 import net.butfly.albacore.io.URISpec;
+import net.butfly.albacore.serder.BsonSerder;
+import net.butfly.albacore.serder.JsonSerder;
 import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.io.Input;
-import net.butfly.albatis.io.R;
 import net.butfly.albatis.io.Output;
+import net.butfly.albatis.io.R;
 
 public interface Connection extends AutoCloseable {
 	public static final String PARAM_KEY_BATCH = "batch";
@@ -25,8 +31,9 @@ public interface Connection extends AutoCloseable {
 
 	URISpec uri();
 
+	@SuppressWarnings("unchecked")
 	static <T extends Connection> T connect(URISpec uriSpec) throws IOException {
-		return DriverManager.connect(uriSpec);
+		return null == $env$.env() ? DriverManager.connect(uriSpec) : (T) $env$.connect(uriSpec);
 	}
 
 	<M extends R> Input<M> input(String... table) throws IOException;
@@ -112,5 +119,32 @@ public interface Connection extends AutoCloseable {
 
 	default void truncate(String table) {
 		throw new UnsupportedOperationException();
+	}
+
+	static Function<Map<String, Object>, byte[]> uriser(URISpec uri) {
+		String sd = null == uri ? "bson" : uri.getParameter("serder", "bson").toLowerCase();
+		switch (sd) {
+		case "bson":
+			return BsonSerder::map;
+		case "json":
+			return m -> JsonSerder.JSON_MAPPER.ser(m).getBytes(StandardCharsets.UTF_8);
+
+		default:
+			logger.warn("Current only support \"serder=bson|json\", \"" + sd + "\" is not supported, use bson by failback.");
+			return BsonSerder::map;
+		}
+	}
+
+	static Function<byte[], Map<String, Object>> urider(URISpec uri) {
+		String sd = null == uri ? "bson" : uri.getParameter("serder", "bson").toLowerCase();
+		switch (sd) {
+		case "bson":
+			return BsonSerder::map;
+		case "json":
+			return m -> JsonSerder.JSON_MAPPER.der(new String(m, StandardCharsets.UTF_8));
+		default:
+			logger.warn("Current only support \"serder=bson|json\", \"" + sd + "\" is not supported, use bson by failback.");
+			return BsonSerder::map;
+		}
 	}
 }

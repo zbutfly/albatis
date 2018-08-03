@@ -3,11 +3,13 @@ package net.butfly.albatis.mongodb;
 import static net.butfly.albatis.mongodb.MongoConnection.dbobj;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import com.mongodb.BasicDBObject;
 import com.mongodb.Bytes;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
@@ -19,6 +21,7 @@ import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albacore.utils.logger.Statistic;
 import net.butfly.albatis.io.R;
+import net.butfly.albatis.io.Input;
 import net.butfly.albatis.io.OddInput;
 
 public class MongoInput extends net.butfly.albacore.base.Namedly implements OddInput<R> {
@@ -137,7 +140,9 @@ public class MongoInput extends net.butfly.albacore.base.Namedly implements OddI
 					m.forEach((k, v) -> {
 						if (null == v) {
 							logger.error("Mongo result field [" + k + "] null at table [" + collection + "], id [" + key + "].");
-						} else { msg.put(k, v); }
+						} else {
+							msg.put(k, v);
+						}
 					});
 					return msg;
 				} else {
@@ -149,5 +154,15 @@ public class MongoInput extends net.butfly.albacore.base.Namedly implements OddI
 			}
 
 		return null;
+	}
+
+	@Override
+	public Input<R> filter(Map<String, Object> criteria) {
+		Collection<Cursor> exists = cursorsMap.values();
+		for (Cursor c : exists) {
+			c.close();
+			cursorsMap.put(c.col, new Cursor(c.col, new BasicDBObject(criteria)));
+		}
+		return this;
 	}
 }

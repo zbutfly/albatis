@@ -1,5 +1,6 @@
 package net.butfly.albatis.io;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -13,7 +14,11 @@ import java.util.function.Supplier;
 import net.butfly.albacore.io.Dequeuer;
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.collection.Colls;
+import net.butfly.albatis.io.ext.DryOutput;
+import net.butfly.albatis.io.ext.FanOutput;
 import net.butfly.albatis.io.ext.PrefetchInput;
+import net.butfly.albatis.io.pump.BasicPump;
+import net.butfly.albatis.io.pump.Pump;
 
 public interface Input<V> extends IO, Dequeuer<V> {
 	static Input<?> NULL = using -> {};
@@ -28,14 +33,12 @@ public interface Input<V> extends IO, Dequeuer<V> {
 		return 0;
 	}
 
-	// TODO
 	default Input<V> filter(Map<String, Object> criteria) {
-		return this;
+		throw new UnsupportedOperationException();
 	}
 
-	// TODO
 	default Input<V> filter(Predicate<V> predicater) {
-		return this;
+		return Wrapper.wrap(this, "Then", using -> dequeue(s -> using.accept(s.filter(predicater))));
 	}
 
 	default <V1> Input<V1> then(Function<V, V1> conv) {
@@ -84,5 +87,22 @@ public interface Input<V> extends IO, Dequeuer<V> {
 				l.add(t);
 			using.accept(Sdream.of(l));
 		};
+	}
+
+	// pump
+	default Pump<V> pump(int parallelism) {
+		return pump(parallelism, new DryOutput<V>(name()));
+	}
+
+	default Pump<V> pump(int parallelism, Output<V> dest) {
+		return new BasicPump<V>(this, parallelism, dest);
+	}
+
+	default Pump<V> pump(int parallelism, @SuppressWarnings("unchecked") Output<V>... dests) {
+		return pump(parallelism, Arrays.asList(dests));
+	}
+
+	default Pump<V> pump(int parallelism, List<? extends Output<V>> dests) {
+		return pump(parallelism, new FanOutput<V>(dests));
 	}
 }

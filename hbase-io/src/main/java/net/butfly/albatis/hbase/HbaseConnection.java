@@ -28,13 +28,12 @@ import org.apache.hadoop.hbase.ipc.RemoteWithExtrasException;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.ClassSize;
 
+import com.hzcominfo.albatis.nosql.Connection;
 import com.hzcominfo.albatis.nosql.NoSqlConnection;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.paral.Exeter;
 import net.butfly.albacore.paral.Sdream;
-import net.butfly.albacore.serder.BsonSerder;
-import net.butfly.albacore.serder.JsonSerder;
 import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.Texts;
 import net.butfly.albacore.utils.collection.Colls;
@@ -96,17 +95,7 @@ public class HbaseConnection extends NoSqlConnection<org.apache.hadoop.hbase.cli
 				return null;
 			}
 		}, "hbase");
-		String sd = uri.getParameter("serder", "bson").toLowerCase();
-		switch (sd) {
-		case "bson":
-			conv = BsonSerder::map;
-			break;
-		case "json":
-			conv = m -> Bytes.toBytes(JsonSerder.JSON_MAPPER.ser(m));
-			break;
-		default:
-			throw new RuntimeException("Current only support \"serder=bson|json\", \"" + sd + "\" is not supported.");
-		}
+		conv = Connection.uriser(uri);
 		tables = Maps.of();
 	}
 

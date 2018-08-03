@@ -14,6 +14,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 
+import com.hzcominfo.albatis.nosql.Connection;
+
 import kafka.common.ConsumerRebalanceFailedException;
 import kafka.common.MessageStreamsExistException;
 import kafka.consumer.ConsumerIterator;
@@ -43,13 +45,13 @@ public class KafkaInput extends net.butfly.albacore.base.Namedly implements OddI
 
 	private final Function<byte[], Map<String, Object>> decoder;
 
-	public KafkaInput(String name, String kafkaURI, Function<byte[], Map<String, Object>> decoder, String... topics) throws ConfigException,
+	public KafkaInput(String name, String kafkaURI, String... topics) throws ConfigException,
 			IOException {
-		this(name, new URISpec(kafkaURI), decoder, topics);
+		this(name, new URISpec(kafkaURI), topics);
 	}
 
-	public KafkaInput(String name, URISpec kafkaURI, Function<byte[], Map<String, Object>> decoder) throws ConfigException, IOException {
-		this(name, kafkaURI, decoder, topic(kafkaURI).toArray(new String[0]));
+	public KafkaInput(String name, URISpec kafkaURI) throws ConfigException, IOException {
+		this(name, kafkaURI, topic(kafkaURI).toArray(new String[0]));
 	}
 
 	private static Collection<String> topic(URISpec kafkaURI) {
@@ -58,10 +60,10 @@ public class KafkaInput extends net.butfly.albacore.base.Namedly implements OddI
 		return Texts.split(topics, ",");
 	}
 
-	public KafkaInput(String name, URISpec uri, Function<byte[], Map<String, Object>> decoder, String... topics) throws ConfigException,
+	public KafkaInput(String name, URISpec uri, String... topics) throws ConfigException,
 			IOException {
 		super(name);
-		this.decoder = decoder;
+		this.decoder = Connection.urider(uri);
 		config = new KafkaInputConfig(name(), uri);
 		skip = new AtomicLong(Long.parseLong(uri.getParameter("skip", "0")));
 		if (skip.get() > 0) logger().error("[" + name() + "] skip [" + skip.get()
@@ -146,6 +148,5 @@ public class KafkaInput extends net.butfly.albacore.base.Namedly implements OddI
 		} catch (Exception e) {
 			logger().error("[" + name() + "] shutdown fail", e);
 		}
-
 	}
 }

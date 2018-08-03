@@ -1,10 +1,3 @@
-import java.io.IOException;
-
-import net.butfly.albacore.io.URISpec;
-import net.butfly.albacore.utils.logger.Logger;
-import net.butfly.albatis.arangodb.ArangoConnection;
-import net.butfly.albatis.arangodb.ArangoInput;
-
 public class ArangodbTest {
 /*	public static void main(String[] args) {
 		ArangoDB adb = new ArangoDB.Builder().host("192.168.182.50", 8888).build();

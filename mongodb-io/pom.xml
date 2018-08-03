@@ -18,11 +18,6 @@
 			<artifactId>mongo-java-driver</artifactId>
 			<version>${version.mongodb.thin}</version>
 		</dependency>
-		<dependency>
-			<groupId>net.butfly.albacore</groupId>
-			<artifactId>albacore-serder-json</artifactId>
-			<version>1.0.1</version>
-		</dependency>
 	</dependencies>
 	<build>
 		<pluginManagement>

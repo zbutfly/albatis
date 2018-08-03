@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
+import com.hzcominfo.albatis.nosql.Connection;
+
 import kafka.javaapi.producer.Producer;
 import kafka.producer.KeyedMessage;
 import net.butfly.albacore.exception.ConfigException;
@@ -24,9 +26,9 @@ public final class KafkaOutput extends OutputBase<R> {
 	private final Producer<byte[], byte[]> producer;
 	private final Function<Map<String, Object>, byte[]> coder;
 
-	public KafkaOutput(String name, URISpec kafkaURI, Function<Map<String, Object>, byte[]> coder) throws ConfigException {
+	public KafkaOutput(String name, URISpec kafkaURI) throws ConfigException {
 		super(name);
-		this.coder = coder;
+		this.coder = Connection.uriser(kafkaURI);
 		uri = kafkaURI;
 		config = new KafkaOutputConfig(uri);
 		producer = new Producer<byte[], byte[]>(config.getConfig());
