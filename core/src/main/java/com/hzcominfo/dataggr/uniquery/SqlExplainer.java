@@ -43,6 +43,7 @@ public class SqlExplainer {
 	private static final Logger logger = Logger.getLogger(SqlExplainer.class);
 	public static final String KEYWORD_FUNCTION_STRING_NAME = "keyword";
 	public static final int LIMIT_DEFAULT;
+	public static final int AGGSIZE_DEFAULT;
 	public static SqlParser.ConfigBuilder DEFAULT_PARSER_CONFIG = SqlParser.configBuilder()
 			.setParserFactory(SqlParserImpl.FACTORY).setQuoting(Quoting.DOUBLE_QUOTE)
 			.setUnquotedCasing(Casing.UNCHANGED).setQuotedCasing(Casing.UNCHANGED)
@@ -55,19 +56,24 @@ public class SqlExplainer {
 	private static final AtomicInteger DYNAMIC_PARAM_INDEX = new AtomicInteger(0);
 
 	static {
-		String strValue = System.getProperty("uniquery.default.limit");
+		LIMIT_DEFAULT = init(10000, "uniquery.default.limit");
+		AGGSIZE_DEFAULT = init(10, "uniquery.default.aggsize");
+	}
+	
+	private static int init(int defaultV, String param) {
+		String strValue = System.getProperty(param);
 		if (null == strValue) {
-			LIMIT_DEFAULT = 10000;
-			logger.debug("system property 'uniquery.default.limit' not assigned, use default value: " + LIMIT_DEFAULT);
+			logger.debug("system property '"+param+"' not assigned, use default value: " + defaultV);
+			return defaultV;
 		} else {
-			int limit = 10000;
+			int limit = defaultV;
 			try {
 				limit = Integer.valueOf(strValue);
 			} catch (NumberFormatException e) {
-				logger.warn("can NOT parse default limit as INT from system property 'uniquery.default.limit="
+				logger.warn("can NOT parse default limit as INT from system property '"+param+"="
 						+ strValue + "', use default value: " + limit);
 			}
-			LIMIT_DEFAULT = limit;
+			return limit;
 		}
 	}
 

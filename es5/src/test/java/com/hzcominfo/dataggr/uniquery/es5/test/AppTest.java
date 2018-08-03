@@ -68,7 +68,8 @@ public class AppTest {
 //		String sql = "SELECT * FROM test_phga_search.dpc_solr_czrk where query_all('chenw')";
 		
 		//test
-		String sql = "select * from test_hzwa_all.ES_WA_SOURCE_FJ_1001 where _id='118396_1_30_1526010307622_2058' limit 1"; 
+		System.setProperty("uniquery.default.aggsize", "15");
+		String sql = "SELECT COUNT(XM_s.keyword) as cnt FROM test_phga_search.PH_ACU_QYYRXX GROUP BY XM_s.keyword"; 
 		ResultSet r = conn.execute(sql);
 		System.out.println(r);
 		

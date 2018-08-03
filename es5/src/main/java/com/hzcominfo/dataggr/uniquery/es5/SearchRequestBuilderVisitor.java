@@ -189,7 +189,8 @@ public class SearchRequestBuilderVisitor extends JsonBasicVisitor<SearchRequestB
 
     private AggregationBuilder wrapperNestedAggregation(GroupItem item, PipelineAggregationBuilder paBuilder, AggregationBuilder... subAggBuilders) {
         String field = item.name();
-        AggregationBuilder builder = AggregationBuilders.terms(field + AGGRS_SUFFIX).field(field);
+        AggregationBuilder builder = AggregationBuilders.terms(field + AGGRS_SUFFIX).field(field)
+        		.size(SqlExplainer.AGGSIZE_DEFAULT);
         if (null != subAggBuilders && subAggBuilders.length > 0) {
             for (AggregationBuilder agg : subAggBuilders) builder.subAggregation(agg);
             if (null != paBuilder) builder.subAggregation(paBuilder);
