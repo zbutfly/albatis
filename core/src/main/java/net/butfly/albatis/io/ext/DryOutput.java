@@ -7,6 +7,8 @@ import net.butfly.albacore.paral.Sdream;
 import net.butfly.albatis.io.Output;
 
 public class DryOutput<V> extends Namedly implements Output<V> {
+	private static final long serialVersionUID = -6732200800387125903L;
+
 	public DryOutput(String inputName) {
 		super(inputName + "DryOutput");
 		logger().warn("Dry output from [" + inputName + "]");

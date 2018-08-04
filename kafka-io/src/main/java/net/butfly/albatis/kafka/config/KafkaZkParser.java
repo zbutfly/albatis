@@ -16,7 +16,7 @@ import kafka.utils.ZkUtils;
 import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.collection.Maps;
 
-class KafkaZkParser extends ZkConnection {
+public class KafkaZkParser extends ZkConnection {
 	public KafkaZkParser(String zkconn) throws IOException {
 		super(zkconn);
 	}

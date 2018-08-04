@@ -1,12 +1,18 @@
 package net.butfly.albatis.io;
 
-import java.util.function.Consumer;
+import net.butfly.albacore.io.lambda.Consumer;
 
 import net.butfly.albacore.lambda.Runnable;
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.logger.Logger;
 
 public abstract class WrapInput<V, V1> extends WrapperBase<Input<? extends V1>> implements Input<V> {
+	private static final long serialVersionUID = 4826171507809605571L;
+
+//	public WrapInput() {
+//		super("", null);
+//	}
+
 	protected WrapInput(Input<? extends V1> base, String suffix) {
 		super(base.name() + suffix, base);
 	}

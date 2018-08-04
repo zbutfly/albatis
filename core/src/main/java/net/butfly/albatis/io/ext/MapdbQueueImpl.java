@@ -2,7 +2,7 @@ package net.butfly.albatis.io.ext;
 //package net.butfly.albatis.io;
 //
 //import java.io.File;
-//import java.util.function.Function;
+//import net.butfly.albacore.io.lambda.Function;
 //
 //import org.mapdb.DB;
 //import org.mapdb.DBMaker;

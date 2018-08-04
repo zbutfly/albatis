@@ -2,7 +2,7 @@ package net.butfly.albatis.io;
 
 import static net.butfly.albacore.paral.Task.waitWhen;
 
-import java.util.function.Function;
+import net.butfly.albacore.io.lambda.Function;
 
 import net.butfly.albacore.paral.Sdream;
 

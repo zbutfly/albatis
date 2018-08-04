@@ -16,6 +16,8 @@ import net.butfly.albacore.utils.Exceptions;
 import net.butfly.albatis.io.R;
 
 public class ElasticOutputAsync extends ElasticOutput {
+	private static final long serialVersionUID = -5126312703438177937L;
+
 	public ElasticOutputAsync(String name, ElasticConnection conn) throws IOException {
 		super(name, conn);
 	}

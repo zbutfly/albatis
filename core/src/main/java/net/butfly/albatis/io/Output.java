@@ -1,8 +1,8 @@
 package net.butfly.albatis.io;
 
 import java.util.Collection;
-import java.util.function.Consumer;
-import java.util.function.Function;
+import net.butfly.albacore.io.lambda.Consumer;
+import net.butfly.albacore.io.lambda.Function;
 
 import net.butfly.albacore.io.Enqueuer;
 import net.butfly.albacore.paral.Sdream;

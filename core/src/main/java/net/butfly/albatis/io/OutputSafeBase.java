@@ -3,7 +3,7 @@ package net.butfly.albatis.io;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Supplier;
+import net.butfly.albacore.io.lambda.Supplier;
 
 import com.hzcominfo.albatis.Albatis;
 
@@ -13,6 +13,7 @@ import net.butfly.albacore.paral.Task;
 import net.butfly.albacore.utils.Configs;
 
 abstract class OutputSafeBase<V> extends Namedly implements Output<V> {
+	private static final long serialVersionUID = 7728355644701942166L;
 	private static final String PARAL_LIMIT = "paral.limit";
 	protected final int BATCH_SIZE = batchSize();
 	protected final Supplier<Boolean> opExceeded;

@@ -5,7 +5,7 @@ import java.net.ProtocolException;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Properties;
-import java.util.function.Function;
+import net.butfly.albacore.io.lambda.Function;
 
 import com.google.common.base.Joiner;
 import com.hzcominfo.albatis.search.exception.SearchAPIError;

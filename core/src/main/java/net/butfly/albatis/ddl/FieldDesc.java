@@ -3,6 +3,7 @@ package net.butfly.albatis.ddl;
 import net.butfly.albatis.ddl.vals.ValType;
 
 public final class FieldDesc extends Desc<FieldDesc> {
+	private static final long serialVersionUID = -7563169977573257870L;
 	public final String name;
 	/**
 	 * cf:prefix#name

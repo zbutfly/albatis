@@ -6,8 +6,8 @@ import static net.butfly.albacore.paral.Task.waitSleep;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import java.util.function.BiConsumer;
-import java.util.function.Function;
+import net.butfly.albacore.io.lambda.BiConsumer;
+import net.butfly.albacore.io.lambda.Function;
 import java.util.stream.Collectors;
 
 import org.apache.kudu.ColumnSchema;
@@ -28,6 +28,7 @@ import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.io.Input;
+import net.butfly.albatis.io.Output;
 import net.butfly.albatis.io.R;
 
 @SuppressWarnings("unchecked")
@@ -173,7 +174,7 @@ public abstract class KuduConnectionBase<C extends KuduConnectionBase<C, KC, S>,
 	}
 
 	@Override
-	public KuduOutput output() throws IOException {
-		return new KuduOutput("KuduOutput", this);
+	public <M extends R> Output<M> output() throws IOException {
+		return (Output<M>) new KuduOutput("KuduOutput", this);
 	}
 }

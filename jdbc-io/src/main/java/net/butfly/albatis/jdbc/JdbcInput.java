@@ -14,6 +14,7 @@ import net.butfly.albatis.io.OddInput;
 import net.butfly.albatis.io.R;
 
 public class JdbcInput extends net.butfly.albacore.base.Namedly implements OddInput<R> {
+	private static final long serialVersionUID = -8772607845694039875L;
 	private final JdbcConnection jdbc;
 	//
 	private Connection conn;

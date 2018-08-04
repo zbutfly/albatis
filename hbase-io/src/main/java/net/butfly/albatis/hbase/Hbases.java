@@ -17,7 +17,7 @@ import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.function.Function;
+import net.butfly.albacore.io.lambda.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 

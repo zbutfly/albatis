@@ -11,7 +11,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.BiConsumer;
+import net.butfly.albacore.io.lambda.BiConsumer;
 
 import org.apache.kudu.ColumnSchema;
 import org.apache.kudu.Schema;

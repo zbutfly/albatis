@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.function.Function;
+import net.butfly.albacore.io.lambda.Function;
 
 import com.google.common.base.Joiner;
 import com.mongodb.Bytes;
@@ -20,6 +20,7 @@ import net.butfly.albatis.io.R;
 import net.butfly.albatis.io.OddInput;
 
 public class MongoLockedInput extends net.butfly.albacore.base.Namedly implements OddInput<R> {
+	private static final long serialVersionUID = -7940068038599299902L;
 	private final MongoConnection conn;
 	private final List<C> cursors;
 	private final AtomicInteger queryings;
@@ -60,6 +61,8 @@ public class MongoLockedInput extends net.butfly.albacore.base.Namedly implement
 		this.conn = conn;
 		logger().debug("[" + name + "] find begin...");
 		cursors = of(tables).map(new Function<String, C>() {
+			private static final long serialVersionUID = 9173440279090985263L;
+
 			@Override
 			public C apply(String t) {
 				try {

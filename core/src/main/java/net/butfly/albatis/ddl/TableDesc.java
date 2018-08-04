@@ -11,6 +11,7 @@ import net.butfly.albacore.utils.logger.Logger;
  * Desc of some fields of one table.
  */
 public class TableDesc extends Desc<TableDesc> {
+	private static final long serialVersionUID = -5720312308026671887L;
 	private static final Logger logger = Logger.getLogger(TableDesc.class);
 	public final String name;
 	/**

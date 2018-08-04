@@ -2,7 +2,7 @@ package net.butfly.albatis.io.ext;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.Consumer;
+import net.butfly.albacore.io.lambda.Consumer;
 
 import org.slf4j.event.Level;
 
@@ -11,6 +11,7 @@ import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.io.OddOutputBase;
 
 public final class LoggerOutput extends OddOutputBase<String> {
+	private static final long serialVersionUID = 3342463383942278596L;
 	private final Map<Level, Consumer<String>> loggings;
 	private final Logger logger;
 	private final Level level;

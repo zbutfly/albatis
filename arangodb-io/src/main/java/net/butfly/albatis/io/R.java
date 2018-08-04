@@ -7,7 +7,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Function;
+import net.butfly.albacore.io.lambda.Function;
 
 import net.butfly.albacore.utils.IOs;
 import net.butfly.albacore.utils.Pair;

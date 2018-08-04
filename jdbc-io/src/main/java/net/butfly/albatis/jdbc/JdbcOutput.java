@@ -12,6 +12,7 @@ import net.butfly.albatis.io.R;
 import net.butfly.albatis.io.OutputBase;
 
 public class JdbcOutput extends OutputBase<R> {
+	private static final long serialVersionUID = 5114292900867103434L;
 	private final JdbcConnection jc;
 
 	/**

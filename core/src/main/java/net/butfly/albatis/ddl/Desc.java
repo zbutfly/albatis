@@ -1,11 +1,13 @@
 package net.butfly.albatis.ddl;
 
+import java.io.Serializable;
 import java.util.Map;
 
 import net.butfly.albacore.utils.collection.Maps;
 
 @SuppressWarnings("unchecked")
-public abstract class Desc<D extends Desc<D>> {
+public abstract class Desc<D extends Desc<D>> implements Serializable {
+	private static final long serialVersionUID = -152619742670508854L;
 	protected final Map<String, Object> attrs = Maps.of();
 	public static final String DRY = "dry";
 	// field desc

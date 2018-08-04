@@ -1,5 +1,6 @@
 package net.butfly.albatis.ddl.vals;
 
+import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.sql.Types;
 import java.util.Date;
@@ -7,7 +8,8 @@ import java.util.Map;
 
 import net.butfly.albacore.utils.collection.Maps;
 
-public abstract class ValType {
+public abstract class ValType implements Serializable {
+	private static final long serialVersionUID = 1262373128170249323L;
 	protected final static Map<String, ValType> MAPPING = Maps.of();
 
 	public static interface Flags {

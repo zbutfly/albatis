@@ -11,6 +11,7 @@ import net.butfly.albacore.utils.logger.Logger;
  * Desc of some models of one datasource (database).
  */
 public final class DBDesc extends Desc<DBDesc> {
+	private static final long serialVersionUID = 116728164544199423L;
 	private static final Logger logger = Logger.getLogger(DBDesc.class);
 	private static final Map<String, DBDesc> models = Maps.of();
 
@@ -24,7 +25,7 @@ public final class DBDesc extends Desc<DBDesc> {
 	}
 
 	public static DBDesc db(String name) {
-		return models.get(name);
+		return models.get(name.split("\\.", 2)[0]);
 	}
 
 	@SuppressWarnings("unchecked")

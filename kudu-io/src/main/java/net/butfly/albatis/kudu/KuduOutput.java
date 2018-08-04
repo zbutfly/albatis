@@ -27,6 +27,7 @@ import net.butfly.albatis.io.R;
 import net.butfly.albatis.io.OddOutputBase;
 
 public class KuduOutput extends OddOutputBase<R> {
+	private static final long serialVersionUID = -4548392751373001781L;
 	public static final int SUGGEST_BATCH_SIZE = 200;
 	private final KuduConnectionBase<?, ?, ?> connect;
 

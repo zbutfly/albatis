@@ -12,7 +12,7 @@ import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Function;
+import net.butfly.albacore.io.lambda.Function;
 
 import com.hzcominfo.albatis.nosql.Connection;
 
@@ -36,6 +36,7 @@ import net.butfly.albatis.io.OddInput;
 import net.butfly.albatis.kafka.config.KafkaInputConfig;
 
 public class KafkaInput extends net.butfly.albacore.base.Namedly implements OddInput<R> {
+	private static final long serialVersionUID = 998704625489437241L;
 	private final KafkaInputConfig config;
 	private final Map<String, Integer> allTopics = Maps.of();
 	private final ConsumerConnector connect;

@@ -4,13 +4,14 @@ import static net.butfly.albacore.paral.Task.waitWhen;
 
 import java.util.Spliterator;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
+import net.butfly.albacore.io.lambda.Consumer;
+import net.butfly.albacore.io.lambda.Supplier;
 
 import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.paral.Sdream;
 
 public abstract class OddQueue<T> extends Namedly implements Queue<T> {
+	private static final long serialVersionUID = -8930489494229450548L;
 	private final AtomicLong capacity;
 
 	public abstract T dequeue();
@@ -82,7 +83,7 @@ public abstract class OddQueue<T> extends Namedly implements Queue<T> {
 		}
 
 		@Override
-		public boolean tryAdvance(Consumer<? super V> using1) {
+		public boolean tryAdvance(java.util.function.Consumer<? super V> using1) {
 			V v = null;
 			while (input.opened() && !input.empty() && est > 0) {
 				v = input.dequeue();

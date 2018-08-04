@@ -9,6 +9,7 @@ import net.butfly.albacore.utils.logger.Statistic;
 import net.butfly.albatis.io.OutputBase;
 
 public class ArangoOutput extends OutputBase<AqlNestedMessage> {
+	private static final long serialVersionUID = -2376114954650957250L;
 	private final ArangoConnection conn;
 
 	protected ArangoOutput(String name, ArangoConnection conn) {

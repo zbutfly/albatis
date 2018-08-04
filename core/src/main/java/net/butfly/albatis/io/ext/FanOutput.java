@@ -3,7 +3,7 @@ package net.butfly.albatis.io.ext;
 import static net.butfly.albacore.paral.Sdream.of;
 
 import java.util.List;
-import java.util.function.Consumer;
+import net.butfly.albacore.io.lambda.Consumer;
 
 import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.paral.Exeter;
@@ -12,6 +12,7 @@ import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albatis.io.Output;
 
 public class FanOutput<V> extends Namedly implements Output<V> {
+	private static final long serialVersionUID = -162999699679518749L;
 	private final List<Consumer<Sdream<V>>> tasks;
 	private final List<? extends Output<V>> outputs;
 

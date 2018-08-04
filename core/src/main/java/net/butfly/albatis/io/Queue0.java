@@ -1,7 +1,7 @@
 package net.butfly.albatis.io;
 
-import java.util.function.Consumer;
-import java.util.function.Function;
+import net.butfly.albacore.io.lambda.Consumer;
+import net.butfly.albacore.io.lambda.Function;
 
 import com.bluejeans.bigqueue.BigQueue;
 
@@ -44,6 +44,8 @@ public interface Queue0<I, O> extends Input<O>, Output<I> {
 	@Override
 	default <O1> Queue0<I, O1> then(Function<O, O1> conv) {
 		Queue0<I, O1> i = new Queue0<I, O1>() {
+			private static final long serialVersionUID = 2094498345260970342L;
+
 			@Override
 			public void dequeue(Consumer<Sdream<O1>> using) {
 				Queue0.this.dequeue(s -> using.accept(s.map(conv)));
@@ -83,6 +85,8 @@ public interface Queue0<I, O> extends Input<O>, Output<I> {
 	@Override
 	default <O1> Queue0<I, O1> thens(Function<Sdream<O>, Sdream<O1>> conv, int parallelism) {
 		Queue0<I, O1> i = new Queue0<I, O1>() {
+			private static final long serialVersionUID = -1318189091743592868L;
+
 			@Override
 			public void dequeue(Consumer<Sdream<O1>> using) {
 				Queue0.this.dequeue(s -> s.partition(s1 -> using.accept(conv.apply(s1)), parallelism));
@@ -121,6 +125,8 @@ public interface Queue0<I, O> extends Input<O>, Output<I> {
 	@Override
 	default <I0> Queue0<I0, O> prior(Function<I0, I> conv) {
 		Queue0<I0, O> o = new Queue0<I0, O>() {
+			private static final long serialVersionUID = -1672582499335537429L;
+
 			@Override
 			public void dequeue(Consumer<Sdream<O>> using) {
 				Queue0.this.dequeue(using);
@@ -160,6 +166,8 @@ public interface Queue0<I, O> extends Input<O>, Output<I> {
 	@Override
 	default <I0> Queue0<I0, O> priors(Function<Sdream<I0>, Sdream<I>> conv, int parallelism) {
 		Queue0<I0, O> o = new Queue0<I0, O>() {
+			private static final long serialVersionUID = 1513309707964507542L;
+
 			@Override
 			public void dequeue(Consumer<Sdream<O>> using) {
 				Queue0.this.dequeue(using);

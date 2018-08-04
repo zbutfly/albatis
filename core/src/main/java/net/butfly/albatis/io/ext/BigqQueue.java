@@ -10,6 +10,7 @@ import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.io.OddQueue;
 
 public class BigqQueue<V> extends OddQueue<V> {
+	private static final long serialVersionUID = -6105461013291834558L;
 	public static final long GC_INTV = Integer.parseInt(System.getProperty("albatis.queue.bigqueue.autogc", "30")) * 1000;
 	protected static final Logger logger = Logger.getLogger(BigqQueue.class);
 

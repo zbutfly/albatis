@@ -1,5 +1,6 @@
 package net.butfly.albatis.io;
 
+import java.io.Serializable;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -11,7 +12,7 @@ import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Statistic;
 
-public interface IO extends Sizable, Openable {
+public interface IO extends Sizable, Openable, Serializable {
 	class Props {
 		static final String BATCH_SIZE = "batch.size";
 		static final String STATS_STEP = "stats.step";

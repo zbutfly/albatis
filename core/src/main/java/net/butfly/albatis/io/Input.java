@@ -6,10 +6,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Predicate;
-import java.util.function.Supplier;
+import net.butfly.albacore.io.lambda.Consumer;
+import net.butfly.albacore.io.lambda.Function;
+import net.butfly.albacore.io.lambda.Predicate;
+import net.butfly.albacore.io.lambda.Supplier;
 
 import net.butfly.albacore.io.Dequeuer;
 import net.butfly.albacore.paral.Sdream;
@@ -68,6 +68,7 @@ public interface Input<V> extends IO, Dequeuer<V> {
 	// constructor
 	public static <T> Input<T> of(Collection<? extends T> collection, int batchSize) {
 		return new Input<T>() {
+			private static final long serialVersionUID = 3793970608919903578L;
 			private final BlockingQueue<T> undly = new LinkedBlockingQueue<>(collection);
 
 			@Override

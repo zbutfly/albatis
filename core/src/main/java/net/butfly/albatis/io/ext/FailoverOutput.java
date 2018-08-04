@@ -17,6 +17,7 @@ import net.butfly.albatis.io.WrapOutput;
  * @param <M>
  */
 public class FailoverOutput<M> extends WrapOutput<M, M> {
+	private static final long serialVersionUID = -222291630780849828L;
 	protected final Queue<M> pool;
 	protected final OpenableThread failovering;
 

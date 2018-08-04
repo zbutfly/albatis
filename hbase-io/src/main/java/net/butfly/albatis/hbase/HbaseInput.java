@@ -8,8 +8,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
+import net.butfly.albacore.io.lambda.Consumer;
+import net.butfly.albacore.io.lambda.Supplier;
 
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
@@ -32,6 +32,7 @@ import net.butfly.albatis.io.Input;
 import net.butfly.albatis.io.R;
 
 public class HbaseInput extends Namedly implements Input<R> {
+	private static final long serialVersionUID = 6225222417568739808L;
 	private final long SCAN_BYTES = Props.propL(HbaseInput.class, "scan.bytes", 3145728); // 3M
 	private final int SCAN_ROWS = Props.propI(HbaseInput.class, "scan.rows", 1);
 	private final HbaseConnection hconn;

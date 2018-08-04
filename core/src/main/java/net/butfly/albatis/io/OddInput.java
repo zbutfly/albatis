@@ -1,10 +1,10 @@
 package net.butfly.albatis.io;
 
 import java.util.Spliterator;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Predicate;
-import java.util.function.Supplier;
+import net.butfly.albacore.io.lambda.Consumer;
+import net.butfly.albacore.io.lambda.Function;
+import net.butfly.albacore.io.lambda.Predicate;
+import net.butfly.albacore.io.lambda.Supplier;
 
 import net.butfly.albacore.io.Dequeuer;
 import net.butfly.albacore.paral.Sdream;
@@ -43,7 +43,7 @@ public interface OddInput<V> extends Input<V> {
 		}
 
 		@Override
-		public boolean tryAdvance(Consumer<? super V> using1) {
+		public boolean tryAdvance(java.util.function.Consumer<? super V> using1) {
 			V v = null;
 			while (input.opened() && !input.empty() && est > 0) {
 				v = input.dequeue();

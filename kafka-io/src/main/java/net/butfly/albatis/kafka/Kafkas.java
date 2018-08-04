@@ -1,7 +1,7 @@
 package net.butfly.albatis.kafka;
 
 import java.util.Map;
-import java.util.function.Function;
+import net.butfly.albacore.io.lambda.Function;
 
 import org.apache.kafka.clients.producer.ProducerRecord;
 

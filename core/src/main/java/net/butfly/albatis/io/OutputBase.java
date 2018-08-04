@@ -11,6 +11,7 @@ import net.butfly.albacore.paral.Task;
 import net.butfly.albacore.utils.collection.Colls;
 
 public abstract class OutputBase<V> extends OutputSafeBase<V> {
+	private static final long serialVersionUID = -1061128874752149665L;
 	private BlockingQueue<V> batchPool = new LinkedBlockingQueue<>();
 
 	protected OutputBase(String name) {

@@ -14,6 +14,7 @@ import net.butfly.albatis.io.R.Op;
 import net.butfly.albatis.io.OutputBase;
 
 public final class SolrOutput extends OutputBase<R> {
+	private static final long serialVersionUID = 4875270142242208468L;
 	public static final @SolrProps String MAX_CONCURRENT_OP_PROP_NAME = SolrProps.OUTPUT_CONCURRENT_OPS;
 	public static final int MAX_CONCURRENT_OP_DEFAULT = 100;
 	public static final int SUGGEST_BATCH_SIZE = 200;

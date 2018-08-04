@@ -10,7 +10,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class JdbcTestInput extends Namedly implements OddInput<R> {
-    private List<R> list;
+    private static final long serialVersionUID = 647609924979903160L;
+	private List<R> list;
 
     /**
      * for mysql, all field should be upper case

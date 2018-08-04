@@ -7,6 +7,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import net.butfly.albatis.io.OddQueue;
 
 public class JavaQueue<V> extends OddQueue<V> {
+	private static final long serialVersionUID = 4202834153701373076L;
 	private BlockingQueue<V> impl;
 
 	@Deprecated

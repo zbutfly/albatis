@@ -12,7 +12,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.BinaryOperator;
+import net.butfly.albacore.io.lambda.BinaryOperator;
 
 import com.arangodb.ArangoCursorAsync;
 import com.arangodb.ArangoDBAsync;

@@ -4,6 +4,8 @@ import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.paral.Task;
 
 public abstract class OddOutputBase<V> extends OutputSafeBase<V> implements OddOutput<V> {
+	private static final long serialVersionUID = -902415218246097294L;
+
 	protected OddOutputBase(String name) {
 		super(name);
 	}

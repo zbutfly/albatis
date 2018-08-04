@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.function.Function;
+import net.butfly.albacore.io.lambda.Function;
 
 import com.arangodb.ArangoCursorAsync;
 import com.arangodb.ArangoDBException;
@@ -20,11 +20,12 @@ import net.butfly.albatis.io.OddInput;
 import net.butfly.albatis.io.R;
 
 public class ArangoInput extends net.butfly.albacore.base.Namedly implements OddInput<R> {
+	private static final long serialVersionUID = 2242853649760090074L;
 	private static final Logger logger = Logger.getLogger(ArangoInput.class);
 	private ArangoConnection conn;
 	private final BlockingQueue<CursorAsync> cursors = new LinkedBlockingQueue<CursorAsync>();
 	private final Map<String, CursorAsync> cursorsMap = Maps.of();
-	
+
 	public ArangoInput(String name, ArangoConnection conn) throws IOException {
 		super(name);
 		this.conn = conn;
@@ -38,8 +39,10 @@ public class ArangoInput extends net.butfly.albacore.base.Namedly implements Odd
 			if (null != conn) {
 				String[] tables = conn.tables;
 				List<Runnable> queries = Colls.list();
-				Arrays.asList(tables).forEach(p ->{
+				Arrays.asList(tables).forEach(p -> {
 					queries.add(() -> cursorsMap.computeIfAbsent(p, new Function<String, CursorAsync>() {
+						private static final long serialVersionUID = 672656641235502988L;
+
 						@Override
 						public CursorAsync apply(String pp) {
 							return new CursorAsync(p);
@@ -50,12 +53,12 @@ public class ArangoInput extends net.butfly.albacore.base.Namedly implements Odd
 			} else throw new RuntimeException("No table defined for input.");
 		}
 	}
-	
+
 	@Override
 	public boolean empty() {
 		return cursorsMap.isEmpty();
 	}
-	
+
 	@Override
 	public R dequeue() {
 		CursorAsync c;
@@ -77,7 +80,9 @@ public class ArangoInput extends net.butfly.albacore.base.Namedly implements Odd
 					m.forEach((k, v) -> {
 						if (null == v) {
 							logger.error("arango result field [" + k + "] null at table [" + collection + "], id [" + key + "].");
-						} else { msg.put(k, v); }
+						} else {
+							msg.put(k, v);
+						}
 					});
 					return msg;
 				} else {
@@ -93,16 +98,14 @@ public class ArangoInput extends net.butfly.albacore.base.Namedly implements Odd
 			}
 		return null;
 	}
-	
 
-
-	private class CursorAsync{
+	private class CursorAsync {
 		String col;
 		ArangoCursorAsync<BaseDocument> cursor;
 
 		public CursorAsync(String col) {
 			super();
-			String aql = "for data in "+col+" return data";
+			String aql = "for data in " + col + " return data";
 			this.col = col;
 			ArangoCursorAsync<BaseDocument> c;
 			try {

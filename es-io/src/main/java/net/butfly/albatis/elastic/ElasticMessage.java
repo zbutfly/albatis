@@ -5,7 +5,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Map;
-import java.util.function.Function;
+import net.butfly.albacore.io.lambda.Function;
 
 import org.elasticsearch.script.Script;
 import org.elasticsearch.script.ScriptType;

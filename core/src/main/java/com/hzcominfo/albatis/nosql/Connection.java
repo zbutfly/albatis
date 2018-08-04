@@ -7,7 +7,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.ServiceLoader;
-import java.util.function.Function;
+import net.butfly.albacore.io.lambda.Function;
 
 import com.hzcominfo.albatis.nosql.EnvironmentConnection.$env$;
 

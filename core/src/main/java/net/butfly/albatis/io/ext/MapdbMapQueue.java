@@ -3,7 +3,7 @@ package net.butfly.albatis.io.ext;
 //
 //import java.util.Map;
 //import java.util.NoSuchElementException;
-//import java.util.function.Function;
+//import net.butfly.albacore.io.lambda.Function;
 //
 //import org.mapdb.Serializer;
 //

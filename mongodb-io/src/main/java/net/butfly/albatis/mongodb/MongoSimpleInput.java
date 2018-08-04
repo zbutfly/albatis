@@ -13,6 +13,7 @@ import net.butfly.albatis.io.R;
 import net.butfly.albatis.io.OddInput;
 
 public class MongoSimpleInput extends net.butfly.albacore.base.Namedly implements OddInput<R> {
+	private static final long serialVersionUID = -8711363806602831470L;
 	private static final Logger logger = Logger.getLogger(MongoSimpleInput.class);
 	private final MongoConnection conn;
 	private DBCursor cursor;

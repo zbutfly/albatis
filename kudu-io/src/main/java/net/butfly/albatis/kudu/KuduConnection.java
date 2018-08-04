@@ -6,7 +6,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.function.BiConsumer;
+import net.butfly.albacore.io.lambda.BiConsumer;
 
 import org.apache.kudu.ColumnSchema;
 import org.apache.kudu.Schema;

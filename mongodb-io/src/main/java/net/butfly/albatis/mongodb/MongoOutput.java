@@ -18,6 +18,7 @@ import net.butfly.albatis.io.R;
 import net.butfly.albatis.io.OutputBase;
 
 public final class MongoOutput extends OutputBase<R> {
+	private static final long serialVersionUID = -6150620515173963739L;
 	private final boolean upsert;
 	private final MongoConnection conn;
 	private final DBCollection collection;

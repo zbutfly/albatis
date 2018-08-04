@@ -25,6 +25,7 @@ import net.butfly.albatis.io.Input;
 import net.butfly.albatis.io.OddInput;
 
 public class MongoInput extends net.butfly.albacore.base.Namedly implements OddInput<R> {
+	private static final long serialVersionUID = -1542477278520256900L;
 	private static final Logger logger = Logger.getLogger(MongoInput.class);
 	private final MongoConnection conn;
 	private final BlockingQueue<Cursor> cursors = new LinkedBlockingQueue<>();

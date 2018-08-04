@@ -24,6 +24,7 @@ import net.butfly.albatis.io.R;
 import net.butfly.albatis.io.OutputBase;
 
 public class ElasticOutput extends OutputBase<R> {
+	private static final long serialVersionUID = 1874320396863861434L;
 	static final Logger logger = Logger.getLogger(ElasticOutput.class);
 	public static final int MAX_RETRY = 3;
 	public static final int SUGGEST_BATCH_SIZE = 1000;

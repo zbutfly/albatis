@@ -11,6 +11,7 @@ import net.butfly.albacore.utils.Pair;
 import net.butfly.albatis.io.OddOutputBase;
 
 public final class MongoUpdateOutput extends OddOutputBase<Pair<DBObject, DBObject>> {
+	private static final long serialVersionUID = 8527098854866563510L;
 	private final boolean upsert;
 	private final MongoConnection conn;
 	private final DBCollection collection;

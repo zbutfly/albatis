@@ -6,6 +6,8 @@ import net.butfly.albatis.io.Input;
 import net.butfly.albatis.io.OddInput;
 
 public final class RandomStringInput extends net.butfly.albacore.base.Namedly implements OddInput<String> {
+	private static final long serialVersionUID = 3328419256355113001L;
+
 	public RandomStringInput() {
 		super("RandomInput");
 	}

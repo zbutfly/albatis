@@ -4,7 +4,7 @@ import static net.butfly.albacore.paral.Sdream.of;
 
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
+import net.butfly.albacore.io.lambda.Function;
 
 import com.hzcominfo.albatis.nosql.Connection;
 
@@ -21,6 +21,7 @@ import net.butfly.albatis.kafka.config.KafkaOutputConfig;
  * @author zx
  */
 public final class KafkaOutput extends OutputBase<R> {
+	private static final long serialVersionUID = -7619558227408835825L;
 	private final URISpec uri;
 	private final KafkaOutputConfig config;
 	private final Producer<byte[], byte[]> producer;

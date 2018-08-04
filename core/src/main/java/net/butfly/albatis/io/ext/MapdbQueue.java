@@ -2,7 +2,7 @@ package net.butfly.albatis.io.ext;
 //package net.butfly.albatis.io;
 //
 //import java.util.concurrent.BlockingQueue;
-//import java.util.function.Function;
+//import net.butfly.albacore.io.lambda.Function;
 //
 //import org.mapdb.Serializer;
 //

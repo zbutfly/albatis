@@ -6,7 +6,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.function.Function;
+import net.butfly.albacore.io.lambda.Function;
 
 import org.apache.hadoop.hbase.client.Append;
 import org.apache.hadoop.hbase.client.Delete;
@@ -30,10 +30,11 @@ import net.butfly.albatis.io.OutputBase;
  * Subject (embedded document serialized as BSON with prefixed column name) writer to hbase.
  */
 public final class HbaseOutput extends OutputBase<R> {
+	private static final long serialVersionUID = 3301721159039265076L;
 	public static final @HbaseProps String MAX_CONCURRENT_OP_PROP_NAME = HbaseProps.OUTPUT_CONCURRENT_OPS;
 	public static final int MAX_CONCURRENT_OP_DEFAULT = Integer.MAX_VALUE;
 	public static final int SUGGEST_BATCH_SIZE = 200;
-	private final HbaseConnection hconn;
+	private final transient HbaseConnection hconn;
 
 	public HbaseOutput(String name, HbaseConnection hconn, Function<Map<String, Object>, byte[]> ser) throws IOException {
 		super(name);

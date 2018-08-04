@@ -13,6 +13,7 @@ import net.butfly.albatis.io.OddInput;
 
 @Deprecated
 public final class ElasticInput extends net.butfly.albacore.base.Namedly implements OddInput<SearchResponse> {
+	private static final long serialVersionUID = -8426373976437566637L;
 	protected static final Logger logger = Logger.getLogger(ElasticInput.class);
 	private final ElasticConnection elastic;
 	// view time def 10 minute
