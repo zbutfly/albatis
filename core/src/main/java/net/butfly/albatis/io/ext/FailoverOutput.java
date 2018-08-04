@@ -5,7 +5,7 @@ import net.butfly.albacore.paral.Task;
 import net.butfly.albacore.utils.OpenableThread;
 import net.butfly.albatis.io.Output;
 import net.butfly.albatis.io.Queue;
-import net.butfly.albatis.io.Wrapper;
+import net.butfly.albatis.io.WrapOutput;
 
 /**
  * Output with buffer and pool supporting.<br>
@@ -16,7 +16,7 @@ import net.butfly.albatis.io.Wrapper;
  *
  * @param <M>
  */
-public class FailoverOutput<M> extends Wrapper.WrapOutput<M, M> {
+public class FailoverOutput<M> extends WrapOutput<M, M> {
 	protected final Queue<M> pool;
 	protected final OpenableThread failovering;
 

@@ -2,15 +2,22 @@ package net.butfly.albatis.io;
 
 import java.util.Spliterator;
 import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
+import net.butfly.albacore.io.Dequeuer;
 import net.butfly.albacore.paral.Sdream;
 
 public interface OddInput<V> extends Input<V> {
 	V dequeue();
 
+	default void deq(Consumer<V> using) {
+		using.accept(dequeue());
+	}
+
 	@Override
-	public default void dequeue(Consumer<Sdream<V>> using) {
+	default void dequeue(Consumer<Sdream<V>> using) {
 		using.accept(Sdream.of(new SupSpliterator<>(this, () -> empty() || !opened(), batchSize())));
 	}
 
@@ -55,5 +62,44 @@ public interface OddInput<V> extends Input<V> {
 			// TODO not split now
 			return null;
 		}
+	}
+
+	// =====
+	@Override
+	default OddInput<V> filter(Predicate<V> predicater) {
+		return Wrapper.wrapOdd(this, "Then", () -> {
+			V v = predicater.test(v = dequeue()) ? v : null;
+			return v;
+		});
+	}
+
+	@Override
+	default <V1> OddInput<V1> then(Function<V, V1> conv) {
+		return Wrapper.wrapOdd(this, "Then", () -> {
+			V v = dequeue();
+			return null == v ? null : conv.apply(v);
+		});
+	}
+
+	@Override
+	default <V1> Input<V1> thens(Function<Sdream<V>, Sdream<V1>> conv) {
+		return Wrapper.wrap(this, "Thens", (Dequeuer<V1>) using -> {
+			V v = dequeue();
+			if (null != v) using.accept(conv.apply(Sdream.of(v)));
+		});
+	}
+
+	@Override
+	@Deprecated
+	default <V1> Input<V1> thens(Function<Sdream<V>, Sdream<V1>> conv, int parallelism) {
+		return thens(conv);
+	}
+
+	@Override
+	default <V1> Input<V1> thenFlat(Function<V, Sdream<V1>> conv) {
+		return Wrapper.wrap(this, "ThenFlat", (Dequeuer<V1>) using -> {
+			V v = dequeue();
+			if (null != v) dequeue(s -> using.accept(conv.apply(v)));
+		});
 	}
 }

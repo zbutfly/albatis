@@ -6,9 +6,9 @@ import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.OpenableThread;
 import net.butfly.albatis.io.Input;
 import net.butfly.albatis.io.Queue;
-import net.butfly.albatis.io.Wrapper;
+import net.butfly.albatis.io.WrapInput;
 
-public class PrefetchInput<V> extends Wrapper.WrapInput<V, V> {
+public class PrefetchInput<V> extends WrapInput<V, V> {
 	private final Queue<V> pool;
 	private final OpenableThread prefetching;
 

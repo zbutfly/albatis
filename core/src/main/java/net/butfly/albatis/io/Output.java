@@ -32,24 +32,23 @@ public interface Output<V> extends IO, Consumer<Sdream<V>>, Enqueuer<V> {
 				return false;
 			}
 		};
-
 	}
 
 	default <V0> Output<V0> prior(Function<V0, V> conv) {
-		return Wrapper.wrap(this, "Prior", (Enqueuer<V0>) s -> enqueue(s.map(conv)));
+		return Wrapper.wrap(this, "Prior", s -> enqueue(s.map(conv)));
 	}
 
 	default <V0> Output<V0> priors(Function<Sdream<V0>, Sdream<V>> conv) {
-		return Wrapper.wrap(this, "Prior", (Enqueuer<V0>) s -> enqueue(conv.apply(s)));
+		return Wrapper.wrap(this, "Prior", s -> enqueue(conv.apply(s)));
 	}
 
 	@Deprecated
 	default <V0> Output<V0> priors(Function<Sdream<V0>, Sdream<V>> conv, int parallelism) {
-		return Wrapper.wrap(this, "Priors", (Enqueuer<V0>) s -> s.partition(ss -> enqueue(conv.apply(ss)), parallelism));
+		return Wrapper.wrap(this, "Priors", s -> s.partition(ss -> enqueue(conv.apply(ss)), parallelism));
 	}
 
 	default <V0> Output<V0> priorFlat(Function<V0, Sdream<V>> conv) {
-		return Wrapper.wrap(this, "PriorFlat", (Enqueuer<V0>) s -> enqueue(s.mapFlat(conv)));
+		return Wrapper.wrap(this, "PriorFlat", s -> enqueue(s.mapFlat(conv)));
 	}
 
 	default void commit() {}

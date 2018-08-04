@@ -1,16 +1,15 @@
 package net.butfly.albatis.io;
 
 import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
-import net.butfly.albacore.base.Namedly;
+import net.butfly.albacore.base.Named;
 import net.butfly.albacore.io.Dequeuer;
-import net.butfly.albacore.io.Enqueuer;
-import net.butfly.albacore.lambda.Runnable;
 import net.butfly.albacore.paral.Sdream;
-import net.butfly.albacore.utils.logger.Logger;
 
-public interface Wrapper<W extends IO> extends IO {
-	W bases();
+public interface Wrapper<B extends IO> extends IO, Named {
+	B bases();
 
 	static <T, T1> WrapInput<T, T1> wrap(Input<T1> base, String suffix, Dequeuer<T> d) {
 		return new WrapInput<T, T1>(base, suffix) {
@@ -21,169 +20,50 @@ public interface Wrapper<W extends IO> extends IO {
 		};
 	}
 
-	static <T, T1> WrapOutput<T, T1> wrap(Output<T1> base, String suffix, Enqueuer<T> d) {
-		return new WrapOutput<T, T1>(base, suffix) {
+	static <T0, T> WrapOutput<T0, T> wrap(Output<T> base, String suffix, Consumer<Sdream<T0>> d) {
+		return new WrapOutput<T0, T>(base, suffix) {
 			@Override
-			public void enqueue(Sdream<T> items) {
-				d.enqueue(items);
+			public void enqueue(Sdream<T0> items) {
+				d.accept(items);
 			}
 
 			@Override
 			public void succeeded(long c) {
-				d.succeeded(c);
+				base.succeeded(c);
 			}
 
 			@Override
-			public void failed(Sdream<T> failed) {
-				d.failed(failed);
+			public void failed(Sdream<T0> failed) {
+				logger().error("Wrapper could not failed, the unconv not provided.");
 			}
 		};
 	}
 
-	abstract class WrapInput<V, V1> extends Namedly implements Input<V>, Wrapper<Input<?>> {
-		protected final Input<? extends V1> base;
-
-		protected WrapInput(Input<? extends V1> origin, String suffix) {
-			super(origin.name() + suffix);
-			this.base = origin;
-		}
-
-		@Override
-		public Input<?> bases() {
-			throw new UnsupportedOperationException();
-		}
-
-		@Override
-		public abstract void dequeue(Consumer<Sdream<V>> using);
-
-		@Override
-		public long capacity() {
-			return base.capacity();
-		}
-
-		@Override
-		public boolean empty() {
-			return base.empty();
-		}
-
-		@Override
-		public boolean full() {
-			return base.full();
-		}
-
-		@Override
-		public Logger logger() {
-			return base.logger();
-		}
-
-		@Override
-		public long size() {
-			return base.size();
-		}
-
-		@Override
-		public boolean opened() {
-			return base.opened();
-		}
-
-		@Override
-		public boolean closed() {
-			return base.closed();
-		}
-
-		@Override
-		public void opening(Runnable handler) {
-			base.opening(handler);
-		}
-
-		@Override
-		public void closing(Runnable handler) {
-			base.closing(handler);
-		}
-
-		@Override
-		public void open() {
-			base.open();
-		}
-
-		@Override
-		public void close() {
-			base.close();
-		}
+	static <T, T1> WrapOddInput<T, T1> wrapOdd(OddInput<T1> base, String suffix, Supplier<T> d) {
+		return new WrapOddInput<T, T1>(base, suffix) {
+			@Override
+			public T dequeue() {
+				return d.get();
+			}
+		};
 	}
 
-	abstract class WrapOutput<V, V1> extends Namedly implements Output<V>, Wrapper<Output<?>> {
-		protected final Output<V1> base;
+	static <T0, T> WrapOddOutput<T0, T> wrapOdd(OddOutput<T> base, String suffix, Function<T0, Boolean> d) {
+		return new WrapOddOutput<T0, T>(base, suffix) {
+			@Override
+			public boolean enqueue(T0 item) {
+				return d.apply(item);
+			}
 
-		protected WrapOutput(Output<V1> origin, String suffix) {
-			super(origin.name() + suffix);
-			this.base = origin;
-		}
+			@Override
+			public void succeeded(long c) {
+				base.succeeded(c);
+			}
 
-		@Override
-		public Output<?> bases() {
-			Output<?> o = base;
-			while (o instanceof WrapOutput)
-				o = ((WrapOutput<?, ?>) o).base;
-			return o;
-		}
-
-		@Override
-		public abstract void enqueue(Sdream<V> items);
-
-		@Override
-		public long capacity() {
-			return base.capacity();
-		}
-
-		@Override
-		public boolean empty() {
-			return base.empty();
-		}
-
-		@Override
-		public boolean full() {
-			return base.full();
-		}
-
-		@Override
-		public Logger logger() {
-			return base.logger();
-		}
-
-		@Override
-		public long size() {
-			return base.size();
-		}
-
-		@Override
-		public boolean opened() {
-			return base.opened();
-		}
-
-		@Override
-		public boolean closed() {
-			return base.closed();
-		}
-
-		@Override
-		public void opening(Runnable handler) {
-			base.opening(handler);
-		}
-
-		@Override
-		public void closing(Runnable handler) {
-			base.closing(handler);
-		}
-
-		@Override
-		public void open() {
-			base.open();
-		}
-
-		@Override
-		public void close() {
-			base.close();
-		}
+			@Override
+			public void failed(Sdream<T0> failed) {
+				logger().error("Wrapper could not failed, the unconv not provided.");
+			}
+		};
 	}
 }
