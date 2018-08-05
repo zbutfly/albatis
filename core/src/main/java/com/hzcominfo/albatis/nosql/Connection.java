@@ -20,7 +20,7 @@ import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.io.Input;
 import net.butfly.albatis.io.Output;
-import net.butfly.albatis.io.R;
+import net.butfly.albatis.io.Rmap;
 
 public interface Connection extends AutoCloseable {
 	public static final String PARAM_KEY_BATCH = "batch";
@@ -36,9 +36,9 @@ public interface Connection extends AutoCloseable {
 		return null == $env$.env() ? DriverManager.connect(uriSpec) : (T) $env$.connect(uriSpec);
 	}
 
-	<M extends R> Input<M> input(String... table) throws IOException;
+	<M extends Rmap> Input<M> input(String... table) throws IOException;
 
-	<M extends R> Output<M> output() throws IOException;
+	<M extends Rmap> Output<M> output() throws IOException;
 
 	interface Driver<C extends Connection> {
 		List<String> schemas();

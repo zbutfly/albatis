@@ -2,7 +2,7 @@ package net.butfly.albatis.jdbc;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.paral.Exeter;
-import net.butfly.albatis.io.R;
+import net.butfly.albatis.io.Rmap;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -24,7 +24,8 @@ public class PostgresqlUpserter extends Upserter {
         super(type);
     }
 
-    @Override
+    @Deprecated
+	@Override
     String urlAssemble(URISpec uriSpec) {
         return null;
     }
@@ -35,14 +36,14 @@ public class PostgresqlUpserter extends Upserter {
     }
 
     @Override
-    long upsert(Map<String, List<R>> mml, Connection conn) {
+    long upsert(Map<String, List<Rmap>> mml, Connection conn) {
         AtomicLong count = new AtomicLong();
         Exeter.of().join(entry -> {
             mml.forEach((t, l) -> {
                 if (l.isEmpty()) return;
                 String keyField = determineKeyField(l);
                 if (null == keyField) logger().warn("can NOT determine KeyField");
-                List<R> ml = l.stream().sorted((m1, m2) -> m2.size() - m1.size()).collect(Collectors.toList());
+                List<Rmap> ml = l.stream().sorted((m1, m2) -> m2.size() - m1.size()).collect(Collectors.toList());
                 List<String> fl = new ArrayList<>(ml.get(0).keySet());
                 String fields = fl.stream().collect(Collectors.joining(", "));
                 String values = fl.stream().map(f -> "?").collect(Collectors.joining(", "));

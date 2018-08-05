@@ -1,7 +1,7 @@
 package net.butfly.albatis.jdbc;
 
 import net.butfly.albacore.base.Namedly;
-import net.butfly.albatis.io.R;
+import net.butfly.albatis.io.Rmap;
 import net.butfly.albatis.io.OddInput;
 
 import java.util.List;
@@ -9,9 +9,9 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class JdbcTestInput extends Namedly implements OddInput<R> {
+public class JdbcTestInput extends Namedly implements OddInput<Rmap> {
     private static final long serialVersionUID = 647609924979903160L;
-	private List<R> list;
+	private List<Rmap> list;
 
     /**
      * for mysql, all field should be upper case
@@ -20,7 +20,7 @@ public class JdbcTestInput extends Namedly implements OddInput<R> {
     public JdbcTestInput(String name) {
         super(name);
         list = Stream.iterate(1, i -> i + 1).limit(20).map(i -> {
-            R m = new R("ATEST");
+            Rmap m = new Rmap("ATEST");
             m.put("ID", i);
             m.key(i);
             m.put("NAME", UUID.randomUUID().toString());
@@ -31,7 +31,7 @@ public class JdbcTestInput extends Namedly implements OddInput<R> {
     }
 
     @Override
-    public R dequeue() {
+    public Rmap dequeue() {
         return list.size() > 0 ? list.remove(0) : null;
     }
 

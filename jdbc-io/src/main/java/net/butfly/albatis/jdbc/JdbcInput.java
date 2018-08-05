@@ -11,9 +11,9 @@ import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 
 import net.butfly.albatis.io.OddInput;
-import net.butfly.albatis.io.R;
+import net.butfly.albatis.io.Rmap;
 
-public class JdbcInput extends net.butfly.albacore.base.Namedly implements OddInput<R> {
+public class JdbcInput extends net.butfly.albacore.base.Namedly implements OddInput<Rmap> {
 	private static final long serialVersionUID = -8772607845694039875L;
 	private final JdbcConnection jdbc;
 	//
@@ -93,7 +93,7 @@ public class JdbcInput extends net.butfly.albacore.base.Namedly implements OddIn
 	private final ReentrantLock lock = new ReentrantLock();
 
 	@Override
-	public R dequeue() {
+	public Rmap dequeue() {
 		if (!next || !lock.tryLock()) return null;
 		try {
 			Map<String, Object> r = new HashMap<>();
@@ -108,7 +108,7 @@ public class JdbcInput extends net.butfly.albacore.base.Namedly implements OddIn
 					}
 					r.put(colNames[i], v);
 				}
-				return new R(r);
+				return new Rmap(r);
 			} finally {
 				try {
 					next = rs.next();

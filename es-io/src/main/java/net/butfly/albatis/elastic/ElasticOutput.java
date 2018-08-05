@@ -20,10 +20,10 @@ import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albacore.utils.logger.Statistic;
-import net.butfly.albatis.io.R;
+import net.butfly.albatis.io.Rmap;
 import net.butfly.albatis.io.OutputBase;
 
-public class ElasticOutput extends OutputBase<R> {
+public class ElasticOutput extends OutputBase<Rmap> {
 	private static final long serialVersionUID = 1874320396863861434L;
 	static final Logger logger = Logger.getLogger(ElasticOutput.class);
 	public static final int MAX_RETRY = 3;
@@ -51,14 +51,14 @@ public class ElasticOutput extends OutputBase<R> {
 	}
 
 	@Override
-	protected void enqueue0(Sdream<R> msgs) {
-		Map<Object, R> remains = Maps.of();
-		for (R m : msgs.list())
+	protected void enqueue0(Sdream<Rmap> msgs) {
+		Map<Object, Rmap> remains = Maps.of();
+		for (Rmap m : msgs.list())
 			remains.put(m.key(), conn.fixTable(m));
 		if (!remains.isEmpty()) go(remains);
 	}
 
-	protected void go(Map<Object, R> remains) {
+	protected void go(Map<Object, Rmap> remains) {
 		// logger.error("INFO: es op task enter with [" + ops.get() + "] pendings.");
 		int retry = 0;
 		// int size = remains.size();
@@ -88,13 +88,13 @@ public class ElasticOutput extends OutputBase<R> {
 		}
 	}
 
-	void process(Map<Object, R> remains, BulkResponse response) {
+	void process(Map<Object, Rmap> remains, BulkResponse response) {
 		int succs = 0, respSize = remains.size();
 		// int originalSize = remains.size();
 		if (respSize == 0) return;
-		List<R> retries = Colls.list();
+		List<Rmap> retries = Colls.list();
 		if (null != response) for (BulkItemResponse r : response) {
-			R o = remains.remove(r.getId());
+			Rmap o = remains.remove(r.getId());
 			if (!r.isFailed()) succs++;
 			else if (null != o) {
 				if (noRetry(r.getFailure().getCause())) {

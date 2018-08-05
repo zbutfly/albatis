@@ -13,7 +13,7 @@ import org.elasticsearch.action.bulk.BulkResponse;
 
 import net.butfly.albacore.paral.Task;
 import net.butfly.albacore.utils.Exceptions;
-import net.butfly.albatis.io.R;
+import net.butfly.albatis.io.Rmap;
 
 public class ElasticOutputAsync extends ElasticOutput {
 	private static final long serialVersionUID = -5126312703438177937L;
@@ -23,7 +23,7 @@ public class ElasticOutputAsync extends ElasticOutput {
 	}
 
 	@Override
-	protected final void go(Map<Object, R> remains) {
+	protected final void go(Map<Object, Rmap> remains) {
 		while (!remains.isEmpty()) {
 			@SuppressWarnings("rawtypes")
 			List<DocWriteRequest> reqs = of(remains.values()).map(Elastics::forWrite).list();
@@ -37,9 +37,9 @@ public class ElasticOutputAsync extends ElasticOutput {
 	}
 
 	protected final class EnqueueListener implements ActionListener<BulkResponse> {
-		private final Map<Object, R> remains;
+		private final Map<Object, Rmap> remains;
 
-		private EnqueueListener(Map<Object, R> remains) {
+		private EnqueueListener(Map<Object, Rmap> remains) {
 			this.remains = remains;
 		}
 

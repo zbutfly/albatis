@@ -12,7 +12,7 @@ import java.util.stream.Collectors;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.paral.Exeter;
-import net.butfly.albatis.io.R;
+import net.butfly.albatis.io.Rmap;
 
 public class SqlServer2005Upserter extends Upserter {
 	private final String psql = "MERGE INTO %s AS T USING (SELECT 1 S) AS S ON (%s) "
@@ -24,8 +24,9 @@ public class SqlServer2005Upserter extends Upserter {
         super(type);
     }
 
-    @Override
-    String urlAssemble(URISpec uriSpec) {
+    @Deprecated
+	@Override
+	String urlAssemble(URISpec uriSpec) {
         return null;
     }
 
@@ -35,14 +36,14 @@ public class SqlServer2005Upserter extends Upserter {
     }
     
     @Override
-    long upsert(Map<String, List<R>> mml, Connection conn) {
+    long upsert(Map<String, List<Rmap>> mml, Connection conn) {
     	AtomicLong count = new AtomicLong();
         Exeter.of().join(entry -> {
             mml.forEach((t, l) -> {
                 if (l.isEmpty()) return;
                 String keyField = determineKeyField(l);
                 if (null == keyField) logger().warn("can NOT determine KeyField");
-                List<R> ml = l.stream().sorted((m1, m2) -> m2.size() - m1.size()).collect(Collectors.toList());
+                List<Rmap> ml = l.stream().sorted((m1, m2) -> m2.size() - m1.size()).collect(Collectors.toList());
                 List<String> fl = new ArrayList<>(ml.get(0).keySet());
                 String fields = fl.stream().collect(Collectors.joining(", "));
                 String values = fl.stream().map(f -> "?").collect(Collectors.joining(", "));

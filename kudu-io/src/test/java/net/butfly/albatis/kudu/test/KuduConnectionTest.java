@@ -8,7 +8,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import net.butfly.albacore.io.URISpec;
-import net.butfly.albatis.io.R;
+import net.butfly.albatis.io.Rmap;
 import net.butfly.albatis.kudu.KuduConnectionAsync;
 import net.butfly.albatis.kudu.KuduConnectionBase;
 
@@ -23,7 +23,7 @@ public class KuduConnectionTest {
 			Map<String, Object> o = new HashMap<>();
 			o.put("id", 123456789);
 			o.put("name", "123456789");
-			R result = new R("my_first_table", o);
+			Rmap result = new Rmap("my_first_table", o);
 			Assert.assertNotNull(result);
 		} catch (IOException e) {
 			e.printStackTrace();

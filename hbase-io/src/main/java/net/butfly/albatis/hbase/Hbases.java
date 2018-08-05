@@ -1,8 +1,8 @@
 package net.butfly.albatis.hbase;
 
-import static net.butfly.albatis.io.R.Op.INCREASE;
-import static net.butfly.albatis.io.R.Op.INSERT;
-import static net.butfly.albatis.io.R.Op.UPSERT;
+import static net.butfly.albatis.io.Rmap.Op.INCREASE;
+import static net.butfly.albatis.io.Rmap.Op.INSERT;
+import static net.butfly.albatis.io.Rmap.Op.UPSERT;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -43,7 +43,7 @@ import net.butfly.albacore.utils.Utils;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albacore.utils.parallel.Lambdas;
-import net.butfly.albatis.io.R;
+import net.butfly.albatis.io.Rmap;
 
 public final class Hbases extends Utils {
 	protected static final Logger logger = Logger.getLogger(Hbases.class);
@@ -127,35 +127,35 @@ public final class Hbases extends Utils {
 			return new byte[][] { f, q };
 		}
 
-		static R result(String table, String row, Stream<Cell> cells) {
-			return new R(table, row, Hbases.map(cells));
+		static Rmap result(String table, String row, Stream<Cell> cells) {
+			return new Rmap(table, row, Hbases.map(cells));
 		}
 
-		static R result(String table, Put put) {
+		static Rmap result(String table, Put put) {
 			return result(table, Bytes.toString(put.getRow()), put.getFamilyCellMap().values().parallelStream().flatMap(l -> l
 					.parallelStream()));
 		}
 
-		static R result(String table, String row, Cell... cells) {
-			if (null == cells || cells.length == 0) return new R(table, row);
+		static Rmap result(String table, String row, Cell... cells) {
+			if (null == cells || cells.length == 0) return new Rmap(table, row);
 			else return result(table, row, Arrays.asList(cells).stream());
 		}
 
-		static R result(String table, String row, List<Cell> cells) {
-			if (null == cells || cells.isEmpty()) return new R(table, row);
+		static Rmap result(String table, String row, List<Cell> cells) {
+			if (null == cells || cells.isEmpty()) return new Rmap(table, row);
 			else return result(table, row, cells.stream());
 		}
 
-		static R result(String table, Result result) {
+		static Rmap result(String table, Result result) {
 			return result(table, Bytes.toString(result.getRow()), result.listCells());
 		}
 
-		static R hbase(String table, String row, Map<? extends String, ? extends Object> map) {
-			return new R(table, row, map);
+		static Rmap hbase(String table, String row, Map<? extends String, ? extends Object> map) {
+			return new Rmap(table, row, map);
 		}
 
 		@SuppressWarnings("unchecked")
-		static Mutation op(R m, Function<Map<String, Object>, byte[]> conv) {
+		static Mutation op(Rmap m, Function<Map<String, Object>, byte[]> conv) {
 			if (m.isEmpty()) return null;
 			Object rowo = m.key();
 			if (null == rowo) return null;

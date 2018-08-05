@@ -40,7 +40,7 @@ import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albacore.utils.logger.Statistic;
-import net.butfly.albatis.io.R;
+import net.butfly.albatis.io.Rmap;
 
 public class HbaseConnection extends NoSqlConnection<org.apache.hadoop.hbase.client.Connection> {
 	private final static Logger logger = Logger.getLogger(HbaseConnection.class);
@@ -135,7 +135,7 @@ public class HbaseConnection extends NoSqlConnection<org.apache.hadoop.hbase.cli
 	private final Statistic s = new Statistic(HbaseConnection.class).sizing(Result::getTotalSizeOfCells).step(GET_STATS_STEP).detailing(
 			() -> "Cached scaner object: " + scans.size());
 
-	public R get(String table, Get get) {
+	public Rmap get(String table, Get get) {
 		return table(table, t -> {
 			Result r;
 			try {
@@ -150,7 +150,7 @@ public class HbaseConnection extends NoSqlConnection<org.apache.hadoop.hbase.cli
 		});
 	}
 
-	public List<R> get(String table, List<Get> gets) {
+	public List<Rmap> get(String table, List<Get> gets) {
 		if (gets == null || gets.isEmpty()) return Colls.list();
 		if (gets.size() == 1) return Colls.list(Hbases.Results.result(table, s.stats(scan(table, gets.get(0)))));
 		List<Result> rr = s.statsIns(() -> table(table, t -> {
@@ -175,7 +175,7 @@ public class HbaseConnection extends NoSqlConnection<org.apache.hadoop.hbase.cli
 		} catch (Exception e) {
 			logger.error("Dump fail: " + e.getMessage());
 		}
-		R m = Hbases.Results.result(table, r);
+		Rmap m = Hbases.Results.result(table, r);
 		try (PrintWriter w = new PrintWriter(new BufferedWriter(new FileWriter(fn + ".txt")));) {
 			for (String key : m.keySet()) {
 				Object val = m.get(key);
@@ -189,12 +189,12 @@ public class HbaseConnection extends NoSqlConnection<org.apache.hadoop.hbase.cli
 	}
 
 	@Deprecated
-	public List<R> get1(String table, List<Get> gets) {
+	public List<Rmap> get1(String table, List<Get> gets) {
 		if (gets == null || gets.isEmpty()) return Colls.list();
 		if (gets.size() == 1) return Colls.list(Hbases.Results.result(table, s.stats(scan(table, gets.get(0)))));
 		return table(table, t -> {
 			LinkedBlockingQueue<Get> all = new LinkedBlockingQueue<>(gets);
-			List<Callable<List<R>>> tasks = Colls.list();
+			List<Callable<List<Rmap>>> tasks = Colls.list();
 			while (!all.isEmpty()) {
 				List<Get> batch = Colls.list();
 				all.drainTo(batch, GET_BATCH_SIZE);

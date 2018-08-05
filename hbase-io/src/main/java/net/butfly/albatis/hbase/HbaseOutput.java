@@ -22,14 +22,14 @@ import net.butfly.albacore.utils.Exceptions;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Statistic;
-import net.butfly.albatis.io.R;
-import net.butfly.albatis.io.R.Op;
+import net.butfly.albatis.io.Rmap;
+import net.butfly.albatis.io.Rmap.Op;
 import net.butfly.albatis.io.OutputBase;
 
 /**
  * Subject (embedded document serialized as BSON with prefixed column name) writer to hbase.
  */
-public final class HbaseOutput extends OutputBase<R> {
+public final class HbaseOutput extends OutputBase<Rmap> {
 	private static final long serialVersionUID = 3301721159039265076L;
 	public static final @HbaseProps String MAX_CONCURRENT_OP_PROP_NAME = HbaseProps.OUTPUT_CONCURRENT_OPS;
 	public static final int MAX_CONCURRENT_OP_DEFAULT = Integer.MAX_VALUE;
@@ -48,8 +48,8 @@ public final class HbaseOutput extends OutputBase<R> {
 	}
 
 	@Override
-	protected void enqueue0(Sdream<R> msgs) {
-		Map<String, List<R>> map = Maps.of();
+	protected void enqueue0(Sdream<Rmap> msgs) {
+		Map<String, List<Rmap>> map = Maps.of();
 		msgs.eachs(m -> {
 			map.compute(m.table(), (core, cores) -> {
 				if (null == m.key()) return cores;
@@ -59,14 +59,14 @@ public final class HbaseOutput extends OutputBase<R> {
 			});
 		});
 		for (String table : map.keySet()) {
-			List<R> l = map.get(table);
+			List<Rmap> l = map.get(table);
 			if (l.isEmpty()) continue;
 			if (1 == l.size()) enq1(table, Hbases.Results.op(l.get(0), hconn.conv::apply), l.get(0));
 			else enq(table, l);
 		}
 	}
 
-	protected void enq1(String table, Mutation op, R origin) {
+	protected void enq1(String table, Mutation op, Rmap origin) {
 		Table t = hconn.table(table);
 		s().statsOut(op, o -> {
 			try {
@@ -81,8 +81,8 @@ public final class HbaseOutput extends OutputBase<R> {
 		});
 	}
 
-	protected void enq(String table, List<R> msgs) {
-		List<R> origins = Colls.list();
+	protected void enq(String table, List<Rmap> msgs) {
+		List<Rmap> origins = Colls.list();
 		List<Mutation> puts = Colls.list();
 		incs(table, msgs, origins, puts);
 
@@ -90,7 +90,7 @@ public final class HbaseOutput extends OutputBase<R> {
 		else enqs(table, origins, puts);
 	}
 
-	protected void enqs(String table, List<R> origins, List<Mutation> enqs) {
+	protected void enqs(String table, List<Rmap> origins, List<Mutation> enqs) {
 		Object[] results = new Object[enqs.size()];
 		try {
 			s().statsOuts(enqs, c -> {
@@ -107,7 +107,7 @@ public final class HbaseOutput extends OutputBase<R> {
 				}
 			});
 		} finally {
-			List<R> failed = Colls.list();
+			List<Rmap> failed = Colls.list();
 			int succs = 0;
 			for (int i = 0; i < results.length; i++) {
 				if (null == results[i]) // error
@@ -120,9 +120,9 @@ public final class HbaseOutput extends OutputBase<R> {
 		}
 	}
 
-	private void incs(String table, List<R> msgs, List<R> origins, List<Mutation> puts) {
-		Map<Object, List<R>> incByKeys = Maps.of();
-		for (R m : msgs)
+	private void incs(String table, List<Rmap> msgs, List<Rmap> origins, List<Mutation> puts) {
+		Map<Object, List<Rmap>> incByKeys = Maps.of();
+		for (Rmap m : msgs)
 			switch (m.op()) {
 			case Op.INCREASE:
 				incByKeys.compute(m.key(), (k, l) -> {
@@ -142,9 +142,9 @@ public final class HbaseOutput extends OutputBase<R> {
 				}
 			}
 
-		for (Entry<Object, List<R>> e : incByKeys.entrySet()) {
-			R merge = new R(table, e.getKey()).op(Op.INCREASE);
-			for (R m : e.getValue())
+		for (Entry<Object, List<Rmap>> e : incByKeys.entrySet()) {
+			Rmap merge = new Rmap(table, e.getKey()).op(Op.INCREASE);
+			for (Rmap m : e.getValue())
 				for (Map.Entry<String, Object> f : m.entrySet())
 					merge.compute(f.getKey(), (fn, v) -> lvalue(v) + lvalue(f.getValue()));
 			for (String k : merge.keySet())

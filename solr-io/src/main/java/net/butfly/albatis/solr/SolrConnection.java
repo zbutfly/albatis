@@ -41,7 +41,7 @@ import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.io.Input;
-import net.butfly.albatis.io.R;
+import net.butfly.albatis.io.Rmap;
 
 public class SolrConnection extends NoSqlConnection<SolrClient> {
 	private static final Logger logger = Logger.getLogger(SolrConnection.class);
@@ -292,7 +292,7 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 	}
 
 	@Override
-	public Input<R> input(String... table) throws IOException {
+	public Input<Rmap> input(String... table) throws IOException {
 		throw new UnsupportedOperationException();
 	}
 

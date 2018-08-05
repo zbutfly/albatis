@@ -16,10 +16,10 @@ import com.mongodb.DBObject;
 
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.parallel.Lambdas;
-import net.butfly.albatis.io.R;
+import net.butfly.albatis.io.Rmap;
 import net.butfly.albatis.io.OddInput;
 
-public class MongoLockedInput extends net.butfly.albacore.base.Namedly implements OddInput<R> {
+public class MongoLockedInput extends net.butfly.albacore.base.Namedly implements OddInput<Rmap> {
 	private static final long serialVersionUID = -7940068038599299902L;
 	private final MongoConnection conn;
 	private final List<C> cursors;
@@ -119,7 +119,7 @@ public class MongoLockedInput extends net.butfly.albacore.base.Namedly implement
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public R dequeue() {
+	public Rmap dequeue() {
 		int i = 0;
 		while (!cursors.isEmpty())
 			try {
@@ -138,7 +138,7 @@ public class MongoLockedInput extends net.butfly.albacore.base.Namedly implement
 				} finally {
 					c.lock.writeLock().unlock();
 				}
-				if (null != dbo) return new R(c.table, (String) null, dbo.toMap());
+				if (null != dbo) return new Rmap(c.table, (String) null, dbo.toMap());
 			} finally {
 				i++;
 			}

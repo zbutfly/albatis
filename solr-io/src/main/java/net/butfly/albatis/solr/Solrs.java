@@ -32,7 +32,7 @@ import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.Utils;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
-import net.butfly.albatis.io.R;
+import net.butfly.albatis.io.Rmap;
 
 public final class Solrs extends Utils {
 	protected static final Logger logger = Logger.getLogger(Solrs.class);
@@ -243,7 +243,7 @@ public final class Solrs extends Utils {
 		}
 	}
 
-	public static SolrInputDocument input(R m, String keyFieldName) {
+	public static SolrInputDocument input(Rmap m, String keyFieldName) {
 		if (null == m) return null;
 		if (m.isEmpty() || null == m.key()) return null;
 		SolrInputDocument doc = new SolrInputDocument(of(m).map(e -> {

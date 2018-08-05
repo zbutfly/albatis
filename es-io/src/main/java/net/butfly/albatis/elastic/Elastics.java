@@ -1,9 +1,9 @@
 package net.butfly.albatis.elastic;
 
-import static net.butfly.albatis.io.R.Op.DELETE;
-import static net.butfly.albatis.io.R.Op.INSERT;
-import static net.butfly.albatis.io.R.Op.UPDATE;
-import static net.butfly.albatis.io.R.Op.UPSERT;
+import static net.butfly.albatis.io.Rmap.Op.DELETE;
+import static net.butfly.albatis.io.Rmap.Op.INSERT;
+import static net.butfly.albatis.io.Rmap.Op.UPDATE;
+import static net.butfly.albatis.io.Rmap.Op.UPSERT;
 
 import org.elasticsearch.action.DocWriteRequest;
 import org.elasticsearch.action.delete.DeleteRequest;
@@ -11,11 +11,11 @@ import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.update.UpdateRequest;
 
 import net.butfly.albacore.utils.Pair;
-import net.butfly.albatis.io.R;
+import net.butfly.albatis.io.Rmap;
 
 public class Elastics {
 	@SuppressWarnings("rawtypes")
-	public static DocWriteRequest forWrite(R m) {
+	public static DocWriteRequest forWrite(Rmap m) {
 		Pair<String, String> it = dessemble(m.table());
 		if (null == m.key()) return null;
 		switch (m.op()) {
@@ -37,7 +37,7 @@ public class Elastics {
 	}
 
 	public static DocWriteRequest<?> forScriptWrite(ElasticMessage m) {
-		if (m.script == null) return forWrite((R) m);
+		if (m.script == null) return forWrite((Rmap) m);
 		Pair<String, String> it = dessemble(m.table());
 		if (null == m.key()) return null;
 		switch (m.op()) {

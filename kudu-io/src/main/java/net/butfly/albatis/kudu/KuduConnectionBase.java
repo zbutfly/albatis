@@ -29,7 +29,7 @@ import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.io.Input;
 import net.butfly.albatis.io.Output;
-import net.butfly.albatis.io.R;
+import net.butfly.albatis.io.Rmap;
 
 @SuppressWarnings("unchecked")
 public abstract class KuduConnectionBase<C extends KuduConnectionBase<C, KC, S>, KC extends AutoCloseable, S extends SessionConfiguration>
@@ -169,12 +169,12 @@ public abstract class KuduConnectionBase<C extends KuduConnectionBase<C, KC, S>,
 	}
 
 	@Override
-	public Input<R> input(String... table) throws IOException {
+	public Input<Rmap> input(String... table) throws IOException {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	public <M extends R> Output<M> output() throws IOException {
+	public <M extends Rmap> Output<M> output() throws IOException {
 		return (Output<M>) new KuduOutput("KuduOutput", this);
 	}
 }

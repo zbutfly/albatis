@@ -20,11 +20,11 @@ import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albacore.utils.logger.Statistic;
-import net.butfly.albatis.io.R;
+import net.butfly.albatis.io.Rmap;
 import net.butfly.albatis.io.Input;
 import net.butfly.albatis.io.OddInput;
 
-public class MongoInput extends net.butfly.albacore.base.Namedly implements OddInput<R> {
+public class MongoInput extends net.butfly.albacore.base.Namedly implements OddInput<Rmap> {
 	private static final long serialVersionUID = -1542477278520256900L;
 	private static final Logger logger = Logger.getLogger(MongoInput.class);
 	private final MongoConnection conn;
@@ -121,7 +121,7 @@ public class MongoInput extends net.butfly.albacore.base.Namedly implements OddI
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public R dequeue() {
+	public Rmap dequeue() {
 		Cursor c;
 		Map<String, Object> m;
 		while (opened() && !empty())
@@ -137,7 +137,7 @@ public class MongoInput extends net.butfly.albacore.base.Namedly implements OddI
 					}
 					String collection = c.col;
 					Object key = m.containsKey("_id") ? m.get("_id").toString() : null;
-					R msg = new R(collection, key);
+					Rmap msg = new Rmap(collection, key);
 					m.forEach((k, v) -> {
 						if (null == v) {
 							logger.error("Mongo result field [" + k + "] null at table [" + collection + "], id [" + key + "].");
@@ -158,7 +158,7 @@ public class MongoInput extends net.butfly.albacore.base.Namedly implements OddI
 	}
 
 	@Override
-	public Input<R> filter(Map<String, Object> criteria) {
+	public Input<Rmap> filter(Map<String, Object> criteria) {
 		Collection<Cursor> exists = cursorsMap.values();
 		for (Cursor c : exists) {
 			c.close();

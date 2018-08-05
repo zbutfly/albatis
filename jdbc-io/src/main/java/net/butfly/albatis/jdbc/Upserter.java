@@ -2,7 +2,7 @@ package net.butfly.albatis.jdbc;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.logger.Loggable;
-import net.butfly.albatis.io.R;
+import net.butfly.albatis.io.Rmap;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -35,7 +35,7 @@ public abstract class Upserter implements Loggable {
      */
     abstract String urlAssemble(String schema, String host, String database);
 
-    abstract long upsert(Map<String, List<R>> mml, Connection conn);
+    abstract long upsert(Map<String, List<Rmap>> mml, Connection conn);
 
     protected void setObject(PreparedStatement ps, int index, Object value) throws SQLException {
         if (value instanceof java.util.Date) {
@@ -68,9 +68,9 @@ public abstract class Upserter implements Loggable {
         }
     }
 
-    protected static String determineKeyField(List<R> list) {
+    protected static String determineKeyField(List<Rmap> list) {
         if (null == list || list.isEmpty()) return null;
-        R msg = list.get(0);
+        Rmap msg = list.get(0);
         Object key = msg.key();
         if (null == key) return null;
         return msg.entrySet().stream().filter(e -> key.equals(e.getValue())).map(Map.Entry::getKey).findFirst().orElse(null);

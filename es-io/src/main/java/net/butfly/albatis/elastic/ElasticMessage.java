@@ -12,9 +12,9 @@ import org.elasticsearch.script.ScriptType;
 
 import net.butfly.albacore.serder.BsonSerder;
 import net.butfly.albacore.utils.IOs;
-import net.butfly.albatis.io.R;
+import net.butfly.albatis.io.Rmap;
 
-public class ElasticMessage extends R {
+public class ElasticMessage extends Rmap {
 	private static final long serialVersionUID = -125189207796104302L;
 	transient Script script;
 
@@ -39,7 +39,7 @@ public class ElasticMessage extends R {
 
 	@Override
 	public String toString() {
-		StringBuilder sb = new StringBuilder(R.opname(op)).append("@").append(table).append("/").append(key);
+		StringBuilder sb = new StringBuilder(Rmap.opname(op)).append("@").append(table).append("/").append(key);
 		if (script == null) sb.append("(upsert:").append("):\n\tdocument:").append(this);
 		else sb.append(":\n\tscript: ").append(script);
 		return sb.toString();

@@ -31,11 +31,11 @@ import net.butfly.albacore.utils.Texts;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Statistic;
-import net.butfly.albatis.io.R;
+import net.butfly.albatis.io.Rmap;
 import net.butfly.albatis.io.OddInput;
 import net.butfly.albatis.kafka.config.KafkaInputConfig;
 
-public class KafkaInput extends net.butfly.albacore.base.Namedly implements OddInput<R> {
+public class KafkaInput extends net.butfly.albacore.base.Namedly implements OddInput<Rmap> {
 	private static final long serialVersionUID = 998704625489437241L;
 	private final KafkaInputConfig config;
 	private final Map<String, Integer> allTopics = Maps.of();
@@ -115,7 +115,7 @@ public class KafkaInput extends net.butfly.albacore.base.Namedly implements OddI
 	}
 
 	@Override
-	public R dequeue() {
+	public Rmap dequeue() {
 		ConsumerIterator<byte[], byte[]> it;
 		MessageAndMetadata<byte[], byte[]> m;
 		while (opened())

@@ -19,7 +19,7 @@ import net.butfly.albacore.serder.JsonSerder;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.io.Input;
-import net.butfly.albatis.io.R;
+import net.butfly.albatis.io.Rmap;
 
 public class ElasticConnection extends NoSqlConnection<TransportClient> implements ElasticConnect {
 	public ElasticConnection(URISpec uri, Map<String, String> props) throws IOException {
@@ -102,7 +102,7 @@ public class ElasticConnection extends NoSqlConnection<TransportClient> implemen
 	}
 
 	@Override
-	public Input<R> input(String... table) throws IOException {
+	public Input<Rmap> input(String... table) throws IOException {
 		throw new UnsupportedOperationException();
 	}
 

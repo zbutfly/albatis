@@ -13,7 +13,7 @@ import net.butfly.albacore.utils.IOs;
 import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.collection.Maps;
 
-public class R extends ConcurrentHashMap<String, Object> {
+public class Rmap extends ConcurrentHashMap<String, Object> {
 	private static final long serialVersionUID = 2316795812336748252L;
 	protected Object key;
 	protected String table;
@@ -44,42 +44,42 @@ public class R extends ConcurrentHashMap<String, Object> {
 		return null;
 	}
 
-	public R() {
+	public Rmap() {
 		this((String) null);
 	}
 
-	public R(String table) {
+	public Rmap(String table) {
 		this(table, (String) null);
 	}
 
-	public R(String table, Object key) {
+	public Rmap(String table, Object key) {
 		super();
 		this.table = table;
 		this.key = key;
 		op = Op.DEFAULT;
 	}
 
-	public R(Map<? extends String, ? extends Object> values) {
+	public Rmap(Map<? extends String, ? extends Object> values) {
 		super(values);
 		op = Op.DEFAULT;
 	}
 
-	public R(String table, Map<? extends String, ? extends Object> values) {
+	public Rmap(String table, Map<? extends String, ? extends Object> values) {
 		this(values);
 		this.table = table;
 	}
 
-	public R(String table, Object key, Map<? extends String, ? extends Object> values) {
+	public Rmap(String table, Object key, Map<? extends String, ? extends Object> values) {
 		this(table, values);
 		this.key = key;
 		op = Op.DEFAULT;
 	}
 
-	public R(String table, Pair<String, Map<String, Object>> keyAndValues) {
+	public Rmap(String table, Pair<String, Map<String, Object>> keyAndValues) {
 		this(table, keyAndValues.v1(), keyAndValues.v2());
 	}
 
-	public R(String table, Object key, String firstFieldName, Object... firstFieldValueAndOthers) {
+	public Rmap(String table, Object key, String firstFieldName, Object... firstFieldValueAndOthers) {
 		this(table, key, Maps.of(firstFieldName, firstFieldValueAndOthers));
 	}
 
@@ -87,7 +87,7 @@ public class R extends ConcurrentHashMap<String, Object> {
 		return key;
 	}
 
-	public R key(Object key) {
+	public Rmap key(Object key) {
 		this.key = key;
 		return this;
 	}
@@ -96,7 +96,7 @@ public class R extends ConcurrentHashMap<String, Object> {
 		return op;
 	}
 
-	public R op(@Op int op) {
+	public Rmap op(@Op int op) {
 		this.op = op;
 		return this;
 	}
@@ -105,16 +105,16 @@ public class R extends ConcurrentHashMap<String, Object> {
 		return table;
 	}
 
-	public R table(String table) {
+	public Rmap table(String table) {
 		this.table = table;
 		return this;
 	}
 
-	public R(byte[] data, Function<byte[], Map<String, ?>> conv) throws IOException {
+	public Rmap(byte[] data, Function<byte[], Map<String, ?>> conv) throws IOException {
 		this(new ByteArrayInputStream(data), conv);
 	}
 
-	public R(InputStream is, Function<byte[], Map<String, ?>> conv) throws IOException {
+	public Rmap(InputStream is, Function<byte[], Map<String, ?>> conv) throws IOException {
 		super();
 		byte[][] attrs = IOs.readBytesList(is);
 		table = null != attrs[0] ? null : new String(attrs[0]);
@@ -154,7 +154,7 @@ public class R extends ConcurrentHashMap<String, Object> {
 		return m;
 	}
 
-	public synchronized R map(Map<String, Object> map) {
+	public synchronized Rmap map(Map<String, Object> map) {
 		clear();
 		putAll(map);
 		return this;

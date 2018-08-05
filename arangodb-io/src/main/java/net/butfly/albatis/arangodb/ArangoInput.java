@@ -17,9 +17,9 @@ import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.io.OddInput;
-import net.butfly.albatis.io.R;
+import net.butfly.albatis.io.Rmap;
 
-public class ArangoInput extends net.butfly.albacore.base.Namedly implements OddInput<R> {
+public class ArangoInput extends net.butfly.albacore.base.Namedly implements OddInput<Rmap> {
 	private static final long serialVersionUID = 2242853649760090074L;
 	private static final Logger logger = Logger.getLogger(ArangoInput.class);
 	private ArangoConnection conn;
@@ -60,7 +60,7 @@ public class ArangoInput extends net.butfly.albacore.base.Namedly implements Odd
 	}
 
 	@Override
-	public R dequeue() {
+	public Rmap dequeue() {
 		CursorAsync c;
 		Map<String, Object> m;
 		while (opened() && !empty())
@@ -76,7 +76,7 @@ public class ArangoInput extends net.butfly.albacore.base.Namedly implements Odd
 					}
 					Object key = m.containsKey("_id") ? m.get("_id").toString() : null;
 					String collection = c.col;
-					R msg = new R(collection, key);
+					Rmap msg = new Rmap(collection, key);
 					m.forEach((k, v) -> {
 						if (null == v) {
 							logger.error("arango result field [" + k + "] null at table [" + collection + "], id [" + key + "].");
