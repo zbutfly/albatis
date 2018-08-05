@@ -25,7 +25,7 @@ public final class DBDesc extends Desc<DBDesc> {
 	}
 
 	public static DBDesc db(String name) {
-		return models.get(name.split("\\.", 2)[0]);
+		return models.get(name);
 	}
 
 	@SuppressWarnings("unchecked")
