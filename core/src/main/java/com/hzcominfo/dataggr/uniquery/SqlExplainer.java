@@ -408,7 +408,7 @@ public class SqlExplainer {
 		} else if (value instanceof BigDecimal) {
 			json.addProperty(field, ((BigDecimal) value).intValue());
 		} else {
-			System.out.println("===============WRONG===================");
+			logger.error("===============WRONG===================");
 		}
 	}
 
@@ -483,18 +483,12 @@ public class SqlExplainer {
 		groupList.getList().forEach(node -> {
 			String field = fieldNameFromSqlNode(node);
 			array.add(field);
-			/*
-			 * if (node.getKind() == SqlKind.IDENTIFIER) { array.add(((SqlIdentifier)
-			 * node).names.stream().collect(Collectors.joining("."))); } else {
-			 * System.out.println("Unsupported GROUP kind " + node.getKind().name()); }
-			 */
 		});
 	}
 
 	private static void analysisHaving(SqlNode having, JsonObject json) {
 		if (null == having)
 			return;
-		// System.out.println(having);
 		JsonObject object = new JsonObject();
 		object.addProperty("HAVING_SQL", having.toString().replaceAll("`", ""));
 		analysisConditionExpression(having, object);
@@ -522,7 +516,7 @@ public class SqlExplainer {
 				}
 				array.add(object);
 			} else {
-				System.out.println("Error to parse ORDER BY from " + node);
+				logger.error("Error to parse ORDER BY from " + node);
 			}
 		}
 	}
