@@ -85,4 +85,22 @@ public interface IO extends Sizable, Openable, Serializable {
 		if (null == s) Stats.IO_STATS.remove(this);
 		else Stats.IO_STATS.put(this, s);
 	}
+
+	default int features() {
+		return 0;
+	}
+
+	interface Feature {
+		static final int STREAMING = 0x1;
+		static final int WRAPPED = 0x02;
+		static final int ODD = 0x04;
+		static final int SPARK = 0x08;
+	}
+
+	default boolean hasFeature(int... f) {
+		int f0 = features();
+		for (int ff : f)
+			f0 &= ff;
+		return 0 != f0;
+	}
 }

@@ -20,10 +20,15 @@ public abstract class WrapperBase<B extends IO> extends Namedly implements Wrapp
 
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	@Override
-	public final B bases() {
-		B o = base;
+	public final <BB extends IO> BB bases() {
+		IO o = base;
 		while (o instanceof Wrapper)
-			return (B) ((Wrapper) o).bases();
-		return o;
+			o = ((Wrapper) o).bases();
+		return (BB) o;
+	}
+
+	@Override
+	public int features() {
+		return bases().features() | IO.Feature.WRAPPED;
 	}
 }

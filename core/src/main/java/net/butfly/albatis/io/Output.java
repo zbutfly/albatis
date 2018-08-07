@@ -22,18 +22,6 @@ public interface Output<V> extends IO, Consumer<Sdream<V>>, Enqueuer<V> {
 		enqueue(items);
 	}
 
-	default OddOutput<V> odd() {
-		if (this instanceof OddOutput) return (OddOutput<V>) this;
-		else return v -> {
-			try {
-				Output.this.enqueue(Sdream.of(v));
-				return true;
-			} catch (Throwable t) {
-				return false;
-			}
-		};
-	}
-
 	default <V0> Output<V0> prior(Function<V0, V> conv) {
 		return Wrapper.wrap(this, "Prior", s -> enqueue(s.map(conv)));
 	}

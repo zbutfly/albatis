@@ -54,4 +54,9 @@ public interface OddOutput<V> extends Output<V> {
 			if (null != v) enqueue(v);
 		}));
 	}
+
+	@Override
+	default int features() {
+		return Output.super.features() | IO.Feature.ODD;
+	}
 }

@@ -102,4 +102,9 @@ public interface OddInput<V> extends Input<V> {
 			if (null != v) dequeue(s -> using.accept(conv.apply(v)));
 		});
 	}
+
+	@Override
+	default int features() {
+		return Input.super.features() | IO.Feature.ODD;
+	}
 }

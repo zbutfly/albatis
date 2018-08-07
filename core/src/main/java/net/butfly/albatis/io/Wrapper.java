@@ -1,15 +1,14 @@
 package net.butfly.albatis.io;
 
+import net.butfly.albacore.base.Named;
+import net.butfly.albacore.io.Dequeuer;
 import net.butfly.albacore.io.lambda.Consumer;
 import net.butfly.albacore.io.lambda.Function;
 import net.butfly.albacore.io.lambda.Supplier;
-
-import net.butfly.albacore.base.Named;
-import net.butfly.albacore.io.Dequeuer;
 import net.butfly.albacore.paral.Sdream;
 
-public interface Wrapper<B extends IO> extends Named {
-	B bases();
+public interface Wrapper<B extends IO> extends Named, IO {
+	<BB extends IO> BB bases();
 
 	static <T, T1> WrapInput<T, T1> wrap(Input<T1> base, String suffix, Dequeuer<T> d) {
 		return new WrapInput<T, T1>(base, suffix) {

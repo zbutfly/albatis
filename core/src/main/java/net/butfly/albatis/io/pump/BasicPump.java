@@ -19,7 +19,6 @@ public class BasicPump<V> extends PumpImpl<V, BasicPump<V>> {
 	}
 
 	private void p() {
-		if (opened()) //
-			input.dequeue(output::enqueue);
+		if (opened()) input.dequeue(output);
 	}
 }

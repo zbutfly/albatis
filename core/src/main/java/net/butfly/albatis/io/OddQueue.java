@@ -103,4 +103,9 @@ public abstract class OddQueue<T> extends Namedly implements Queue<T> {
 			return null;
 		}
 	}
+
+	@Override
+	public int features() {
+		return Queue.super.features() | IO.Feature.ODD;
+	}
 }

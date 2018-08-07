@@ -56,4 +56,9 @@ public interface OddInput1<V> extends Input<V> {
 				using.accept(Sdream.of(batch));
 		}
 	}
+
+	@Override
+	default int features() {
+		return Input.super.features() | IO.Feature.ODD;
+	}
 }
