@@ -20,7 +20,7 @@
 		<version.mongodb.fat>3.8.0</version.mongodb.fat>
 		<version.elastic>6.2.4</version.elastic>
 		<version.kudu>1.7.1</version.kudu>
-		<version.hbase>2.0.0</version.hbase>
+		<version.hbase>2.1.0</version.hbase>
 		<version.solr>7.3.1</version.solr>
 		<version.arangodb>4.4.0</version.arangodb>
 		<version.neo4j>3.4.0</version.neo4j>

@@ -6,25 +6,20 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import net.butfly.albacore.io.lambda.Function;
 
-import org.apache.hadoop.hbase.client.Append;
-import org.apache.hadoop.hbase.client.Delete;
-import org.apache.hadoop.hbase.client.Increment;
 import org.apache.hadoop.hbase.client.Mutation;
-import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.util.Bytes;
 
+import net.butfly.albacore.io.lambda.Function;
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.Exceptions;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Statistic;
+import net.butfly.albatis.io.OutputBase;
 import net.butfly.albatis.io.Rmap;
 import net.butfly.albatis.io.Rmap.Op;
-import net.butfly.albatis.io.OutputBase;
 
 /**
  * Subject (embedded document serialized as BSON with prefixed column name) writer to hbase.
@@ -67,13 +62,9 @@ public final class HbaseOutput extends OutputBase<Rmap> {
 	}
 
 	protected void enq1(String table, Mutation op, Rmap origin) {
-		Table t = hconn.table(table);
 		s().statsOut(op, o -> {
 			try {
-				if (op instanceof Put) t.put((Put) op);
-				else if (op instanceof Delete) t.delete((Delete) op);
-				else if (op instanceof Increment) t.increment((Increment) op);
-				else if (op instanceof Append) t.append((Append) op);
+				hconn.put(table, op);
 				succeeded(1);
 			} catch (IOException e) {
 				failed(Sdream.of1(origin));

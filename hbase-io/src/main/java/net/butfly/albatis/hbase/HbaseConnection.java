@@ -18,7 +18,12 @@ import net.butfly.albacore.io.lambda.Function;
 
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.client.Append;
+import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
+import org.apache.hadoop.hbase.client.Increment;
+import org.apache.hadoop.hbase.client.Mutation;
+import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
@@ -126,6 +131,14 @@ public class HbaseConnection extends NoSqlConnection<org.apache.hadoop.hbase.cli
 				throw new RuntimeException(e);
 			}
 		});
+	}
+
+	public void put(String table, Mutation op) throws IOException {
+		Table t = table(table);
+		if (op instanceof Put) t.put((Put) op);
+		else if (op instanceof Delete) t.delete((Delete) op);
+		else if (op instanceof Increment) t.increment((Increment) op);
+		else if (op instanceof Append) t.append((Append) op);
 	}
 
 	public <T> T table(String name, Function<Table, T> using) {
