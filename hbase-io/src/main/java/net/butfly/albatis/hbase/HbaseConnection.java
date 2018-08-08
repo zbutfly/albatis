@@ -14,7 +14,6 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
-import net.butfly.albacore.io.lambda.Function;
 
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.TableName;
@@ -26,6 +25,7 @@ import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
+import org.apache.hadoop.hbase.client.Row;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.filter.Filter;
@@ -37,6 +37,7 @@ import com.hzcominfo.albatis.nosql.Connection;
 import com.hzcominfo.albatis.nosql.NoSqlConnection;
 
 import net.butfly.albacore.io.URISpec;
+import net.butfly.albacore.io.lambda.Function;
 import net.butfly.albacore.paral.Exeter;
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.Configs;
@@ -139,6 +140,17 @@ public class HbaseConnection extends NoSqlConnection<org.apache.hadoop.hbase.cli
 		else if (op instanceof Delete) t.delete((Delete) op);
 		else if (op instanceof Increment) t.increment((Increment) op);
 		else if (op instanceof Append) t.append((Append) op);
+	}
+
+	public void put(String table, List<Row> ops) throws IOException {
+		if (null == ops || ops.isEmpty()) return;
+		Table t = table(table);
+		Object[] results = new Object[ops.size()];
+		try {
+			t.batch(ops, results);
+		} catch (InterruptedException e) {
+			throw new IOException(e);
+		}
 	}
 
 	public <T> T table(String name, Function<Table, T> using) {
