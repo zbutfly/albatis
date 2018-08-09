@@ -51,20 +51,12 @@ public final class HbaseOutput extends OutputBase<Rmap> {
 	@Override
 	protected void enqueue0(Sdream<Rmap> msgs) {
 		Map<String, List<Rmap>> map = Maps.of();
-		msgs.eachs(m -> {
-			map.compute(m.table(), (core, cores) -> {
-				if (null == m.key()) return cores;
-				if (null == cores) cores = Colls.list();
-				cores.add(m);
-				return cores;
-			});
+		msgs.eachs(m -> map.computeIfAbsent(m.table(), t -> Colls.list()).add(m));
+		map.forEach((t, l) -> {
+			if (l.isEmpty()) return;
+			if (1 == l.size()) enq1(t, Hbases.Results.op(l.get(0), conn.conv::apply), l.get(0));
+			else enq(t, l);
 		});
-		for (String table : map.keySet()) {
-			List<Rmap> l = map.get(table);
-			if (l.isEmpty()) continue;
-			if (1 == l.size()) enq1(table, Hbases.Results.op(l.get(0), conn.conv::apply), l.get(0));
-			else enq(table, l);
-		}
 	}
 
 	protected void enq1(String table, Mutation op, Rmap origin) {
