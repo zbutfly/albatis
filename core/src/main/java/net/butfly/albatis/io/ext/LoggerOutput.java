@@ -2,10 +2,11 @@ package net.butfly.albatis.io.ext;
 
 import java.util.HashMap;
 import java.util.Map;
-import net.butfly.albacore.io.lambda.Consumer;
 
 import org.slf4j.event.Level;
 
+import net.butfly.albacore.io.URISpec;
+import net.butfly.albacore.io.lambda.Consumer;
 import net.butfly.albacore.utils.Instances;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.io.OddOutputBase;
@@ -15,6 +16,12 @@ public final class LoggerOutput extends OddOutputBase<String> {
 	private final Map<Level, Consumer<String>> loggings;
 	private final Logger logger;
 	private final Level level;
+	private final String loggerName;
+
+	@Override
+	public URISpec target() {
+		return new URISpec("logger://" + level.name() + "@" + loggerName);
+	}
 
 	public LoggerOutput() {
 		this(Level.INFO);
@@ -35,6 +42,7 @@ public final class LoggerOutput extends OddOutputBase<String> {
 	private LoggerOutput(String loggerName, Level level) {
 		super("LoggerOutput:" + loggerName);
 		this.level = level;
+		this.loggerName = loggerName;
 		this.logger = Instances.fetch(() -> Logger.getLogger(loggerName), Logger.class, loggerName);
 		loggings = new HashMap<>();
 		if (loggings.isEmpty()) {

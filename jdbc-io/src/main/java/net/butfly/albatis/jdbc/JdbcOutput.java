@@ -7,13 +7,14 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
+import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albatis.io.Rmap;
 import net.butfly.albatis.io.OutputBase;
 
 public class JdbcOutput extends OutputBase<Rmap> {
 	private static final long serialVersionUID = 5114292900867103434L;
-	private final JdbcConnection jc;
+	private final JdbcConnection conn;
 
 	/**
 	 * constructor with default upsert = true
@@ -25,9 +26,14 @@ public class JdbcOutput extends OutputBase<Rmap> {
 	 */
 	public JdbcOutput(String name, JdbcConnection conn) {
 		super(name);
-		this.jc = conn;
+		this.conn = conn;
 		closing(this::close);
 		open();
+	}
+
+	@Override
+	public URISpec target() {
+		return conn.uri();
 	}
 
 	@Override
@@ -41,8 +47,8 @@ public class JdbcOutput extends OutputBase<Rmap> {
 			succeeded(0);
 			return;
 		}
-		try (Connection conn = jc.client().getConnection()) {
-			n.addAndGet(jc.upserter.upsert(mml, conn));
+		try (Connection c = conn.client().getConnection()) {
+			n.addAndGet(conn.upserter.upsert(mml, c));
 		} catch (SQLException e) {
 			logger().error("failed to insert or update items.");
 		}
@@ -51,6 +57,6 @@ public class JdbcOutput extends OutputBase<Rmap> {
 
 	@Override
 	public void close() {
-		jc.close();
+		conn.close();
 	}
 }

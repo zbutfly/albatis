@@ -16,6 +16,11 @@ public final class MongoUpdateOutput extends OddOutputBase<Pair<DBObject, DBObje
 	private final MongoConnection conn;
 	private final DBCollection collection;
 
+	@Override
+	public URISpec target() {
+		return conn.uri();
+	}
+
 	public MongoUpdateOutput(String name, String uri) throws IOException {
 		this(name, new MongoConnection(new URISpec(uri)));
 	}

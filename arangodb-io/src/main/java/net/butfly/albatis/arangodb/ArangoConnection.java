@@ -12,7 +12,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
-import net.butfly.albacore.io.lambda.BinaryOperator;
 
 import com.arangodb.ArangoCursorAsync;
 import com.arangodb.ArangoDBAsync;
@@ -23,6 +22,7 @@ import com.arangodb.entity.LoadBalancingStrategy;
 import com.hzcominfo.albatis.nosql.NoSqlConnection;
 
 import net.butfly.albacore.io.URISpec;
+import net.butfly.albacore.io.lambda.BinaryOperator;
 import net.butfly.albacore.paral.Exeter;
 import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.collection.Colls;

@@ -9,6 +9,7 @@ import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 
+import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.paral.Exeter;
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.collection.Colls;
@@ -41,6 +42,11 @@ public final class MongoOutput extends OutputBase<Rmap> {
 		this.conn = conn;
 		this.collection = this.conn.db().getCollection(collection);
 		closing(this.conn::close);
+	}
+
+	@Override
+	public URISpec target() {
+		return conn.uri();
 	}
 
 	protected boolean enqueue(DBObject dbo) {

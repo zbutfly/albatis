@@ -20,20 +20,26 @@ import org.apache.kudu.client.KuduTable;
 import org.apache.kudu.client.Operation;
 import org.apache.kudu.client.Upsert;
 
+import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.collection.Maps;
-import net.butfly.albatis.io.Rmap;
 import net.butfly.albatis.io.OddOutputBase;
+import net.butfly.albatis.io.Rmap;
 
 public class KuduOutput extends OddOutputBase<Rmap> {
 	private static final long serialVersionUID = -4548392751373001781L;
 	public static final int SUGGEST_BATCH_SIZE = 200;
-	private final KuduConnectionBase<?, ?, ?> connect;
+	private final KuduConnectionBase<?, ?, ?> conn;
 
 	public KuduOutput(String name, KuduConnectionBase<?, ?, ?> conn) throws IOException {
 		super(name);
-		connect = conn;
+		this.conn = conn;
+	}
+
+	@Override
+	public URISpec target() {
+		return conn.uri();
 	}
 
 	@Override
@@ -70,23 +76,23 @@ public class KuduOutput extends OddOutputBase<Rmap> {
 
 	@Override
 	public void commit() {
-		connect.commit();
+		conn.commit();
 	}
 
 	@Override
 	protected boolean enqueue0(Rmap m) {
 		if (null == m || m.isEmpty()) return false;
-		connect.apply(op(m), (op, e) -> failed(Sdream.of1(m)));
+		conn.apply(op(m), (op, e) -> failed(Sdream.of1(m)));
 		return true;
 	}
 
 	public String status() {
-		return connect.status() + "\n\tDistinct keys: " + keys.size() + ", max duplication times of key: " + maxDup.get();
+		return conn.status() + "\n\tDistinct keys: " + keys.size() + ", max duplication times of key: " + maxDup.get();
 	}
 
 	private Operation op(Rmap m) {
-		KuduTable t = connect.table(m.table());
-		Map<String, ColumnSchema> cols = connect.schemas(m.table());
+		KuduTable t = conn.table(m.table());
+		Map<String, ColumnSchema> cols = conn.schemas(m.table());
 		ColumnSchema c;
 		if (null == t) return null;
 		switch (m.op()) {
@@ -102,7 +108,7 @@ public class KuduOutput extends OddOutputBase<Rmap> {
 		case UPDATE:
 		case UPSERT:
 			// regDups(m);
-			Upsert ups = connect.table(m.table()).newUpsert();
+			Upsert ups = conn.table(m.table()).newUpsert();
 			for (String f : m.keySet())
 				if (null != (c = cols.get(f.toLowerCase())))//
 					KuduCommon.generateColumnData(c.getType(), ups.getRow(), c.getName(), m.get(f));

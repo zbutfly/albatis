@@ -67,7 +67,7 @@ public interface Connection extends AutoCloseable {
 		}
 
 		@SuppressWarnings("unchecked")
-		static <T extends Connection> T connect(URISpec uriSpec) throws IOException {
+		public static <T extends Connection> T connect(URISpec uriSpec) throws IOException {
 			String s = uriSpec.getScheme();
 			Driver d;
 			while (!s.isEmpty()) {

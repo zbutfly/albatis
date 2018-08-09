@@ -6,6 +6,7 @@ import java.util.Map;
 
 import org.apache.solr.client.solrj.SolrServerException;
 
+import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
@@ -19,7 +20,7 @@ public final class SolrOutput extends OutputBase<Rmap> {
 	public static final int MAX_CONCURRENT_OP_DEFAULT = 100;
 	public static final int SUGGEST_BATCH_SIZE = 200;
 	private static final int DEFAULT_AUTO_COMMIT_MS = 30000;
-	private final SolrConnection solr;
+	private final SolrConnection conn;
 	private final String keyFieldName;
 
 	public SolrOutput(String name, SolrConnection conn) throws IOException {
@@ -28,21 +29,26 @@ public final class SolrOutput extends OutputBase<Rmap> {
 
 	public SolrOutput(String name, SolrConnection conn, String keyFieldName) throws IOException {
 		super(name);
-		solr = conn;
+		this.conn = conn;
 		this.keyFieldName = keyFieldName;
+	}
+
+	@Override
+	public URISpec target() {
+		return conn.uri();
 	}
 
 	@Override
 	public void close() {
 		super.close();
 		try {
-			for (String core : solr.getCores())
-				solr.client().commit(core, false, false);
+			for (String core : conn.getCores())
+				conn.client().commit(core, false, false);
 		} catch (IOException | SolrServerException e) {
 			logger().error("Close failure", e);
 		}
 		try {
-			solr.close();
+			conn.close();
 		} catch (IOException e) {
 			logger().error("Close failure", e);
 		}
@@ -66,11 +72,11 @@ public final class SolrOutput extends OutputBase<Rmap> {
 				try {
 					switch (op) {
 					case Op.DELETE:
-						solr.client().deleteById(core, Sdream.of(map.get(core).get(op))//
+						conn.client().deleteById(core, Sdream.of(map.get(core).get(op))//
 								.map(t -> null == t.key() ? null : t.key().toString()).list(), DEFAULT_AUTO_COMMIT_MS);
 						break;
 					default:
-						solr.client().add(core, Sdream.of(map.get(core).get(op)).map(m -> Solrs.input(m, keyFieldName)).list(),
+						conn.client().add(core, Sdream.of(map.get(core).get(op)).map(m -> Solrs.input(m, keyFieldName)).list(),
 								DEFAULT_AUTO_COMMIT_MS);
 					}
 					succeeded(ms.size());
@@ -83,7 +89,7 @@ public final class SolrOutput extends OutputBase<Rmap> {
 	@Override
 	public void commit() {
 		try {
-			solr.client().commit(false, false, true);
+			conn.client().commit(false, false, true);
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {

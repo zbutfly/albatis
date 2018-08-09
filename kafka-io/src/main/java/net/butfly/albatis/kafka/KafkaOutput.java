@@ -37,6 +37,11 @@ public final class KafkaOutput extends OutputBase<Rmap> {
 	}
 
 	@Override
+	public URISpec target() {
+		return uri;
+	}
+
+	@Override
 	protected void enqueue0(Sdream<Rmap> messages) {
 		List<Rmap> msgs = messages.list();
 		List<KeyedMessage<byte[], byte[]>> ms = of(msgs).map(m -> Kafkas.toKeyedMessage(m, coder)).nonNull().list();

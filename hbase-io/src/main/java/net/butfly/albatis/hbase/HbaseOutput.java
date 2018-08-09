@@ -11,6 +11,7 @@ import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
 
+import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.io.lambda.Function;
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.Exceptions;
@@ -29,11 +30,16 @@ public final class HbaseOutput extends OutputBase<Rmap> {
 	public static final @HbaseProps String MAX_CONCURRENT_OP_PROP_NAME = HbaseProps.OUTPUT_CONCURRENT_OPS;
 	public static final int MAX_CONCURRENT_OP_DEFAULT = Integer.MAX_VALUE;
 	public static final int SUGGEST_BATCH_SIZE = 200;
-	private final transient HbaseConnection hconn;
+	private final transient HbaseConnection conn;
 
 	public HbaseOutput(String name, HbaseConnection hconn, Function<Map<String, Object>, byte[]> ser) throws IOException {
 		super(name);
-		this.hconn = hconn;
+		this.conn = hconn;
+	}
+
+	@Override
+	public URISpec target() {
+		return conn.uri();
 	}
 
 	@Override
@@ -56,7 +62,7 @@ public final class HbaseOutput extends OutputBase<Rmap> {
 		for (String table : map.keySet()) {
 			List<Rmap> l = map.get(table);
 			if (l.isEmpty()) continue;
-			if (1 == l.size()) enq1(table, Hbases.Results.op(l.get(0), hconn.conv::apply), l.get(0));
+			if (1 == l.size()) enq1(table, Hbases.Results.op(l.get(0), conn.conv::apply), l.get(0));
 			else enq(table, l);
 		}
 	}
@@ -64,7 +70,7 @@ public final class HbaseOutput extends OutputBase<Rmap> {
 	protected void enq1(String table, Mutation op, Rmap origin) {
 		s().statsOut(op, o -> {
 			try {
-				hconn.put(table, op);
+				conn.put(table, op);
 				succeeded(1);
 			} catch (IOException e) {
 				failed(Sdream.of1(origin));
@@ -86,7 +92,7 @@ public final class HbaseOutput extends OutputBase<Rmap> {
 		try {
 			s().statsOuts(enqs, c -> {
 				try {
-					hconn.table(table).batch(enqs, results);
+					conn.table(table).batch(enqs, results);
 				} catch (Exception e) {
 					String err = Exceptions.unwrap(e).getMessage();
 					err = err.replaceAll("\n\\s+at .*\\)\n", ""); // shink
@@ -126,7 +132,7 @@ public final class HbaseOutput extends OutputBase<Rmap> {
 				logger().error("Message marked as delete but ignore: " + m.toString());
 				break;
 			default:
-				Mutation r = Hbases.Results.op(m, hconn.conv::apply);
+				Mutation r = Hbases.Results.op(m, conn.conv::apply);
 				if (null != r) {
 					origins.add(m);
 					puts.add(r);
@@ -141,7 +147,7 @@ public final class HbaseOutput extends OutputBase<Rmap> {
 			for (String k : merge.keySet())
 				if (((Long) merge.get(k)).longValue() <= 0) merge.remove(k);
 			if (!merge.isEmpty()) {
-				Mutation r = Hbases.Results.op(merge, hconn.conv::apply);
+				Mutation r = Hbases.Results.op(merge, conn.conv::apply);
 				if (null != r) {
 					origins.add(merge);
 					puts.add(r);

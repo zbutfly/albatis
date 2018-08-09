@@ -15,13 +15,14 @@ import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.index.mapper.MapperException;
 import org.elasticsearch.transport.RemoteTransportException;
 
+import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albacore.utils.logger.Statistic;
-import net.butfly.albatis.io.Rmap;
 import net.butfly.albatis.io.OutputBase;
+import net.butfly.albatis.io.Rmap;
 
 public class ElasticOutput extends OutputBase<Rmap> {
 	private static final long serialVersionUID = 1874320396863861434L;
@@ -33,6 +34,11 @@ public class ElasticOutput extends OutputBase<Rmap> {
 	public ElasticOutput(String name, ElasticConnection conn) throws IOException {
 		super(name);
 		this.conn = conn;
+	}
+
+	@Override
+	public URISpec target() {
+		return conn.uri();
 	}
 
 	@Override
