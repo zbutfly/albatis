@@ -70,11 +70,16 @@ public interface IO extends Sizable, Openable, Serializable {
 
 	@Override
 	default void open() {
-		Map<String, Number> props = Props.PROPS.computeIfAbsent(this, io -> Maps.of());
-		long step = props.computeIfAbsent(Props.STATS_STEP, k -> Props.propL(getClass(), k, -1)).longValue();
-		logger().debug(() -> "Step set to [" + step + "] by [" + Props.propName(getClass(), Props.STATS_STEP) + "]");
-		s().step(step);
+		stating();
 		Openable.super.open();
+	}
+
+	default void stating() {
+		Map<String, Number> props = Props.PROPS.computeIfAbsent(this, io -> Maps.of());
+		IO b = Wrapper.bases(this);
+		long step = props.computeIfAbsent(Props.STATS_STEP, k -> Props.propL(b.getClass(), k, -1)).longValue();
+		logger().debug(() -> "Step set to [" + step + "] by [" + Props.propName(b.getClass(), Props.STATS_STEP) + "]");
+		s().step(step);
 	}
 
 	default <E> Sdream<E> stats(Sdream<E> s) {
@@ -82,8 +87,9 @@ public interface IO extends Sizable, Openable, Serializable {
 	}
 
 	default int batchSize() {
+		IO b = Wrapper.bases(this);
 		return Props.PROPS.computeIfAbsent(this, io -> Maps.of()).computeIfAbsent(Props.BATCH_SIZE, //
-				k -> Props.propI(getClass(), k, 500)).intValue();
+				k -> Props.propI(b.getClass(), k, 500)).intValue();
 	}
 
 	class Stats {

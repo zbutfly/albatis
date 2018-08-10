@@ -53,9 +53,7 @@ abstract class OutputSafeBase<V> extends Namedly implements Output<V> {
 
 	@Deprecated
 	protected int detectOldMax() {
-		Object o;
-		if (this instanceof Wrapper) o = (Output<?>) ((Wrapper<?>) this).bases();
-		else o = this;
+		Object o = Wrapper.bases(this);
 		Class<?> oc = o.getClass();
 		int cop = -1;
 		Field f;
