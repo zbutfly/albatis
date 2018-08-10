@@ -11,6 +11,8 @@ import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
 
+import com.hzcominfo.albatis.nosql.Connection;
+
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.io.lambda.Function;
 import net.butfly.albacore.paral.Sdream;
@@ -30,16 +32,23 @@ public final class HbaseOutput extends OutputBase<Rmap> {
 	public static final @HbaseProps String MAX_CONCURRENT_OP_PROP_NAME = HbaseProps.OUTPUT_CONCURRENT_OPS;
 	public static final int MAX_CONCURRENT_OP_DEFAULT = Integer.MAX_VALUE;
 	public static final int SUGGEST_BATCH_SIZE = 200;
-	private final transient HbaseConnection conn;
+	private transient HbaseConnection conn;
+	private final URISpec target;
 
 	public HbaseOutput(String name, HbaseConnection hconn, Function<Map<String, Object>, byte[]> ser) throws IOException {
 		super(name);
+		this.target = hconn.uri();
 		this.conn = hconn;
 	}
 
 	@Override
 	public URISpec target() {
-		return conn.uri();
+		return target;
+	}
+
+	@Override
+	public void connect() throws IOException {
+		if (null == conn) conn = Connection.DriverManager.connect(target);
 	}
 
 	@Override

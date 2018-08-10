@@ -3,7 +3,6 @@ package net.butfly.albatis.io;
 import java.util.Collection;
 
 import net.butfly.albacore.io.Enqueuer;
-import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.io.lambda.Consumer;
 import net.butfly.albacore.io.lambda.Function;
 import net.butfly.albacore.paral.Sdream;
@@ -13,9 +12,6 @@ import net.butfly.albatis.io.ext.FailoverOutput;
 public interface Output<V> extends IO, Consumer<Sdream<V>>, Enqueuer<V> {
 	static Output<?> NULL = items -> {};
 
-	default URISpec target() {
-		return null;
-	}
 
 	@Override
 	default long size() {

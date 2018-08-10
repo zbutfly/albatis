@@ -6,10 +6,6 @@ import net.butfly.albacore.utils.logger.Logger;
 public abstract class WrapOddOutput<V, V0> extends WrapperBase<OddOutput<V0>> implements OddOutput<V> {
 	private static final long serialVersionUID = 2713449285484389905L;
 
-//	public WrapOddOutput() {
-//		super("", null);
-//	}
-
 	protected WrapOddOutput(OddOutput<V0> base, String suffix) {
 		super(base.name() + suffix, base);
 	}

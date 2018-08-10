@@ -1,11 +1,18 @@
 package net.butfly.albatis.io;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.util.Base64;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import net.butfly.albacore.base.Sizable;
 import net.butfly.albacore.io.Openable;
+import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.CaseFormat;
 import net.butfly.albacore.utils.Configs;
@@ -55,6 +62,12 @@ public interface IO extends Sizable, Openable, Serializable {
 		return new Statistic(this);
 	}
 
+	default void connect() throws IOException {}
+
+	default URISpec target() {
+		return null;
+	}
+
 	@Override
 	default void open() {
 		Map<String, Number> props = Props.PROPS.computeIfAbsent(this, io -> Maps.of());
@@ -102,5 +115,24 @@ public interface IO extends Sizable, Openable, Serializable {
 		for (int ff : f)
 			f0 &= ff;
 		return 0 != f0;
+	}
+
+	default String ser() {
+		try (ByteArrayOutputStream bos = new ByteArrayOutputStream(); ObjectOutputStream oos = new ObjectOutputStream(bos);) {
+			oos.writeObject(this);
+			return Base64.getEncoder().encodeToString(bos.toByteArray());
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	static <T extends IO> T der(String ser) {
+		byte[] b = Base64.getDecoder().decode(ser);
+		try (ByteArrayInputStream bos = new ByteArrayInputStream(b); ObjectInputStream oos = new ObjectInputStream(bos);) {
+			return (T) oos.readObject();
+		} catch (IOException | ClassNotFoundException e) {
+			throw new RuntimeException(e);
+		}
 	}
 }
