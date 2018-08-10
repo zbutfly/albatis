@@ -18,12 +18,12 @@
 		<!-- <version.kafka>0.11.0.3</version.kafka> --><!-- for scala_2.11 only -->
 		<version.mongodb.thin>2.14.3</version.mongodb.thin>
 		<version.mongodb.fat>3.8.0</version.mongodb.fat>
-		<version.elastic>6.2.4</version.elastic>
+		<version.elastic>6.3.2</version.elastic>
 		<version.kudu>1.7.1</version.kudu>
 		<version.hbase>2.1.0</version.hbase>
-		<version.solr>7.3.1</version.solr>
-		<version.arangodb>4.4.0</version.arangodb>
-		<version.neo4j>3.4.0</version.neo4j>
+		<version.solr>7.4.0</version.solr>
+		<version.arangodb>4.7.0</version.arangodb>
+		<version.neo4j>3.4.5</version.neo4j>
 		<maven.compiler.source>8</maven.compiler.source>
 		<maven.compiler.target>8</maven.compiler.target>
 	</properties>
