@@ -10,6 +10,8 @@ import java.util.Base64;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import com.hzcominfo.albatis.nosql.Connection;
+
 import net.butfly.albacore.base.Sizable;
 import net.butfly.albacore.io.Openable;
 import net.butfly.albacore.io.URISpec;
@@ -62,7 +64,9 @@ public interface IO extends Sizable, Openable, Serializable {
 		return new Statistic(this);
 	}
 
-	default void connect() throws IOException {}
+	default Connection connect() throws IOException {
+		return null;
+	}
 
 	default URISpec target() {
 		return null;

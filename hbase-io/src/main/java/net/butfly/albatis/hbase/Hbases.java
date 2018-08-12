@@ -17,7 +17,6 @@ import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import net.butfly.albacore.io.lambda.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -37,6 +36,7 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 
+import net.butfly.albacore.io.lambda.Function;
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.IOs;
 import net.butfly.albacore.utils.Utils;
@@ -62,7 +62,24 @@ public final class Hbases extends Utils {
 			hconf.set(c.getKey(), c.getValue());
 		if (null != conf && !conf.isEmpty()) for (Entry<String, String> c : conf.entrySet())
 			hconf.set(c.getKey(), c.getValue());
-		return ConnectionFactory.createConnection(hconf, ex);
+		while (true)
+			try {
+				return ConnectionFactory.createConnection(hconf, ex);
+			} catch (IOException e) {
+				throw e;
+			} catch (Throwable t) {// org.apache.zookeeper.KeeperException.ConnectionLossException
+				throw new IOException(t);
+			}
+	}
+
+	public static void disconnect(Connection conn) throws IOException {
+		try {
+			synchronized (conn) {
+				if (!conn.isClosed()) conn.close();
+			}
+		} catch (IOException e) {
+			logger.error("Hbase connection close failure", e);
+		}
 	}
 
 	public static String colFamily(Cell cell) {

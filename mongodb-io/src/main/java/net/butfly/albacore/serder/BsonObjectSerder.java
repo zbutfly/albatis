@@ -11,13 +11,10 @@ import org.bson.BasicBSONDecoder;
 import org.bson.BasicBSONEncoder;
 import org.bson.BasicBSONObject;
 
-import net.butfly.albacore.serder.support.ContentTypeSerder;
-import net.butfly.albacore.serder.support.ContentTypeSerderBase;
-import net.butfly.albacore.serder.support.ContentTypes;
 import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.Pair;
 
-public final class BsonObjectSerder extends ContentTypeSerderBase implements Serder<BSONObject, byte[]>, ContentTypeSerder {
+public final class BsonObjectSerder implements BinarySerder<BSONObject> {
 	private static final long serialVersionUID = 6664350391207228363L;
 	public static final BsonObjectSerder DEFAULT = new BsonObjectSerder();
 
@@ -38,7 +35,7 @@ public final class BsonObjectSerder extends ContentTypeSerderBase implements Ser
 
 	@Deprecated
 	public BsonObjectSerder(int parallelism) {
-		this.contentType = ContentTypes.APPLICATION_BSON;
+		// this.contentType = ContentTypes.APPLICATION_BSON;
 		encoders = new LinkedBlockingQueue<>(parallelism);
 		decoders = new LinkedBlockingQueue<>(parallelism);
 		for (int i = 0; i < parallelism; i++) {

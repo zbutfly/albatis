@@ -36,17 +36,7 @@ public class MongoConnection extends NoSqlConnection<MongoClient> {
 	private final String defaultCollection;
 
 	public MongoConnection(URISpec urispec) throws IOException {
-		super(urispec, u -> {
-			try {
-				String str = u.getScheme() + "://" + u.getAuthority() + "/";
-				String db = u.getPathAt(0);
-				if (null != db)
-					str += db;
-				return new MongoClient(new MongoClientURI(str));
-			} catch (UnknownHostException e) {
-				throw new RuntimeException(e);
-			}
-		}, "mongodb");
+		super(urispec, "mongodb");
 		if (uri.getPaths().length > 0) {
 			defaultDB = uri.getPaths()[0];
 			// Arrays.stream(uri.getFile().split(",")).filter(t -> !t.isEmpty()).toArray(i -> new String[i])
@@ -61,6 +51,18 @@ public class MongoConnection extends NoSqlConnection<MongoClient> {
 		dbs = Maps.of();
 	}
 
+	@Override
+	protected MongoClient initialize(URISpec uri) {
+		try {
+			String str = uri.getScheme() + "://" + uri.getAuthority() + "/";
+			String db = uri.getPathAt(0);
+			if (null != db) str += db;
+			return new MongoClient(new MongoClientURI(str));
+		} catch (UnknownHostException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
 	@Deprecated
 	public MongoConnection(String urispec) throws IOException {
 		this(new URISpec(urispec));
@@ -71,7 +73,7 @@ public class MongoConnection extends NoSqlConnection<MongoClient> {
 	}
 
 	public DB db(String dbname) {
-		return dbs.computeIfAbsent(dbname, n -> client().getDB(n));
+		return dbs.computeIfAbsent(dbname, n -> client.getDB(n));
 	}
 
 	public DBCollection collection() {
@@ -105,7 +107,7 @@ public class MongoConnection extends NoSqlConnection<MongoClient> {
 		} catch (IOException e) {
 			logger.error("Close failure", e);
 		}
-		client().close();
+		client.close();
 	}
 
 	public String defaultCollection() {

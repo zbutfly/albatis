@@ -10,7 +10,7 @@ public class ConsoleOutput extends OddOutputBase<String> {
 	}
 
 	@Override
-	protected boolean enqueue0(String item) {
+	protected boolean enqsafe(String item) {
 		System.out.println(item);
 		return true;
 	}

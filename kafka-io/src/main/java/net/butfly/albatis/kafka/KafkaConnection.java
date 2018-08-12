@@ -3,15 +3,16 @@ package net.butfly.albatis.kafka;
 import java.io.IOException;
 import java.util.List;
 
+import com.hzcominfo.albatis.nosql.Connection;
 import com.hzcominfo.albatis.nosql.NoSqlConnection;
 
 import net.butfly.albacore.exception.ConfigException;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.collection.Colls;
 
-public class KafkaConnection extends NoSqlConnection<Object> {
+public class KafkaConnection extends NoSqlConnection<Connection> {
 	public KafkaConnection(URISpec uri) throws IOException {
-		super(uri, u -> null, "kafka");
+		super(uri, "kafka");
 	}
 
 	@Override
@@ -46,5 +47,10 @@ public class KafkaConnection extends NoSqlConnection<Object> {
 		public List<String> schemas() {
 			return Colls.list("kafka");
 		}
+	}
+
+	@Override
+	protected Connection initialize(URISpec uri) {
+		return null;
 	}
 }

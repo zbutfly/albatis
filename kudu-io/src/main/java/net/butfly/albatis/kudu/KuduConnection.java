@@ -27,10 +27,15 @@ import net.butfly.albacore.utils.Configs;
 @SuppressWarnings("unchecked")
 public class KuduConnection extends KuduConnectionBase<KuduConnection, KuduClient, KuduSession> {
 	public KuduConnection(URISpec kuduUri) throws IOException {
-		super(kuduUri, r -> new KuduClient.KuduClientBuilder(kuduUri.getHost()).build());
-		session = client().newSession();
+		super(kuduUri);
+		session = client.newSession();
 		session.setFlushMode(FlushMode.AUTO_FLUSH_BACKGROUND);
 		session.setTimeoutMillis(Long.parseLong(Configs.get(KuduProps.TIMEOUT, "2000")));
+	}
+
+	@Override
+	protected KuduClient initialize(URISpec uri) {
+		return new KuduClient.KuduClientBuilder(uri.getHost()).build();
 	}
 
 	@Override
@@ -50,7 +55,7 @@ public class KuduConnection extends KuduConnectionBase<KuduConnection, KuduClien
 	@Override
 	protected KuduTable openTable(String table) {
 		try {
-			return client().openTable(table);
+			return client.openTable(table);
 		} catch (KuduException e) {
 			logger().error("Kudu table open fail", e);
 			return null;
@@ -96,10 +101,10 @@ public class KuduConnection extends KuduConnectionBase<KuduConnection, KuduClien
 	@Override
 	public void destruct(String name) {
 		try {
-			if (!client().tableExists(name)) logger.warn("Kudu table [" + name + "] not exised, need not dropped.");
+			if (!client.tableExists(name)) logger.warn("Kudu table [" + name + "] not exised, need not dropped.");
 			else {
 				logger.warn("Kudu table [" + name + "] exised and dropped.");
-				client().deleteTable(name);
+				client.deleteTable(name);
 			}
 		} catch (KuduException ex) {
 			logger.warn("Kudu table [" + name + "] drop fail", ex);
@@ -109,7 +114,7 @@ public class KuduConnection extends KuduConnectionBase<KuduConnection, KuduClien
 	@Override
 	public void construct(String table, ColumnSchema... cols) {
 		try {
-			if (client().tableExists(table)) {
+			if (client.tableExists(table)) {
 				logger.warn("Ask for creating new table but existed and not droped, ignore");
 				return;
 			}
@@ -131,7 +136,7 @@ public class KuduConnection extends KuduConnectionBase<KuduConnection, KuduClien
 		CreateTableOptions opts = new CreateTableOptions().addHashPartitions(keys, buckets);
 		if (replicas > 0) opts = opts.setNumReplicas(replicas);
 		try {
-			client().createTable(table, new Schema(Arrays.asList(cols)), opts);
+			client.createTable(table, new Schema(Arrays.asList(cols)), opts);
 		} catch (KuduException e) {
 			throw new RuntimeException(e);
 		}

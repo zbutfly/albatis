@@ -37,7 +37,7 @@ public class JdbcOutput extends OutputBase<Rmap> {
 	}
 
 	@Override
-	protected void enqueue0(Sdream<Rmap> items) {
+	protected void enqsafe(Sdream<Rmap> items) {
 		AtomicLong n = new AtomicLong(0);
 		Map<String, List<Rmap>> mml = items.list().stream().filter(item -> {
 			String table = item.table();
@@ -47,7 +47,7 @@ public class JdbcOutput extends OutputBase<Rmap> {
 			succeeded(0);
 			return;
 		}
-		try (Connection c = conn.client().getConnection()) {
+		try (Connection c = conn.client.getConnection()) {
 			n.addAndGet(conn.upserter.upsert(mml, c));
 		} catch (SQLException e) {
 			logger().error("failed to insert or update items.");

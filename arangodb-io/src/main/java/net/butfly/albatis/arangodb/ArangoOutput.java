@@ -28,7 +28,7 @@ public class ArangoOutput extends OutputBase<AqlNestedMessage> {
 	}
 
 	@Override
-	protected void enqueue0(Sdream<AqlNestedMessage> edges) {
+	protected void enqsafe(Sdream<AqlNestedMessage> edges) {
 		edges.map(e -> e.exec(conn, s())).eachs(ArangoConnection::get);
 	}
 

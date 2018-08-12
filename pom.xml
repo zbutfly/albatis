@@ -13,8 +13,8 @@
 	<properties>
 		<version.albacore>3.1.0-SNAPSHOT</version.albacore>
 		<!-- <version.kafka>0.8.2.2</version.kafka> -->
-		<version.kafka>0.9.0.1</version.kafka>
-		<!-- <version.kafka>0.10.2.2</version.kafka> -->
+		<!-- <version.kafka>0.9.0.1</version.kafka> -->
+		<version.kafka>0.10.2.2</version.kafka>
 		<!-- <version.kafka>0.11.0.3</version.kafka> --><!-- for scala_2.11 only -->
 		<version.mongodb.thin>2.14.3</version.mongodb.thin>
 		<version.mongodb.fat>3.8.0</version.mongodb.fat>

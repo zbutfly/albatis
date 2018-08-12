@@ -42,7 +42,7 @@ public final class KafkaOutput extends OutputBase<Rmap> {
 	}
 
 	@Override
-	protected void enqueue0(Sdream<Rmap> messages) {
+	protected void enqsafe(Sdream<Rmap> messages) {
 		List<Rmap> msgs = messages.list();
 		List<KeyedMessage<byte[], byte[]>> ms = of(msgs).map(m -> Kafkas.toKeyedMessage(m, coder)).nonNull().list();
 		if (!ms.isEmpty()) try {

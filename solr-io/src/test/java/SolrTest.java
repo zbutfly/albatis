@@ -22,8 +22,8 @@ public class SolrTest {
 
 	private static void test(String solrURL, String... core) throws URISyntaxException {
 		try (SolrConnection solr = new SolrConnection(solrURL);) {
-			QueryResponse resp = core.length == 0 ? solr.client().query(new SolrQuery("*:*"))
-					: solr.client().query(core[0], new SolrQuery("*:*"));
+			QueryResponse resp = core.length == 0 ? solr.client.query(new SolrQuery("*:*"))
+					: solr.client.query(core[0], new SolrQuery("*:*"));
 			assert (resp.getResults().size() > 0);
 			System.err.println("Original URL: \t" + solrURL);
 			System.err.println("Base URL: \t" + solr.getBase());

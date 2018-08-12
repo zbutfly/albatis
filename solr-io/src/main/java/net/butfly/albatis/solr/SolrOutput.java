@@ -43,7 +43,7 @@ public final class SolrOutput extends OutputBase<Rmap> {
 		super.close();
 		try {
 			for (String core : conn.getCores())
-				conn.client().commit(core, false, false);
+				conn.client.commit(core, false, false);
 		} catch (IOException | SolrServerException e) {
 			logger().error("Close failure", e);
 		}
@@ -55,7 +55,7 @@ public final class SolrOutput extends OutputBase<Rmap> {
 	}
 
 	@Override
-	protected void enqueue0(Sdream<Rmap> msgs) {
+	protected void enqsafe(Sdream<Rmap> msgs) {
 		Map<String, Map<Integer, List<Rmap>>> map = Maps.of();
 		msgs.eachs(m -> map.compute(m.table(), (core, cores) -> {
 			if (null == cores) cores = Maps.of();
@@ -72,11 +72,11 @@ public final class SolrOutput extends OutputBase<Rmap> {
 				try {
 					switch (op) {
 					case Op.DELETE:
-						conn.client().deleteById(core, Sdream.of(map.get(core).get(op))//
+						conn.client.deleteById(core, Sdream.of(map.get(core).get(op))//
 								.map(t -> null == t.key() ? null : t.key().toString()).list(), DEFAULT_AUTO_COMMIT_MS);
 						break;
 					default:
-						conn.client().add(core, Sdream.of(map.get(core).get(op)).map(m -> Solrs.input(m, keyFieldName)).list(),
+						conn.client.add(core, Sdream.of(map.get(core).get(op)).map(m -> Solrs.input(m, keyFieldName)).list(),
 								DEFAULT_AUTO_COMMIT_MS);
 					}
 					succeeded(ms.size());
@@ -89,7 +89,7 @@ public final class SolrOutput extends OutputBase<Rmap> {
 	@Override
 	public void commit() {
 		try {
-			conn.client().commit(false, false, true);
+			conn.client.commit(false, false, true);
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {

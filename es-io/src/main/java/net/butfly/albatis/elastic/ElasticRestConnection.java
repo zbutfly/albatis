@@ -20,7 +20,7 @@ import net.butfly.albatis.io.Output;
 
 public class ElasticRestConnection extends NoSqlConnection<RestClient> implements ElasticConnect {
 	public ElasticRestConnection(URISpec uri, Map<String, String> props) throws IOException {
-		super(uri, u -> ElasticConnect.Builder.buildRestClient(u), 39200, "http", "https");
+		super(uri, 39200, "http", "https");
 	}
 
 	public ElasticRestConnection(URISpec uri) throws IOException {
@@ -33,6 +33,11 @@ public class ElasticRestConnection extends NoSqlConnection<RestClient> implement
 
 	public ElasticRestConnection(String url) throws IOException {
 		this(new URISpec(url));
+	}
+
+	@Override
+	protected RestClient initialize(URISpec uri) {
+		return ElasticConnect.Builder.buildRestClient(uri);
 	}
 
 	@Override
@@ -56,7 +61,7 @@ public class ElasticRestConnection extends NoSqlConnection<RestClient> implement
 		req.source(mapping);
 		// if (null != getDefaultType()) tps.add(getDefaultType());
 		try {
-			StatusLine r = client().performRequest("PUT", getDefaultIndex() + "/_mapping/" + type, new HashMap<>(), new NStringEntity(
+			StatusLine r = client.performRequest("PUT", getDefaultIndex() + "/_mapping/" + type, new HashMap<>(), new NStringEntity(
 					mappings)).getStatusLine();
 			if (200 != r.getStatusCode()) logger().error("Mapping failed on type [" + type + "]: \n\t" + r.getReasonPhrase());
 		} catch (IOException ex) {
@@ -72,7 +77,7 @@ public class ElasticRestConnection extends NoSqlConnection<RestClient> implement
 			logger().error("Close failure", e);
 		}
 		try {
-			client().close();
+			client.close();
 		} catch (IOException e) {
 			logger().error("Close failure", e);
 		}

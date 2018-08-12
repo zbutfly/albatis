@@ -74,35 +74,43 @@ public class HbaseConnection extends NoSqlConnection<org.apache.hadoop.hbase.cli
 	}
 
 	public HbaseConnection(URISpec uri) throws IOException {
-		super(uri, u -> {
-			Map<String, String> params = null;
-			if (null != u) {
-				params = new ConcurrentHashMap<>(u.getParameters());
-				switch (u.getScheme()) {
-				case "hbase":
-					if (u.getInetAddrs().length == 1) {
-						logger.warn("Deprecate master connect to hbase: " + u.getHost());
-						params.put("hbase.master", "*" + u.getHost() + "*");
-						break;
-					}
-				case "zk":
-				case "zookeeper":
-				case "hbase:zk":
-				case "hbase:zookeeper":
-					if (uri.getInetAddrs().length > 0) for (InetSocketAddress a : u.getInetAddrs()) {
-						params.put(HConstants.ZOOKEEPER_QUORUM, a.getHostName());
-						params.put(HConstants.ZOOKEEPER_CLIENT_PORT, Integer.toString(a.getPort()));
-					}
-				}
-			}
-			try {
-				return Hbases.connect(params);
-			} catch (IOException e) {
-				return null;
-			}
-		}, "hbase");
+		super(uri, "hbase");
 		conv = Connection.uriser(uri);
 		tables = Maps.of();
+	}
+
+	@Override
+	protected org.apache.hadoop.hbase.client.Connection initialize(URISpec uri) {
+		if (null != client) try {
+			client.close();
+		} catch (Exception e) {
+			logger.error("Initialize hbase connection fail on close origin, maybe leak!", e);
+		}
+		Map<String, String> params = null;
+		if (null != uri) {
+			params = new ConcurrentHashMap<>(uri.getParameters());
+			switch (uri.getScheme()) {
+			case "hbase":
+				if (uri.getInetAddrs().length == 1) {
+					logger.warn("Deprecate master connect to hbase: " + uri.getHost());
+					params.put("hbase.master", "*" + uri.getHost() + "*");
+					break;
+				}
+			case "zk":
+			case "zookeeper":
+			case "hbase:zk":
+			case "hbase:zookeeper":
+				if (uri.getInetAddrs().length > 0) for (InetSocketAddress a : uri.getInetAddrs()) {
+					params.put(HConstants.ZOOKEEPER_QUORUM, a.getHostName());
+					params.put(HConstants.ZOOKEEPER_CLIENT_PORT, Integer.toString(a.getPort()));
+				}
+			}
+		}
+		try {
+			return Hbases.connect(params);
+		} catch (IOException e) {
+			return null;
+		}
 	}
 
 	@Override
@@ -115,19 +123,13 @@ public class HbaseConnection extends NoSqlConnection<org.apache.hadoop.hbase.cli
 			} catch (IOException e) {
 				logger().error("Hbase table [" + k + "] close failure", e);
 			}
-		try {
-			synchronized (this) {
-				if (!client().isClosed()) client().close();
-			}
-		} catch (IOException e) {
-			logger().error("Hbase close failure", e);
-		}
+		Hbases.disconnect(client);
 	}
 
 	public Table table(String table) {
 		return tables.computeIfAbsent(table, t -> {
 			try {
-				return client().getTable(TableName.valueOf(t), Hbases.ex);
+				return client.getTable(TableName.valueOf(t), Hbases.ex);
 			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}

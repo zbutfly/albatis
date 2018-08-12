@@ -38,8 +38,8 @@ public class KuduConnectionAsync extends KuduConnectionBase<KuduConnectionAsync,
 	private final Thread pendingHandler;
 
 	public KuduConnectionAsync(URISpec kuduUri) throws IOException {
-		super(kuduUri, r -> new AsyncKuduClient.AsyncKuduClientBuilder(kuduUri.getHost()).build());
-		session = client().newSession();
+		super(kuduUri);
+		session = client.newSession();
 		session.setFlushMode(FlushMode.AUTO_FLUSH_BACKGROUND);
 		session.setTimeoutMillis(Long.parseLong(Configs.get(KuduProps.TIMEOUT, "2000")));
 		session.setFlushInterval(1000);
@@ -58,9 +58,14 @@ public class KuduConnectionAsync extends KuduConnectionBase<KuduConnectionAsync,
 	}
 
 	@Override
+	protected AsyncKuduClient initialize(URISpec uri) {
+		return new AsyncKuduClient.AsyncKuduClientBuilder(uri.getHost()).build();
+	}
+
+	@Override
 	protected KuduTable openTable(String table) {
 		try {
-			return client().openTable(table).join();
+			return client.openTable(table).join();
 		} catch (Exception e) {
 			logger().error("Kudu table open fail", e);
 			return null;
@@ -112,9 +117,9 @@ public class KuduConnectionAsync extends KuduConnectionBase<KuduConnectionAsync,
 	@Override
 	public void destruct(String table) {
 		try {
-			if (client().tableExists(table).join()) {
+			if (client.tableExists(table).join()) {
 				logger.warn("Kudu table [" + table + "] exised and dropped.");
-				client().deleteTable(table);
+				client.deleteTable(table);
 			}
 		} catch (Exception ex) {}
 	}
@@ -122,7 +127,7 @@ public class KuduConnectionAsync extends KuduConnectionBase<KuduConnectionAsync,
 	@Override
 	public void construct(String table, ColumnSchema... cols) {
 		try {
-			if (client().tableExists(table).join()) {
+			if (client.tableExists(table).join()) {
 				logger.warn("Ask for creating new table but existed and not droped, ignore");
 				return;
 			}
@@ -144,7 +149,7 @@ public class KuduConnectionAsync extends KuduConnectionBase<KuduConnectionAsync,
 		CreateTableOptions opts = new CreateTableOptions().addHashPartitions(keys, buckets);
 		if (replicas > 0) opts = opts.setNumReplicas(replicas);
 		try {
-			client().createTable(table, new Schema(Arrays.asList(cols)), opts).join();
+			client.createTable(table, new Schema(Arrays.asList(cols)), opts).join();
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}

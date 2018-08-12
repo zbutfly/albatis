@@ -2,6 +2,8 @@ package net.butfly.albatis.io;
 
 import java.io.IOException;
 
+import com.hzcominfo.albatis.nosql.Connection;
+
 import net.butfly.albacore.base.Named;
 import net.butfly.albacore.io.Dequeuer;
 import net.butfly.albacore.io.URISpec;
@@ -14,8 +16,8 @@ public interface Wrapper<B extends IO> extends Named, IO {
 	<BB extends IO> BB bases();
 
 	@Override
-	default void connect() throws IOException {
-		bases().connect();
+	default Connection connect() throws IOException {
+		return bases().connect();
 	}
 
 	@Override

@@ -35,7 +35,7 @@ public class JdbcInput extends net.butfly.albacore.base.Namedly implements OddIn
 
 	public void query(String sql, Object... params) throws SQLException {
 		logger().debug("[" + name + "] query begin...");
-		conn = jdbc.client().getConnection();
+		conn = jdbc.client.getConnection();
 		conn.setTransactionIsolation(Connection.TRANSACTION_READ_UNCOMMITTED);
 		stat = conn.prepareStatement(sql);
 		stat.setFetchDirection(ResultSet.FETCH_FORWARD);

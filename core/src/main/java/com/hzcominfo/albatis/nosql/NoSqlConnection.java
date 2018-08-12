@@ -5,7 +5,6 @@ import java.net.ProtocolException;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Properties;
-import net.butfly.albacore.io.lambda.Function;
 
 import com.google.common.base.Joiner;
 import com.hzcominfo.albatis.search.exception.SearchAPIError;
@@ -15,7 +14,7 @@ import net.butfly.albacore.utils.logger.Loggable;
 
 public abstract class NoSqlConnection<C> implements Connection, Loggable {
 	protected final String[] supportedSchemas;
-	private final C client;
+	public final C client;
 	protected final URISpec uri;
 	protected final Properties parameters;
 
@@ -27,7 +26,7 @@ public abstract class NoSqlConnection<C> implements Connection, Loggable {
 		parameters = null;
 	}
 
-	protected NoSqlConnection(URISpec uri, Function<URISpec, C> client, int defaultPort, String... supportedSchema) throws IOException {
+	protected NoSqlConnection(URISpec uri, int defaultPort, String... supportedSchema) throws IOException {
 		super();
 		supportedSchemas = null != supportedSchema ? supportedSchema : new String[0];
 		this.uri = uri;
@@ -35,7 +34,7 @@ public abstract class NoSqlConnection<C> implements Connection, Loggable {
 		String schema = supportedSchema(uri.getScheme());
 		if (null == schema) throw new ProtocolException(uri.getScheme() + " is not supported, "//
 				+ "supported list: [" + Joiner.on(',').join(supportedSchemas) + "]");
-		this.client = client.apply(uri);
+		this.client = initialize(uri);// client.apply(uri);
 
 		parameters = new Properties();
 		String qstr = uri.getQuery();
@@ -48,8 +47,12 @@ public abstract class NoSqlConnection<C> implements Connection, Loggable {
 		}
 	}
 
-	protected NoSqlConnection(URISpec uri, Function<URISpec, C> client, String... supportedSchema) throws IOException {
-		this(uri, client, -1, supportedSchema);
+	protected C initialize(URISpec uri) {
+		return null;
+	}
+
+	protected NoSqlConnection(URISpec uri, String... supportedSchema) throws IOException {
+		this(uri, -1, supportedSchema);
 	}
 
 	public final int getBatchSize() {
@@ -76,10 +79,6 @@ public abstract class NoSqlConnection<C> implements Connection, Loggable {
 	@Override
 	public void close() throws IOException {}
 
-	public final C client() {
-		return client;
-	}
-
 	public final String getParameter(String name) {
 		return parameters.getProperty(name);
 	}
@@ -99,5 +98,10 @@ public abstract class NoSqlConnection<C> implements Connection, Loggable {
 	@Override
 	public URISpec uri() {
 		return uri;
+	}
+
+	@Override
+	protected void finalize() throws Throwable {
+		close();
 	}
 }

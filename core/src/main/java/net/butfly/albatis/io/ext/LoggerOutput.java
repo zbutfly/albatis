@@ -55,7 +55,7 @@ public final class LoggerOutput extends OddOutputBase<String> {
 	}
 
 	@Override
-	protected boolean enqueue0(String item) {
+	protected boolean enqsafe(String item) {
 		loggings.get(level).accept(item);
 		return true;
 	}

@@ -29,7 +29,7 @@ public class ElasticOutputAsync extends ElasticOutput {
 			List<DocWriteRequest> reqs = of(remains.values()).map(Elastics::forWrite).list();
 			if (reqs.isEmpty()) return;
 			try {
-				conn.client().bulk(new BulkRequest().add(reqs), new EnqueueListener(remains));
+				conn.client.bulk(new BulkRequest().add(reqs), new EnqueueListener(remains));
 			} catch (IllegalStateException ex) {
 				logger().error("Elastic client fail: [" + ex.toString() + "]");
 			}

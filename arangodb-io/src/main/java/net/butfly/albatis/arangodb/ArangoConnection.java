@@ -38,27 +38,13 @@ public class ArangoConnection extends NoSqlConnection<ArangoDBAsync> {
 	public final String[] tables;
 
 	public ArangoConnection(URISpec uri) throws IOException {
-		super(uri, u -> {
-			Builder b = new ArangoDBAsync.Builder();
-			for (InetSocketAddress h : u.getInetAddrs())
-				b.host(h.getHostName(), h.getPort());
-			if (null != u.getUsername()) b.user(u.getUsername());
-			if (null != u.getPassword()) b.password(u.getPassword());
-			if (MAX_CONNECTIONS > 0) b.maxConnections(MAX_CONNECTIONS);
-			else if (u.getInetAddrs().length > 1) b.maxConnections(u.getInetAddrs().length);
-			else b.maxConnections(8);
-			if (u.getInetAddrs().length > 1) {
-				b.loadBalancingStrategy(LoadBalancingStrategy.ROUND_ROBIN);
-				b.acquireHostList(true);
-			}
-			return b.chunksize(CHUNK_SIZE).build();
-		}, 8529, "arango", "arangodb");
+		super(uri, 8529, "arango", "arangodb");
 		if (uri.getPaths().length > 0) {
-			this.db = client().db(uri.getPaths()[0]);
+			this.db = client.db(uri.getPaths()[0]);
 			this.tables = null != uri.getFile() ? Arrays.stream(uri.getFile().split(",")).filter(t -> !t.isEmpty()).toArray(
 					i -> new String[i]) : new String[0];
 		} else if (null != uri.getFile()) {
-			this.db = client().db(uri.getFile());
+			this.db = client.db(uri.getFile());
 			this.tables = new String[0];
 		} else {
 			this.db = null;
@@ -67,8 +53,25 @@ public class ArangoConnection extends NoSqlConnection<ArangoDBAsync> {
 	}
 
 	@Override
+	protected ArangoDBAsync initialize(URISpec uri) {
+		Builder b = new ArangoDBAsync.Builder();
+		for (InetSocketAddress h : uri.getInetAddrs())
+			b.host(h.getHostName(), h.getPort());
+		if (null != uri.getUsername()) b.user(uri.getUsername());
+		if (null != uri.getPassword()) b.password(uri.getPassword());
+		if (MAX_CONNECTIONS > 0) b.maxConnections(MAX_CONNECTIONS);
+		else if (uri.getInetAddrs().length > 1) b.maxConnections(uri.getInetAddrs().length);
+		else b.maxConnections(8);
+		if (uri.getInetAddrs().length > 1) {
+			b.loadBalancingStrategy(LoadBalancingStrategy.ROUND_ROBIN);
+			b.acquireHostList(true);
+		}
+		return b.chunksize(CHUNK_SIZE).build();
+	}
+
+	@Override
 	public void close() throws IOException {
-		client().shutdown();
+		client.shutdown();
 	}
 
 	@Override
@@ -161,15 +164,11 @@ public class ArangoConnection extends NoSqlConnection<ArangoDBAsync> {
 		if (null == f2) return f1;
 		return f1.thenCombineAsync(f2, ArangoConnection::merge, Exeter.of());
 	};
-	
-	
-	
-	
+
 	public boolean collectionExists(String collectionName) {
 		return db.collection(collectionName).exists().isDone();
 	}
-	
-	
+
 	public CompletableFuture<ArangoCursorAsync<BaseDocument>> cursor(String aql) {
 		return db.query(aql, null, null, BaseDocument.class);
 	}

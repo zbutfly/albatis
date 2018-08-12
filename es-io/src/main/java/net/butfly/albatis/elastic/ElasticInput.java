@@ -75,7 +75,7 @@ public final class ElasticInput extends net.butfly.albacore.base.Namedly impleme
 
 	public void scanType() {
 		if (index == null) throw new RuntimeException("index is null");
-		SearchRequestBuilder searchRequest = elastic.client().prepareSearch(index);
+		SearchRequestBuilder searchRequest = elastic.client.prepareSearch(index);
 		searchRequest.setSize(scrollnumber)
 				// .setSearchType(SearchType.SCAN)
 				.setScroll(TimeValue.timeValueMinutes(scrolltime));
@@ -86,8 +86,8 @@ public final class ElasticInput extends net.butfly.albacore.base.Namedly impleme
 	}
 
 	private SearchResponse scanType2(SearchResponse searchResponse) {
-		return elastic.client().prepareSearchScroll(searchResponse.getScrollId()).setScroll(TimeValue.timeValueMinutes(scrolltime))
-				.execute().actionGet();
+		return elastic.client.prepareSearchScroll(searchResponse.getScrollId()).setScroll(TimeValue.timeValueMinutes(scrolltime)).execute()
+				.actionGet();
 	}
 
 	@Override

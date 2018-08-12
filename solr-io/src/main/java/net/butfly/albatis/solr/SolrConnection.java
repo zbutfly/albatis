@@ -36,6 +36,7 @@ import com.hzcominfo.albatis.nosql.Connection;
 import com.hzcominfo.albatis.nosql.NoSqlConnection;
 
 import net.butfly.albacore.io.URISpec;
+import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.Reflections;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
@@ -75,31 +76,18 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 		this(new URISpec(connection));
 	}
 
-	public SolrConnection(String connection, Class<? extends ResponseParser> parserClass) throws IOException {
-		this(new URISpec(connection), parserClass);
-	}
-
 	public SolrConnection(URISpec uri) throws IOException {
-		this(uri.getScheme().startsWith("solr:http") ? new URISpec(uri.toString().replace("solr:", "")) : uri, ResponseFormat.parse(uri
-				.getParameter("parser", "XML")));
-	}
-
-	public SolrConnection(URISpec uri, Class<? extends ResponseParser> parserClass) throws IOException {
-		this(uri, parserClass, true);
+		this(uri.getScheme().startsWith("solr:http") ? new URISpec(uri.toString().replace("solr:", "")) : uri, true);
 	}
 
 	public SolrConnection(URISpec uri, boolean parsing) throws IOException {
-		this(uri, ResponseFormat.parse(uri.getParameter("parser", "XML")), parsing);
-	}
-
-	public SolrConnection(URISpec uri, Class<? extends ResponseParser> parserClass, boolean parsing) throws IOException {
-		super(uri, u -> create(u, parserClass), "solr", "zk:solr", "zookeeper", "zk", "http");
+		super(uri, "solr", "zk:solr", "zookeeper", "zk", "http");
 		meta = parsing ? SolrMeta.parse(uri) : null;
 	}
 
-	private static SolrClient create(URISpec uri, Class<? extends ResponseParser> parserClass) {
-		if (null == parserClass)
-			parserClass = XMLResponseParser.class;
+	@Override
+	protected SolrClient initialize(URISpec uri) {
+		Class<? extends ResponseParser> parserClass = ResponseFormat.parse(uri);
 		ResponseParser p = PARSER_POOL.computeIfAbsent(parserClass, clz -> Reflections.construct(clz));
 		switch (uri.getScheme()) {
 		case "solr:http":
@@ -188,7 +176,7 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 	@Override
 	public void close() throws IOException {
 		super.close();
-		client().close();
+		client.close();
 	}
 
 	public String[] getCores() {
@@ -242,7 +230,7 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 			CoreAdminRequest req = new CoreAdminRequest();
 			req.setAction(CoreAdminAction.STATUS);
 			try (SolrConnection solr = new SolrConnection(base, false);) {
-				CoreAdminResponse resp = req.process(solr.client());
+				CoreAdminResponse resp = req.process(solr.client);
 				String[] cores = new String[resp.getCoreStatus().size()];
 				for (int i = 0; i < resp.getCoreStatus().size(); i++)
 					cores[i] = resp.getCoreStatus().getName(i);
@@ -262,14 +250,15 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 		}
 
 		@SuppressWarnings("unchecked")
-		private static Class<? extends ResponseParser> parse(String id) {
+		private static Class<? extends ResponseParser> parse(URISpec uri) {
+			String cls = uri.getParameter("parser", Configs.gets("albatis.arango.connection.parser.class", "XML"));
 			try {
-				return ResponseFormat.valueOf(id.toUpperCase()).parser;
+				return ResponseFormat.valueOf(cls.toUpperCase()).parser;
 			} catch (Exception e) {
 				try {
-					return (Class<? extends ResponseParser>) Class.forName(id);
+					return (Class<? extends ResponseParser>) Class.forName(cls);
 				} catch (ClassNotFoundException e1) {
-					throw new IllegalArgumentException("Parser [" + id + "] not found.");
+					throw new IllegalArgumentException("Parser [" + uri + "] not found.");
 				}
 			}
 		}

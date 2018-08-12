@@ -19,7 +19,7 @@ public abstract class OutputBase<V> extends OutputSafeBase<V> {
 	}
 
 	@Override
-	protected abstract void enqueue0(Sdream<V> items);
+	protected abstract void enqsafe(Sdream<V> items);
 
 	@Override
 	public final void enqueue(Sdream<V> items) {
@@ -32,7 +32,7 @@ public abstract class OutputBase<V> extends OutputSafeBase<V> {
 			while (!batchPool.isEmpty()) {
 				List<V> batch = Colls.list();
 				batchPool.drainTo(batch, BATCH_SIZE);
-				fs.add(Exeter.of().submit(() -> enqueue0(Sdream.of(batch))));
+				fs.add(Exeter.of().submit(() -> enqsafe(Sdream.of(batch))));
 			}
 			Exeter.getn(fs);
 		} finally {

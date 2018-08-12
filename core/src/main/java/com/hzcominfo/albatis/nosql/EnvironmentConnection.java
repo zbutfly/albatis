@@ -9,7 +9,7 @@ import net.butfly.albatis.io.Output;
 import net.butfly.albatis.io.Rmap;
 
 public interface EnvironmentConnection extends Connection {
-	<V, O extends Output<V>> O output(URISpec targetUri);
+	<V, O extends Output<V>> O output(URISpec targetUri, String... table);
 
 	<V, I extends Input<V>> I input(URISpec targetUri, String... table);
 

@@ -55,7 +55,7 @@ public final class MongoOutput extends OutputBase<Rmap> {
 	}
 
 	@Override
-	public void enqueue0(Sdream<Rmap> msgs) {
+	protected void enqsafe(Sdream<Rmap> msgs) {
 		AtomicLong n = new AtomicLong();
 		if (upsert) n.set(msgs.map(m -> conn.collection(m.table()).save(MongoConnection.dbobj(m)).getN()).reduce(Lambdas.sumInt()));
 		else {

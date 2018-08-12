@@ -23,7 +23,7 @@ import net.butfly.albatis.io.Rmap;
 
 public class ElasticConnection extends NoSqlConnection<TransportClient> implements ElasticConnect {
 	public ElasticConnection(URISpec uri, Map<String, String> props) throws IOException {
-		super(uri, u -> ElasticConnect.Builder.buildTransportClient(u, props), 39300, "es", "elastic", "elasticsearch");
+		super(uri.extra(props), 39300, "es", "elastic", "elasticsearch");
 	}
 
 	public ElasticConnection(URISpec uri) throws IOException {
@@ -36,6 +36,11 @@ public class ElasticConnection extends NoSqlConnection<TransportClient> implemen
 
 	public ElasticConnection(String url) throws IOException {
 		this(new URISpec(url));
+	}
+
+	@Override
+	protected TransportClient initialize(URISpec uri) {
+		return ElasticConnect.Builder.buildTransportClient(uri, uri.extras);
 	}
 
 	@Override
@@ -57,7 +62,7 @@ public class ElasticConnection extends NoSqlConnection<TransportClient> implemen
 		req.source(mapping);
 		// Set<String> tps = new HashSet<>(Arrays.asList(types));
 		// if (null != getDefaultType()) tps.add(getDefaultType());
-		PutMappingResponse r = client().admin().indices().putMapping(req.type(type)).actionGet();
+		PutMappingResponse r = client.admin().indices().putMapping(req.type(type)).actionGet();
 		if (!r.isAcknowledged()) logger().error("Mapping failed on type [" + type + "]" + req.toString());
 		else logger().info(() -> "Mapping on [" + type + "] construced sussesfully: \n\t" + JsonSerder.JSON_MAPPER.ser(mapping));
 	}
@@ -70,7 +75,7 @@ public class ElasticConnection extends NoSqlConnection<TransportClient> implemen
 			logger().error("Close failure", e);
 		}
 		// await();
-		client().close();
+		client.close();
 	}
 
 	protected final void await() {
@@ -78,7 +83,7 @@ public class ElasticConnection extends NoSqlConnection<TransportClient> implemen
 		logger().debug("ES connection thread pool terminating...");
 		while (!closed)
 			try {
-				closed = client().threadPool().awaitTermination(1, TimeUnit.SECONDS);
+				closed = client.threadPool().awaitTermination(1, TimeUnit.SECONDS);
 			} catch (InterruptedException e) {
 				closed = true;
 			}
@@ -119,7 +124,7 @@ public class ElasticConnection extends NoSqlConnection<TransportClient> implemen
 		Set<String> tps = new HashSet<>(Arrays.asList(types));
 		if (null != getDefaultType()) tps.add(getDefaultType());
 		for (String t : tps) {
-			PutMappingResponse r = client().admin().indices().putMapping(req.type(t)).actionGet();
+			PutMappingResponse r = client.admin().indices().putMapping(req.type(t)).actionGet();
 			if (!r.isAcknowledged()) logger().error("Mapping failed on type [" + t + "]" + req.toString());
 			else logger().info(() -> "Mapping on [" + t + "] construced sussesfully: \n\t" + JsonSerder.JSON_MAPPER.ser(mapping));
 		}

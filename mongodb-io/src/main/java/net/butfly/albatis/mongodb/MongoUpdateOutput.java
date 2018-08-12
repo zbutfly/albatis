@@ -58,7 +58,7 @@ public final class MongoUpdateOutput extends OddOutputBase<Pair<DBObject, DBObje
 	}
 
 	@Override
-	protected boolean enqueue0(Pair<DBObject, DBObject> queryAndUpdate) {
+	protected boolean enqsafe(Pair<DBObject, DBObject> queryAndUpdate) {
 		if (null == queryAndUpdate) return false;
 		WriteResult r = collection.update(queryAndUpdate.v1(), queryAndUpdate.v2(), true, upsert);
 		return r.getN() > 0;

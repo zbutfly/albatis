@@ -10,10 +10,10 @@ public abstract class OddOutputBase<V> extends OutputSafeBase<V> implements OddO
 		super(name);
 	}
 
-	protected abstract boolean enqueue0(V v);
+	protected abstract boolean enqsafe(V v);
 
 	@Override
-	protected final void enqueue0(Sdream<V> items) {
+	protected final void enqsafe(Sdream<V> items) {
 		enqueue(items);
 	}
 
@@ -28,7 +28,7 @@ public abstract class OddOutputBase<V> extends OutputSafeBase<V> implements OddO
 	public final boolean enqueue(V v) {
 		opsPending.incrementAndGet();
 		try {
-			return enqueue0(v);
+			return enqsafe(v);
 		} finally {
 			opsPending.decrementAndGet();
 		}

@@ -11,7 +11,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 
-import org.apache.solr.client.solrj.ResponseParser;
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServerException;
@@ -42,9 +41,9 @@ public final class Solrs extends Utils {
 
 	@SuppressWarnings("resource")
 	@Deprecated
-	public static SolrClient open(String solrURL, Class<? extends ResponseParser> parserClass) {
+	public static SolrClient open(String solrURL) {
 		try {
-			return new SolrConnection(new URISpec(solrURL), parserClass, false).client();
+			return new SolrConnection(new URISpec(solrURL), false).client;
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
@@ -73,11 +72,6 @@ public final class Solrs extends Utils {
 		} catch (IOException e) {
 			logger.error("Solr close failure", e);
 		}
-	}
-
-	@Deprecated
-	public static SolrClient open(String solrURL) {
-		return open(solrURL, null);
 	}
 
 	@Deprecated

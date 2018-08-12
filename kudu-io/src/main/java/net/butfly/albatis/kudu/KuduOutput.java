@@ -80,7 +80,7 @@ public class KuduOutput extends OddOutputBase<Rmap> {
 	}
 
 	@Override
-	protected boolean enqueue0(Rmap m) {
+	protected boolean enqsafe(Rmap m) {
 		if (null == m || m.isEmpty()) return false;
 		conn.apply(op(m), (op, e) -> failed(Sdream.of1(m)));
 		return true;

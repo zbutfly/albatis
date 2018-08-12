@@ -47,8 +47,9 @@ public final class HbaseOutput extends OutputBase<Rmap> {
 	}
 
 	@Override
-	public void connect() throws IOException {
+	public Connection connect() throws IOException {
 		if (null == conn) conn = Connection.DriverManager.connect(target);
+		return conn;
 	}
 
 	@Override
@@ -58,7 +59,7 @@ public final class HbaseOutput extends OutputBase<Rmap> {
 	}
 
 	@Override
-	protected void enqueue0(Sdream<Rmap> msgs) {
+	protected void enqsafe(Sdream<Rmap> msgs) {
 		Map<String, List<Rmap>> map = Maps.of();
 		msgs.eachs(m -> map.computeIfAbsent(m.table(), t -> Colls.list()).add(m));
 		map.forEach((t, l) -> {
@@ -96,10 +97,8 @@ public final class HbaseOutput extends OutputBase<Rmap> {
 					conn.table(table).batch(enqs, results);
 				} catch (Exception e) {
 					String err = Exceptions.unwrap(e).getMessage();
-					err = err.replaceAll("\n\\s+at .*\\)\n", ""); // shink
-																	// stacktrace
-																	// in error
-																	// message
+					err = err.replaceAll("\n\\s+at .*\\)\n", "");
+					// shink stacktrace in error message
 					logger().debug(name() + " write failed [" + err + "], [" + enqs.size() + "] into fails.");
 					failed(Sdream.of(origins));
 				}

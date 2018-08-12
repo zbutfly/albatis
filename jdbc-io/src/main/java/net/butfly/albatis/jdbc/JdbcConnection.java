@@ -26,16 +26,19 @@ public class JdbcConnection extends NoSqlConnection<DataSource> {
 	final Upserter upserter;
 
 	public JdbcConnection(URISpec uri) throws IOException {
-		super(uri, u -> {
-			Upserter upserter = Upserter.of(u.getScheme());
-			return new HikariDataSource(toConfig(upserter, u));
-		}, "jdbc:mysql", "jdbc:oracle:thin", "jdbc:postgresql", "jdbc:sqlserver", "jdbc:microsoft:sqlserver");
+		super(uri, "jdbc"); // "jdbc:mysql", "jdbc:oracle:thin", "jdbc:postgresql", "jdbc:sqlserver", "jdbc:microsoft:sqlserver"
 		upserter = Upserter.of(uri.getScheme());
 	}
 
 	@Override
+	protected DataSource initialize(URISpec uri) {
+		Upserter upserter = Upserter.of(uri.getScheme());
+		return new HikariDataSource(toConfig(upserter, uri));
+	}
+
+	@Override
 	public void construct(String table, FieldDesc... fields) {
-		try (Connection conn = client().getConnection();) {
+		try (Connection conn = client.getConnection();) {
 			if (uri.getScheme().startsWith("jdbc:oracle")) {
 				StringBuilder sql = new StringBuilder();
 				List<String> fieldSql = new ArrayList<>();
@@ -65,7 +68,7 @@ public class JdbcConnection extends NoSqlConnection<DataSource> {
 
 	@Override
 	public void close() {
-		DataSource hds = client();
+		DataSource hds = client;
 		if (null != hds && hds instanceof AutoCloseable) try {
 			((AutoCloseable) hds).close();
 		} catch (Exception e) {}

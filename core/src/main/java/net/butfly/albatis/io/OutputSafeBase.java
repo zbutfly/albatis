@@ -12,6 +12,9 @@ import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.paral.Task;
 import net.butfly.albacore.utils.Configs;
 
+/**
+ * limit flow by prop <code>paral.limit</code>, and wait full finish on closing.
+ */
 abstract class OutputSafeBase<V> extends Namedly implements Output<V> {
 	private static final long serialVersionUID = 7728355644701942166L;
 	private static final String PARAL_LIMIT = "paral.limit";
@@ -22,11 +25,11 @@ abstract class OutputSafeBase<V> extends Namedly implements Output<V> {
 	protected OutputSafeBase(String name) {
 		super(name);
 		this.opsPending = new AtomicInteger(0);
-		int maxOps = detectMaxConcurrentOps();
+		int maxOps = Props.propI(getClass(), PARAL_LIMIT, 0);
 		this.opExceeded = maxOps > 0 ? () -> opsPending.get() > maxOps : () -> false;
 	}
 
-	protected abstract void enqueue0(Sdream<V> items);
+	protected abstract void enqsafe(Sdream<V> items);
 
 	@Override
 	public void close() {
@@ -45,10 +48,6 @@ abstract class OutputSafeBase<V> extends Namedly implements Output<V> {
 	@Override
 	public String toString() {
 		return super.toString() + "[Pending Ops: " + opsPending.get() + "]";
-	}
-
-	private int detectMaxConcurrentOps() {
-		return Props.propI(getClass(), PARAL_LIMIT, 0);
 	}
 
 	@Deprecated

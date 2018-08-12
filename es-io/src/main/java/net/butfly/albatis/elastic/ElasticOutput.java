@@ -57,7 +57,7 @@ public class ElasticOutput extends OutputBase<Rmap> {
 	}
 
 	@Override
-	protected void enqueue0(Sdream<Rmap> msgs) {
+	protected void enqsafe(Sdream<Rmap> msgs) {
 		Map<Object, Rmap> remains = Maps.of();
 		for (Rmap m : msgs.list())
 			remains.put(m.key(), conn.fixTable(m));
@@ -78,7 +78,7 @@ public class ElasticOutput extends OutputBase<Rmap> {
 					// logger().error("Elastic step [" + size + "] begin.");
 					// long now = System.currentTimeMillis();
 					try {
-						return conn.client().bulk(b).get();
+						return conn.client.bulk(b).get();
 					} catch (ExecutionException ex) {
 						logger().error("Elastic client fail: [" + ex.getCause() + "]");
 					} catch (Exception ex) {

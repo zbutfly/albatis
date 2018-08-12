@@ -6,8 +6,6 @@ import static net.butfly.albacore.paral.Task.waitSleep;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import net.butfly.albacore.io.lambda.BiConsumer;
-import net.butfly.albacore.io.lambda.Function;
 import java.util.stream.Collectors;
 
 import org.apache.kudu.ColumnSchema;
@@ -22,6 +20,7 @@ import org.apache.kudu.client.SessionConfiguration;
 import com.hzcominfo.albatis.nosql.NoSqlConnection;
 
 import net.butfly.albacore.io.URISpec;
+import net.butfly.albacore.io.lambda.BiConsumer;
 import net.butfly.albacore.paral.Exeter;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
@@ -40,8 +39,8 @@ public abstract class KuduConnectionBase<C extends KuduConnectionBase<C, KC, S>,
 	private final Thread failHandler;
 	protected S session;
 
-	protected KuduConnectionBase(URISpec kuduUri, Function<URISpec, KC> clienting) throws IOException {
-		super(kuduUri, clienting, "kudu");
+	protected KuduConnectionBase(URISpec kuduUri) throws IOException {
+		super(kuduUri, "kudu");
 
 		failHandler = new Thread(() -> {
 			do {
@@ -88,7 +87,7 @@ public abstract class KuduConnectionBase<C extends KuduConnectionBase<C, KC, S>,
 			logger.error("Close failure", e);
 		}
 		try {
-			client().close();
+			client.close();
 		} catch (Exception e) {
 			logger.error("Close failure", e);
 		}

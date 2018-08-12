@@ -20,7 +20,7 @@
 		</dependency>
 		<dependency>
 			<groupId>org.apache.kafka</groupId>
-			<artifactId>kafka${version.scala.suffix}</artifactId>
+			<artifactId>kafka_${version.scala.main}</artifactId>
 			<version>${version.kafka}</version>
 		</dependency>
 		<dependency>
@@ -46,7 +46,7 @@
 		<dependency>
 			<groupId>com.101tec</groupId>
 			<artifactId>zkclient</artifactId>
-			<version>0.8</version>
+			<version>0.10</version>
 		</dependency>
 		<dependency>
 			<groupId>org.scala-lang</groupId>
