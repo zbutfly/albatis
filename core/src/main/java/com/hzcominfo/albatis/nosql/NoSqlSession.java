@@ -36,13 +36,13 @@ public interface NoSqlSession extends SqlSession {
 	<K, V> Map<K, V> selectMap(String statement, Object parameter, String mapKey, RowBounds rowBounds);
 
 	@Override
-	void select(String statement, Object parameter, ResultHandler handler);
+	void select(String statement, Object parameter, @SuppressWarnings("rawtypes") ResultHandler handler);
 
 	@Override
-	void select(String statement, ResultHandler handler);
+	void select(String statement, @SuppressWarnings("rawtypes") ResultHandler handler);
 
 	@Override
-	void select(String statement, Object parameter, RowBounds rowBounds, ResultHandler handler);
+	void select(String statement, Object parameter, RowBounds rowBounds, @SuppressWarnings("rawtypes") ResultHandler handler);
 
 	@Override
 	int insert(String statement);

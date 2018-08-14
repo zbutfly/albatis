@@ -23,9 +23,33 @@ import net.butfly.albatis.io.Output;
 import net.butfly.albatis.io.Rmap;
 
 public interface Connection extends AutoCloseable {
-	public static final String PARAM_KEY_BATCH = "batch";
-	public static final int DEFAULT_BATCH_SIZE = 500;
-	public static final Logger logger = Logger.getLogger(Connection.class);
+	static final Logger logger = Logger.getLogger(Connection.class);
+	static final String PARAM_KEY_BATCH = "batch";
+	static final int DEFAULT_BATCH_SIZE = 500;
+	static final Connection DUMMY = new Connection() {
+		@Override
+		public void close() throws Exception {}
+
+		@Override
+		public String defaultSchema() {
+			return null;
+		}
+
+		@Override
+		public URISpec uri() {
+			return null;
+		}
+
+		@Override
+		public <M extends Rmap> Input<M> input(String... table) throws IOException {
+			return null;
+		}
+
+		@Override
+		public <M extends Rmap> Output<M> output() throws IOException {
+			return null;
+		}
+	};
 
 	String defaultSchema();
 

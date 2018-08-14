@@ -22,6 +22,72 @@ import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Statistic;
 
 public interface IO extends Sizable, Openable, Serializable {
+	default Map<String, Class<?>> schema() {
+		return null;
+	}
+
+	default void schema(String fieldName, Class<?> type) {}
+
+	default void schemaless() {}
+
+	default Connection connect() throws IOException {
+		return Connection.DUMMY;
+	}
+
+	default URISpec target() {
+		return null;
+	}
+
+	@Override
+	default void open() {
+		stating();
+		Openable.super.open();
+	}
+
+	default int batchSize() {
+		IO b = Wrapper.bases(this);
+		return Props.PROPS.computeIfAbsent(this, io -> Maps.of()).computeIfAbsent(Props.BATCH_SIZE, //
+				k -> Props.propI(b.getClass(), k, 500)).intValue();
+	}
+
+	default int features() {
+		return 0;
+	}
+
+	interface Feature {
+		static final int STREAMING = 0x1;
+		static final int WRAPPED = 0x02;
+		static final int ODD = 0x04;
+		static final int SPARK = 0x08;
+	}
+
+	default boolean hasFeature(int... f) {
+		int f0 = features();
+		for (int ff : f)
+			f0 &= ff;
+		return 0 != f0;
+	}
+
+	default String ser() {
+		try (ByteArrayOutputStream bos = new ByteArrayOutputStream(); ObjectOutputStream oos = new ObjectOutputStream(bos);) {
+			oos.writeObject(this);
+			return Base64.getEncoder().encodeToString(bos.toByteArray());
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	static <T extends IO> T der(String ser) {
+		byte[] b = Base64.getDecoder().decode(ser);
+		try (ByteArrayInputStream bos = new ByteArrayInputStream(b); ObjectInputStream oos = new ObjectInputStream(bos);) {
+			return (T) oos.readObject();
+		} catch (IOException | ClassNotFoundException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	// about stats....
 	class Props {
 		static final String BATCH_SIZE = "batch.size";
 		static final String STATS_STEP = "stats.step";
@@ -64,20 +130,6 @@ public interface IO extends Sizable, Openable, Serializable {
 		return new Statistic(this);
 	}
 
-	default Connection connect() throws IOException {
-		return null;
-	}
-
-	default URISpec target() {
-		return null;
-	}
-
-	@Override
-	default void open() {
-		stating();
-		Openable.super.open();
-	}
-
 	default void stating() {
 		Map<String, Number> props = Props.PROPS.computeIfAbsent(this, io -> Maps.of());
 		IO b = Wrapper.bases(this);
@@ -88,12 +140,6 @@ public interface IO extends Sizable, Openable, Serializable {
 
 	default <E> Sdream<E> stats(Sdream<E> s) {
 		return s.peek(e -> s().stats(e));
-	}
-
-	default int batchSize() {
-		IO b = Wrapper.bases(this);
-		return Props.PROPS.computeIfAbsent(this, io -> Maps.of()).computeIfAbsent(Props.BATCH_SIZE, //
-				k -> Props.propI(b.getClass(), k, 500)).intValue();
 	}
 
 	class Stats {
@@ -107,42 +153,5 @@ public interface IO extends Sizable, Openable, Serializable {
 	default void statistic(Statistic s) {
 		if (null == s) Stats.IO_STATS.remove(this);
 		else Stats.IO_STATS.put(this, s);
-	}
-
-	default int features() {
-		return 0;
-	}
-
-	interface Feature {
-		static final int STREAMING = 0x1;
-		static final int WRAPPED = 0x02;
-		static final int ODD = 0x04;
-		static final int SPARK = 0x08;
-	}
-
-	default boolean hasFeature(int... f) {
-		int f0 = features();
-		for (int ff : f)
-			f0 &= ff;
-		return 0 != f0;
-	}
-
-	default String ser() {
-		try (ByteArrayOutputStream bos = new ByteArrayOutputStream(); ObjectOutputStream oos = new ObjectOutputStream(bos);) {
-			oos.writeObject(this);
-			return Base64.getEncoder().encodeToString(bos.toByteArray());
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-	}
-
-	@SuppressWarnings("unchecked")
-	static <T extends IO> T der(String ser) {
-		byte[] b = Base64.getDecoder().decode(ser);
-		try (ByteArrayInputStream bos = new ByteArrayInputStream(b); ObjectInputStream oos = new ObjectInputStream(bos);) {
-			return (T) oos.readObject();
-		} catch (IOException | ClassNotFoundException e) {
-			throw new RuntimeException(e);
-		}
 	}
 }
