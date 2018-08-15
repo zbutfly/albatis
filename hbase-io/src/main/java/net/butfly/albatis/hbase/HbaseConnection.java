@@ -307,13 +307,11 @@ public class HbaseConnection extends NoSqlConnection<org.apache.hadoop.hbase.cli
 
 	@Override
 	public HbaseInput input(String... table) throws IOException {
-		HbaseInput i = new HbaseInput("HbaseInput", this);
-		i.table(table);
-		return i;
+		return new HbaseInput("HbaseInput", this);
 	}
 
 	@Override
-	public HbaseOutput output() throws IOException {
+	public HbaseOutput output(String... table) throws IOException {
 		return new HbaseOutput("HbaseOutput", this, conv);
 	}
 }

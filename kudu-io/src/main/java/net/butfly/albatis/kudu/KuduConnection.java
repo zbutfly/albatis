@@ -112,7 +112,7 @@ public class KuduConnection extends KuduConnectionBase<KuduConnection, KuduClien
 	}
 
 	@Override
-	public void construct(String table, ColumnSchema... cols) {
+	protected void construct(String table, ColumnSchema... cols) {
 		try {
 			if (client.tableExists(table)) {
 				logger.warn("Ask for creating new table but existed and not droped, ignore");

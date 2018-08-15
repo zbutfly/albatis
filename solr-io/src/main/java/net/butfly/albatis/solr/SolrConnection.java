@@ -286,7 +286,7 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 	}
 
 	@Override
-	public SolrOutput output() throws IOException {
+	public SolrOutput output(String... table) throws IOException {
 		return new SolrOutput("SolrOutput", this);
 	}
 

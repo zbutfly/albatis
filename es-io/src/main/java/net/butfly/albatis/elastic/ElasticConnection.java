@@ -112,7 +112,7 @@ public class ElasticConnection extends NoSqlConnection<TransportClient> implemen
 	}
 
 	@Override
-	public ElasticOutput output() throws IOException {
+	public ElasticOutput output(String... table) throws IOException {
 		return new ElasticOutput("ElasticOutput", this);
 	}
 

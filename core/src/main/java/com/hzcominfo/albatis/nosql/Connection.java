@@ -3,15 +3,17 @@ package com.hzcominfo.albatis.nosql;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.ServiceLoader;
-import net.butfly.albacore.io.lambda.Function;
 
 import com.hzcominfo.albatis.nosql.EnvironmentConnection.$env$;
 
 import net.butfly.albacore.io.URISpec;
+import net.butfly.albacore.io.lambda.Function;
 import net.butfly.albacore.serder.BsonSerder;
 import net.butfly.albacore.serder.JsonSerder;
 import net.butfly.albacore.utils.Pair;
@@ -41,12 +43,12 @@ public interface Connection extends AutoCloseable {
 		}
 
 		@Override
-		public <M extends Rmap> Input<M> input(String... table) throws IOException {
+		public <M extends Rmap> Input<M> input(Collection<String> tables, FieldDesc... fields) throws IOException {
 			return null;
 		}
 
 		@Override
-		public <M extends Rmap> Output<M> output() throws IOException {
+		public <M extends Rmap> Output<M> output(Collection<String> tables, FieldDesc... fields) throws IOException {
 			return null;
 		}
 	};
@@ -60,9 +62,33 @@ public interface Connection extends AutoCloseable {
 		return null == $env$.env() ? DriverManager.connect(uriSpec) : (T) $env$.connect(uriSpec);
 	}
 
-	<M extends Rmap> Input<M> input(String... table) throws IOException;
+	default <M extends Rmap> Input<M> input(String... table) throws IOException {
+		return input(Arrays.asList(table));
+	}
 
-	<M extends Rmap> Output<M> output() throws IOException;
+	default <M extends Rmap> Input<M> input(Collection<String> tables) throws IOException {
+		return input(tables, new FieldDesc[0]);
+	}
+
+	default <M extends Rmap> Input<M> input(Collection<String> tables, FieldDesc... fields) throws IOException {
+		Input<M> i = input(tables.toArray(new String[tables.size()]));
+		if (null != fields && fields.length > 0) i.schema(fields);
+		return i;
+	}
+
+	default <M extends Rmap> Output<M> output(String... table) throws IOException {
+		return output(Arrays.asList(table));
+	}
+
+	default <M extends Rmap> Output<M> output(Collection<String> tables) throws IOException {
+		return output(tables, new FieldDesc[0]);
+	}
+
+	default <M extends Rmap> Output<M> output(Collection<String> tables, FieldDesc... fields) throws IOException {
+		Output<M> o = output(tables.toArray(new String[tables.size()]));
+		if (null != fields && fields.length > 0) o.schema(fields);
+		return o;
+	}
 
 	interface Driver<C extends Connection> {
 		List<String> schemas();

@@ -25,7 +25,7 @@ public class KafkaConnection extends NoSqlConnection<Connection> {
 	}
 
 	@Override
-	public KafkaOutput output() throws IOException {
+	public KafkaOutput output(String... table) throws IOException {
 		try {
 			return new KafkaOutput("KafkaInput", uri);
 		} catch (ConfigException e) {

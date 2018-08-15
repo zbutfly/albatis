@@ -89,7 +89,7 @@ public class ElasticRestConnection extends NoSqlConnection<RestClient> implement
 	}
 
 	@Override
-	public Output<Rmap> output() throws IOException {
+	public Output<Rmap> output(String... table) throws IOException {
 		throw new UnsupportedOperationException();
 	}
 }

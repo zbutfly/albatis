@@ -215,7 +215,7 @@ public class MongoConnection extends NoSqlConnection<MongoClient> {
 	}
 
 	@Override
-	public MongoOutput output() throws IOException {
+	public MongoOutput output(String... table) throws IOException {
 		return new MongoOutput("MongoOutput", this);
 	}
 }

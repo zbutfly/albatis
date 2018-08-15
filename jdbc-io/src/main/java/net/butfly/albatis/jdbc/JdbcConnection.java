@@ -88,7 +88,7 @@ public class JdbcConnection extends NoSqlConnection<DataSource> {
 	}
 
 	@Override
-	public JdbcOutput output() throws IOException {
+	public JdbcOutput output(String... table) throws IOException {
 		return new JdbcOutput("JdbcOutput", this);
 	}
 

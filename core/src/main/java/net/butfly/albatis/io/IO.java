@@ -7,6 +7,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.Base64;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -18,15 +19,17 @@ import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.CaseFormat;
 import net.butfly.albacore.utils.Configs;
+import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Statistic;
+import net.butfly.albatis.ddl.FieldDesc;
 
 public interface IO extends Sizable, Openable, Serializable {
-	default Map<String, Class<?>> schema() {
-		return null;
+	default List<FieldDesc> schema() {
+		return Colls.list();
 	}
 
-	default void schema(String fieldName, Class<?> type) {}
+	default void schema(FieldDesc... field) {}
 
 	default void schemaless() {}
 
@@ -154,4 +157,5 @@ public interface IO extends Sizable, Openable, Serializable {
 		if (null == s) Stats.IO_STATS.remove(this);
 		else Stats.IO_STATS.put(this, s);
 	}
+
 }

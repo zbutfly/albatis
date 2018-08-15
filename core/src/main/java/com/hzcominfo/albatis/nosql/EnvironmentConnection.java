@@ -1,17 +1,20 @@
 package com.hzcominfo.albatis.nosql;
 
 import java.io.IOException;
+import java.io.Serializable;
+import java.util.Collection;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.Configs;
+import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.io.Input;
 import net.butfly.albatis.io.Output;
 import net.butfly.albatis.io.Rmap;
 
-public interface EnvironmentConnection extends Connection {
-	<V, O extends Output<V>> O output(URISpec targetUri, String... table);
+public interface EnvironmentConnection extends Connection, Serializable {
+	<V, O extends Output<V>> O output(URISpec targetUri, String... tables);
 
-	<V, I extends Input<V>> I input(URISpec targetUri, String... table);
+	<V, I extends Input<V>> I input(URISpec targetUri, String... tables);
 
 	class $env$ {
 		@SuppressWarnings("deprecation")
@@ -52,19 +55,25 @@ public interface EnvironmentConnection extends Connection {
 			}
 
 			@Override
-			public <M extends Rmap> Input<M> input(String... table) throws IOException {
-				Input<M> i = env.input(targetSpec, table);
-				if (null != i) return i;
-				if (null == target) target = DriverManager.connect(targetSpec);
-				return target.input(table);
+			public <M extends Rmap> Input<M> input(Collection<String> tables, FieldDesc... fields) throws IOException {
+				Input<M> i = env.input(targetSpec, tables.toArray(new String[tables.size()]));
+				if (null == i) {
+					if (null == target) target = DriverManager.connect(targetSpec);
+					i = target.input(tables);
+				}
+				if (null != fields && fields.length > 0) i.schema(fields);
+				return i;
 			}
 
 			@Override
-			public <M extends Rmap> Output<M> output() throws IOException {
-				Output<M> o = env.output(targetSpec);
-				if (null != o) return o;
-				if (null == target) target = DriverManager.connect(targetSpec);
-				return target.output();
+			public <M extends Rmap> Output<M> output(Collection<String> tables, FieldDesc... fields) throws IOException {
+				Output<M> o = env.output(targetSpec, tables.toArray(new String[tables.size()]));
+				if (null == o) {
+					if (null == target) target = DriverManager.connect(targetSpec);
+					o = target.output(tables);
+				}
+				if (null != fields && fields.length > 0) o.schema(fields);
+				return o;
 			}
 		}
 	}

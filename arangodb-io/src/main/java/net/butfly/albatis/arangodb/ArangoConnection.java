@@ -82,7 +82,7 @@ public class ArangoConnection extends NoSqlConnection<ArangoDBAsync> {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public ArangoOutput output() throws IOException {
+	public ArangoOutput output(String... table) throws IOException {
 		return new ArangoOutput("ArangoOutput", this);
 	}
 
