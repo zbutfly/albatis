@@ -68,6 +68,6 @@ public abstract class Desc<D extends Desc<D>> implements Serializable {
 
 	@Override
 	public String toString() {
-		return attrs.toString();
+		return attrs.isEmpty() ? "" : (" (" + attrs.toString() + ")");
 	}
 }

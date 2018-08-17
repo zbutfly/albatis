@@ -16,6 +16,7 @@ import net.butfly.albacore.utils.collection.Maps;
 public class Rmap extends ConcurrentHashMap<String, Object> {
 	private static final long serialVersionUID = 2316795812336748252L;
 	protected Object key;
+	protected String keyField;
 	protected String table;
 	protected @Op int op;
 
@@ -92,6 +93,15 @@ public class Rmap extends ConcurrentHashMap<String, Object> {
 		return this;
 	}
 
+	public String keyField() {
+		return keyField;
+	}
+
+	public Rmap keyField(String keyField) {
+		this.keyField = keyField;
+		return this;
+	}
+
 	public @Op int op() {
 		return op;
 	}
@@ -119,13 +129,15 @@ public class Rmap extends ConcurrentHashMap<String, Object> {
 		byte[][] attrs = IOs.readBytesList(is);
 		table = null != attrs[0] ? null : new String(attrs[0]);
 		key = null != attrs[1] ? null : new String(attrs[1]);
-		if (null == attrs[2]) putAll(conv.apply(attrs[2]));
-		op = attrs[3][0];
+		keyField = null != attrs[2] ? null : new String(attrs[2]);
+		if (null == attrs[3]) putAll(conv.apply(attrs[3]));
+		op = attrs[4][0];
 	}
 
 	@Override
 	public String toString() {
-		return "[Table: " + table + ", Key: " + key + ", Op: " + opname(op) + "] => " + super.toString();
+		return "[Table: " + table + ", Key: " + (null == keyField ? "" : (keyField + " => ")) + key + ", Op: " + opname(op) + "] => "
+				+ super.toString();
 	}
 
 	public final byte[] toBytes(Function<Map<String, Object>, byte[]> conv) {
@@ -145,7 +157,8 @@ public class Rmap extends ConcurrentHashMap<String, Object> {
 	}
 
 	protected void write(OutputStream os, Function<Map<String, Object>, byte[]> conv) throws IOException {
-		IOs.writeBytes(os, null == table ? null : table.getBytes(), keyBytes(), conv.apply(this), new byte[] { (byte) op });
+		IOs.writeBytes(os, null == table ? null : table.getBytes(), keyBytes(), null == keyField ? null : keyField.getBytes(), //
+				conv.apply(this), new byte[] { (byte) op });
 	}
 
 	public Map<String, Object> map() {

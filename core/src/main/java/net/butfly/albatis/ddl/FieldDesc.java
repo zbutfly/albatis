@@ -14,7 +14,7 @@ public final class FieldDesc extends Desc<FieldDesc> {
 	public final boolean unique;
 	public final boolean nullable;
 
-	public FieldDesc(String fullname, ValType type, boolean rowkey, boolean unique, boolean nullable) {
+	public FieldDesc(TableDesc table, String fullname, ValType type, boolean rowkey, boolean unique, boolean nullable) {
 		super();
 		this.name = parse(fullname);
 		this.fullname = fullname;
@@ -22,19 +22,20 @@ public final class FieldDesc extends Desc<FieldDesc> {
 		this.rowkey = rowkey;
 		this.unique = unique;
 		this.nullable = rowkey ? false : nullable;
+		table.field(this);
 	}
 
-	public FieldDesc(String fullname, ValType type, boolean rowkey) {
-		this(fullname, type, rowkey, false, rowkey);
+	public FieldDesc(TableDesc table, String fullname, ValType type, boolean rowkey) {
+		this(table, fullname, type, rowkey, false, rowkey);
 	}
 
-	public FieldDesc(String fullname, ValType type) {
-		this(fullname, type, false);
+	public FieldDesc(TableDesc table, String fullname, ValType type) {
+		this(table, fullname, type, false);
 	}
 
 	@Override
 	public String toString() {
-		return name + "[" + type.toString() + (rowkey ? ",KEY" : "") + "]";
+		return name + "[" + type.toString() + (rowkey ? ",KEY" : "") + "]" + super.toString();
 	}
 
 	private String parse(String qf) {

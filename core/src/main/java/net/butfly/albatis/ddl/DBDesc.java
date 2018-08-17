@@ -75,7 +75,7 @@ public final class DBDesc extends Desc<DBDesc> {
 
 	@Override
 	public String toString() {
-		return "DPC DB Desc [" + name + "]: [" + uri.toString() + "] with [" + tables.size() + "] tables: ";
+		return "DPC DB Desc [" + name + "]: [" + uri.toString() + "] with [" + tables.size() + "] tables." + super.toString();
 	}
 
 	public static String summary() {
@@ -83,8 +83,8 @@ public final class DBDesc extends Desc<DBDesc> {
 		b.append("Models [").append(models.size()).append("] databases: ");
 		for (DBDesc db : models.values()) {
 			b.append("\n\t").append(db.name).append("[").append(db.uri).append("] with [").append(db.tables.size()).append("] tables");
-			if (!db.tables.isEmpty()) b.append(": \n\t\t").append(db.tables.values().stream().map(t -> t.name + ": " + t.fields.size()
-					+ " fields").collect(Collectors.joining(", ")));
+			if (!db.tables.isEmpty()) b.append(": \n\t\t").append(db.tables.values().stream().map(t -> t.name).collect(Collectors.joining(
+					", ")));
 		}
 		return b.toString();
 

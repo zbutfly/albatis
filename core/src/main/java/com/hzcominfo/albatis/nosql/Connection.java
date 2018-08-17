@@ -3,7 +3,6 @@ package com.hzcominfo.albatis.nosql;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -20,11 +19,12 @@ import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.ddl.FieldDesc;
+import net.butfly.albatis.io.IOSupport;
 import net.butfly.albatis.io.Input;
 import net.butfly.albatis.io.Output;
 import net.butfly.albatis.io.Rmap;
 
-public interface Connection extends AutoCloseable {
+public interface Connection extends AutoCloseable, IOSupport {
 	static final Logger logger = Logger.getLogger(Connection.class);
 	static final String PARAM_KEY_BATCH = "batch";
 	static final int DEFAULT_BATCH_SIZE = 500;
@@ -52,6 +52,7 @@ public interface Connection extends AutoCloseable {
 			return null;
 		}
 	};
+	static final boolean SPARING = Connect.sparking();
 
 	String defaultSchema();
 
@@ -60,34 +61,6 @@ public interface Connection extends AutoCloseable {
 	@SuppressWarnings("unchecked")
 	static <T extends Connection> T connect(URISpec uriSpec) throws IOException {
 		return null == $env$.env() ? DriverManager.connect(uriSpec) : (T) $env$.connect(uriSpec);
-	}
-
-	default <M extends Rmap> Input<M> input(String... table) throws IOException {
-		return input(Arrays.asList(table));
-	}
-
-	default <M extends Rmap> Input<M> input(Collection<String> tables) throws IOException {
-		return input(tables, new FieldDesc[0]);
-	}
-
-	default <M extends Rmap> Input<M> input(Collection<String> tables, FieldDesc... fields) throws IOException {
-		Input<M> i = input(tables.toArray(new String[tables.size()]));
-		if (null != fields && fields.length > 0) i.schema(fields);
-		return i;
-	}
-
-	default <M extends Rmap> Output<M> output(String... table) throws IOException {
-		return output(Arrays.asList(table));
-	}
-
-	default <M extends Rmap> Output<M> output(Collection<String> tables) throws IOException {
-		return output(tables, new FieldDesc[0]);
-	}
-
-	default <M extends Rmap> Output<M> output(Collection<String> tables, FieldDesc... fields) throws IOException {
-		Output<M> o = output(tables.toArray(new String[tables.size()]));
-		if (null != fields && fields.length > 0) o.schema(fields);
-		return o;
 	}
 
 	interface Driver<C extends Connection> {
@@ -154,6 +127,18 @@ public interface Connection extends AutoCloseable {
 				Throwable ee = e.getTargetException();
 				if (e instanceof InvocationTargetException && e.getTargetException() instanceof IOException) throw (IOException) ee;
 				throw new RuntimeException(e.getTargetException());
+			}
+		}
+
+		static boolean sparking() {
+			try {
+				Class.forName("net.butfly.albatis.spark.impl.SparkConnection");
+				String suri = System.getProperty("albatis.io.env.uri", "spark:///");
+				logger.info("Spark IO classloader found, init the spark env: " + suri);
+				System.setProperty("albatis.io.env.uri", suri);
+				return true;
+			} catch (ClassNotFoundException e) {
+				return false;
 			}
 		}
 	}

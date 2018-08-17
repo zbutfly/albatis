@@ -3,6 +3,7 @@ package net.butfly.albatis.ddl;
 import java.util.List;
 import java.util.Map;
 
+import net.butfly.albacore.io.lambda.Consumer;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
@@ -18,7 +19,7 @@ public class TableDesc extends Desc<TableDesc> {
 	 * name.cf:prefix#
 	 */
 	public final String fullname;
-	public final Map<String, FieldDesc> fields = Maps.of();
+	private final Map<String, FieldDesc> fields = Maps.of();
 	// options
 	public final List<List<String>> keys = Colls.list();
 	// extras, deprecated into options
@@ -32,9 +33,9 @@ public class TableDesc extends Desc<TableDesc> {
 	 * @param sub
 	 *            cf:prefix#
 	 */
-	public static TableDesc of(TableDesc parent, String sub) {
+	public static TableDesc of(DBDesc db, TableDesc parent, String sub) {
 		if (null == sub || sub.isEmpty()) return parent;
-		TableDesc t = new TableDesc(parent.name + "." + sub, parent.destruct).attw(parent.attrs);
+		TableDesc t = new TableDesc(null, parent.name + "." + sub, parent.destruct).attw(parent.attrs);
 		if (null != parent.construct) {
 			t.construct = Maps.of();
 			t.construct.putAll(parent.construct);
@@ -53,31 +54,32 @@ public class TableDesc extends Desc<TableDesc> {
 		return t;
 	}
 
-	public TableDesc(String fullname) {
-		this(fullname, false);
+	public TableDesc(DBDesc db, String fullname) {
+		this(db, fullname, false);
 	}
 
-	private TableDesc(String fullname, boolean desctuct) {
+	private TableDesc(DBDesc db, String fullname, boolean desctuct) {
 		super();
 		this.fullname = fullname;
 		this.destruct = desctuct;
 		this.name = parse(fullname);
+		if (null != db) db.tables.put(name, this);
 	}
 
 	@SuppressWarnings("unchecked")
 	public TableDesc of(Map<String, Object> config) {
-		return new TableDesc((String) config.remove(".name")).options((Map<String, Object>) config.remove(".options")).fields(config);
+		return new TableDesc(null, (String) config.remove(".name")).options((Map<String, Object>) config.remove(".options")).fields(config);
 	}
 
 	@SuppressWarnings("unchecked")
 	public static TableDesc of(String name, Map<String, Object> config) {
-		return new TableDesc(name).options((Map<String, Object>) config.remove(".options")).fields(config);
+		return new TableDesc(null, name).options((Map<String, Object>) config.remove(".options")).fields(config);
 	}
 
 	@SuppressWarnings("unchecked")
 	public TableDesc options(Map<String, Object> opts) {
 		Object v;
-		if (null != (v = opts.remove("keys"))) keys.addAll(TableDesc.parseKeys(v));
+		if (null != (v = opts.remove("keys"))) keys.addAll(parseKeys(v));
 		destruct = null == (v = opts.remove("destruct")) ? false : Boolean.parseBoolean(v.toString());
 		referTable = null == (v = opts.remove("refer")) ? null : v.toString();
 		if (null != (v = opts.remove("construct"))) {
@@ -93,14 +95,28 @@ public class TableDesc extends Desc<TableDesc> {
 		return this;
 	}
 
+	public void field(FieldDesc f) {
+		if (fields.containsKey(f.name)) //
+			throw new RuntimeException("Conflicted field desc [" + f + "] in table: " + this);
+		fields.put(f.name, f);
+		if (f.rowkey) {
+			if (keys.isEmpty()) keys.add(Colls.list(f.name));
+			else keys.get(0).add(f.name);
+		}
+	}
+
+	public void field(Consumer<FieldDesc> using) {
+		fields.values().forEach(using);
+	}
+
 	public TableDesc fields(Map<String, Object> fieldMap) {
 		Object v;
 		for (String fieldName : fieldMap.keySet()) {
 			v = fieldMap.get(fieldName);
 			if (fieldName.startsWith(".")) logger.warn("Model [" + name + "] config map invalid option [" + fieldName + "]: " + v);
 			else if (fieldName.startsWith("//")) logger.debug("Model [" + name + "] config map comment [" + fieldName + "]: " + v);
-			else if (v instanceof CharSequence) fields.put(fieldName, Builder.field(fieldName, v.toString()));
-			else if (v instanceof Map) fields.put(fieldName, Builder.field(fieldName, name));
+			else if (v instanceof CharSequence) fields.put(fieldName, Builder.field(this, fieldName, v.toString()));
+			else if (v instanceof Map) fields.put(fieldName, Builder.field(this, fieldName, name));
 			else logger.error("Model [" + name + "] config map invalid value [" + fieldName + "]: " + v);
 		}
 		return this;
@@ -137,9 +153,8 @@ public class TableDesc extends Desc<TableDesc> {
 		return fields.get(fieldName);
 	}
 
-	@Deprecated
-	public Map<String, FieldDesc> fields() {
-		return fields;
+	public FieldDesc[] fields() {
+		return fields.values().toArray(new FieldDesc[fields.size()]);
 	}
 
 	private String parse(String qf) {
@@ -160,6 +175,7 @@ public class TableDesc extends Desc<TableDesc> {
 
 	@Override
 	public String toString() {
-		return "DPC Table [" + name + "] with [" + fields.size() + "] fields: ";
+		return "DPC Table [" + name + "] with [" + fields.size() + "] fields" + super.toString();
 	}
+
 }

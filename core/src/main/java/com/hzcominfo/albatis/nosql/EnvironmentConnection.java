@@ -5,7 +5,6 @@ import java.io.Serializable;
 import java.util.Collection;
 
 import net.butfly.albacore.io.URISpec;
-import net.butfly.albacore.utils.Configs;
 import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.io.Input;
 import net.butfly.albatis.io.Output;
@@ -17,11 +16,10 @@ public interface EnvironmentConnection extends Connection, Serializable {
 	<V, I extends Input<V>> I input(URISpec targetUri, String... tables);
 
 	class $env$ {
-		@SuppressWarnings("deprecation")
-		private static String envUri = Configs.gets("albatis.io.env.uri");
 		private static EnvironmentConnection env = null;
 
 		static EnvironmentConnection env() throws IOException {
+			String envUri = System.getProperty("albatis.io.env.uri");
 			if (null == envUri || null != env) return env;
 			return env = DriverManager.connect(new URISpec(envUri));
 		};
