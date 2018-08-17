@@ -1,8 +1,6 @@
 package net.butfly.albatis.mongodb;
 
 import java.io.IOException;
-import java.util.List;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.mongodb.BasicDBObject;
@@ -12,11 +10,10 @@ import com.mongodb.DBObject;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.paral.Exeter;
 import net.butfly.albacore.paral.Sdream;
-import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.parallel.Lambdas;
-import net.butfly.albatis.io.Rmap;
 import net.butfly.albatis.io.OutputBase;
+import net.butfly.albatis.io.Rmap;
 
 public final class MongoOutput extends OutputBase<Rmap> {
 	private static final long serialVersionUID = -6150620515173963739L;
@@ -58,12 +55,9 @@ public final class MongoOutput extends OutputBase<Rmap> {
 	protected void enqsafe(Sdream<Rmap> msgs) {
 		AtomicLong n = new AtomicLong();
 		if (upsert) n.set(msgs.map(m -> conn.collection(m.table()).save(MongoConnection.dbobj(m)).getN()).reduce(Lambdas.sumInt()));
-		else {
-			Map<String, List<Rmap>> l = Maps.of();
-			msgs.eachs(m -> l.computeIfAbsent(m.table(), t -> Colls.list()).add(m));
-			Exeter.of().join(e -> n.addAndGet(conn.collection(e.getKey()).insert(Sdream.of(e.getValue()).map(MongoConnection::dbobj).list()
-					.toArray(new BasicDBObject[0])).getN()), l.entrySet());
-		}
+		else Exeter.of().join(e -> n.addAndGet(conn.collection(e.getKey())//
+				.insert(Sdream.of(e.getValue()).map(MongoConnection::dbobj).list().toArray(new BasicDBObject[0]))//
+				.getN()), Maps.of(msgs, m -> m.table()).entrySet());
 		succeeded(n.get());
 	}
 }

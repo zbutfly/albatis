@@ -22,7 +22,7 @@ public final class FieldDesc extends Desc<FieldDesc> {
 		this.rowkey = rowkey;
 		this.unique = unique;
 		this.nullable = rowkey ? false : nullable;
-		table.field(this);
+		if (null != table) table.field(this);
 	}
 
 	public FieldDesc(TableDesc table, String fullname, ValType type, boolean rowkey) {
