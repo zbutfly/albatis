@@ -20,6 +20,11 @@
 		</dependency>
 		<dependency>
 			<groupId>net.butfly.albacore</groupId>
+			<artifactId>albacore-expr-fel</artifactId>
+			<version>${version.albacore}</version>
+		</dependency>
+		<dependency>
+			<groupId>net.butfly.albacore</groupId>
 			<artifactId>albacore-meta</artifactId>
 			<version>${version.albacore}</version>
 		</dependency>
