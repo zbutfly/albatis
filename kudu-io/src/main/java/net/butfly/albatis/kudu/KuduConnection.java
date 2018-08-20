@@ -6,7 +6,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import net.butfly.albacore.io.lambda.BiConsumer;
 
 import org.apache.kudu.ColumnSchema;
 import org.apache.kudu.Schema;
@@ -22,6 +21,7 @@ import org.apache.kudu.client.SessionConfiguration.FlushMode;
 import com.google.common.base.Joiner;
 
 import net.butfly.albacore.io.URISpec;
+import net.butfly.albacore.io.lambda.BiConsumer;
 import net.butfly.albacore.utils.Configs;
 
 @SuppressWarnings("unchecked")

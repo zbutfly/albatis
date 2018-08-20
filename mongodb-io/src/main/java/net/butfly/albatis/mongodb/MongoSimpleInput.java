@@ -9,8 +9,8 @@ import com.mongodb.DBObject;
 import com.mongodb.MongoException;
 
 import net.butfly.albacore.utils.logger.Logger;
-import net.butfly.albatis.io.Rmap;
 import net.butfly.albatis.io.OddInput;
+import net.butfly.albatis.io.Rmap;
 
 public class MongoSimpleInput extends net.butfly.albacore.base.Namedly implements OddInput<Rmap> {
 	private static final long serialVersionUID = -8711363806602831470L;

@@ -1,7 +1,6 @@
 package net.butfly.albatis.io;
 
 import net.butfly.albacore.io.lambda.Function;
-
 import net.butfly.albacore.paral.Sdream;
 
 public interface Queue<T> extends Queue0<T, T> {

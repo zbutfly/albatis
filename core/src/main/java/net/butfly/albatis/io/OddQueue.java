@@ -4,10 +4,10 @@ import static net.butfly.albacore.paral.Task.waitWhen;
 
 import java.util.Spliterator;
 import java.util.concurrent.atomic.AtomicLong;
-import net.butfly.albacore.io.lambda.Consumer;
-import net.butfly.albacore.io.lambda.Supplier;
 
 import net.butfly.albacore.base.Namedly;
+import net.butfly.albacore.io.lambda.Consumer;
+import net.butfly.albacore.io.lambda.Supplier;
 import net.butfly.albacore.paral.Sdream;
 
 public abstract class OddQueue<T> extends Namedly implements Queue<T> {

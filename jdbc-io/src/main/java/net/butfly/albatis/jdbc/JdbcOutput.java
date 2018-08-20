@@ -9,8 +9,8 @@ import java.util.stream.Collectors;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.paral.Sdream;
-import net.butfly.albatis.io.Rmap;
 import net.butfly.albatis.io.OutputBase;
+import net.butfly.albatis.io.Rmap;
 
 public class JdbcOutput extends OutputBase<Rmap> {
 	private static final long serialVersionUID = 5114292900867103434L;

@@ -21,6 +21,7 @@ import com.zaxxer.hikari.HikariDataSource;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albatis.ddl.FieldDesc;
+import net.butfly.albatis.ddl.TableDesc;
 
 public class JdbcConnection extends NoSqlConnection<DataSource> {
 	final Upserter upserter;
@@ -75,7 +76,7 @@ public class JdbcConnection extends NoSqlConnection<DataSource> {
 	}
 
 	@Override
-	public JdbcInput input(String... sql) throws IOException {
+	public JdbcInput input(TableDesc... sql) throws IOException {
 		if (sql.length > 1) throw new UnsupportedOperationException("Multiple sql input");
 		JdbcInput i;
 		try {
@@ -88,7 +89,7 @@ public class JdbcConnection extends NoSqlConnection<DataSource> {
 	}
 
 	@Override
-	public JdbcOutput output(String... table) throws IOException {
+	public JdbcOutput output(TableDesc... table) throws IOException {
 		return new JdbcOutput("JdbcOutput", this);
 	}
 

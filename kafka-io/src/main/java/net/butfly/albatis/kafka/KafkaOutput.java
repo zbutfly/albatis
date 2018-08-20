@@ -4,7 +4,6 @@ import static net.butfly.albacore.paral.Sdream.of;
 
 import java.util.List;
 import java.util.Map;
-import net.butfly.albacore.io.lambda.Function;
 
 import com.hzcominfo.albatis.nosql.Connection;
 
@@ -12,9 +11,10 @@ import kafka.javaapi.producer.Producer;
 import kafka.producer.KeyedMessage;
 import net.butfly.albacore.exception.ConfigException;
 import net.butfly.albacore.io.URISpec;
+import net.butfly.albacore.io.lambda.Function;
 import net.butfly.albacore.paral.Sdream;
-import net.butfly.albatis.io.Rmap;
 import net.butfly.albatis.io.OutputBase;
+import net.butfly.albatis.io.Rmap;
 import net.butfly.albatis.kafka.config.KafkaOutputConfig;
 
 /**

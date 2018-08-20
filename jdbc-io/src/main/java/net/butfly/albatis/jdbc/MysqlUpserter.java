@@ -1,9 +1,5 @@
 package net.butfly.albatis.jdbc;
 
-import net.butfly.albacore.io.URISpec;
-import net.butfly.albacore.paral.Exeter;
-import net.butfly.albatis.io.Rmap;
-
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -13,6 +9,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
+
+import net.butfly.albacore.io.URISpec;
+import net.butfly.albacore.paral.Exeter;
+import net.butfly.albatis.io.Rmap;
 
 public class MysqlUpserter extends Upserter {
 	private static final String psql = "INSERT INTO %s (%s) VALUES (%s) ON DUPLICATE KEY UPDATE %s";

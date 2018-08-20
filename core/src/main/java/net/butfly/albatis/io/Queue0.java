@@ -1,10 +1,9 @@
 package net.butfly.albatis.io;
 
-import net.butfly.albacore.io.lambda.Consumer;
-import net.butfly.albacore.io.lambda.Function;
-
 import com.bluejeans.bigqueue.BigQueue;
 
+import net.butfly.albacore.io.lambda.Consumer;
+import net.butfly.albacore.io.lambda.Function;
 import net.butfly.albacore.paral.Sdream;
 
 /**

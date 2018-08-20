@@ -11,7 +11,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
-import net.butfly.albacore.io.lambda.BiConsumer;
 
 import org.apache.kudu.ColumnSchema;
 import org.apache.kudu.Schema;
@@ -28,6 +27,7 @@ import com.google.common.base.Joiner;
 import com.stumbleupon.async.Deferred;
 
 import net.butfly.albacore.io.URISpec;
+import net.butfly.albacore.io.lambda.BiConsumer;
 import net.butfly.albacore.paral.Task;
 import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.Pair;

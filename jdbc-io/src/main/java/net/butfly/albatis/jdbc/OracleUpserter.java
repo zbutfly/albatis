@@ -1,9 +1,5 @@
 package net.butfly.albatis.jdbc;
 
-import net.butfly.albacore.io.URISpec;
-import net.butfly.albacore.paral.Exeter;
-import net.butfly.albatis.io.Rmap;
-
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -13,6 +9,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
+
+import net.butfly.albacore.io.URISpec;
+import net.butfly.albacore.paral.Exeter;
+import net.butfly.albatis.io.Rmap;
 
 public class OracleUpserter extends Upserter {
     private static final String psql = "MERGE INTO %s USING DUAL ON (%s) WHEN NOT MATCHED THEN INSERT (%s) VALUES (%s) WHEN MATCHED THEN UPDATE SET %s";

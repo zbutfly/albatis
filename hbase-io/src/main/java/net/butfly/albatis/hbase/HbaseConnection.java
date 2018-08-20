@@ -46,6 +46,7 @@ import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albacore.utils.logger.Statistic;
+import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.io.Rmap;
 
 public class HbaseConnection extends NoSqlConnection<org.apache.hadoop.hbase.client.Connection> {
@@ -306,12 +307,12 @@ public class HbaseConnection extends NoSqlConnection<org.apache.hadoop.hbase.cli
 	}
 
 	@Override
-	public HbaseInput input(String... table) throws IOException {
+	public HbaseInput input(TableDesc... table) throws IOException {
 		return new HbaseInput("HbaseInput", this);
 	}
 
 	@Override
-	public HbaseOutput output(String... table) throws IOException {
+	public HbaseOutput output(TableDesc... table) throws IOException {
 		return new HbaseOutput("HbaseOutput", this, conv);
 	}
 }

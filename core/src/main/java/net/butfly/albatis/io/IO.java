@@ -7,7 +7,6 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.Base64;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -22,17 +21,48 @@ import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Statistic;
-import net.butfly.albatis.ddl.FieldDesc;
+import net.butfly.albatis.ddl.TableDesc;
 
 public interface IO extends Sizable, Openable, Serializable {
-	default List<FieldDesc> schema() {
-		return Colls.list();
+	static final Map<IO, Map<String, TableDesc>> SCHEMAS = Maps.of();
+
+	default Map<String, TableDesc> schemaAll() {
+		return SCHEMAS.computeIfAbsent(this, io -> Maps.of());
 	}
 
-	default void schema(FieldDesc... field) {}
+	default TableDesc schema(String table) {
+		return schemaAll().getOrDefault(table, TableDesc.dummy(table));
+	}
 
-	default void schemaless() {}
+	@SuppressWarnings("unchecked")
+	default <T extends IO> T schema(TableDesc... table) {
+		logger().info("Schema registered: \n\t" + String.join("\n\t", Colls.list(t -> t.toString(), table)));
+		for (TableDesc td : table)
+			schemaAll().put(td.name, td);
+		return (T) this;
+	}
 
+	enum SchemaMode {
+		NONE, SINGLE, MULTIPLE
+	}
+
+	default SchemaMode schemaMode() {
+		Map<String, TableDesc> a = schemaAll();
+		switch (schemaAll().size()) {
+		case 0:
+			return SchemaMode.NONE;
+		case 1:
+			return SchemaMode.SINGLE;
+		default:
+			return SchemaMode.MULTIPLE;
+		}
+	}
+
+	default boolean schemaExists(String table) {
+		return schemaAll().containsKey(table);
+	}
+
+	// ================
 	default Connection connect() throws IOException {
 		return Connection.DUMMY;
 	}
@@ -157,5 +187,4 @@ public interface IO extends Sizable, Openable, Serializable {
 		if (null == s) Stats.IO_STATS.remove(this);
 		else Stats.IO_STATS.put(this, s);
 	}
-
 }

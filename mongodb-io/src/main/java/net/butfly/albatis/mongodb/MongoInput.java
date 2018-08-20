@@ -20,9 +20,9 @@ import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albacore.utils.logger.Statistic;
-import net.butfly.albatis.io.Rmap;
 import net.butfly.albatis.io.Input;
 import net.butfly.albatis.io.OddInput;
+import net.butfly.albatis.io.Rmap;
 
 public class MongoInput extends net.butfly.albacore.base.Namedly implements OddInput<Rmap> {
 	private static final long serialVersionUID = -1542477278520256900L;

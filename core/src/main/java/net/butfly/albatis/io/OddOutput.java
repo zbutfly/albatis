@@ -3,7 +3,6 @@ package net.butfly.albatis.io;
 import static net.butfly.albacore.paral.Task.waitWhen;
 
 import net.butfly.albacore.io.lambda.Function;
-
 import net.butfly.albacore.paral.Sdream;
 
 public interface OddOutput<V> extends Output<V> {

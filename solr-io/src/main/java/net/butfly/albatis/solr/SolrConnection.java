@@ -41,6 +41,7 @@ import net.butfly.albacore.utils.Reflections;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
+import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.io.Input;
 import net.butfly.albatis.io.Rmap;
 
@@ -281,12 +282,12 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 	}
 
 	@Override
-	public Input<Rmap> input(String... table) throws IOException {
+	public Input<Rmap> input(TableDesc... table) throws IOException {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	public SolrOutput output(String... table) throws IOException {
+	public SolrOutput output(TableDesc... table) throws IOException {
 		return new SolrOutput("SolrOutput", this);
 	}
 

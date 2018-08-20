@@ -1,6 +1,7 @@
 package net.butfly.albatis.io.ext;
 
 import static net.butfly.albacore.paral.Task.waitSleep;
+
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 

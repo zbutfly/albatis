@@ -1,12 +1,12 @@
 package net.butfly.albatis.kafka;
 
 import java.util.Map;
-import net.butfly.albacore.io.lambda.Function;
 
 import org.apache.kafka.clients.producer.ProducerRecord;
 
 import kafka.message.MessageAndMetadata;
 import kafka.producer.KeyedMessage;
+import net.butfly.albacore.io.lambda.Function;
 import net.butfly.albatis.io.Rmap;
 
 public interface Kafkas {

@@ -3,9 +3,9 @@ package net.butfly.albatis.io.ext;
 import static net.butfly.albacore.paral.Sdream.of;
 
 import java.util.List;
-import net.butfly.albacore.io.lambda.Consumer;
 
 import net.butfly.albacore.base.Namedly;
+import net.butfly.albacore.io.lambda.Consumer;
 import net.butfly.albacore.paral.Exeter;
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.collection.Colls;

@@ -3,10 +3,10 @@ package net.butfly.albatis.arangodb;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import net.butfly.albacore.io.lambda.Function;
 
 import com.arangodb.entity.BaseDocument;
 
+import net.butfly.albacore.io.lambda.Function;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Statistic;

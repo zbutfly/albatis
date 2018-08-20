@@ -1,7 +1,6 @@
 package net.butfly.albatis.io;
 
 import net.butfly.albacore.io.lambda.Consumer;
-
 import net.butfly.albacore.lambda.Runnable;
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.logger.Logger;

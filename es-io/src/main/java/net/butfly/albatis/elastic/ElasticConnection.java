@@ -18,6 +18,7 @@ import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.serder.JsonSerder;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albatis.ddl.FieldDesc;
+import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.io.Input;
 import net.butfly.albatis.io.Rmap;
 
@@ -107,12 +108,12 @@ public class ElasticConnection extends NoSqlConnection<TransportClient> implemen
 	}
 
 	@Override
-	public Input<Rmap> input(String... table) throws IOException {
+	public Input<Rmap> input(TableDesc... table) throws IOException {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	public ElasticOutput output(String... table) throws IOException {
+	public ElasticOutput output(TableDesc... table) throws IOException {
 		return new ElasticOutput("ElasticOutput", this);
 	}
 

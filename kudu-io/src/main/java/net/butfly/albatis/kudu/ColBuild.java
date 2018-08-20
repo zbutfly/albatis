@@ -1,5 +1,18 @@
 package net.butfly.albatis.kudu;
 
+import static net.butfly.albatis.ddl.vals.ValType.Flags.BINARY;
+import static net.butfly.albatis.ddl.vals.ValType.Flags.BOOL;
+import static net.butfly.albatis.ddl.vals.ValType.Flags.CHAR;
+import static net.butfly.albatis.ddl.vals.ValType.Flags.DATE;
+import static net.butfly.albatis.ddl.vals.ValType.Flags.DOUBLE;
+import static net.butfly.albatis.ddl.vals.ValType.Flags.FLOAT;
+import static net.butfly.albatis.ddl.vals.ValType.Flags.GEO;
+import static net.butfly.albatis.ddl.vals.ValType.Flags.INT;
+import static net.butfly.albatis.ddl.vals.ValType.Flags.LONG;
+import static net.butfly.albatis.ddl.vals.ValType.Flags.STR;
+import static net.butfly.albatis.ddl.vals.ValType.Flags.STRL;
+import static net.butfly.albatis.ddl.vals.ValType.Flags.UNKNOWN;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentMap;
@@ -12,7 +25,6 @@ import org.apache.kudu.Type;
 
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albatis.ddl.FieldDesc;
-import static net.butfly.albatis.ddl.vals.ValType.Flags.*;
 
 interface ColBuild {
 	static ColumnSchema buildColumn(FieldDesc f) {

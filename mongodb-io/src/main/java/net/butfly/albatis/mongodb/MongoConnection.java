@@ -23,6 +23,7 @@ import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
+import net.butfly.albatis.ddl.TableDesc;
 
 /**
  * @author butfly
@@ -208,14 +209,15 @@ public class MongoConnection extends NoSqlConnection<MongoClient> {
 	}
 
 	@Override
-	public MongoInput input(String... table) throws IOException {
+	public MongoInput input(TableDesc... table) throws IOException {
 		MongoInput i = new MongoInput("MongoInput", this);
-		i.table(table);
+		List<String> l = Colls.list(t -> t.name, table);
+		i.table(l.toArray(new String[l.size()]));
 		return i;
 	}
 
 	@Override
-	public MongoOutput output(String... table) throws IOException {
+	public MongoOutput output(TableDesc... table) throws IOException {
 		return new MongoOutput("MongoOutput", this);
 	}
 }

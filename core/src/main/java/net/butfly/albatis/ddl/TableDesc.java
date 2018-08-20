@@ -136,8 +136,11 @@ public class TableDesc extends Desc<TableDesc> {
 		return keys;
 	}
 
-	public List<String> rowkey() {
-		return keys.isEmpty() ? Colls.list() : keys.get(0);
+	public String rowkey() {
+		if (keys.isEmpty()) return null;
+		List<String> pk = keys.get(0);
+		if (pk.isEmpty()) return null;
+		return pk.get(0);
 	}
 
 	public List<String> colkey() {
@@ -178,4 +181,7 @@ public class TableDesc extends Desc<TableDesc> {
 		return "DPC Table [" + name + "] with [" + fields.size() + "] fields" + super.toString();
 	}
 
+	public static TableDesc dummy(String name) {
+		return new TableDesc(null, name);
+	}
 }

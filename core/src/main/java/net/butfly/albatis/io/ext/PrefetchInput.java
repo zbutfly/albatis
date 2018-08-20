@@ -1,7 +1,6 @@
 package net.butfly.albatis.io.ext;
 
 import net.butfly.albacore.io.lambda.Consumer;
-
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.OpenableThread;
 import net.butfly.albatis.io.Input;

@@ -10,7 +10,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import net.butfly.albacore.expr.Engine;
 import net.butfly.albacore.io.lambda.Function;
-
 import net.butfly.albacore.utils.IOs;
 import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.collection.Maps;
@@ -114,7 +113,9 @@ public class Rmap extends ConcurrentHashMap<String, Object> {
 	}
 
 	public String table() {
-		return table.startsWith("=") ? Engine.eval(table.substring(1), this) : table;
+		if (null == table) return null;
+		if (table.startsWith("=")) return Engine.eval(table.substring(1), this);
+		return table;
 	}
 
 	public Rmap table(String table) {

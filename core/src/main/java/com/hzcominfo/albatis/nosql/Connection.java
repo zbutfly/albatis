@@ -3,7 +3,6 @@ package com.hzcominfo.albatis.nosql;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.StandardCharsets;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,6 +18,7 @@ import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.ddl.FieldDesc;
+import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.io.IOSupport;
 import net.butfly.albatis.io.Input;
 import net.butfly.albatis.io.Output;
@@ -43,12 +43,12 @@ public interface Connection extends AutoCloseable, IOSupport {
 		}
 
 		@Override
-		public <M extends Rmap> Input<M> input(Collection<String> tables, FieldDesc... fields) throws IOException {
+		public <M extends Rmap> Input<M> input(TableDesc... table) throws IOException {
 			return null;
 		}
 
 		@Override
-		public <M extends Rmap> Output<M> output(Collection<String> tables, FieldDesc... fields) throws IOException {
+		public <M extends Rmap> Output<M> output(TableDesc... table) throws IOException {
 			return null;
 		}
 	};

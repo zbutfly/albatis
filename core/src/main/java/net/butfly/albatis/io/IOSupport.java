@@ -1,37 +1,40 @@
 package net.butfly.albatis.io;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 
-import net.butfly.albatis.ddl.FieldDesc;
+import net.butfly.albacore.utils.collection.Colls;
+import net.butfly.albatis.ddl.TableDesc;
 
 public interface IOSupport {
 	default <M extends Rmap> Input<M> input(String... table) throws IOException {
-		return input(Arrays.asList(table));
+		return input(Colls.list(n -> TableDesc.dummy(n), table).toArray(new TableDesc[0]));
 	}
 
-	default <M extends Rmap> Input<M> input(Collection<String> tables) throws IOException {
-		return input(tables, new FieldDesc[0]);
+	default <M extends Rmap> Input<M> input(Map<String, String> keyMapping) throws IOException {
+		List<TableDesc> l = Colls.list(keyMapping.entrySet(), e -> {
+			TableDesc t = TableDesc.dummy(e.getKey());
+			t.keys.add(Colls.list(e.getValue()));
+			return t;
+		});
+		return input(l.toArray(new TableDesc[0]));
 	}
 
-	default <M extends Rmap> Input<M> input(Collection<String> tables, FieldDesc... fields) throws IOException {
-		Input<M> i = input(tables.toArray(new String[tables.size()]));
-		if (null != fields && fields.length > 0) i.schema(fields);
-		return i;
+	<M extends Rmap> Input<M> input(TableDesc... table) throws IOException;
+
+	default <M extends Rmap> Output<M> output(Map<String, String> keyMapping) throws IOException{
+		List<TableDesc> l = Colls.list(keyMapping.entrySet(), e -> {
+			TableDesc t = TableDesc.dummy(e.getKey());
+			t.keys.add(Colls.list(e.getValue()));
+			return t;
+		});
+		return output(l.toArray(new TableDesc[0]));
 	}
 
 	default <M extends Rmap> Output<M> output(String... table) throws IOException {
-		return output(Arrays.asList(table));
+		return output(Colls.list(n -> TableDesc.dummy(n), table).toArray(new TableDesc[0]));
 	}
 
-	default <M extends Rmap> Output<M> output(Collection<String> tables) throws IOException {
-		return output(tables, new FieldDesc[0]);
-	}
-
-	default <M extends Rmap> Output<M> output(Collection<String> tables, FieldDesc... fields) throws IOException {
-		Output<M> o = output(tables.toArray(new String[tables.size()]));
-		if (null != fields && fields.length > 0) o.schema(fields);
-		return o;
-	}
+	<M extends Rmap> Output<M> output(TableDesc... table) throws IOException;
 }

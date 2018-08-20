@@ -2,18 +2,17 @@ package com.hzcominfo.albatis.nosql;
 
 import java.io.IOException;
 import java.io.Serializable;
-import java.util.Collection;
 
 import net.butfly.albacore.io.URISpec;
-import net.butfly.albatis.ddl.FieldDesc;
+import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.io.Input;
 import net.butfly.albatis.io.Output;
 import net.butfly.albatis.io.Rmap;
 
 public interface EnvironmentConnection extends Connection, Serializable {
-	<V, O extends Output<V>> O output(URISpec targetUri, String... tables);
+	<V, O extends Output<V>> O output(URISpec targetUri, TableDesc... tables);
 
-	<V, I extends Input<V>> I input(URISpec targetUri, String... tables);
+	<V, I extends Input<V>> I input(URISpec targetUri, TableDesc... tables);
 
 	class $env$ {
 		private static EnvironmentConnection env = null;
@@ -53,25 +52,23 @@ public interface EnvironmentConnection extends Connection, Serializable {
 			}
 
 			@Override
-			public <M extends Rmap> Input<M> input(Collection<String> tables, FieldDesc... fields) throws IOException {
-				Input<M> i = env.input(targetSpec, tables.toArray(new String[tables.size()]));
+			public <M extends Rmap> Input<M> input(TableDesc... table) throws IOException {
+				Input<M> i = env.input(targetSpec, table);
 				if (null == i) {
 					if (null == target) target = DriverManager.connect(targetSpec);
-					i = target.input(tables);
+					i = target.input(table);
 				}
-				if (null != fields && fields.length > 0) i.schema(fields);
-				return i;
+				return i.schema(table);
 			}
 
 			@Override
-			public <M extends Rmap> Output<M> output(Collection<String> tables, FieldDesc... fields) throws IOException {
-				Output<M> o = env.output(targetSpec, tables.toArray(new String[tables.size()]));
+			public <M extends Rmap> Output<M> output(TableDesc... table) throws IOException {
+				Output<M> o = env.output(targetSpec, table);
 				if (null == o) {
 					if (null == target) target = DriverManager.connect(targetSpec);
-					o = target.output(tables);
+					o = target.output(table);
 				}
-				if (null != fields && fields.length > 0) o.schema(fields);
-				return o;
+				return o.schema(table);
 			}
 		}
 	}

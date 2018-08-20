@@ -10,9 +10,9 @@ import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
+import net.butfly.albatis.io.OutputBase;
 import net.butfly.albatis.io.Rmap;
 import net.butfly.albatis.io.Rmap.Op;
-import net.butfly.albatis.io.OutputBase;
 
 public final class SolrOutput extends OutputBase<Rmap> {
 	private static final long serialVersionUID = 4875270142242208468L;

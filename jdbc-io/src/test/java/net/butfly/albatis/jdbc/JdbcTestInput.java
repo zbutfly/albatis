@@ -1,13 +1,13 @@
 package net.butfly.albatis.jdbc;
 
-import net.butfly.albacore.base.Namedly;
-import net.butfly.albatis.io.Rmap;
-import net.butfly.albatis.io.OddInput;
-
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import net.butfly.albacore.base.Namedly;
+import net.butfly.albatis.io.OddInput;
+import net.butfly.albatis.io.Rmap;
 
 public class JdbcTestInput extends Namedly implements OddInput<Rmap> {
     private static final long serialVersionUID = 647609924979903160L;

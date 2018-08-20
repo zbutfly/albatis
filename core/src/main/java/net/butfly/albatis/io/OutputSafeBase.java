@@ -3,11 +3,11 @@ package net.butfly.albatis.io;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.concurrent.atomic.AtomicInteger;
-import net.butfly.albacore.io.lambda.Supplier;
 
 import com.hzcominfo.albatis.Albatis;
 
 import net.butfly.albacore.base.Namedly;
+import net.butfly.albacore.io.lambda.Supplier;
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.paral.Task;
 import net.butfly.albacore.utils.Configs;

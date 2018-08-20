@@ -1,12 +1,12 @@
 package net.butfly.albatis.io;
 
 import java.util.Spliterator;
+
+import net.butfly.albacore.io.Dequeuer;
 import net.butfly.albacore.io.lambda.Consumer;
 import net.butfly.albacore.io.lambda.Function;
 import net.butfly.albacore.io.lambda.Predicate;
 import net.butfly.albacore.io.lambda.Supplier;
-
-import net.butfly.albacore.io.Dequeuer;
 import net.butfly.albacore.paral.Sdream;
 
 public interface OddInput<V> extends Input<V> {

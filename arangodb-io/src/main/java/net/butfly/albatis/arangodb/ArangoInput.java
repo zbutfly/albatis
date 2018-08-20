@@ -6,12 +6,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-import net.butfly.albacore.io.lambda.Function;
 
 import com.arangodb.ArangoCursorAsync;
 import com.arangodb.ArangoDBException;
 import com.arangodb.entity.BaseDocument;
 
+import net.butfly.albacore.io.lambda.Function;
 import net.butfly.albacore.paral.Exeter;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;

@@ -1,15 +1,15 @@
 package net.butfly.albatis.jdbc;
 
-import net.butfly.albacore.io.URISpec;
-import net.butfly.albacore.utils.logger.Loggable;
-import net.butfly.albatis.io.Rmap;
-
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
+
+import net.butfly.albacore.io.URISpec;
+import net.butfly.albacore.utils.logger.Loggable;
+import net.butfly.albatis.io.Rmap;
 
 public abstract class Upserter implements Loggable {
     public final Type type;

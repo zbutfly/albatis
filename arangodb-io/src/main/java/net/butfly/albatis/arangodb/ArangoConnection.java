@@ -27,6 +27,7 @@ import net.butfly.albacore.paral.Exeter;
 import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.logger.Statistic;
+import net.butfly.albatis.ddl.TableDesc;
 
 public class ArangoConnection extends NoSqlConnection<ArangoDBAsync> {
 	private static final int MAX_CONNECTIONS = Integer.parseInt(Configs.gets("albatis.arango.connection.max.conn", "0"));
@@ -75,14 +76,14 @@ public class ArangoConnection extends NoSqlConnection<ArangoDBAsync> {
 	}
 
 	@Override
-	public ArangoInput input(String... table) throws IOException {
+	public ArangoInput input(TableDesc... table) throws IOException {
 		ArangoInput i = new ArangoInput("ArangoInput", this);
 		return i;
 	}
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public ArangoOutput output(String... table) throws IOException {
+	public ArangoOutput output(TableDesc... table) throws IOException {
 		return new ArangoOutput("ArangoOutput", this);
 	}
 
