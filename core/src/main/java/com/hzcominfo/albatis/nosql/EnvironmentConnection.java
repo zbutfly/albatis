@@ -54,21 +54,17 @@ public interface EnvironmentConnection extends Connection, Serializable {
 			@Override
 			public <M extends Rmap> Input<M> input(TableDesc... table) throws IOException {
 				Input<M> i = env.input(targetSpec, table);
-				if (null == i) {
-					if (null == target) target = DriverManager.connect(targetSpec);
-					i = target.input(table);
-				}
-				return i.schema(table);
+				if (null != i) return i;
+				if (null == target) target = DriverManager.connect(targetSpec);
+				return target.input(table);
 			}
 
 			@Override
 			public <M extends Rmap> Output<M> output(TableDesc... table) throws IOException {
 				Output<M> o = env.output(targetSpec, table);
-				if (null == o) {
-					if (null == target) target = DriverManager.connect(targetSpec);
-					o = target.output(table);
-				}
-				return o.schema(table);
+				if (null != o) return o;
+				if (null == target) target = DriverManager.connect(targetSpec);
+				return target.output(table);
 			}
 		}
 	}

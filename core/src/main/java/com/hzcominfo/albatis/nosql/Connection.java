@@ -19,12 +19,12 @@ import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.ddl.TableDesc;
-import net.butfly.albatis.io.IOSupport;
+import net.butfly.albatis.io.IOFactory;
 import net.butfly.albatis.io.Input;
 import net.butfly.albatis.io.Output;
 import net.butfly.albatis.io.Rmap;
 
-public interface Connection extends AutoCloseable, IOSupport {
+public interface Connection extends AutoCloseable, IOFactory {
 	static final Logger logger = Logger.getLogger(Connection.class);
 	static final String PARAM_KEY_BATCH = "batch";
 	static final int DEFAULT_BATCH_SIZE = 500;

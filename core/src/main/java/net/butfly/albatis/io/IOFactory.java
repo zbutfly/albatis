@@ -7,7 +7,7 @@ import java.util.Map;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albatis.ddl.TableDesc;
 
-public interface IOSupport {
+public interface IOFactory {
 	default <M extends Rmap> Input<M> input(String... table) throws IOException {
 		return input(Colls.list(n -> TableDesc.dummy(n), table).toArray(new TableDesc[0]));
 	}
