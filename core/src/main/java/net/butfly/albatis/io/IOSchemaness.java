@@ -30,7 +30,7 @@ public interface IOSchemaness extends Loggable {
 	}
 
 	default TableDesc schema(String table) {
-		return schemaAll().getOrDefault(table, TableDesc.dummy(table));
+		return schemaAll().get(table);
 	}
 
 	@SuppressWarnings("unchecked")
