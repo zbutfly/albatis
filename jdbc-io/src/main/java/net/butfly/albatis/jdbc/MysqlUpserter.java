@@ -48,7 +48,7 @@ public class MysqlUpserter extends Upserter {
 				List<String> fl = new ArrayList<>(ml.get(j).keySet());
 				String fields = fl.stream().map(this::quota).collect(Collectors.joining(", "));
 				String values = fl.stream().map(f -> "?").collect(Collectors.joining(", "));
-				List<String> ufields = fl.stream().filter(f -> !f.equals(keyField)).collect(Collectors.toList());
+				List<String> ufields = fl.stream()/*.filter(f -> !f.equals(keyField))*/.collect(Collectors.toList());
 				String updates = ufields.stream().map(f -> quota(f) + " = ?").collect(Collectors.joining(", "));
 				String sql = String.format(psql, entry.getKey(), fields, values, updates);
 				logger().debug("MYSQL upsert sql: " + sql);
