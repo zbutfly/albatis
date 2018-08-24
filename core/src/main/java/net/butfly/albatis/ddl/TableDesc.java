@@ -58,10 +58,10 @@ public class TableDesc extends Desc<TableDesc> {
 		this(db, fullname, false);
 	}
 
-	private TableDesc(DBDesc db, String fullname, boolean desctuct) {
+	private TableDesc(DBDesc db, String fullname, boolean destruct) {
 		super();
 		this.fullname = fullname;
-		this.destruct = desctuct;
+		this.destruct = destruct;
 		this.name = parse(fullname);
 		if (null != db) db.tables.put(name, this);
 	}
@@ -181,7 +181,17 @@ public class TableDesc extends Desc<TableDesc> {
 		return "DPC Table [" + name + "] with [" + fields.size() + "] fields" + super.toString();
 	}
 
-	public static TableDesc dummy(String name) {
-		return new TableDesc(null, name);
+	public static TableDesc dummy(String fullname) {
+		return new TableDesc(null, fullname);
+	}
+
+	public TableDesc clone(String fullname) {
+		TableDesc t = new TableDesc(null, fullname, destruct);
+		t.fields.putAll(fields);
+		t.keys.addAll(keys);
+		t.construct = construct;
+		t.destruct = destruct;
+		t.referTable = referTable;
+		return t;
 	}
 }

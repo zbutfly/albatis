@@ -1,10 +1,6 @@
 package net.butfly.albatis.io;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.Base64;
 
@@ -13,6 +9,7 @@ import com.hzcominfo.albatis.nosql.Connection;
 import net.butfly.albacore.base.Sizable;
 import net.butfly.albacore.io.Openable;
 import net.butfly.albacore.io.URISpec;
+import net.butfly.albacore.serder.JavaSerder;
 import net.butfly.albacore.utils.collection.Maps;
 
 public interface IO extends IOSchemaness, Sizable, Openable, Serializable, IOStats {
@@ -55,21 +52,12 @@ public interface IO extends IOSchemaness, Sizable, Openable, Serializable, IOSta
 	}
 
 	default String ser() {
-		try (ByteArrayOutputStream bos = new ByteArrayOutputStream(); ObjectOutputStream oos = new ObjectOutputStream(bos);) {
-			oos.writeObject(this);
-			return Base64.getEncoder().encodeToString(bos.toByteArray());
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
+		byte[] b = JavaSerder.toBytes(this);
+		return Base64.getEncoder().encodeToString(b);
 	}
 
-	@SuppressWarnings("unchecked")
 	static <T extends IO> T der(String ser) {
 		byte[] b = Base64.getDecoder().decode(ser);
-		try (ByteArrayInputStream bos = new ByteArrayInputStream(b); ObjectInputStream oos = new ObjectInputStream(bos);) {
-			return (T) oos.readObject();
-		} catch (IOException | ClassNotFoundException e) {
-			throw new RuntimeException(e);
-		}
+		return JavaSerder.fromBytes(b);
 	}
 }
