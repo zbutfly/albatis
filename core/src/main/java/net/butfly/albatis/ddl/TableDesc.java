@@ -14,11 +14,11 @@ import net.butfly.albacore.utils.logger.Logger;
 public class TableDesc extends Desc<TableDesc> {
 	private static final long serialVersionUID = -5720312308026671887L;
 	private static final Logger logger = Logger.getLogger(TableDesc.class);
-	public final String name;
 	/**
-	 * name.cf:prefix#
+	 * dbname.cf:prefix#
 	 */
-	public final String fullname;
+	public final String name;
+	public final String dbname;
 	private final Map<String, FieldDesc> fields = Maps.of();
 	// options
 	public final List<List<String>> keys = Colls.list();
@@ -41,7 +41,7 @@ public class TableDesc extends Desc<TableDesc> {
 			t.construct.putAll(parent.construct);
 		}
 		t.referTable = parent.referTable;
-		t.parse(t.fullname);
+		t.parse(t.name);
 		String prefix = t.attr(Desc.COL_PREFIX);
 		if (null != prefix) for (String fieldName : parent.fields.keySet())
 			if (fieldName.startsWith(prefix)) t.fields.put(fieldName, parent.fields.get(fieldName));
@@ -60,9 +60,9 @@ public class TableDesc extends Desc<TableDesc> {
 
 	private TableDesc(DBDesc db, String fullname, boolean destruct) {
 		super();
-		this.fullname = fullname;
+		this.name = fullname;
 		this.destruct = destruct;
-		this.name = parse(fullname);
+		this.dbname = parse(fullname);
 		if (null != db) db.tables.put(name, this);
 	}
 
@@ -160,10 +160,10 @@ public class TableDesc extends Desc<TableDesc> {
 		return fields.values().toArray(new FieldDesc[fields.size()]);
 	}
 
-	private String parse(String qf) {
-		String name, cf = null, prefix = null;
-		String[] s = qf.split("\\.", 2);
-		name = s[0];
+	private String parse(String fullname) {
+		String n, cf = null, prefix = null;
+		String[] s = fullname.split("\\.", 2);
+		n = s[0];
 		if (s.length > 1) {
 			s = s[1].split(":", 2);
 			cf = s[0];
@@ -173,7 +173,7 @@ public class TableDesc extends Desc<TableDesc> {
 			}
 		}
 		attw(Desc.COL_FAMILY, cf).attw(Desc.COL_PREFIX, prefix);
-		return name;
+		return n;
 	}
 
 	@Override
