@@ -1,25 +1,16 @@
 package net.butfly.albatis.io;
 
 import java.util.Collection;
-import java.util.Map;
 
 import net.butfly.albacore.io.Enqueuer;
 import net.butfly.albacore.io.lambda.Consumer;
 import net.butfly.albacore.io.lambda.Function;
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.collection.Maps;
-import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.io.ext.FailoverOutput;
 
 public interface Output<V> extends IO, Consumer<Sdream<V>>, Enqueuer<V> {
 	static Output<?> NULL = items -> {};
-
-	@Override
-	default TableDesc schema(String t) {
-		Map<String, TableDesc> s = schemaAll();
-		TableDesc td = s.get(t);
-		return null != td || 1 != s.size() ? td : s.values().iterator().next().clone(t);
-	}
 
 	@Override
 	default long size() {

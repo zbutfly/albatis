@@ -18,6 +18,7 @@ public class Rmap extends ConcurrentHashMap<String, Object> {
 	protected Object key;
 	protected String keyField;
 	protected String table;
+	private String tableExpr;
 	protected @Op int op;
 
 	public @interface Op {
@@ -116,8 +117,18 @@ public class Rmap extends ConcurrentHashMap<String, Object> {
 		return table;
 	}
 
+	public String tableExpr() {
+		return tableExpr;
+	}
+
 	public Rmap table(String table) {
 		this.table = table;
+		return this;
+	}
+
+	public Rmap table(String table, String expr) {
+		this.table = table;
+		this.tableExpr = expr;
 		return this;
 	}
 
