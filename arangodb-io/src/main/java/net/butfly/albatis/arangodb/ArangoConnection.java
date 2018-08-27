@@ -87,6 +87,12 @@ public class ArangoConnection extends NoSqlConnection<ArangoDBAsync> {
 		return new ArangoOutput("ArangoOutput", this);
 	}
 
+	@SuppressWarnings("unchecked")
+	@Override
+	public ArangoOutput output(String... table) throws IOException {
+		return new ArangoOutput("ArangoOutput", this);
+	}
+
 	public static class Driver implements com.hzcominfo.albatis.nosql.Connection.Driver<ArangoConnection> {
 		static {
 			DriverManager.register(new Driver());
