@@ -145,7 +145,7 @@ public interface Connection extends AutoCloseable, IOFactory {
 
 	// DDL
 	default void construct(String table, FieldDesc... fields) {
-		throw new UnsupportedOperationException();
+		logger.warn("Constructing invoked but not implemented, ignore.");
 	}
 
 	default void destruct(String table) {
