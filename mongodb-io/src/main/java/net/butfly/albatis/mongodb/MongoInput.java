@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import com.hzcominfo.albatis.Albatis;
 import com.mongodb.BasicDBObject;
 import com.mongodb.Bytes;
 import com.mongodb.DBCursor;
@@ -16,6 +17,7 @@ import com.mongodb.DBObject;
 import com.mongodb.MongoException;
 
 import net.butfly.albacore.paral.Exeter;
+import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
@@ -82,6 +84,13 @@ public class MongoInput extends net.butfly.albacore.base.Namedly implements OddI
 			DBCursor c;
 			try {
 				c = conn.cursor(col, q).batchSize(conn.getBatchSize()).addOption(Bytes.QUERYOPTION_NOTIMEOUT);
+				int limit = Integer.parseInt(Configs.gets(Albatis.PROP_DEBUG_INPUT_LIMIT, "-1"));
+				if (limit > 0) {
+					c = c.limit(limit);
+					long n = c.count();
+					logger().error("Debugging, resultset is limit as [" + limit + "] by setting \"" + Albatis.PROP_DEBUG_INPUT_LIMIT + "\","//
+							+ " results count: " + n);
+				}
 				if (c.hasNext()) {
 					c.batchSize(batchSize());
 					logger.info("MongoDB query [" + col + "] successed, count: [" + c.count() + "].");

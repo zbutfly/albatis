@@ -79,7 +79,7 @@ public interface Connection extends AutoCloseable, IOFactory {
 				// XXX why can't I do register here?
 				// for (String schema : (List<String>) driver.schemas())
 				// DRIVERS.put(schema, driver);
-				logger.debug("Connection driver loaded: " + driver.getClass().toString());
+				logger.debug("Connection driver loaded: " + driver.getClass().toString() + " as schema " + driver.schemas());
 			}
 		}
 
