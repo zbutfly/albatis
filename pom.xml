@@ -21,6 +21,7 @@
 		<version.elastic>6.3.2</version.elastic>
 		<version.kudu>1.7.1</version.kudu>
 		<version.hbase>2.1.0</version.hbase>
+		<version.hadoop>3.1.1</version.hadoop>
 		<version.solr>7.4.0</version.solr>
 		<version.arangodb>4.7.0</version.arangodb>
 		<version.neo4j>3.4.5</version.neo4j>
