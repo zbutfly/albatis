@@ -96,9 +96,7 @@ public class TableDesc extends Desc<TableDesc> {
 	}
 
 	public void field(FieldDesc f) {
-		if (fields.containsKey(f.name)) //
-			throw new RuntimeException("Conflicted field desc [" + f + "] in table: " + this);
-		fields.put(f.name, f);
+		fields.putIfAbsent(f.name, f);
 		if (f.rowkey) {
 			if (keys.isEmpty()) keys.add(Colls.list(f.name));
 			else keys.get(0).add(f.name);
