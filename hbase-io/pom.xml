@@ -75,7 +75,6 @@
 			<groupId>org.apache.hbase</groupId>
 			<artifactId>hbase-common</artifactId>
 			<version>${version.hbase}</version>
-			<scope>runtime</scope>
 			<exclusions>
 				<exclusion>
 					<groupId>jdk.tools</groupId>
