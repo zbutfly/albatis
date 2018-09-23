@@ -110,6 +110,7 @@ public class HbaseConnection extends NoSqlConnection<org.apache.hadoop.hbase.cli
 		try {
 			return Hbases.connect(params);
 		} catch (IOException e) {
+			logger.error("Connect failed", e);
 			return null;
 		}
 	}

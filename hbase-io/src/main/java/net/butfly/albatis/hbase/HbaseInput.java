@@ -49,7 +49,7 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 	public void open() {
 		if (scansMap.isEmpty()) {
 			if (null != hconn.uri().getFile()) table(hconn.uri().getFile());
-			else throw new RuntimeException("No table defined for input.");
+			// else throw new RuntimeException("No table defined for input.");
 		}
 		Input.super.open();
 	}

@@ -68,7 +68,7 @@ public abstract class PumpImpl<V, P extends PumpImpl<V, P>> extends Namedly impl
 			} catch (InterruptedException e) {
 				t.close();
 			}
-		logger().info(name() + " finished.");
+		logger().info("Pumping[" + name() + "] finished.");
 	}
 
 	protected boolean isAllDependsOpen() {

@@ -44,7 +44,8 @@ public class FailoverOutput<M> extends WrapOutput<M, M> {
 	@Override
 	public void open() {
 		super.open();
-		super.base.open();
+		failovering.open();
+		base.open();
 	}
 
 	@Override

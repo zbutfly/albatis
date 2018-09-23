@@ -73,7 +73,7 @@ public final class Hbases extends Utils {
 	}
 
 	public static void disconnect(Connection conn) throws IOException {
-		try {
+		if (null != conn) try {
 			synchronized (conn) {
 				if (!conn.isClosed()) conn.close();
 			}
