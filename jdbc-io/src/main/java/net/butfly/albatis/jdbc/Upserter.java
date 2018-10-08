@@ -63,6 +63,8 @@ public abstract class Upserter implements Loggable {
                 return new SqlServer2008Upserter(type);
             case SQL_SERVER_2013:
                 return new SqlServer2013Upserter(type);
+            case KINGBASE:
+                return new KingBaseUpserter(type);
             default:
                 throw new IllegalStateException("not supported type: " + type);
         }

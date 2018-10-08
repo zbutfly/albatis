@@ -10,6 +10,7 @@ public enum Type {
     SQL_SERVER_2005("jdbc:sqlserver", "com.microsoft.sqlserver.jdbc.SQLServerDriver"),
     SQL_SERVER_2008("jdbc:microsoft:sqlserver", "com.microsoft.jdbc.sqlserver.SQLServerDriver"),
     SQL_SERVER_2013("jdbc:sqlserver", "com.microsoft.sqlserver.jdbc.SQLServerDriver"),
+    KINGBASE("jdbc:kingbaseanalyticsdb","com.kingbase.kingbaseanalyticsdb.ds.KBSimpleDataSource"),
 //    DB2("jdbc:db2"),
 //    SYBASE("jdbc:sybase:Tds"),
 //    INFORMIX("jdbc:informix-sqli")
