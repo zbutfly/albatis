@@ -50,7 +50,6 @@ public class KingBaseUpserter extends Upserter {
                 List<String> ufields = fl.stream().filter(f -> !f.equals(keyField)).collect(Collectors.toList()); // update fields
                 String updates = ufields.stream().map(f -> f + " = EXCLUDED." + f).collect(Collectors.joining(", "));
                 String sql = String.format(psql, t, fields, values, keyField, updates);
-                //logger().debug("POSTGRES upsert sql: " + sql);
 
                 if (null == keyField){
                     try (PreparedStatement ps = conn.prepareStatement(sql)) {
