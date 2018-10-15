@@ -1,6 +1,7 @@
 package net.butfly.albatis.kafka;
 
-import com.alibaba.fastjson.JSON;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import kafka.javaapi.producer.Producer;
 import kafka.producer.KeyedMessage;
 import net.butfly.albacore.exception.ConfigException;
@@ -38,13 +39,19 @@ public final class KafkaOutput_HK extends OutputBase<Rmap> {
 	protected void enqsafe(Sdream<Rmap> messages) {
 		List<Rmap> msgs = messages.list();
 		List<Rmap> maps = new ArrayList<>();
+		ObjectMapper mapper = new ObjectMapper();
 		for(int i=0;i<msgs.size();i++){
 			Map m = Maps.of();
 			String key =msgs.get(i).key().toString();
 			String table = msgs.get(i).table();
 			m.put("rowkey",msgs.get(i).get(key));
 			m.put("Body",msgs.get(i));
-			String mapJsonStr = JSON.toJSONString(m);
+			String mapJsonStr ="";
+			try {
+				mapJsonStr = mapper.writeValueAsString(m);
+			} catch (JsonProcessingException e) {
+				e.printStackTrace();
+			}
 			Rmap message = new Rmap();
 			message.put(msgs.get(i).get(key).toString(),mapJsonStr);
 			message.key(key);
