@@ -27,7 +27,7 @@ public class JdbcConnection extends NoSqlConnection<DataSource> {
 	final Upserter upserter;
 
 	public JdbcConnection(URISpec uri) throws IOException {
-		super(uri, "jdbc"); // "jdbc:mysql", "jdbc:oracle:thin", "jdbc:postgresql", "jdbc:sqlserver", "jdbc:microsoft:sqlserver", "jdbc:kingbaseanalyticsdb"
+		super(uri, "jdbc");
 		upserter = Upserter.of(uri.getScheme());
 	}
 
@@ -105,7 +105,8 @@ public class JdbcConnection extends NoSqlConnection<DataSource> {
 
 		@Override
 		public List<String> schemas() {
-			return Colls.list("jdbc");
+			return Colls.list("jdbc:mysql", "jdbc:oracle:thin", "jdbc:postgresql", "jdbc:sqlserver",
+					"jdbc:sqlserver:2008", "jdbc:sqlserver:2013", "jdbc:kingbaseanalyticsdb");
 		}
 	}
 

@@ -1,0 +1,12 @@
+net\butfly\albatis\jdbc\SqlServer2005Upserter.class
+net\butfly\albatis\jdbc\SqlServer2013Upserter.class
+net\butfly\albatis\jdbc\Upserter.class
+net\butfly\albatis\jdbc\OracleUpserter.class
+net\butfly\albatis\jdbc\MysqlUpserter.class
+net\butfly\albatis\jdbc\JdbcInput.class
+net\butfly\albatis\jdbc\PostgresqlUpserter.class
+net\butfly\albatis\jdbc\JdbcOutput.class
+net\butfly\albatis\jdbc\JdbcConnection.class
+net\butfly\albatis\jdbc\Upserter$1.class
+net\butfly\albatis\jdbc\Type.class
+net\butfly\albatis\jdbc\SqlServer2008Upserter.class
