@@ -72,7 +72,7 @@ public abstract class NoSqlConnection<C> implements Connection, Loggable {
 	public String supportedSchema(String schema) {
 		if (null == schema) return defaultSchema();
 		for (String s : supportedSchemas)
-			if (s.equalsIgnoreCase(schema)) return s;
+			if (schema.toLowerCase().startsWith(s.toLowerCase())) return s;
 		return null;
 	}
 
