@@ -105,8 +105,7 @@ public class JdbcConnection extends NoSqlConnection<DataSource> {
 
 		@Override
 		public List<String> schemas() {
-			return Colls.list("jdbc:mysql", "jdbc:oracle:thin", "jdbc:postgresql", "jdbc:sqlserver",
-					"jdbc:sqlserver:2008", "jdbc:sqlserver:2013", "jdbc:kingbaseanalyticsdb");
+			return Colls.list("jdbc");
 		}
 	}
 
