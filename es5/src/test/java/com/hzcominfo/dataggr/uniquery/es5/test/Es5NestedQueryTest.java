@@ -1,8 +1,9 @@
 package com.hzcominfo.dataggr.uniquery.es5.test;
 
-import com.google.gson.JsonObject;
-import com.hzcominfo.dataggr.uniquery.SqlExplainer;
-import com.hzcominfo.dataggr.uniquery.es5.SearchRequestBuilderVisitor;
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+
 import org.apache.lucene.search.join.ScoreMode;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequestBuilder;
@@ -12,7 +13,7 @@ import org.elasticsearch.action.search.SearchType;
 import org.elasticsearch.client.IndicesAdminClient;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.InetSocketTransportAddress;
+import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
@@ -20,9 +21,9 @@ import org.elasticsearch.transport.client.PreBuiltTransportClient;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.IOException;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
+import com.google.gson.JsonObject;
+import com.hzcominfo.dataggr.uniquery.SqlExplainer;
+import com.hzcominfo.dataggr.uniquery.es5.SearchRequestBuilderVisitor;
 
 public class Es5NestedQueryTest {
 
@@ -31,7 +32,8 @@ public class Es5NestedQueryTest {
     private TransportClient client;
     private IndicesAdminClient indexAdminClient;
 
-    @Before
+    @SuppressWarnings("resource")
+	@Before
     public void init() throws UnknownHostException {
         Settings settings = Settings.builder()
                 .put("cluster.name", "pseudo-elasticsearch")
@@ -40,7 +42,7 @@ public class Es5NestedQueryTest {
                 .build();
         client = new PreBuiltTransportClient(settings)
 //                .addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName("172.16.16.232"), 9300));
-                .addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName("172.16.27.232"), 9300));
+                .addTransportAddress(new TransportAddress(InetAddress.getByName("172.16.27.232"), 9300));
         indexAdminClient = client.admin().indices();
     }
 

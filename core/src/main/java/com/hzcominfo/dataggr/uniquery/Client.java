@@ -5,6 +5,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.google.gson.JsonArray;
@@ -16,13 +18,13 @@ import com.hzcominfo.dataggr.uniquery.utils.ExceptionUtil;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.logger.Loggable;
-import net.butfly.albacore.utils.parallel.Parals;
 
 public class Client implements AutoCloseable, Loggable {
 	private final static Map<String, Connection> connections = new ConcurrentHashMap<>();
 	private final static Map<String, Adapter> adapters = new ConcurrentHashMap<>();
 	private static transient AtomicInteger running;
 	private static final int cap = Runtime.getRuntime().availableProcessors();
+	private ExecutorService exec = Executors.newCachedThreadPool();
 
 	private final URISpec uriSpec;
 	private Connection conn;
@@ -38,11 +40,11 @@ public class Client implements AutoCloseable, Loggable {
 		}
 		logger().debug("cap: " + cap);
 	}
-	
+
 	private Connection connect(URISpec uriSpec) {
-		return connections.compute(uriSpec.toString(), (u, c) -> null == c ? newConnection(uriSpec):c);
+		return connections.compute(uriSpec.toString(), (u, c) -> null == c ? newConnection(uriSpec) : c);
 	}
-	
+
 	private Connection newConnection(URISpec uriSpec) {
 		try {
 			return Connection.connect(uriSpec);
@@ -51,22 +53,24 @@ public class Client implements AutoCloseable, Loggable {
 			return null;
 		}
 	}
-	
+
 	private Adapter adapt(URISpec uriSpec) {
-		return adapters.compute(uriSpec.getScheme(), (u, a) -> null == a ? Adapter.adapt(uriSpec):a);
+		return adapters.compute(uriSpec.getScheme(), (u, a) -> null == a ? Adapter.adapt(uriSpec) : a);
 	}
 
 	/**
 	 * common query and facet
-	 * @param sql 
-	 * @param params sql dynamic parameter
+	 * 
+	 * @param sql
+	 * @param params
+	 *            sql dynamic parameter
 	 * @return
 	 */
-	public <T> T execute(String sql, Object...params) {
+	public <T> T execute(String sql, Object... params) {
 		try {
 			JsonObject sqlJson = SqlExplainer.explain(sql, params);
-			JsonObject tableJson = sqlJson.has("tables") ? sqlJson.getAsJsonObject("tables"):null;
-			String table = tableJson != null && tableJson.has("table") ? tableJson.get("table").getAsString():null;
+			JsonObject tableJson = sqlJson.has("tables") ? sqlJson.getAsJsonObject("tables") : null;
+			String table = tableJson != null && tableJson.has("table") ? tableJson.get("table").getAsString() : null;
 			Object query = adapter.queryAssemble(conn, sqlJson);
 			logger().warn("Warn:" + query);
 			long start = System.currentTimeMillis();
@@ -75,31 +79,31 @@ public class Client implements AutoCloseable, Loggable {
 			return adapter.resultAssemble(result);
 		} catch (Exception e) {
 			logger().error("Parse sql:" + sql);
-			logger().error("sqlJson:" + SqlExplainer.explain(sql, params));
-			e.printStackTrace();
 			ExceptionUtil.runtime("connect error", e);
 		}
 		return null;
 	}
-	
+
 	/**
 	 * multi facet
+	 * 
 	 * @param sql
-	 * @param facets group fields list
-	 * @param params sql dynamic parameter
+	 * @param facets
+	 *            group fields list
+	 * @param params
+	 *            sql dynamic parameter
 	 * @return
 	 */
-	public Map<String, ResultSet> execute(String sql, String[] facets, Object...params) {
+	public Map<String, ResultSet> execute(String sql, String[] facets, Object... params) {
 		try {
 			JsonObject sqlJson = SqlExplainer.explain(sql, params);
-			JsonObject tableJson = sqlJson.has("tables") ? sqlJson.getAsJsonObject("tables"):null;
-			String table = tableJson != null && tableJson.has("table") ? tableJson.get("table").getAsString():null;
+			JsonObject tableJson = sqlJson.has("tables") ? sqlJson.getAsJsonObject("tables") : null;
+			String table = tableJson != null && tableJson.has("table") ? tableJson.get("table").getAsString() : null;
 			JsonArray facetArr = new JsonArray();
 			Arrays.asList(facets).forEach(facetArr::add);
 			sqlJson.add("multiGroupBy", facetArr);
 			Object query = adapter.queryAssemble(conn, sqlJson);
-            logger.debug(query.toString());
-            long start = System.currentTimeMillis();
+			long start = System.currentTimeMillis();
 			Object result = adapter.queryExecute(conn, query, table);
 			logger().debug("query spends: " + (System.currentTimeMillis() - start) + "ms");
 			return adapter.resultAssemble(result);
@@ -108,18 +112,21 @@ public class Client implements AutoCloseable, Loggable {
 		}
 		return null;
 	}
-	
+
 	/**
 	 * batch execute
-	 * @param requests {String sql, Object...params}...
+	 * 
+	 * @param requests
+	 *            {String sql, Object...params}...
 	 * @return
 	 */
-	public Map<String, ResultSet> batchExecute(Request...requests) {
+	public Map<String, ResultSet> batchExecute(Request... requests) {
 		Map<String, ResultSet> resMap = new LinkedHashMap<>();
-		if (requests == null || requests.length == 0) return resMap;
+		if (requests == null || requests.length == 0)
+			return resMap;
 		List<Request> tasks = Arrays.asList(requests);
-		Parals.listen(() -> {
-			while(tasks.size() > 0) {
+		exec.submit(() -> {
+			while (tasks.size() > 0) {
 				int curr = running.get();
 				if (curr < cap) {
 					running.incrementAndGet();
@@ -132,7 +139,8 @@ public class Client implements AutoCloseable, Loggable {
 		});
 		return resMap;
 	}
-	
+
+	@SuppressWarnings("unlikely-arg-type")
 	@Override
 	public void close() throws Exception {
 		conn.close();

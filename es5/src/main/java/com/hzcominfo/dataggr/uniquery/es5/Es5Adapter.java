@@ -31,7 +31,7 @@ public class Es5Adapter extends Adapter {
 	@SuppressWarnings("unchecked")
 	@Override
 	public SearchRequestBuilder queryAssemble(Connection connection, JsonObject sqlJson) {
-		TransportClient client = ((ElasticConnection) connection).client();
+		TransportClient client = ((ElasticConnection) connection).client;
 		SearchRequestBuilder requestBuilder = client.prepareSearch("");
 		return new SearchRequestBuilderVisitor(requestBuilder, sqlJson).get();
 	}

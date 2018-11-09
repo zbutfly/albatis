@@ -1,8 +1,5 @@
 package com.hzcominfo.dataggr.uniquery.es5.test;
 
-import java.util.List;
-import java.util.Map;
-
 import com.hzcominfo.dataggr.uniquery.Client;
 import com.hzcominfo.dataggr.uniquery.dto.ResultSet;
 
