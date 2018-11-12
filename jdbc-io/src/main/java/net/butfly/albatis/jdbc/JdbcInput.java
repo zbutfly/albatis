@@ -106,7 +106,7 @@ public class JdbcInput extends net.butfly.albacore.base.Namedly implements OddIn
 						logger().error("SQL Error on JDBC column fetching", e);
 						v = null;
 					}
-					r.put(colNames[i], v);
+					if(null != v)r.put(colNames[i], v);
 				}
 				return new Rmap(r);
 			} finally {
