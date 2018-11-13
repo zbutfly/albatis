@@ -10,7 +10,7 @@ public class AppTest {
 	public static void main(String[] args) throws Exception {
 		//建立连接
 //		String uri = "es://pseudo-elasticsearch@172.16.27.232:9300";
-		String uri = "elasticsearch://hzcominfo@172.30.10.31:39300";
+		String uri = "es://hzcominfo@172.30.10.31:39300";
 		URISpec uriSpec = new URISpec(uri);
 		Client conn = new Client(uriSpec);
 		//执行查询
