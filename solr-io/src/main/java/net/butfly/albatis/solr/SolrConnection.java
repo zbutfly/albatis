@@ -3,6 +3,7 @@ package net.butfly.albatis.solr;
 import java.io.IOException;
 import java.io.Serializable;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -26,11 +27,11 @@ import org.apache.solr.client.solrj.impl.HttpSolrClient;
 import org.apache.solr.client.solrj.impl.HttpSolrClient.Builder;
 import org.apache.solr.client.solrj.impl.HttpSolrClient.RemoteSolrException;
 import org.apache.solr.client.solrj.impl.XMLResponseParser;
-import org.apache.solr.client.solrj.request.CoreAdminRequest;
-import org.apache.solr.client.solrj.response.CoreAdminResponse;
+import org.apache.solr.client.solrj.request.CollectionAdminRequest;
+import org.apache.solr.client.solrj.response.CollectionAdminResponse;
 import org.apache.solr.client.solrj.response.DelegationTokenResponse.JsonMapResponseParser;
-import org.apache.solr.common.params.CoreAdminParams.CoreAdminAction;
 import org.apache.solr.common.params.ModifiableSolrParams;
+import org.apache.solr.common.util.NamedList;
 
 import com.hzcominfo.albatis.nosql.Connection;
 import com.hzcominfo.albatis.nosql.NoSqlConnection;
@@ -94,7 +95,8 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 		case "solr:http":
 		case "http":
 			logger.debug("Solr client create: " + uri);
-			Builder hb = new HttpSolrClient.Builder(uri.toString().replaceAll("/$", "")).allowCompression(true).withHttpClient(HTTP_CLIENT)//
+			Builder hb = new HttpSolrClient.Builder(uri.toString().replaceAll("/$", "")).allowCompression(true)
+					.withHttpClient(HTTP_CLIENT)//
 					.withResponseParser(p);
 			return hb.build();
 		case "solr":
@@ -104,7 +106,8 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 		case "zk:solr":
 			logger.debug("Solr client create by zookeeper: " + uri);
 			CloudSolrClient.Builder cb = new CloudSolrClient.Builder();
-			CloudSolrClient c = cb.withZkHost(Arrays.asList(uri.getHost().split(","))).withHttpClient(HTTP_CLIENT).build();
+			CloudSolrClient c = cb.withZkHost(Arrays.asList(uri.getHost().split(","))).withHttpClient(HTTP_CLIENT)
+					.build();
 			c.setZkClientTimeout(Integer.parseInt(System.getProperty("albatis.io.zkclient.timeout", "30000")));
 			c.setZkConnectTimeout(Integer.parseInt(System.getProperty("albatis.io.zkconnect.timeout", "30000")));
 			c.setParallelUpdates(true);
@@ -115,8 +118,8 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 		}
 	}
 
-	public String getDefaultCore() {
-		return meta.defCore;
+	public String getDefaultColl() {
+		return meta.defColl;
 	}
 
 	interface SolrHttpContext {
@@ -180,8 +183,8 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 		client.close();
 	}
 
-	public String[] getCores() {
-		return meta.allCores;
+	public String[] getColls() {
+		return meta.allColls;
 	}
 
 	public String getBase() {
@@ -191,25 +194,26 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 	public static class SolrMeta implements Serializable {
 		private static final long serialVersionUID = 306397699133380778L;
 		final String baseUrl;
-		final String defCore;
-		final String[] allCores;
+		final String defColl;
+		final String[] allColls;
 
-		public SolrMeta(String baseUrl, String defCore, String... allCores) {
+		public SolrMeta(String baseUrl, String defColl, String... allColls) {
 			super();
 			this.baseUrl = baseUrl;
-			this.defCore = defCore;
-			this.allCores = allCores;
+			this.defColl = defColl;
+			this.allColls = allColls;
 		}
 
 		@Override
 		public String toString() {
-			return "SolrMeta: " + baseUrl + " [default core: " + defCore + "]" + (allCores.length == 0 ? ""
-					: ", [all cores: " + String.join(",", allCores) + "]");
+			return "SolrMeta: " + baseUrl + " [default coll: " + defColl + "]"
+					+ (allColls.length == 0 ? "" : ", [all colls: " + String.join(",", allColls) + "]");
 		}
 
 		/**
 		 * @param uri
-		 * @return Tuple3: <baseURL, defaultCore[maybe null], allCores>, or null for invalid uri
+		 * @return Tuple3: <baseURL, defaultColl[maybe null], allColls>, or null for
+		 *         invalid uri
 		 * @throws IOException
 		 * @throws SolrServerException
 		 * @throws URISyntaxException
@@ -218,24 +222,29 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
 			try {
 				return parse0(uri.resolve("."), uri.getFile());
 			} catch (IOException e) {
-				if (null != uri.getFile()) try {
-					return parse0(new URISpec(uri.toString() + "/"), null);
-				} catch (IOException ee) {}
+				if (null != uri.getFile())
+					try {
+						return parse0(new URISpec(uri.toString() + "/"), null);
+					} catch (IOException ee) {
+					}
 				URISpec uri1 = uri.resolve("..").setFile(uri.getFile());
-				if (!uri1.equals(uri)) return parse(uri1);
+				if (!uri1.equals(uri))
+					return parse(uri1);
 				throw new IOException("Solr uri base parsing failure: " + uri);
 			}
 		}
 
 		private static SolrMeta parse0(URISpec base, String file) throws IOException {
-			CoreAdminRequest req = new CoreAdminRequest();
-			req.setAction(CoreAdminAction.STATUS);
+			CollectionAdminRequest.List collReq = new CollectionAdminRequest.List();
 			try (SolrConnection solr = new SolrConnection(base, false);) {
-				CoreAdminResponse resp = req.process(solr.client);
-				String[] cores = new String[resp.getCoreStatus().size()];
-				for (int i = 0; i < resp.getCoreStatus().size(); i++)
-					cores[i] = resp.getCoreStatus().getName(i);
-				return new SolrMeta(base.toString().replaceAll("/$", ""), file, cores);
+				CollectionAdminResponse resp = collReq.process(solr.client);
+				Object val = resp.getResponse().asShallowMap().get("collections");
+				if (!(val instanceof ArrayList))
+					throw new RuntimeException("resp's coll type is incorrect!");
+				@SuppressWarnings("unchecked")
+				List<String> collList = (ArrayList<String>) val;
+				String[] colls = new String[collList.size()];
+				return new SolrMeta(base.toString().replaceAll("/$", ""), file, collList.toArray(colls));
 			} catch (RemoteSolrException | SolrServerException e) {
 				throw new IOException(e);
 			}

@@ -42,8 +42,8 @@ public final class SolrOutput extends OutputBase<Rmap> {
 	public void close() {
 		super.close();
 		try {
-			for (String core : conn.getCores())
-				conn.client.commit(core, false, false);
+			for (String coll : conn.getColls())
+				conn.client.commit(coll, false, false);
 		} catch (IOException | SolrServerException e) {
 			logger().error("Close failure", e);
 		}
@@ -57,26 +57,26 @@ public final class SolrOutput extends OutputBase<Rmap> {
 	@Override
 	protected void enqsafe(Sdream<Rmap> msgs) {
 		Map<String, Map<Integer, List<Rmap>>> map = Maps.of();
-		msgs.eachs(m -> map.compute(m.table(), (core, cores) -> {
-			if (null == cores) cores = Maps.of();
-			cores.compute(m.op(), (op, ops) -> {
+		msgs.eachs(m -> map.compute(m.table(), (coll, colls) -> {
+			if (null == colls) colls = Maps.of();
+			colls.compute(m.op(), (op, ops) -> {
 				if (null == ops) ops = Colls.list();
 				ops.add(m);
 				return ops;
 			});
-			return cores;
+			return colls;
 		}));
-		for (String core : map.keySet())
-			for (int op : map.get(core).keySet()) {
-				List<Rmap> ms = map.get(core).get(op);
+		for (String coll : map.keySet())
+			for (int op : map.get(coll).keySet()) {
+				List<Rmap> ms = map.get(coll).get(op);
 				try {
 					switch (op) {
 					case Op.DELETE:
-						conn.client.deleteById(core, Sdream.of(map.get(core).get(op))//
+						conn.client.deleteById(coll, Sdream.of(map.get(coll).get(op))//
 								.map(t -> null == t.key() ? null : t.key().toString()).list(), DEFAULT_AUTO_COMMIT_MS);
 						break;
 					default:
-						conn.client.add(core, Sdream.of(map.get(core).get(op)).map(m -> Solrs.input(m, keyFieldName)).list(),
+						conn.client.add(coll, Sdream.of(map.get(coll).get(op)).map(m -> Solrs.input(m, keyFieldName)).list(),
 								DEFAULT_AUTO_COMMIT_MS);
 					}
 					succeeded(ms.size());

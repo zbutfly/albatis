@@ -27,8 +27,8 @@ public class SolrTest {
 			assert (resp.getResults().size() > 0);
 			System.err.println("Original URL: \t" + solrURL);
 			System.err.println("Base URL: \t" + solr.getBase());
-			System.err.println("Default Core: \t" + solr.getDefaultCore());
-			System.err.println("Cores: " + Joiner.on(',').join(solr.getCores()));
+			System.err.println("Default Core: \t" + solr.getDefaultColl());
+			System.err.println("Cores: " + Joiner.on(',').join(solr.getColls()));
 		} catch (SolrServerException | IOException e) {
 			logger.error("", e);
 		}
