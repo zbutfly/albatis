@@ -71,11 +71,11 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-<!-- 		<dependency> -->
-<!-- 			<groupId>org.apache.htrace</groupId> -->
-<!-- 			<artifactId>htrace-core4</artifactId> -->
-<!-- 			<version>4.2.0-incubating</version> -->
-<!-- 		</dependency> -->
+		<!-- <dependency> -->
+		<!-- <groupId>org.apache.htrace</groupId> -->
+		<!-- <artifactId>htrace-core4</artifactId> -->
+		<!-- <version>4.2.0-incubating</version> -->
+		<!-- </dependency> -->
 		<dependency>
 			<groupId>org.apache.htrace</groupId>
 			<artifactId>htrace-core</artifactId>
@@ -153,6 +153,12 @@
 					<artifactId>commons-logging</artifactId>
 				</exclusion>
 			</exclusions>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.hadoop</groupId>
+			<artifactId>hadoop-hdfs</artifactId>
+			<version>${version.hadoop}</version>
+			<scope>test</scope>
 		</dependency>
 	</dependencies>
 	<dependencyManagement>
