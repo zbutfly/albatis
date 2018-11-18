@@ -27,6 +27,13 @@
 		<version.neo4j>3.4.5</version.neo4j>
 		<maven.compiler.source>8</maven.compiler.source>
 		<maven.compiler.target>8</maven.compiler.target>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<maven.compiler.source>8</maven.compiler.source>
+		<maven.compiler.target>8</maven.compiler.target>
+		<version.cdh>5.15.1</version.cdh>
+		<version.albatis>1.5.2-SNAPSHOT</version.albatis>
+		<version.hadoop>2.6.0-cdh${version.cdh}</version.hadoop>
+		<version.hbase>1.2.0-cdh${version.cdh}</version.hbase>
 	</properties>
 	<modules>
 		<module>core</module>
@@ -67,8 +74,60 @@
 				<artifactId>scala-reflect</artifactId>
 				<version>${version.scala}</version>
 			</dependency>
+            <dependency>
+                <artifactId>hbase-protocol</artifactId>
+                <groupId>org.apache.hbase</groupId>
+                <version>${version.hbase}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <artifactId>hbase-common</artifactId>
+                <groupId>org.apache.hbase</groupId>
+                <version>${version.hbase}</version>
+            </dependency>
+            <dependency>
+                <artifactId>hbase-client</artifactId>
+                <groupId>org.apache.hbase</groupId>
+                <version>${version.hbase}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.hadoop</groupId>
+                <artifactId>hadoop-common</artifactId>
+                <version>${version.hadoop}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.hadoop</groupId>
+                <artifactId>hadoop-hdfs</artifactId>
+                <version>${version.hadoop}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.hadoop</groupId>
+                <artifactId>hadoop-annotations</artifactId>
+                <version>${version.hadoop}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.hadoop</groupId>
+                <artifactId>hadoop-auth</artifactId>
+                <version>${version.hadoop}</version>
+            </dependency>
+            <!-- downgrade hadoop -->
+            <dependency>
+                <groupId>commons-cli</groupId>
+                <artifactId>commons-cli</artifactId>
+                <version>1.3.1</version>
+            </dependency>
+
 		</dependencies>
 	</dependencyManagement>
+
+	<repositories>
+		<repository>
+			<id>cdh</id>
+			<name>cdh repository</name>
+			<url>https://repository.cloudera.com/content/repositories/releases/</url>
+		</repository>
+	</repositories>
+
 	<scm>
 		<connection>https://bitbucket.org/butfly/albatis.git</connection>
 		<developerConnection>https://butfly@bitbucket.org/butfly/albatis.git</developerConnection>
