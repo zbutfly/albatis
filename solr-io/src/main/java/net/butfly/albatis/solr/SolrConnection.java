@@ -34,6 +34,7 @@ import org.apache.solr.client.solrj.impl.XMLResponseParser;
 import org.apache.solr.client.solrj.request.CollectionAdminRequest;
 import org.apache.solr.client.solrj.response.CollectionAdminResponse;
 import org.apache.solr.client.solrj.response.DelegationTokenResponse.JsonMapResponseParser;
+import org.apache.solr.common.cloud.DocCollection;
 import org.apache.solr.common.params.ModifiableSolrParams;
 
 import com.hzcominfo.albatis.nosql.Connection;
@@ -300,7 +301,7 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
      * @param table
      * @param tableCustomSet
      */
-    private void createSolrCloudCollection(String url, String table, TableCustomSet tableCustomSet) {
+    public void createSolrCloudCollection(String url, String table, TableCustomSet tableCustomSet) {
         String solrUrl = url.substring(url.indexOf("//") + 2, url.lastIndexOf("/"));
         JSONObject regions = JSONObject.parseObject(JSON.toJSONString(tableCustomSet.getOptions().get("regions")), JSONObject.class);
         Integer numShards = (Integer) regions.get("numShards");
@@ -311,5 +312,26 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
         } catch (IOException | SolrServerException e) {
             throw new RuntimeException("create solr core failure  " + e);
         }
+    }
+
+    /**
+     * judge solrCloud whether create collection
+     *
+     * @param url
+     * @param table
+     * @return
+     */
+    public boolean judgeSolrCuster(String url, String table) {
+        String solrUrl = url.substring(url.indexOf("//") + 2, url.lastIndexOf("/"));
+        boolean exists = false;
+        try (CloudSolrClient client = new CloudSolrClient.Builder().withZkHost(solrUrl).build()) {
+            Map<String, DocCollection> collectionsMap = client.getZkStateReader().getClusterState().getCollectionsMap();
+            List<String> list = new ArrayList<>();
+            collectionsMap.forEach((k, v) -> list.add(v.getName()));
+            exists = list.contains(table);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return exists;
     }
 }

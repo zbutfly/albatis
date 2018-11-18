@@ -160,7 +160,7 @@ public class KuduConnection extends KuduConnectionBase<KuduConnection, KuduClien
      * @param fields
      * @param tableCustomSet
      */
-    private void createKuduTable(String url, String table, List<Field> fields, TableCustomSet tableCustomSet) {
+    public void createKuduTable(String url, String table, List<Field> fields, TableCustomSet tableCustomSet) {
         try (KuduClient client = new KuduClient.KuduClientBuilder(new URISpec(url).getHost()).defaultAdminOperationTimeoutMs(600000).build()) {
             List<ColumnSchema> columns = new ArrayList();
             List<ColumnSchema> columns2 = new ArrayList();
@@ -217,5 +217,22 @@ public class KuduConnection extends KuduConnectionBase<KuduConnection, KuduClien
             default:
                 return Type.STRING;
         }
+    }
+
+    /**
+     * judge kudu whether create table
+     *
+     * @param url
+     * @param table
+     * @return
+     */
+    public boolean judgeKudu(String url, String table) {
+        boolean exists = false;
+        try (KuduClient client = new KuduClient.KuduClientBuilder(new URISpec(url).getHost()).build()) {
+            exists = client.tableExists(table);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return exists;
     }
 }

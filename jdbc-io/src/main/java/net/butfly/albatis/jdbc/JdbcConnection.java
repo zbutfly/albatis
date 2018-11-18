@@ -1,9 +1,7 @@
 package net.butfly.albatis.jdbc;
 
 import java.io.IOException;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -146,7 +144,7 @@ public class JdbcConnection extends NoSqlConnection<DataSource> {
      * @param fields
      * @param tableCustomSet
      */
-    private void createMysqlTable(String url, String table, List<Field> fields, TableCustomSet tableCustomSet) {
+    public void createMysqlTable(String url, String table, List<Field> fields, TableCustomSet tableCustomSet) {
         try (JdbcConnection jdbcConnection = new JdbcConnection(new URISpec(url));
              Connection conn = jdbcConnection.client.getConnection()) {
             StringBuilder sb = new StringBuilder();
@@ -170,7 +168,7 @@ public class JdbcConnection extends NoSqlConnection<DataSource> {
      * @param fields
      * @param tableCustomSet
      */
-    private void createOracleTable(String url, String table, List<Field> fields, TableCustomSet tableCustomSet) {
+    public void createOracleTable(String url, String table, List<Field> fields, TableCustomSet tableCustomSet) {
         try (JdbcConnection jdbcConnection = new JdbcConnection(new URISpec(url));
              Connection conn = jdbcConnection.client.getConnection()) {
             StringBuilder sb = new StringBuilder();
@@ -230,5 +228,27 @@ public class JdbcConnection extends NoSqlConnection<DataSource> {
         if (tableCustomSet.getKeys().get(0).contains(field.getFieldName())) sb.append(" not null primary key");
         return sb.toString();
     }
+
+    /***
+     * judge jdbc whether create table
+     *
+     * @param url
+     * @param table
+     * @return
+     */
+    public boolean judgeJDBC(String url, String table) {
+        try (JdbcConnection jdbcConnection = new JdbcConnection(new URISpec(url));
+             Connection conn = jdbcConnection.client.getConnection()) {
+            DatabaseMetaData dbm = conn.getMetaData();
+            ResultSet rs = dbm.getTables(null, null, table, null);
+            if (rs.next()) {
+                return true;
+            }
+        } catch (SQLException | IOException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
 
 }

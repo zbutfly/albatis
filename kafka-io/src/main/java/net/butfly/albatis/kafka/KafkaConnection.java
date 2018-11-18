@@ -18,6 +18,7 @@ import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albatis.ddl.TableCustomSet;
 import net.butfly.albatis.ddl.TableDesc;
 import org.apache.kafka.common.security.JaasUtils;
+import scala.collection.JavaConversions;
 
 public class KafkaConnection extends NoSqlConnection<Connection> {
     public KafkaConnection(URISpec uri) throws IOException {
@@ -71,7 +72,7 @@ public class KafkaConnection extends NoSqlConnection<Connection> {
      * @param table
      * @param tableCustomSet
      */
-    private void createKafkaTopic(String url, String table, TableCustomSet tableCustomSet) {
+    public void createKafkaTopic(String url, String table, TableCustomSet tableCustomSet) {
         if (url.endsWith("kafka")) {
             //url: zookeeper地址：端口号
             String kafkaUrl = url.substring(url.indexOf("//") + 2);
@@ -82,5 +83,21 @@ public class KafkaConnection extends NoSqlConnection<Connection> {
             logger().info("create kafka topic successful");
             zkUtils.close();
         }
+    }
+
+    /**
+     * judge kafka whether create topic
+     *
+     * @param url
+     * @param table
+     * @return
+     */
+    public boolean judgeKafka(String url, String table) {
+        if (url.endsWith("kafka")) {
+            String kafkaUrl = url.substring(url.indexOf("//") + 2);
+            ZkUtils zkUtils = ZkUtils.apply(kafkaUrl, 30000, 30000, JaasUtils.isZkSecurityEnabled());
+            List<String> topics = JavaConversions.seqAsJavaList(zkUtils.getAllTopics());
+            return topics.contains(table);
+        } else return false;
     }
 }

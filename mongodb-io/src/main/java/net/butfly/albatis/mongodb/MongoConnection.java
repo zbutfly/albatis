@@ -240,7 +240,7 @@ public class MongoConnection extends NoSqlConnection<MongoClient> {
      * @param table
      * @param tableCustomSet
      */
-    private void createMongodbCollection(String url, String table, TableCustomSet tableCustomSet) {
+    public void createMongodbCollection(String url, String table, TableCustomSet tableCustomSet) {
         try (MongoConnection mongoConnection = new MongoConnection(new URISpec(url))) {
             DB db = mongoConnection.db();
             DBObject object = new BasicDBObject();
@@ -256,5 +256,23 @@ public class MongoConnection extends NoSqlConnection<MongoClient> {
         } catch (IOException e) {
             throw new RuntimeException("create mongodb collection failure  " + e);
         }
+    }
+
+    /**
+     *judge mongodb whether create collection
+     *
+     * @param url
+     * @param table
+     * @return
+     */
+    public boolean judgeMongo(String url, String table) {
+        boolean exists = false;
+        try (MongoConnection mongoConnection = new MongoConnection(new URISpec(url))) {
+            DB db = mongoConnection.db();
+            exists = db.getCollectionNames().contains(table);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return exists;
     }
 }

@@ -321,7 +321,7 @@ public class HbaseConnection extends NoSqlConnection<org.apache.hadoop.hbase.cli
      * @param table
      * @param tableCustomSet
      */
-    private void createHbaseTable(String url, String table, TableCustomSet tableCustomSet) {
+    public void createHbaseTable(String url, String table, TableCustomSet tableCustomSet) {
         try {
             JSONObject regions = JSONObject.parseObject(JSON.toJSONString(tableCustomSet.getOptions().get("regions")), JSONObject.class);
             List<String> columnFamilies = com.alibaba.fastjson.JSONArray.parseArray(JSON.toJSONString(regions.get("columnFamilies")), String.class);
@@ -365,6 +365,27 @@ public class HbaseConnection extends NoSqlConnection<org.apache.hadoop.hbase.cli
 
     public static void createHbaseTable(String url, String tableName, List<String> columnFamilies) throws IOException {
         createHbaseTable(url, tableName, null, null, null, columnFamilies);
+    }
+
+    // 服务器Hbase版本1.2.0-cdh5.15.1  本地客户端降级
+
+    /**
+     * judge hbase whether create table
+     *
+     * @param url
+     * @param table
+     * @return
+     */
+    public boolean judgeHbase(String url, String table) {
+        boolean exists = false;
+        try (HbaseConnection hbaseConnection = new HbaseConnection(new URISpec(url));
+             org.apache.hadoop.hbase.client.Connection client = hbaseConnection.client;
+             Admin admin = client.getAdmin()) {
+            exists = admin.tableExists(TableName.valueOf(table));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return exists;
     }
 
 }
