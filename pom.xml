@@ -51,6 +51,7 @@
 		<!-- <module>neo4j-io</module> -->
 		<module>arangodb-io</module>
 		<module>spark-io</module>
+		<module>redis-io</module>
 		<module>demo</module>
 		<!-- <module>util</module> -->
 	</modules>
