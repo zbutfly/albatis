@@ -79,7 +79,6 @@
                 <artifactId>hbase-protocol</artifactId>
                 <groupId>org.apache.hbase</groupId>
                 <version>${version.hbase}</version>
-                <scope>provided</scope>
             </dependency>
             <dependency>
                 <artifactId>hbase-common</artifactId>
