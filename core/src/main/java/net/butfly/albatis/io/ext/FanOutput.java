@@ -13,7 +13,7 @@ import net.butfly.albatis.io.Output;
 
 public class FanOutput<V> extends Namedly implements Output<V> {
 	private static final long serialVersionUID = -162999699679518749L;
-	private final List<Consumer<Sdream<V>>> tasks;
+	private final List<Consumer<List<V>>> tasks;
 	private final List<? extends Output<V>> outputs;
 
 	public FanOutput(Iterable<? extends Output<V>> outputs) {
@@ -39,13 +39,11 @@ public class FanOutput<V> extends Namedly implements Output<V> {
 		tasks = Colls.list();
 		this.outputs = Colls.list(outputs);
 		for (Output<V> o : outputs)
-			tasks.add(items -> {
-				o.enqueue(items);
-			});
+			tasks.add(l -> o.enqueue(Sdream.of(l)));
 	}
 
 	@Override
 	public void enqueue(Sdream<V> s) {
-		Exeter.of().join(s, tasks);
+		Exeter.of().join(s.list(), tasks);
 	}
 }
