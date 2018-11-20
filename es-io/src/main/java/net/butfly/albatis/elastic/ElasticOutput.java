@@ -101,8 +101,10 @@ public class ElasticOutput extends OutputBase<Rmap> {
 		List<Rmap> retries = Colls.list();
 		if (null != response) for (BulkItemResponse r : response) {
 			Rmap o = remains.remove(r.getId());
-			if (!r.isFailed()) succs++;
-			else if (null != o) {
+			if (!r.isFailed()) {
+				succs++;
+				logger.trace(() -> "es writing successed: \n\tData: " + o.toString() + "\n\tResp: " + r.getResponse().toString());
+			} else if (null != o) {
 				if (noRetry(r.getFailure().getCause())) {
 					logger.error(() -> "ElasticOutput [" + name() + "] failed for [" + unwrap(r.getFailure().getCause()).toString()
 							+ "]: \n\t" + o.toString());

@@ -47,8 +47,14 @@ public final class KafkaOutput extends OutputBase<Rmap> {
 		List<KeyedMessage<byte[], byte[]>> ms = of(msgs).map(m -> Kafkas.toKeyedMessage(m, coder)).nonNull().list();
 		if (!ms.isEmpty()) try {
 			int s = ms.size();
-			if (s == 1) producer.send(ms.get(0));
-			else producer.send(ms);
+			if (s == 1) {
+				producer.send(ms.get(0));
+				logger().trace(() -> "kafka writing success: [" + new String(ms.get(0).key()) + "] -> " + ms.get(0).toString());
+			} else {
+				producer.send(ms);
+				for (KeyedMessage<byte[], byte[]> mm : ms)
+					logger().trace(() -> "kafka writing success: [" + new String(mm.key()) + "] -> " + mm.toString());
+			}
 			succeeded(s);
 		} catch (Exception e) {
 			failed(Sdream.of(msgs));
