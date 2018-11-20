@@ -164,7 +164,8 @@ public final class Hbases extends Utils {
 		}
 
 		static Rmap result(String table, Result result) {
-			return result(table, Bytes.toString(result.getRow()), result.listCells());
+			if (null == result) return null;
+			else return result(table, Bytes.toString(result.getRow()), result.listCells());
 		}
 
 		static Rmap hbase(String table, String row, Map<? extends String, ? extends Object> map) {
