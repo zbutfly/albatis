@@ -9,7 +9,15 @@ public class TableCustomSet {
     //键的设置
     private List<List<String>> keys;
     //索引的设置
-    private List<List<String>> indexes;
+    private List<Map> indexes;
+
+    public void setIndexes(List<Map> indexes) {
+        this.indexes = indexes;
+    }
+
+    public List<Map> getIndexes() {
+        return indexes;
+    }
 
     public void setOptions(Map<String, Object> options) {
         this.options = options;
@@ -19,19 +27,11 @@ public class TableCustomSet {
         this.keys = keys;
     }
 
-    public void setIndexes( List<List<String>> indexes) {
-        this.indexes = indexes;
-    }
-
     public Map<String, Object> getOptions() {
         return options;
     }
 
     public List<List<String>> getKeys() {
         return keys;
-    }
-
-    public  List<List<String>> getIndexes() {
-        return indexes;
     }
 }

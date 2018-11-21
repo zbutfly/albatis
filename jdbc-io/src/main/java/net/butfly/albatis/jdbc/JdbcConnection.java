@@ -4,9 +4,11 @@ import java.io.IOException;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import javax.sql.DataSource;
 
+import com.alibaba.fastjson.JSON;
 import com.hzcominfo.albatis.nosql.NoSqlConnection;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
@@ -147,16 +149,30 @@ public class JdbcConnection extends NoSqlConnection<DataSource> {
     public void createMysqlTable(String url, String table, List<Field> fields, TableCustomSet tableCustomSet) {
         try (JdbcConnection jdbcConnection = new JdbcConnection(new URISpec(url));
              Connection conn = jdbcConnection.client.getConnection()) {
-            StringBuilder sb = new StringBuilder();
+            StringBuilder createSql = new StringBuilder();
+            StringBuilder createIndex = new StringBuilder();
             List<String> fieldSql = new ArrayList<>();
             for (Field field : fields)
                 fieldSql.add(buildSqlField(field, tableCustomSet));
-            sb.append("create table ").append(table).append("(").append(String.join(",", fieldSql.toArray(new String[0]))).append(")");
-            PreparedStatement ps = conn.prepareStatement(sb.toString());
+            List<Map> indexes = tableCustomSet.getIndexes();
+            if (null != indexes) {
+                for(int i=0,len = indexes.size();i<len;i++){
+                    Map indexMap = indexes.get(i);
+                    String type = (String) indexMap.get("type");
+                    String alias = (String) indexMap.get("alias");
+                    List<String> fieldList = com.alibaba.fastjson.JSONArray.parseArray(JSON.toJSONString(indexMap.get("field")), String.class);
+                    createIndex.append(type).append(" ").append(alias).append("(").append(String.join(",", fieldList.toArray(new String[0]))).append(")");
+                    if(i < len-1) createIndex.append(",");
+                }
+            }
+            createSql.append("create table ").append(table).append("(").append(String.join(",", fieldSql.toArray(new String[0])));
+            if(null != indexes) createSql.append(",").append(createIndex.toString());
+            createSql.append(")");
+            PreparedStatement ps = conn.prepareStatement(createSql.toString());
             ps.execute();
-            logger().debug("execute ``````" + sb + "`````` success");
+            logger().debug("execute ``````" + createSql + "`````` success");
         } catch (SQLException | IOException e) {
-            throw new RuntimeException("create sql table failure  " + e);
+            throw new RuntimeException("create sql table failure");
         }
     }
 
@@ -175,12 +191,61 @@ public class JdbcConnection extends NoSqlConnection<DataSource> {
             List<String> fieldSql = new ArrayList<>();
             for (Field field : fields)
                 fieldSql.add(buildOracleField(field, tableCustomSet));
+            List<Map> indexes = tableCustomSet.getIndexes();
             sb.append("create table ").append(table).append("(").append(String.join(",", fieldSql.toArray(new String[0]))).append(")");
-            PreparedStatement ps = conn.prepareStatement(sb.toString());
-            ps.execute();
+            Statement statement = conn.createStatement();
+            statement.addBatch(sb.toString());
+            if (null != indexes) {
+                for(int i=0,len = indexes.size();i<len;i++){
+                    StringBuilder createIndex = new StringBuilder();
+                    Map indexMap = indexes.get(i);
+                    String type = (String) indexMap.get("type");
+                    String alias = (String) indexMap.get("alias");
+                    List<String> fieldList = com.alibaba.fastjson.JSONArray.parseArray(JSON.toJSONString(indexMap.get("field")), String.class);
+                    createIndex.append("create ").append(type).append(" ").append(alias).append(" on ").append(table).append("(").append(String.join(",", fieldList.toArray(new String[0]))).append(")");
+                    statement.addBatch(createIndex.toString());
+                }
+            }
+            statement.executeBatch();
             logger().debug("execute ``````" + sb + "`````` success");
         } catch (SQLException | IOException e) {
-            throw new RuntimeException("create oracle table failure " + e);
+            throw new RuntimeException("create oracle table failure");
+        }
+    }
+
+    /**
+     * postgre(kingBase) create table
+     * @param url
+     * @param table
+     * @param fields
+     * @param tableCustomSet
+     */
+    public void createPostgreTable(String url, String table, List<Field> fields, TableCustomSet tableCustomSet) {
+        try (JdbcConnection jdbcConnection = new JdbcConnection(new URISpec(url));
+             Connection conn = jdbcConnection.client.getConnection()) {
+            StringBuilder sb = new StringBuilder();
+            List<String> fieldSql = new ArrayList<>();
+            for (Field field : fields)
+                fieldSql.add(buildPostgreField(field, tableCustomSet));
+            Statement statement = conn.createStatement();
+            List<Map> indexes = tableCustomSet.getIndexes();
+            sb.append("create table ").append("\"").append(table).append("\"").append("(").append(String.join(",", fieldSql.toArray(new String[0]))).append(")");
+            statement.addBatch(sb.toString());
+            if (null != indexes) {
+                for(int i=0,len = indexes.size();i<len;i++){
+                    StringBuilder createIndex = new StringBuilder();
+                    Map indexMap = indexes.get(i);
+                    String type = (String) indexMap.get("type");
+                    String alias = (String) indexMap.get("alias");
+                    List<String> fieldList = com.alibaba.fastjson.JSONArray.parseArray(JSON.toJSONString(indexMap.get("field")), String.class);
+                    createIndex.append("create ").append(type).append(" ").append(alias).append(" on ").append("\"").append(table).append("\"").append("(").append("\"").append(String.join("\",\"", fieldList.toArray(new String[0]))).append("\"").append(")");
+                    statement.addBatch(createIndex.toString());
+                }
+            }
+            statement.executeBatch();
+            logger().debug("execute ``````" + sb + "`````` success");
+        } catch (SQLException | IOException e) {
+            throw new RuntimeException("create postgre table failure" );
         }
     }
 
@@ -229,8 +294,36 @@ public class JdbcConnection extends NoSqlConnection<DataSource> {
         return sb.toString();
     }
 
+    private String buildPostgreField(Field field, TableCustomSet tableCustomSet) {
+        StringBuilder sb = new StringBuilder();
+        switch (field.getType().flag) {
+            case INT:
+                sb.append("\"").append(field.getFieldName()).append("\"").append(" int4");
+                break;
+            case LONG:
+                sb.append("\"").append(field.getFieldName()).append("\"").append(" int8");
+                break;
+            case DOUBLE:
+                sb.append("\"").append(field.getFieldName()).append("\"").append(" numeric(10)");
+                break;
+            case BOOL:
+                sb.append("\'").append(field.getFieldName()).append("\'").append(" bool(1)");
+                break;
+            case STR:
+                sb.append("\"").append(field.getFieldName()).append("\"").append(" varchar(256)");
+                break;
+            case DATE:
+                sb.append("\"").append(field.getFieldName()).append("\"").append(" date");
+                break;
+            default:
+                break;
+        }
+        if (tableCustomSet.getKeys().get(0).contains(field.getFieldName())) sb.append(" not null primary key");
+        return sb.toString();
+    }
+
     /***
-     * judge jdbc whether create table
+     * judge mysql/oracle/postgre whether create table
      *
      * @param url
      * @param table
@@ -245,6 +338,27 @@ public class JdbcConnection extends NoSqlConnection<DataSource> {
                 return true;
             }
         } catch (SQLException | IOException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    /**
+     * judge kingBase whether create table
+     * @param url
+     * @param table
+     * @return
+     */
+    public boolean judgeKingBase(String url, String table) {
+        try (JdbcConnection jdbcConnection = new JdbcConnection(new URISpec(url));
+             Connection conn = jdbcConnection.client.getConnection()) {
+            String sql ="select * from pg_tables where schemaname = 'public' "+" and tablename = "+"'"+table+"'";
+            PreparedStatement ps = conn.prepareStatement(sql);
+            ResultSet rs = ps.executeQuery();
+            if(rs.next()){
+                return true;
+            }
+        }catch (SQLException | IOException e) {
             e.printStackTrace();
         }
         return false;
