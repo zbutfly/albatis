@@ -15,9 +15,15 @@ public class FanOutput<V> extends Namedly implements Output<V> {
 	private static final long serialVersionUID = -162999699679518749L;
 	private final List<Consumer<List<V>>> tasks;
 	private final List<? extends Output<V>> outputs;
+	private final boolean concurrent;
 
+	@Deprecated
 	public FanOutput(Iterable<? extends Output<V>> outputs) {
-		this("FanOutTo" + ":" + of(outputs).joinAsString(Output::name, "&"), outputs);
+		this(outputs, true);
+	}
+
+	public FanOutput(Iterable<? extends Output<V>> outputs, boolean concurrent) {
+		this("FanOutTo" + ":" + of(outputs).joinAsString(Output::name, "&"), outputs, concurrent);
 	}
 
 	@Override
@@ -34,8 +40,9 @@ public class FanOutput<V> extends Namedly implements Output<V> {
 			o.close();
 	}
 
-	public FanOutput(String name, Iterable<? extends Output<V>> outputs) {
+	public FanOutput(String name, Iterable<? extends Output<V>> outputs, boolean concurrent) {
 		super(name);
+		this.concurrent = concurrent;
 		tasks = Colls.list();
 		this.outputs = Colls.list(outputs);
 		for (Output<V> o : outputs)
@@ -44,6 +51,11 @@ public class FanOutput<V> extends Namedly implements Output<V> {
 
 	@Override
 	public void enqueue(Sdream<V> s) {
-		Exeter.of().join(s.list(), tasks);
+		if (concurrent) Exeter.of().join(s.list(), tasks);
+		else {
+			List<V> l = s.list();
+			for (Consumer<List<V>> t : tasks)
+				t.accept(l);
+		}
 	}
 }

@@ -104,6 +104,10 @@ public interface Input<V> extends IO, Dequeuer<V> {
 	}
 
 	default Pump<V> pump(int parallelism, List<? extends Output<V>> dests) {
-		return pump(parallelism, new FanOutput<V>(dests));
+		return pump(parallelism, dests, true);
+	}
+
+	default Pump<V> pump(int parallelism, List<? extends Output<V>> dests, boolean paral) {
+		return pump(parallelism, new FanOutput<V>(dests, paral));
 	}
 }
