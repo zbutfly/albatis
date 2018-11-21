@@ -252,14 +252,27 @@ public class JdbcConnection extends NoSqlConnection<DataSource> {
     private static String buildSqlField(Field field, TableCustomSet tableCustomSet) {
         StringBuilder sb = new StringBuilder();
         switch (field.getType().flag) {
-            case INT:
-                sb.append(field.getFieldName()).append(" int(16)");
-                break;
             case BOOL:
             case BYTE:
                 sb.append(field.getFieldName()).append(" tinyint(1)");
                 break;
+            case SHORT:
+            case BINARY:
+                sb.append(field.getFieldName()).append(" int(8)");
+                break;
+            case INT:
+                sb.append(field.getFieldName()).append(" int(16)");
+                break;
+            case LONG:
+                sb.append(field.getFieldName()).append(" int(64)");
+                break;
+            case FLOAT:
+            case DOUBLE:
+                sb.append(field.getFieldName()).append(" double(16,2)");
+                break;
             case STR:
+            case CHAR:
+            case UNKNOWN:
                 sb.append(field.getFieldName()).append(" varchar(256)");
                 break;
             case DATE:
@@ -275,13 +288,25 @@ public class JdbcConnection extends NoSqlConnection<DataSource> {
     private static String buildOracleField(Field field, TableCustomSet tableCustomSet) {
         StringBuilder sb = new StringBuilder();
         switch (field.getType().flag) {
+            case BOOL:
+            case BYTE:
+            case SHORT:
+            case BINARY:
+                sb.append(field.getFieldName()).append(" number(16)");
+                break;
             case INT:
                 sb.append(field.getFieldName()).append(" number(32)");
                 break;
             case LONG:
                 sb.append(field.getFieldName()).append(" number(64)");
                 break;
+            case FLOAT:
+            case DOUBLE:
+                sb.append(field.getFieldName()).append(" number(32,2)");
+                break;
             case STR:
+            case CHAR:
+            case UNKNOWN:
                 sb.append(field.getFieldName()).append(" varchar2(100)");
                 break;
             case DATE:
@@ -298,18 +323,24 @@ public class JdbcConnection extends NoSqlConnection<DataSource> {
         StringBuilder sb = new StringBuilder();
         switch (field.getType().flag) {
             case INT:
+            case SHORT:
+            case BINARY:
                 sb.append("\"").append(field.getFieldName()).append("\"").append(" int4");
                 break;
             case LONG:
                 sb.append("\"").append(field.getFieldName()).append("\"").append(" int8");
                 break;
+            case FLOAT:
             case DOUBLE:
                 sb.append("\"").append(field.getFieldName()).append("\"").append(" numeric(10)");
                 break;
+            case BYTE:
             case BOOL:
                 sb.append("\'").append(field.getFieldName()).append("\'").append(" bool(1)");
                 break;
             case STR:
+            case CHAR:
+            case UNKNOWN:
                 sb.append("\"").append(field.getFieldName()).append("\"").append(" varchar(256)");
                 break;
             case DATE:

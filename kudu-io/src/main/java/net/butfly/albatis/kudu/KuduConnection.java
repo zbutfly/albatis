@@ -169,10 +169,16 @@ public class KuduConnection extends KuduConnectionBase<KuduConnection, KuduClien
             for (Field field : fields) {
                 // 创建列
                 if (tableCustomSet.getKeys().get(0).contains(field.getFieldName())) {
-                    columns2.add(new ColumnSchema.ColumnSchemaBuilder(field.getFieldName(), buildKuduFieldType(field)).key(true).nullable(false).build());
+                    Type type = buildKuduFieldType(field);
+                    ColumnSchema.ColumnSchemaBuilder keyBuilder = new ColumnSchema.ColumnSchemaBuilder(field.getFieldName(), type).encoding(type.equals(Type.STRING) ? ColumnSchema.Encoding.DICT_ENCODING
+                            : ColumnSchema.Encoding.BIT_SHUFFLE).compressionAlgorithm(ColumnSchema.CompressionAlgorithm.LZ4).nullable(false).key(true);
+                    columns2.add(keyBuilder.build());
                     keys.add(field.getFieldName());
                 } else {
-                    columns.add(new ColumnSchema.ColumnSchemaBuilder(field.getFieldName(), buildKuduFieldType(field)).build());
+                    Type type = buildKuduFieldType(field);
+                    ColumnSchema.ColumnSchemaBuilder builder = new ColumnSchema.ColumnSchemaBuilder(field.getFieldName(), type).encoding(type.equals(Type.STRING) ? ColumnSchema.Encoding.DICT_ENCODING
+                            : ColumnSchema.Encoding.BIT_SHUFFLE).compressionAlgorithm(ColumnSchema.CompressionAlgorithm.LZ4).nullable(true).key(false);
+                    columns.add(builder.build());
                 }
             }
             columns.forEach(column -> columns2.add(column));
@@ -200,12 +206,19 @@ public class KuduConnection extends KuduConnectionBase<KuduConnection, KuduClien
 
     private static Type buildKuduFieldType(Field field) {
         switch (field.getType().flag) {
+            case SHORT:
+                return Type.INT8;
             case INT:
                 return Type.INT16;
+            case LONG:
+                return Type.INT64;
             case BINARY:
                 return Type.BINARY;
             case STR:
+            case CHAR:
+            case UNKNOWN:
                 return Type.STRING;
+            case BYTE:
             case BOOL:
                 return Type.BOOL;
             case FLOAT:
