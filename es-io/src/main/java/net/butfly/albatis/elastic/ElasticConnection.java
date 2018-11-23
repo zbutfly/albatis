@@ -55,6 +55,7 @@ public class ElasticConnection extends NoSqlConnection<TransportClient> implemen
 		return uri.getPathAt(1);
 	}
 
+	@Override
 	public void construct(String indexType, FieldDesc... fields) {
 		String[] table = indexType.split("/");
 		String index, type;
