@@ -34,12 +34,12 @@ public class MappingConstructor {
 		templates.add(of("floats", of("mapping", mapFullText("type", "float", null), "match_mapping_type", "string", "match", "*_f")));
 		templates.add(of("doubles", of("mapping", mapFullText("type", "double", null), "match_mapping_type", "string", "match", "*_d")));
 		templates.add(of("dates", of("mapping", mapFullText("type", "date", null), "match_mapping_type", "date", "match", "*_dt")));
-		templates.add(of("strings", of("mapping", mapFullText("type", "string", null), "match", "*_s")));
+		templates.add(of("strings", of("mapping", mapFullText("type", "String", null), "match", "*_s")));
 		return templates;
 	}
 
 	public Map<String, Object> construct(FieldDesc... fields) {
-		Map<String, Object> props = of(DEFAULT_FULLTEXT_NAME, of("type", "string"));
+		Map<String, Object> props = of(DEFAULT_FULLTEXT_NAME, of("type", "text"));
 		for (FieldDesc f : fields)
 			suffix(props, f.name, f.type, f.attr(Desc.FULLTEXT));
 		return of("include_in_all", true, "dynamic", true, "dynamic_templates", templates(), "properties", props);
@@ -53,7 +53,7 @@ public class MappingConstructor {
 		case UNKNOWN:
 		case STR:
 		case CHAR:
-			Map<String, Object> t = mapFullText("type", "string", dstFullText);
+			Map<String, Object> t = mapFullText("type", "text", dstFullText);
 			t.put("fields", of("keyword", of("type", "keyword")));
 			mapping.put(fieldName, t);
 			return;
