@@ -150,6 +150,10 @@ public interface Connection extends AutoCloseable, IOFactory {
 		logger.warn("Constructing invoked but not implemented, ignore.");
 	}
 
+	default void construct(Map<String, Object> tableConfig, FieldDesc... fields) {
+		logger.warn("Constructing invoked but not implemented, ignore.");
+	}
+
 	default void destruct(String table) {
 		throw new UnsupportedOperationException();
 	}

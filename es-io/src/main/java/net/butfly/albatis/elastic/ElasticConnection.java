@@ -2,6 +2,7 @@ package net.butfly.albatis.elastic;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -12,6 +13,7 @@ import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingResponse;
 import org.elasticsearch.client.transport.TransportClient;
+import org.elasticsearch.common.settings.Settings;
 
 import com.hzcominfo.albatis.nosql.NoSqlConnection;
 
@@ -57,16 +59,33 @@ public class ElasticConnection extends NoSqlConnection<TransportClient> implemen
 
 	@Override
 	public void construct(String indexType, FieldDesc... fields) {
-		String[] table = indexType.split("/");
+		Map<String, Object> indexConfig = new HashMap<>();
+		indexConfig.put("index/type", indexType);
+		construct(indexConfig, fields);
+	}
+
+	/**
+	 * Please at least put index/type into indexConfig, that is to say indexConfig could not be null. Except index/type, please 
+	 * make sure the index configure to be according to es official config (e.g. indexConfig.put("index.number_of_shards", 3) , 
+	 * indexConfig.put("index.number_of_replicas", 2)). 
+	 */
+	@Override
+	public void construct(Map<String, Object> indexConfig, FieldDesc... fields) {
+		if (indexConfig == null || indexConfig.isEmpty()) throw new RuntimeException("Please at least put index/type into indexConfig!");
+		String[] table = String.valueOf(indexConfig.get("index/type")).split("/");
+		indexConfig.remove("index/type");
 		String index, type;
 		if (table.length == 2) {index = table[0]; type = table[1];}
 		else if (table.length == 1) {type = index = table[0];}
 		else throw new RuntimeException("Please type in corrent es table format: index/type !");
-		
 		MappingConstructor cstr = new MappingConstructor();
 		Map<String, Object> mapping = cstr.construct(fields);
 		logger().debug("Mapping constructing: " + mapping);
-		CreateIndexResponse r = client.admin().indices().prepareCreate(index).addMapping(type, mapping).get();
+		CreateIndexResponse r;
+		if (indexConfig.isEmpty())
+			r = client.admin().indices().prepareCreate(index).addMapping(type, mapping).get();
+		else
+			r = client.admin().indices().prepareCreate(index).setSettings(indexConfig).addMapping(type, mapping).get();
 		if (!r.isAcknowledged()) logger().error("Mapping failed on index [" + index + "] type [" + type + "]" + r.toString());
 		else logger().info(() -> "Mapping on index [" + index + "] type [" + type + "] construced sussesfully: \n\t" + JsonSerder.JSON_MAPPER.ser(mapping));
 	}
