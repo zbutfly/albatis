@@ -8,6 +8,9 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import io.lettuce.core.api.StatefulRedisConnection;
+import io.lettuce.core.api.sync.RedisCommands;
+import io.lettuce.core.codec.RedisCodec;
 import net.butfly.albacore.serder.JsonSerder;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.io.OddInput;
@@ -22,11 +25,16 @@ public class RedisListInput extends net.butfly.albacore.base.Namedly implements 
 	private final Object[] keyArr;
 	private final BlockingQueue<RedisKey> keys = new LinkedBlockingQueue<>();
 	private final Map<RedisKey, Boolean> isEmptyMap = new ConcurrentHashMap<>();
+	private final StatefulRedisConnection<?, ?> src;
+	RedisCommands syncCommands;
 
-	public RedisListInput(String name, RedisConnection redisConn, Object... tables) {
+	public RedisListInput(String name, RedisConnection redisConn, RedisCodec<?, ?> redisCodec, Object... tables) {
 		super(name);
 		this.redisConn = redisConn;
 		this.keyArr = tables;
+		this.src = redisConn.redisClient.connect(redisCodec);
+		syncCommands = src.sync();
+		
 	}
 	
 	@Override
@@ -47,11 +55,11 @@ public class RedisListInput extends net.butfly.albacore.base.Namedly implements 
 			if (null != (key = keys.poll())) {
 				try {
 					if ("byteArray".equals(redisConn.type)) {
-						byte[] bArr = redisConn.jedis.lpop((byte[]) key.getKey());
+						byte[] bArr = (byte[]) syncCommands.lpop((byte[]) key.getKey());
 						if (bArr != null)
 							return new Rmap(new String((byte[]) key.getKey()), JsonSerder.JSON_MAPPER.fromBytes(bArr, HashMap.class));
 					} else if ("string".equals(redisConn.type)) {
-						String eStr = redisConn.jedis.lpop((String) key.getKey());
+						String eStr = (String) syncCommands.lpop((String) key.getKey());
 						if (eStr != null)
 							return new Rmap((String) key.getKey(), JsonSerder.JSON_MAPPER.der(eStr, HashMap.class));
 					} else {
@@ -63,7 +71,6 @@ public class RedisListInput extends net.butfly.albacore.base.Namedly implements 
 				}
 				return null;
 			} 
-			
 		}
 		return null;
 	}
