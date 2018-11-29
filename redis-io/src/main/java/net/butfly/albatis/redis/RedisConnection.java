@@ -39,9 +39,9 @@ public class RedisConnection extends NoSqlConnection<RedisClient> {
 	}
 
 	@Override
-	public <M extends Rmap> Output<M> output(TableDesc... table) throws IOException {
-		// TODO Auto-generated method stub
-		return null;
+	public RedisOutput output(TableDesc... table) throws IOException {
+		List<String> l = Colls.list(t -> t.name, table);
+		return new RedisOutput("RedisOutput", this);
 	}
 
 	public static class Driver implements com.hzcominfo.albatis.nosql.Connection.Driver<RedisConnection> {

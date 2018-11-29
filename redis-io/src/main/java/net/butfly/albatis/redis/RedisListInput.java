@@ -36,7 +36,7 @@ public class RedisListInput extends net.butfly.albacore.base.Namedly implements 
 		syncCommands = src.sync();
 		
 	}
-	
+
 	@Override
 	public void open() {
 		OddInput.super.open();
