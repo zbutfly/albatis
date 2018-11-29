@@ -33,6 +33,7 @@ public abstract class ValType implements Serializable {
 		public static final String DATE = "dt";
 		// assembly type
 		public static final String GEO = "g";
+		public static final String LOCATION_RPT = "srpt";
 	}
 
 	@Deprecated
@@ -59,6 +60,7 @@ public abstract class ValType implements Serializable {
 			"datetime", "timestamp");
 	// assembly type
 	public static final ListValType GEO = new ListValType(new String[] { Flags.GEO, "geo" }, DOUBLE, DOUBLE);
+	public static final ListValType LOCATION_RPT = new ListValType(new String[] { Flags.LOCATION_RPT, "string_srpt" }, STR);
 
 	public final Class<?> rawClass;
 	public final Class<?> boxedClass;
