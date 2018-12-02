@@ -1,5 +1,7 @@
 package net.butfly.albatis.kafka;
 
+import static net.butfly.albacore.paral.Sdream.of;
+
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
@@ -24,18 +26,20 @@ import kafka.javaapi.consumer.ConsumerConnector;
 import kafka.message.MessageAndMetadata;
 import net.butfly.albacore.exception.ConfigException;
 import net.butfly.albacore.io.URISpec;
+import net.butfly.albacore.io.lambda.Consumer;
 import net.butfly.albacore.io.lambda.Function;
 import net.butfly.albacore.paral.Exeter;
+import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.paral.Task;
 import net.butfly.albacore.utils.Texts;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Statistic;
-import net.butfly.albatis.io.OddInput;
+import net.butfly.albatis.io.Input;
 import net.butfly.albatis.io.Rmap;
 import net.butfly.albatis.kafka.config.KafkaInputConfig;
 
-public class KafkaInput extends net.butfly.albacore.base.Namedly implements OddInput<Rmap> {
+public class KafkaInput extends net.butfly.albacore.base.Namedly implements Input<Rmap> {
 	private static final long serialVersionUID = 998704625489437241L;
 	private final KafkaInputConfig config;
 	private final Map<String, Integer> allTopics = Maps.of();
@@ -44,7 +48,7 @@ public class KafkaInput extends net.butfly.albacore.base.Namedly implements OddI
 	// for debug
 	private final AtomicLong skip;
 
-	private final Function<byte[], Map<String, Object>> decoder;
+	private final Function<byte[], List<Map<String, Object>>> decoders;
 
 	public KafkaInput(String name, String kafkaURI, String... topics) throws ConfigException,
 			IOException {
@@ -64,7 +68,7 @@ public class KafkaInput extends net.butfly.albacore.base.Namedly implements OddI
 	public KafkaInput(String name, URISpec uri, String... topics) throws ConfigException,
 			IOException {
 		super(name);
-		this.decoder = Connection.urider(uri);
+		this.decoders = Connection.uriders(uri);
 		config = new KafkaInputConfig(name(), uri);
 		skip = new AtomicLong(Long.parseLong(uri.getParameter("skip", "0")));
 		if (skip.get() > 0) logger().error("[" + name() + "] skip [" + skip.get()
@@ -115,27 +119,29 @@ public class KafkaInput extends net.butfly.albacore.base.Namedly implements OddI
 	}
 
 	@Override
-	public Rmap dequeue() {
+	public void dequeue(Consumer<Sdream<Rmap>> using) {
 		ConsumerIterator<byte[], byte[]> it;
 		MessageAndMetadata<byte[], byte[]> m;
 		while (opened())
 			if (null != (it = consumers.poll())) {
 				try {
-					if (null != (m = it.next())) //
-						return Kafkas.message((MessageAndMetadata<byte[], byte[]>) s().stats(m), decoder);
+					if (null != (m = it.next())) {
+						List<Rmap> ms = Kafkas.messages((MessageAndMetadata<byte[], byte[]>) s().stats(m), decoders);
+						using.accept(of(ms));
+						return;
+					}
 				} catch (ConsumerTimeoutException ex) {
-					return null;
+					return;
 				} catch (NoSuchElementException ex) {
-					return null;
+					return;
 				} catch (Exception ex) {
 					logger().warn("Unprocessed kafka error [" + ex.getClass().toString() + ": " + ex.getMessage()
 							+ "], ignore and continue.");
-					return null;
+					return;
 				} finally {
 					consumers.offer(it);
 				}
 			}
-		return null;
 	}
 
 	private void closeKafka() {
