@@ -29,6 +29,7 @@ public class RedisOutput extends OutputBase<Rmap> {
 		this.redisConn = redisConn;
 		src = redisConn.redisClient.connect(redisCodec);
 		syncCommands = src.sync();
+		closing(this::close);
 	}
 
 	@Override
@@ -38,4 +39,8 @@ public class RedisOutput extends OutputBase<Rmap> {
 		succeeded(n.get());
 	}
 
+	@Override
+	public void close() {
+		src.close();
+	}
 }
