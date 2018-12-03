@@ -8,6 +8,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -308,8 +309,24 @@ public class HbaseConnection extends NoSqlConnection<org.apache.hadoop.hbase.cli
 	}
 
 	@Override
-	public HbaseInput input(TableDesc... table) throws IOException {
-		return new HbaseInput("HbaseInput", this);
+	public HbaseInput input(TableDesc... tables) throws IOException {
+		HbaseInput input = new HbaseInput("HbaseInput", this);
+		for (TableDesc table : tables) {
+			String tableName = table.name;
+			String prefix = null;
+			String cf = null;
+			String[] splitPrefix  = table.name.split(":");
+			if (splitPrefix.length == 2) prefix = splitPrefix[1];
+			String[] splitCf = splitPrefix[0].split("#");
+			if (splitCf.length == 2) cf = splitCf[1];
+			List<String> ps = new ArrayList<>();
+			if (prefix != null && !"".equals(prefix)) {
+				ps.add(prefix);
+			}
+			tableName = splitCf[0];
+			input.tableWithFamilAndPrefix(tableName, ps, cf);
+		}
+		return input;
 	}
 
 	@Override
