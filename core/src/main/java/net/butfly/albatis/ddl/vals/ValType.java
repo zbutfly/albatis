@@ -34,6 +34,7 @@ public abstract class ValType implements Serializable {
 		// assembly type
 		public static final String GEO = "g";
 		public static final String LOCATION_RPT = "srpt";
+		public static final String JSON_STR = "json_str";
 	}
 
 	@Deprecated
@@ -61,6 +62,7 @@ public abstract class ValType implements Serializable {
 	// assembly type
 	public static final ListValType GEO = new ListValType(new String[] { Flags.GEO, "geo" }, DOUBLE, DOUBLE);
 	public static final ListValType LOCATION_RPT = new ListValType(new String[] { Flags.LOCATION_RPT, "string_srpt" }, STR);
+	public static final ListValType JSON_STR = new ListValType(new String[] {Flags.JSON_STR, "json", "j"}, STR);
 
 	public final Class<?> rawClass;
 	public final Class<?> boxedClass;
