@@ -86,8 +86,8 @@ public class JdbcConnection extends NoSqlConnection<DataSource> {
             throw new UnsupportedOperationException("Multiple sql input");
         JdbcInput i;
         try {
-            i = new JdbcInput("JdbcInput", this);
-            i.query("select * from " + sql);
+            i = new JdbcInput("JdbcInput", this, sql[0].name);
+            i.query("select * from " + sql[0].name);
         } catch (SQLException e) {
             throw new IOException(e);
         }

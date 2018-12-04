@@ -25,9 +25,17 @@ public class JdbcInput extends net.butfly.albacore.base.Namedly implements OddIn
 	private ResultSetMetaData meta;
 	private int colCount;
 	private String[] colNames;
+	private String tableName;
 
 	public JdbcInput(final String name, JdbcConnection conn) throws IOException, SQLException {
 		super(name);
+		this.jdbc = conn;
+		opening(this::openJdbc);
+		closing(this::closeJdbc);
+	}
+	public JdbcInput(final String name, JdbcConnection conn, String tableName) throws IOException, SQLException {
+		super(name);
+		this.tableName = tableName;
 		this.jdbc = conn;
 		opening(this::openJdbc);
 		closing(this::closeJdbc);
@@ -108,7 +116,7 @@ public class JdbcInput extends net.butfly.albacore.base.Namedly implements OddIn
 					}
 					if(null != v)r.put(colNames[i], v);
 				}
-				return new Rmap(r);
+				return new Rmap(tableName, r);
 			} finally {
 				try {
 					next = rs.next();
