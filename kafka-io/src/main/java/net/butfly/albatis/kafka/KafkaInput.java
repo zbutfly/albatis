@@ -136,7 +136,7 @@ public class KafkaInput extends net.butfly.albacore.base.Namedly implements Inpu
 					return;
 				} catch (Exception ex) {
 					logger().warn("Unprocessed kafka error [" + ex.getClass().toString() + ": " + ex.getMessage()
-							+ "], ignore and continue.");
+							+ "], ignore and continue.", ex);
 					return;
 				} finally {
 					consumers.offer(it);

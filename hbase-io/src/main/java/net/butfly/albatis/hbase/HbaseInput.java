@@ -65,11 +65,13 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 
 	private class TableScaner {
 		final String name;
+		final String logicalName;
 		final ResultScanner scaner;
 
-		public TableScaner(String table) {
+		public TableScaner(String table,String logicalTable) {
 			super();
 			name = table;
+			this.logicalName = logicalTable;
 			Scan sc = new Scan();
 			try {
 				scaner = hconn.table(table).getScanner(Hbases.optimize(sc, batchSize(), SCAN_ROWS, SCAN_BYTES));
@@ -78,9 +80,10 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 			}
 		}
 
-		public TableScaner(String table, byte[][] startAndEndRow) {
+		public TableScaner(String table, String  logicalTable, byte[][] startAndEndRow) {
 			super();
 			name = table;
+			this.logicalName = logicalTable;
 			Scan sc;
 			if (null == startAndEndRow) sc = new Scan();
 			else switch (startAndEndRow.length) {
@@ -101,8 +104,9 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 			}
 		}
 
-		public TableScaner(String table, Filter[] filters) {
+		public TableScaner(String table, String logicalTable, Filter[] filters) {
 			name = table;
+			this.logicalName = logicalTable;
 			Scan sc = new Scan();
 			if (null != filters && filters.length > 0) {
 				Filter filter = filters.length == 1 ? filters[0] : new FilterList(filters);
@@ -137,8 +141,8 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 		for (String t : table)
 			table(t);
 	}
-
-	private void table(String table, Supplier<TableScaner> constr) {
+	
+	private void table(String table, String logicalTable, Supplier<TableScaner> constr) {
 		scansMap.compute(table, (t, existed) -> {
 			if (null != existed) {
 				logger().error("Table [" + table + "] input existed and conflicted, ignore new scan request.");
@@ -150,22 +154,22 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 		});
 	}
 
-	public void table(String table, Filter... filter) {
-		table(table, () -> new TableScaner(table, filter));
+	public void table(String table, String logicalTable, Filter... filter) {
+		table(table, logicalTable,() -> new TableScaner(table, logicalTable, filter));
 	}
 
-	public void table(String table, byte[]... startAndEndRow) {
-		table(table, () -> new TableScaner(table, startAndEndRow));
+	public void table(String table, String logicalTable, byte[]... startAndEndRow) {
+		table(table, logicalTable,() -> new TableScaner(table, logicalTable, startAndEndRow));
 	}
 
-	public void table(String table) {
-		table(table, () -> new TableScaner(table));
+	public void table(String table, String logicalTable) {
+		table(table, logicalTable, () -> new TableScaner(table, logicalTable));
 	}
 
 	public void tableWithFamily(String table, String... cf) {
 		Filter[] fs = filterFamily(cf);
 		if (null == fs) table(table);
-		else table(table, fs);
+		else table(table, cf.length > 0 ? table :(table + "#" + cf[0]) ,fs);
 	}
 
 	private Filter[] filterFamily(String... cf) {
@@ -187,7 +191,7 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 	public void tableWithPrefix(String table, String... prefix) {
 		Filter f = filterPrefix(Arrays.asList(prefix));
 		if (null == f) table(table);
-		else table(table, f);
+		else table(table, prefix.length > 0 ? table :(table + ":" + prefix[0]), f);
 	}
 
 	public void tableWithFamilAndPrefix(String table, List<String> prefixes, String... cf) {
@@ -195,8 +199,19 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 		Filter[] ff = filterFamily(cf);
 		List<Filter> filters = null == ff ? Colls.list() : Colls.list(ff);
 		if (null != pf) filters.add(pf);
+		
+		String logicalTable = table;
+		if (cf.length > 0) {
+			if (cf.length > 1) throw new RuntimeException("Now only supports one cf");
+			logicalTable += "#" + cf[0];
+		}
+		if (prefixes.size()> 0) {
+			if (prefixes.size() > 1) throw new RuntimeException("Now only supports one prefix");
+			logicalTable += ":" + prefixes.get(0);
+		}
+		
 		if (filters.isEmpty()) table(table);
-		else table(table, filters.toArray(new Filter[(filters.size())]));
+		else table(table, logicalTable, filters.toArray(new Filter[(filters.size())]));
 	}
 
 	@Override
@@ -220,7 +235,7 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 						if (results.length > 0) {
 							List<Rmap> ms = Colls.list();
 							for (Result r : results)
-								if (null != r) ms.add(Hbases.Results.result(s.name, r));
+								if (null != r) ms.add(Hbases.Results.result(s.logicalName, r));
 							if (!ms.isEmpty()) {
 								using.accept(of(ms));
 								return;

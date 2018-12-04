@@ -315,8 +315,18 @@ public class HbaseConnection extends NoSqlConnection<org.apache.hadoop.hbase.cli
 		HbaseInput input = new HbaseInput("HbaseInput", this);
 		for (TableDesc table : tables) {
 			String tableName = table.name;
-			String[] fields = Arrays.asList(table.fields()).stream().map(f -> f.name).collect(Collectors.toList()).toArray(new String[] {});
-			input.tableWithFamily(tableName, fields);
+			String prefix = null;
+			String cf = null;
+			String[] splitPrefix  = table.name.split(":");
+			if (splitPrefix.length == 2) prefix = splitPrefix[1];
+			String[] splitCf = splitPrefix[0].split("#");
+			if (splitCf.length == 2) cf = splitCf[1];
+			List<String> ps = new ArrayList<>();
+			if (prefix != null && !"".equals(prefix)) {
+				ps.add(prefix);
+			}
+			tableName = splitCf[0];
+			input.tableWithFamilAndPrefix(tableName, ps, cf);
 		}
 		return input;
 	}

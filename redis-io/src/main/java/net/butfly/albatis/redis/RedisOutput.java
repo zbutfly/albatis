@@ -35,7 +35,7 @@ public class RedisOutput extends OutputBase<Rmap> {
 	@Override
 	protected void enqsafe(Sdream<Rmap> msgs) {
 		AtomicLong n = new AtomicLong();
-		n.set(msgs.map(m -> syncCommands.set(prefix + m.table() + ":" + m.key(), JsonSerder.JSON_MAPPER.ser(m))).filter(s -> "OK".equals(s)).count());
+		n.set(msgs.map(m -> syncCommands.set(prefix + m.table().replaceAll(":", "") + ":" + m.key(), JsonSerder.JSON_MAPPER.ser(m))).filter(s -> "OK".equals(s)).count());
 		succeeded(n.get());
 	}
 
