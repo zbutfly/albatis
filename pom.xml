@@ -19,7 +19,7 @@
 		<version.mongodb.thin>2.14.3</version.mongodb.thin>
 		<version.mongodb.fat>3.8.0</version.mongodb.fat>
 		<version.elastic>6.3.2</version.elastic>
-		<version.kudu>1.7.1</version.kudu>
+		<version.kudu>1.8.0</version.kudu>
 		<version.hbase>2.1.1</version.hbase>
 		<version.hadoop>2.7.7</version.hadoop><!-- 3.1.1 -->
 		<version.solr>7.4.0</version.solr>
