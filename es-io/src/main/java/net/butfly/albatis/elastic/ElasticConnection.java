@@ -81,6 +81,14 @@ public class ElasticConnection extends NoSqlConnection<TransportClient> implemen
 		MappingConstructor cstr = new MappingConstructor();
 		Map<String, Object> mapping = cstr.construct(fields);
 		logger().debug("Mapping constructing: " + mapping);
+		if (client.admin().indices().prepareExists(index).execute().actionGet().isExists()) {
+			PutMappingRequest req = new PutMappingRequest(index);
+			req.source(mapping);
+			PutMappingResponse r = client.admin().indices().putMapping(req.type(type)).actionGet();
+			if (!r.isAcknowledged()) logger().error("Mapping failed on type [" + type + "]" + req.toString());
+			else logger().info(() -> "Mapping on [" + type + "] construced sussesfully: \n\t" + JsonSerder.JSON_MAPPER.ser(mapping));
+			return;
+		}
 		CreateIndexResponse r;
 		if (indexConfig.isEmpty())
 			r = client.admin().indices().prepareCreate(index).addMapping(type, mapping).get();
