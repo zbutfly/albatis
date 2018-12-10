@@ -105,6 +105,9 @@ public class HbaseConnection extends NoSqlConnection<org.apache.hadoop.hbase.cli
 					params.put(HConstants.ZOOKEEPER_QUORUM, a.getHostName());
 					params.put(HConstants.ZOOKEEPER_CLIENT_PORT, Integer.toString(a.getPort()));
 				}
+				if (null != uri.getFile() && !"".equals(uri.getFile())) {
+					params.put(HConstants.ZOOKEEPER_ZNODE_PARENT, "/" + uri.getFile());
+				}
 			}
 		}
 		try {
@@ -306,7 +309,7 @@ public class HbaseConnection extends NoSqlConnection<org.apache.hadoop.hbase.cli
 
 		@Override
 		public List<String> schemas() {
-			return Colls.list("hbase");
+			return Colls.list("hbase", "hbase:zk");
 		}
 	}
 
