@@ -17,8 +17,8 @@ public class MysqlDialect extends Dialect {
 
 	@Override
 	protected void doInsertOnUpsert(Connection conn, String table, List<Rmap> records, AtomicLong count) {
-		for (int j = 0; j < records.size(); j++) {
-			List<String> allFields = new ArrayList<>(records.get(j).keySet());
+		records.forEach(r -> {
+			List<String> allFields = new ArrayList<>(r.keySet());
 			List<String> nonKeyFields = allFields.stream()/* .filter(f -> !f.equals(keyField)) */.collect(Collectors.toList());
 
 			String fieldnames = allFields.stream().map(this::quota).collect(Collectors.joining(", "));
@@ -26,16 +26,15 @@ public class MysqlDialect extends Dialect {
 			String updates = nonKeyFields.stream().map(f -> quota(f) + " = ?").collect(Collectors.joining(", "));
 			String sql = String.format(UPSERT_SQL_TEMPLATE, table, fieldnames, values, updates);
 
-			logger().debug("MYSQL upsert sql: " + sql);
 			try (PreparedStatement ps = conn.prepareStatement(sql)) {
 				int isize = allFields.size();
 				try {
 					for (int i = 0; i < allFields.size(); i++) {
-						Object value = records.get(j).get(allFields.get(i));
+						Object value = r.get(allFields.get(i));
 						Dialects.setObject(ps, i + 1, value);
 					}
 					for (int i = 0; i < nonKeyFields.size(); i++) {
-						Object value = records.get(j).get(nonKeyFields.get(i));
+						Object value = r.get(nonKeyFields.get(i));
 						Dialects.setObject(ps, isize + i + 1, value);
 					}
 					ps.addBatch();
@@ -43,13 +42,11 @@ public class MysqlDialect extends Dialect {
 					logger().warn(() -> "add `" + records + "` to batch error, ignore this message and continue.", e);
 				}
 				int[] rs = ps.executeBatch();
-				long sucessed = Arrays.stream(rs).filter(r -> r >= 0).count();
-				count.set(sucessed);
+				count.addAndGet(Arrays.stream(rs).filter(rr -> rr >= 0).count());
 			} catch (SQLException e) {
 				logger().warn(() -> "execute batch(size: " + records.size() + ") error, operation may not take effect. reason:", e);
 			}
-		}
-
+		});
 	}
 
 	protected String quota(String f) {

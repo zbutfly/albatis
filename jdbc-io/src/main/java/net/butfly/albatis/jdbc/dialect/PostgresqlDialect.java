@@ -40,7 +40,7 @@ public class PostgresqlDialect extends Dialect {
 			});
 			int[] rs = ps.executeBatch();
 			long sucessed = Arrays.stream(rs).filter(r -> r >= 0).count();
-			count.set(sucessed);
+			count.addAndGet(sucessed);
 		} catch (SQLException e) {
 			logger().warn(() -> "execute batch(size: " + records.size() + ") error, operation may not take effect. reason:", e);
 		}

@@ -16,7 +16,7 @@ import net.butfly.albatis.io.Rmap;
 
 @DialectFor(subSchema = "kingbaseanalyticsdb", jdbcClassname = "com.kingbase.kingbaseanalyticsdb.ds.KBSimpleDataSource")
 public class KingbaseDialect extends Dialect {
-	private static final String UPSERT_SQL_TEMPLATE = "insert into %s (%s) values(%s)";
+	private static final String UPSERT_SQL_TEMPLATE = "INSERT INTO %s (%s) VALUES (%s)";
 
 	@Override
 	protected void doInsertOnUpsert(Connection conn, String table, List<Rmap> records, AtomicLong count) {
@@ -41,7 +41,7 @@ public class KingbaseDialect extends Dialect {
 			});
 			int[] rs = ps.executeBatch();
 			long sucessed = Arrays.stream(rs).filter(r -> r >= 0).count();
-			count.set(sucessed);
+			count.addAndGet(sucessed);
 		} catch (SQLException e) {
 			logger().warn(() -> "execute batch(size: " + records.size() + ") error, operation may not take effect. reason:", e);
 		}

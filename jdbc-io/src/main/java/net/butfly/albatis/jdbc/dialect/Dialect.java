@@ -27,14 +27,6 @@ public class Dialect implements Loggable {
 		return new Dialect();
 	}
 
-	public String subSchhema() {
-		return "";
-	}
-
-	public String jdbcClassname() {
-		return null;
-	}
-
 	public String jdbcConnStr(URISpec uriSpec) {
 		return uriSpec.toString();
 	}
