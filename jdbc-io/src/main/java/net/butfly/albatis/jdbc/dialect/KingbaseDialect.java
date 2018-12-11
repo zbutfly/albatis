@@ -1,5 +1,6 @@
 package net.butfly.albatis.jdbc.dialect;
 
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -12,7 +13,9 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
+import net.butfly.albacore.io.URISpec;
 import net.butfly.albatis.io.Rmap;
+import net.butfly.albatis.jdbc.JdbcConnection;
 
 @DialectFor(subSchema = "kingbaseanalyticsdb", jdbcClassname = "com.kingbase.kingbaseanalyticsdb.ds.KBSimpleDataSource")
 public class KingbaseDialect extends Dialect {
@@ -85,6 +88,19 @@ public class KingbaseDialect extends Dialect {
 					+ sbu.deleteCharAt(sbu.length() - 1).append(")").toString());
 		} catch (SQLException e) {
 			e.printStackTrace();
+		}
+	}
+
+	@Override
+	public boolean tableExisted(String url, String table) {
+		try (JdbcConnection jdbcConnection = new JdbcConnection(new URISpec(url));
+				Connection conn = jdbcConnection.client.getConnection()) {
+			String sql = "select * from pg_tables where schemaname = 'public' " + " and tablename = " + "'" + table + "'";
+			PreparedStatement ps = conn.prepareStatement(sql);
+			ResultSet rs = ps.executeQuery();
+			return rs.next();
+		} catch (SQLException | IOException e) {
+			throw new RuntimeException(e);
 		}
 	}
 }

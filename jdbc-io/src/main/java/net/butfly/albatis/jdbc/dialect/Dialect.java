@@ -1,6 +1,10 @@
 package net.butfly.albatis.jdbc.dialect;
 
+import java.io.IOException;
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -11,7 +15,10 @@ import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.paral.Exeter;
 import net.butfly.albacore.utils.Reflections;
 import net.butfly.albacore.utils.logger.Loggable;
+import net.butfly.albatis.ddl.Field;
+import net.butfly.albatis.ddl.TableCustomSet;
 import net.butfly.albatis.io.Rmap;
+import net.butfly.albatis.jdbc.JdbcConnection;
 
 @DialectFor
 public class Dialect implements Loggable {
@@ -52,4 +59,22 @@ public class Dialect implements Loggable {
 		throw new NotImplementedException();
 	}
 
+	public void tableConstruct(String url, String table, List<Field> fields, TableCustomSet tableCustomSet) {
+		throw new NotImplementedException();
+	}
+
+	protected String buildSqlField(Field field, TableCustomSet tableCustomSet) {
+		throw new NotImplementedException();
+	}
+
+	public boolean tableExisted(String url, String table) {
+		try (JdbcConnection jdbcConnection = new JdbcConnection(new URISpec(url));
+				Connection conn = jdbcConnection.client.getConnection()) {
+			DatabaseMetaData dbm = conn.getMetaData();
+			ResultSet rs = dbm.getTables(null, null, table, null);
+			return rs.next();
+		} catch (SQLException | IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
 }
