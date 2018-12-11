@@ -10,7 +10,6 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
-import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.paral.Exeter;
 import net.butfly.albatis.io.Rmap;
 
@@ -21,16 +20,6 @@ public class MysqlUpserter extends Upserter {
 		super(type);
 	}
 
-	@Deprecated
-	@Override
-	public String urlAssemble(URISpec uriSpec) {
-		return null;
-	}
-
-	@Override
-	String urlAssemble(String schema, String host, String database) {
-		return schema + "://" + host + "/" + database;
-	}
 
 	protected String quota(String f) {
 		return '`' == f.charAt(0) && '`' == f.charAt(f.length() - 1) ? f : "`" + f + "`";
@@ -48,7 +37,7 @@ public class MysqlUpserter extends Upserter {
 				List<String> fl = new ArrayList<>(ml.get(j).keySet());
 				String fields = fl.stream().map(this::quota).collect(Collectors.joining(", "));
 				String values = fl.stream().map(f -> "?").collect(Collectors.joining(", "));
-				List<String> ufields = fl.stream()/*.filter(f -> !f.equals(keyField))*/.collect(Collectors.toList());
+				List<String> ufields = fl.stream()/* .filter(f -> !f.equals(keyField)) */.collect(Collectors.toList());
 				String updates = ufields.stream().map(f -> quota(f) + " = ?").collect(Collectors.joining(", "));
 				String sql = String.format(psql, entry.getKey(), fields, values, updates);
 				logger().debug("MYSQL upsert sql: " + sql);

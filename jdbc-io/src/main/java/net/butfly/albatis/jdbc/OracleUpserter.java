@@ -10,7 +10,6 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
-import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.paral.Exeter;
 import net.butfly.albatis.io.Rmap;
 
@@ -19,12 +18,6 @@ public class OracleUpserter extends Upserter {
 
 	public OracleUpserter(Type type) {
 		super(type);
-	}
-
-	@Deprecated
-	@Override
-	String urlAssemble(URISpec uriSpec) {
-		return null;
 	}
 
 	// : means sid(!sid), / means sid
