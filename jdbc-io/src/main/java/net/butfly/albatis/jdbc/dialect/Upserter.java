@@ -1,4 +1,4 @@
-package net.butfly.albatis.jdbc;
+package net.butfly.albatis.jdbc.dialect;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -10,6 +10,7 @@ import java.util.Map;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.logger.Loggable;
 import net.butfly.albatis.io.Rmap;
+import net.butfly.albatis.jdbc.Type;
 
 public class Upserter implements Loggable {
 	public final Type type;
@@ -41,11 +42,11 @@ public class Upserter implements Loggable {
 	 *            default database
 	 * @return base url
 	 */
-	String urlAssemble(String schema, String host, String database) {
+	public String urlAssemble(String schema, String host, String database) {
 		return schema + "://" + host + "/" + database;
 	}
 
-	long upsert(Map<String, List<Rmap>> mml, Connection conn) {
+	public long upsert(Map<String, List<Rmap>> mml, Connection conn) {
 		throw new UnsupportedOperationException();
 	}
 
@@ -60,7 +61,7 @@ public class Upserter implements Loggable {
 		}
 	}
 
-	static Upserter of(String schema) {
+	public static Upserter of(String schema) {
 		Type type = Type.of(schema);
 		switch (type) {
 		case MYSQL:

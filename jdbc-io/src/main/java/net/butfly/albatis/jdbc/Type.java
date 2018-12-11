@@ -21,7 +21,7 @@ public enum Type {
 		this.driver = driver;
 	}
 
-	static Type of(String schema) {
+	public static Type of(String schema) {
 		while (schema.length() > 0) {
 			for (Type t : Type.values())
 				if (t.schema.equals(schema)) return t;

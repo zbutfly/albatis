@@ -1,4 +1,4 @@
-package net.butfly.albatis.jdbc;
+package net.butfly.albatis.jdbc.dialect;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -12,6 +12,7 @@ import java.util.stream.Collectors;
 
 import net.butfly.albacore.paral.Exeter;
 import net.butfly.albatis.io.Rmap;
+import net.butfly.albatis.jdbc.Type;
 
 public class MysqlUpserter extends Upserter {
 	private static final String psql = "INSERT INTO %s (%s) VALUES (%s) ON DUPLICATE KEY UPDATE %s";

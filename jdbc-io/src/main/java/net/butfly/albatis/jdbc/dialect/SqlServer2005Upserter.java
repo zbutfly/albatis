@@ -1,4 +1,4 @@
-package net.butfly.albatis.jdbc;
+package net.butfly.albatis.jdbc.dialect;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -12,19 +12,23 @@ import java.util.stream.Collectors;
 
 import net.butfly.albacore.paral.Exeter;
 import net.butfly.albatis.io.Rmap;
+import net.butfly.albatis.jdbc.Type;
 
-/**
- * 键必须为主键或唯一键
- */
-public class PostgresqlUpserter extends Upserter {
-	private static final String psql = "insert into %s (%s) values(%s) ON CONFLICT(%s) do update set %s";
+public class SqlServer2005Upserter extends Upserter {
+	private final String psql = "MERGE INTO %s AS T USING (SELECT 1 S) AS S ON (%s) " + " WHEN MATCHED THEN " + " UPDATE SET %s "
+			+ " WHEN NOT MATCHED THEN " + " INSERT(%s) VALUES(%s)";
 
-	public PostgresqlUpserter(Type type) {
+	public SqlServer2005Upserter(Type type) {
 		super(type);
 	}
 
 	@Override
-	long upsert(Map<String, List<Rmap>> mml, Connection conn) {
+	public String urlAssemble(String schema, String host, String database) {
+		return "jdbc:sqlserver://" + host + ";databaseName=" + database;
+	}
+
+	@Override
+	public long upsert(Map<String, List<Rmap>> mml, Connection conn) {
 		AtomicLong count = new AtomicLong();
 		Exeter.of().join(entry -> {
 			mml.forEach((t, l) -> {
@@ -35,17 +39,29 @@ public class PostgresqlUpserter extends Upserter {
 				List<String> fl = new ArrayList<>(ml.get(0).keySet());
 				String fields = fl.stream().collect(Collectors.joining(", "));
 				String values = fl.stream().map(f -> "?").collect(Collectors.joining(", "));
-				List<String> ufields = fl.stream().filter(f -> !f.equals(keyField)).collect(Collectors.toList()); // update fields
-				String updates = ufields.stream().map(f -> f + " = EXCLUDED." + f).collect(Collectors.joining(", "));
-				String sql = String.format(psql, t, fields, values, keyField, updates);
-				logger().debug("POSTGRES upsert sql: " + sql);
+				String dual = keyField + " = ?";
+				List<String> ufields = fl.stream().filter(f -> !f.equals(keyField)).collect(Collectors.toList());
+				String updates = ufields.stream().map(f -> f + " = ?").collect(Collectors.joining(", "));
+				String sql = String.format(psql, t, dual, fields, values, updates);
+				logger().debug("SQLSERVER upsert SQL: " + sql);
 				try (PreparedStatement ps = conn.prepareStatement(sql)) {
 					ml.forEach(m -> {
+						int offset = 0;
 						try {
-							for (int i = 0; i < fl.size(); i++) {
-								Object value = m.get(fl.get(i));
-								setObject(ps, i + 1, value);
+							{ // set dual
+								setObject(ps, offset + 1, m.key());
+								offset++;
 							}
+							for (int i = 0; i < fl.size(); i++) { // set insert fields value
+								Object value = m.get(fl.get(i));
+								setObject(ps, offset + i + 1, value);
+							}
+							offset += fl.size();
+							for (int i = 0; i < ufields.size(); i++) { // set update fields value
+								Object value = m.get(ufields.get(i));
+								setObject(ps, offset + i + 1, value);
+							}
+							offset += ufields.size();
 							ps.addBatch();
 						} catch (SQLException e) {
 							logger().warn(() -> "add `" + m + "` to batch error, ignore this message and continue.", e);

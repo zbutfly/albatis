@@ -1,4 +1,4 @@
-package net.butfly.albatis.jdbc;
+package net.butfly.albatis.jdbc.dialect;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -12,22 +12,23 @@ import java.util.stream.Collectors;
 
 import net.butfly.albacore.paral.Exeter;
 import net.butfly.albatis.io.Rmap;
+import net.butfly.albatis.jdbc.Type;
 
-public class SqlServer2005Upserter extends Upserter {
-	private final String psql = "MERGE INTO %s AS T USING (SELECT 1 S) AS S ON (%s) " + " WHEN MATCHED THEN " + " UPDATE SET %s "
-			+ " WHEN NOT MATCHED THEN " + " INSERT(%s) VALUES(%s)";
+public class OracleUpserter extends Upserter {
+	private static final String psql = "MERGE INTO %s USING DUAL ON (%s) WHEN NOT MATCHED THEN INSERT (%s) VALUES (%s) WHEN MATCHED THEN UPDATE SET %s";
 
-	public SqlServer2005Upserter(Type type) {
+	public OracleUpserter(Type type) {
 		super(type);
 	}
 
+	// : means sid(!sid), / means sid
 	@Override
-	String urlAssemble(String schema, String host, String database) {
-		return "jdbc:sqlserver://" + host + ";databaseName=" + database;
+	public String urlAssemble(String schema, String host, String database) {
+		return schema + ":@" + host + (database.charAt(0) == '!' ? (":" + database.substring(1)) : ("/" + database));
 	}
 
 	@Override
-	long upsert(Map<String, List<Rmap>> mml, Connection conn) {
+	public long upsert(Map<String, List<Rmap>> mml, Connection conn) {
 		AtomicLong count = new AtomicLong();
 		Exeter.of().join(entry -> {
 			mml.forEach((t, l) -> {
@@ -42,28 +43,31 @@ public class SqlServer2005Upserter extends Upserter {
 				List<String> ufields = fl.stream().filter(f -> !f.equals(keyField)).collect(Collectors.toList());
 				String updates = ufields.stream().map(f -> f + " = ?").collect(Collectors.joining(", "));
 				String sql = String.format(psql, t, dual, fields, values, updates);
-				logger().debug("SQLSERVER upsert SQL: " + sql);
+				logger().debug("ORACLE upsert SQL: " + sql);
 				try (PreparedStatement ps = conn.prepareStatement(sql)) {
 					ml.forEach(m -> {
 						int offset = 0;
 						try {
 							{ // set dual
+								// ps.setObject(offset + 1, m.key());
 								setObject(ps, offset + 1, m.key());
 								offset++;
 							}
 							for (int i = 0; i < fl.size(); i++) { // set insert fields value
 								Object value = m.get(fl.get(i));
+								// ps.setObject(offset + i + 1, value);
 								setObject(ps, offset + i + 1, value);
 							}
 							offset += fl.size();
 							for (int i = 0; i < ufields.size(); i++) { // set update fields value
 								Object value = m.get(ufields.get(i));
+								// ps.setObject(offset + i + 1, value);
 								setObject(ps, offset + i + 1, value);
 							}
 							offset += ufields.size();
 							ps.addBatch();
 						} catch (SQLException e) {
-							logger().warn(() -> "add `" + m + "` to batch error, ignore this message and continue.", e);
+							logger().warn(() -> "add `" + m + "` to batch error, ignore this message and continue." + e.getSQLState());
 						}
 					});
 					int[] rs = ps.executeBatch();

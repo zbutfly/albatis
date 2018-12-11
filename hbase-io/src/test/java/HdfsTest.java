@@ -10,6 +10,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IOUtils;
 
+@SuppressWarnings({ "deprecation", "unused" })
 public class HdfsTest {
 	private static final String HDFS = "hdfs://127.0.0.1:9000/";
 
@@ -109,12 +110,9 @@ public class HdfsTest {
 			System.out.printf("name: %s   |   folder: %s  |   size: %d\n", f.getPath(), f.isDir(), f.getLen());
 			try {
 				FileStatus[] fileListR = fs.listStatus(f.getPath());
-				for (FileStatus fr : fileListR) {
+				for (FileStatus fr : fileListR)
 					System.out.printf("name: %s   |   folder: %s  |   size: %d\n", fr.getPath(), fr.isDir(), fr.getLen());
-				}
-			} finally {
-				continue;
-			}
+			} finally {}
 		}
 		fs.close();
 	}

@@ -19,6 +19,7 @@ import net.butfly.albatis.ddl.Field;
 import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.ddl.TableCustomSet;
 import net.butfly.albatis.ddl.TableDesc;
+import net.butfly.albatis.jdbc.dialect.Upserter;
 
 import static net.butfly.albatis.ddl.vals.ValType.Flags.*;
 import static net.butfly.albatis.ddl.vals.ValType.Flags.BYTE;
@@ -147,10 +148,10 @@ public class JdbcConnection extends NoSqlConnection<DataSource> {
 			List<String> fieldSql = new ArrayList<>();
 			for (Field field : fields)
 				fieldSql.add(buildSqlField(field, tableCustomSet));
-			List<Map> indexes = tableCustomSet.getIndexes();
+			List<Map<String, String>> indexes = tableCustomSet.getIndexes();
 			if (null != indexes) {
 				for (int i = 0, len = indexes.size(); i < len; i++) {
-					Map indexMap = indexes.get(i);
+					Map<String, String> indexMap = indexes.get(i);
 					String type = (String) indexMap.get("type");
 					String alias = (String) indexMap.get("alias");
 					List<String> fieldList = com.alibaba.fastjson.JSONArray.parseArray(JSON.toJSONString(indexMap.get("field")),
@@ -186,14 +187,14 @@ public class JdbcConnection extends NoSqlConnection<DataSource> {
 			List<String> fieldSql = new ArrayList<>();
 			for (Field field : fields)
 				fieldSql.add(buildOracleField(field, tableCustomSet));
-			List<Map> indexes = tableCustomSet.getIndexes();
+			List<Map<String, String>> indexes = tableCustomSet.getIndexes();
 			sb.append("create table ").append(table).append("(").append(String.join(",", fieldSql.toArray(new String[0]))).append(")");
 			Statement statement = conn.createStatement();
 			statement.addBatch(sb.toString());
 			if (null != indexes) {
 				for (int i = 0, len = indexes.size(); i < len; i++) {
 					StringBuilder createIndex = new StringBuilder();
-					Map indexMap = indexes.get(i);
+					Map<String, String> indexMap = indexes.get(i);
 					String type = (String) indexMap.get("type");
 					String alias = (String) indexMap.get("alias");
 					List<String> fieldList = com.alibaba.fastjson.JSONArray.parseArray(JSON.toJSONString(indexMap.get("field")),
@@ -226,14 +227,14 @@ public class JdbcConnection extends NoSqlConnection<DataSource> {
 			for (Field field : fields)
 				fieldSql.add(buildPostgreField(field, tableCustomSet));
 			Statement statement = conn.createStatement();
-			List<Map> indexes = tableCustomSet.getIndexes();
+			List<Map<String, String>> indexes = tableCustomSet.getIndexes();
 			sb.append("create table ").append("\"").append(table).append("\"").append("(").append(String.join(",", fieldSql.toArray(
 					new String[0]))).append(")");
 			statement.addBatch(sb.toString());
 			if (null != indexes) {
 				for (int i = 0, len = indexes.size(); i < len; i++) {
 					StringBuilder createIndex = new StringBuilder();
-					Map indexMap = indexes.get(i);
+					Map<String, String> indexMap = indexes.get(i);
 					String type = (String) indexMap.get("type");
 					String alias = (String) indexMap.get("alias");
 					List<String> fieldList = com.alibaba.fastjson.JSONArray.parseArray(JSON.toJSONString(indexMap.get("field")),

@@ -1,4 +1,4 @@
-package net.butfly.albatis.jdbc;
+package net.butfly.albatis.jdbc.dialect;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -14,6 +14,7 @@ import java.util.stream.Collectors;
 
 import net.butfly.albacore.paral.Exeter;
 import net.butfly.albatis.io.Rmap;
+import net.butfly.albatis.jdbc.Type;
 
 /**
  * @author zhuqh
@@ -27,7 +28,7 @@ public class KingBaseUpserter extends Upserter {
 	}
 
 	@Override
-	long upsert(Map<String, List<Rmap>> mml, Connection conn) {
+	public long upsert(Map<String, List<Rmap>> mml, Connection conn) {
 		AtomicLong count = new AtomicLong();
 		Exeter.of().join(entry -> {
 			mml.forEach((t, l) -> {
