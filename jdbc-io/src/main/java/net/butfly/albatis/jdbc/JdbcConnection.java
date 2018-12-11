@@ -40,7 +40,7 @@ public class JdbcConnection extends NoSqlConnection<DataSource> {
     @Override
     public void construct(String table, FieldDesc... fields) {
         try (Connection conn = client.getConnection();) {
-            if (uri.getScheme().startsWith("jdbc:oracle")) {
+            if (uri.getScheme().startsWith("jdbc:oracle:")) {
                 StringBuilder sql = new StringBuilder();
                 List<String> fieldSql = new ArrayList<>();
                 for (FieldDesc f : fields)
