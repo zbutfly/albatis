@@ -13,14 +13,12 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 import net.butfly.albatis.io.Rmap;
-import net.butfly.albatis.jdbc.Type;
 
+import net.butfly.albatis.jdbc.dialect.Dialect.DialectFor;
+
+@DialectFor(subSchema = "kingbaseanalyticsdb", jdbcClassname = "com.kingbase.kingbaseanalyticsdb.ds.KBSimpleDataSource")
 public class KingbaseDialect extends Dialect {
 	private static final String psql = "insert into %s (%s) values(%s)";
-
-	public KingbaseDialect(Type type) {
-		super(type);
-	}
 
 	@Override
 	protected void doInsertOnUpsert(Connection conn, String t, List<Rmap> l, AtomicLong count) {

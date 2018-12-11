@@ -1,7 +1,25 @@
 package net.butfly.albatis.jdbc;
 
+import static net.butfly.albatis.ddl.vals.ValType.Flags.BINARY;
+import static net.butfly.albatis.ddl.vals.ValType.Flags.BOOL;
+import static net.butfly.albatis.ddl.vals.ValType.Flags.BYTE;
+import static net.butfly.albatis.ddl.vals.ValType.Flags.CHAR;
+import static net.butfly.albatis.ddl.vals.ValType.Flags.DATE;
+import static net.butfly.albatis.ddl.vals.ValType.Flags.DOUBLE;
+import static net.butfly.albatis.ddl.vals.ValType.Flags.FLOAT;
+import static net.butfly.albatis.ddl.vals.ValType.Flags.INT;
+import static net.butfly.albatis.ddl.vals.ValType.Flags.LONG;
+import static net.butfly.albatis.ddl.vals.ValType.Flags.SHORT;
+import static net.butfly.albatis.ddl.vals.ValType.Flags.STR;
+import static net.butfly.albatis.ddl.vals.ValType.Flags.UNKNOWN;
+
 import java.io.IOException;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -20,9 +38,7 @@ import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.ddl.TableCustomSet;
 import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.jdbc.dialect.Dialect;
-
-import static net.butfly.albatis.ddl.vals.ValType.Flags.*;
-import static net.butfly.albatis.ddl.vals.ValType.Flags.BYTE;
+import net.butfly.albatis.jdbc.dialect.Dialect.DialectFor;
 
 public class JdbcConnection extends NoSqlConnection<DataSource> {
 	final Dialect dialect;
@@ -59,8 +75,16 @@ public class JdbcConnection extends NoSqlConnection<DataSource> {
 
 	private static HikariConfig toConfig(Dialect dialect, URISpec uriSpec) {
 		HikariConfig config = new HikariConfig();
-		config.setPoolName(dialect.type.name() + "-Hikari-Pool");
-		if (null != dialect.type.driver) config.setDriverClassName(dialect.type.driver);
+		DialectFor d = dialect.getClass().getAnnotation(DialectFor.class);
+		config.setPoolName(d.subSchema() + "-Hikari-Pool");
+		if (!"".equals(d.jdbcClassname())) {
+			try {
+				Class.forName(d.jdbcClassname());
+			} catch (ClassNotFoundException e) {
+				throw new RuntimeException("JDBC driver class [" + d.jdbcClassname() + "] not found, need driver lib jar file?");
+			}
+			config.setDriverClassName(d.jdbcClassname());
+		}
 		String jdbcconn = dialect.jdbcConnStr(uriSpec);
 		logger.info("Connect to jdbc with connection string: \n\t" + jdbcconn);
 		config.setJdbcUrl(jdbcconn);

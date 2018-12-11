@@ -11,14 +11,11 @@ import java.util.stream.Collectors;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albatis.io.Rmap;
-import net.butfly.albatis.jdbc.Type;
+import net.butfly.albatis.jdbc.dialect.Dialect.DialectFor;
 
+@DialectFor(subSchema = "oracle:thin", jdbcClassname = "oracle.jdbc.driver.OracleDriver")
 public class OracleDialect extends Dialect {
 	private static final String psql = "MERGE INTO %s USING DUAL ON (%s) WHEN NOT MATCHED THEN INSERT (%s) VALUES (%s) WHEN MATCHED THEN UPDATE SET %s";
-
-	public OracleDialect(Type type) {
-		super(type);
-	}
 
 	@Override
 	protected void doUpsert(Connection conn, String t, String keyField, List<Rmap> l, AtomicLong count) {
@@ -64,6 +61,7 @@ public class OracleDialect extends Dialect {
 	@Override
 	public String jdbcConnStr(URISpec uri) {
 		String db = uri.getPath(1);
+		if ("".equals(db)) db = uri.getFile();
 		return uri.getScheme() + ":@" + uri.getHost() + (db.charAt(0) == '!' ? (":" + db.substring(1)) : ("/" + db));
 	}
 }

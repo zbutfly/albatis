@@ -1,27 +1,40 @@
 package net.butfly.albatis.jdbc.dialect;
 
+import java.lang.annotation.Documented;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
 import net.butfly.albacore.exception.NotImplementedException;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.paral.Exeter;
+import net.butfly.albacore.utils.Reflections;
 import net.butfly.albacore.utils.logger.Loggable;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.io.Rmap;
-import net.butfly.albatis.jdbc.Type;
+import net.butfly.albatis.jdbc.dialect.Dialect.DialectFor;
 
+@DialectFor
 public class Dialect implements Loggable {
 	final protected Logger logger = Logger.getLogger(this.getClass());
-	public final Type type;
 
-	public Dialect(Type type) {
-		this.type = type;
+	public Dialect() {}
+
+	public String subSchhema() {
+		return "";
+	}
+
+	public String jdbcClassname() {
+		return null;
 	}
 
 	public String jdbcConnStr(URISpec uriSpec) {
@@ -60,26 +73,25 @@ public class Dialect implements Loggable {
 		}
 	}
 
+	@Target(ElementType.TYPE)
+	@Retention(RetentionPolicy.RUNTIME)
+	@Documented
+	public @interface DialectFor {
+		String subSchema() default "";
+
+		String jdbcClassname() default "";
+	}
+
 	public static Dialect of(String schema) {
-		Type type = Type.of(schema);
-		switch (type) {
-		case MYSQL:
-			return new MysqlDialect(type);
-		case ORACLE:
-			return new OracleDialect(type);
-		case POSTGRESQL:
-			return new PostgresqlDialect(type);
-		case SQL_SERVER_2005:
-			return new SqlServer2005Dialect(type);
-		case SQL_SERVER_2008:
-			return new SqlServer2008Dialect(type);
-		case SQL_SERVER_2013:
-			return new SqlServer2013Dialect(type);
-		case KINGBASE:
-			return new KingbaseDialect(type);
-		default:
-			return new Dialect(type);
+		String s = schema;
+		Set<Class<? extends Dialect>> classes = Reflections.getSubClasses(Dialect.class, "net.butfly.albatis.jdbc.dialect");
+		while (s.indexOf(":") > 0) {
+			s = s.substring(s.indexOf(":") + 1);
+			for (Class<? extends Dialect> c : classes)
+				if (c.getAnnotation(DialectFor.class).subSchema().equals(s)) //
+					return Reflections.construct(c);
 		}
+		return new Dialect();
 	}
 
 	protected static String determineKeyField(List<Rmap> list) {

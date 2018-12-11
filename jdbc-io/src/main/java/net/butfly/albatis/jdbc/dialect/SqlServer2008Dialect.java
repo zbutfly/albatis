@@ -1,9 +1,6 @@
 package net.butfly.albatis.jdbc.dialect;
 
-import net.butfly.albatis.jdbc.Type;
+import net.butfly.albatis.jdbc.dialect.Dialect.DialectFor;
 
-public class SqlServer2008Dialect extends SqlServer2005Dialect {
-    public SqlServer2008Dialect(Type type) {
-        super(type);
-    }
-}
+@DialectFor(subSchema = "jdbc:sqlserver:2008")
+public class SqlServer2008Dialect extends SqlServer2005Dialect {}

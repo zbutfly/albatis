@@ -11,15 +11,13 @@ import java.util.stream.Collectors;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albatis.io.Rmap;
-import net.butfly.albatis.jdbc.Type;
 
+import net.butfly.albatis.jdbc.dialect.Dialect.DialectFor;
+
+@DialectFor(subSchema = "sqlserver", jdbcClassname = "com.microsoft.sqlserver.jdbc.SQLServerDriver")
 public class SqlServer2005Dialect extends Dialect {
 	private final String psql = "MERGE INTO %s AS T USING (SELECT 1 S) AS S ON (%s) " + " WHEN MATCHED THEN " + " UPDATE SET %s "
 			+ " WHEN NOT MATCHED THEN " + " INSERT(%s) VALUES(%s)";
-
-	public SqlServer2005Dialect(Type type) {
-		super(type);
-	}
 
 	@Override
 	protected void doUpsert(Connection conn, String t, String keyField, List<Rmap> l, AtomicLong count) {

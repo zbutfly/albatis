@@ -10,14 +10,12 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 import net.butfly.albatis.io.Rmap;
-import net.butfly.albatis.jdbc.Type;
 
+import net.butfly.albatis.jdbc.dialect.Dialect.DialectFor;
+
+@DialectFor(subSchema = "postgresql", jdbcClassname = "org.postgresql.Driver")
 public class PostgresqlDialect extends Dialect {
 	private static final String psql = "insert into %s (%s) values(%s) ON CONFLICT(%s) do update set %s";
-
-	public PostgresqlDialect(Type type) {
-		super(type);
-	}
 
 	@Override
 	protected void doUpsert(Connection conn, String t, String keyField, List<Rmap> l, AtomicLong count) {
