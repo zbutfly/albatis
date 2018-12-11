@@ -25,8 +25,8 @@ public enum Type {
 		while (schema.length() > 0) {
 			for (Type t : Type.values())
 				if (t.schema.equals(schema)) return t;
-			schema = schema.substring(schema.lastIndexOf(':'));
+			schema = schema.substring(0, schema.lastIndexOf(':'));
 		}
-		throw new IllegalStateException("schema `" + schema + "` is not support");
+		return Type.JDBC;
 	}
 }
