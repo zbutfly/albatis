@@ -11,39 +11,39 @@ import java.util.stream.Collectors;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albatis.io.Rmap;
-import net.butfly.albatis.jdbc.dialect.Dialect.DialectFor;
 
 @DialectFor(subSchema = "oracle:thin", jdbcClassname = "oracle.jdbc.driver.OracleDriver")
 public class OracleDialect extends Dialect {
-	private static final String psql = "MERGE INTO %s USING DUAL ON (%s) WHEN NOT MATCHED THEN INSERT (%s) VALUES (%s) WHEN MATCHED THEN UPDATE SET %s";
+	private static final String UPSERT_SQL_TEMPLATE = "MERGE INTO %s USING DUAL ON (%s = ?) WHEN NOT MATCHED THEN INSERT (%s) VALUES (%s) WHEN MATCHED THEN UPDATE SET %s";
 
 	@Override
-	protected void doUpsert(Connection conn, String t, String keyField, List<Rmap> l, AtomicLong count) {
-		List<Rmap> ml = l.stream().sorted((m1, m2) -> m2.size() - m1.size()).collect(Collectors.toList());
-		List<String> fl = new ArrayList<>(ml.get(0).keySet());
-		String fields = fl.stream().collect(Collectors.joining(", "));
-		String values = fl.stream().map(f -> "?").collect(Collectors.joining(", "));
-		List<String> ufields = fl.stream().filter(f -> !f.equals(keyField)).collect(Collectors.toList());
-		String updates = ufields.stream().map(f -> f + " = ?").collect(Collectors.joining(", "));
-		String dual = keyField + " = ?";
-		String sql = String.format(psql, t, dual, fields, values, updates);
+	protected void doUpsert(Connection conn, String table, String keyField, List<Rmap> records, AtomicLong count) {
+		records.sort((m1, m2) -> m2.size() - m1.size());
+		List<String> allFields = new ArrayList<>(records.get(0).keySet());
+		List<String> nonKeyFields = allFields.stream().filter(f -> !f.equals(keyField)).collect(Collectors.toList());
+
+		String fieldnames = allFields.stream().collect(Collectors.joining(", "));
+		String values = allFields.stream().map(f -> "?").collect(Collectors.joining(", "));
+		String updates = nonKeyFields.stream().map(f -> f + " = ?").collect(Collectors.joining(", "));
+		String sql = String.format(UPSERT_SQL_TEMPLATE, table, keyField, fieldnames, values, updates);
+
 		logger().debug("ORACLE upsert SQL: " + sql);
 		try (PreparedStatement ps = conn.prepareStatement(sql)) {
-			ml.forEach(m -> {
+			records.forEach(m -> {
 				int offset = 0;
 				try {
-					setObject(ps, offset + 1, m.key());
+					Dialects.setObject(ps, offset + 1, m.key());
 					offset++;
-					for (int i = 0; i < fl.size(); i++) { // set insert fields value
-						Object value = m.get(fl.get(i));
-						setObject(ps, offset + i + 1, value);
+					for (int i = 0; i < allFields.size(); i++) { // set insert fields value
+						Object value = m.get(allFields.get(i));
+						Dialects.setObject(ps, offset + i + 1, value);
 					}
-					offset += fl.size();
-					for (int i = 0; i < ufields.size(); i++) { // set update fields value
-						Object value = m.get(ufields.get(i));
-						setObject(ps, offset + i + 1, value);
+					offset += allFields.size();
+					for (int i = 0; i < nonKeyFields.size(); i++) { // set update fields value
+						Object value = m.get(nonKeyFields.get(i));
+						Dialects.setObject(ps, offset + i + 1, value);
 					}
-					offset += ufields.size();
+					offset += nonKeyFields.size();
 					ps.addBatch();
 				} catch (SQLException e) {
 					logger().warn(() -> "add `" + m + "` to batch error, ignore this message and continue." + e.getSQLState());
@@ -53,7 +53,7 @@ public class OracleDialect extends Dialect {
 			long sucessed = Arrays.stream(rs).filter(r -> r >= 0).count();
 			count.set(sucessed);
 		} catch (SQLException e) {
-			logger().warn(() -> "execute batch(size: " + l.size() + ") error, operation may not take effect. reason:", e);
+			logger().warn(() -> "execute batch(size: " + records.size() + ") error, operation may not take effect. reason:", e);
 		}
 	}
 

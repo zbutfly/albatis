@@ -38,7 +38,7 @@ import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.ddl.TableCustomSet;
 import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.jdbc.dialect.Dialect;
-import net.butfly.albatis.jdbc.dialect.Dialect.DialectFor;
+import net.butfly.albatis.jdbc.dialect.DialectFor;
 
 public class JdbcConnection extends NoSqlConnection<DataSource> {
 	final Dialect dialect;
