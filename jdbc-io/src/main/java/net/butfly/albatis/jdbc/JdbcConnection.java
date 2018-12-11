@@ -19,23 +19,23 @@ import net.butfly.albatis.ddl.Field;
 import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.ddl.TableCustomSet;
 import net.butfly.albatis.ddl.TableDesc;
-import net.butfly.albatis.jdbc.dialect.Upserter;
+import net.butfly.albatis.jdbc.dialect.Dialect;
 
 import static net.butfly.albatis.ddl.vals.ValType.Flags.*;
 import static net.butfly.albatis.ddl.vals.ValType.Flags.BYTE;
 
 public class JdbcConnection extends NoSqlConnection<DataSource> {
-	final Upserter upserter;
+	final Dialect dialect;
 
 	public JdbcConnection(URISpec uri) throws IOException {
 		super(uri, "jdbc");
-		upserter = Upserter.of(uri.getScheme());
+		dialect = Dialect.of(uri.getScheme());
 	}
 
 	@Override
 	protected DataSource initialize(URISpec uri) {
-		Upserter upserter = Upserter.of(uri.getScheme());
-		return new HikariDataSource(toConfig(upserter, uri));
+		Dialect dialect = Dialect.of(uri.getScheme());
+		return new HikariDataSource(toConfig(dialect, uri));
 	}
 
 	@Override
@@ -57,11 +57,13 @@ public class JdbcConnection extends NoSqlConnection<DataSource> {
 		} catch (SQLException e1) {}
 	}
 
-	private static HikariConfig toConfig(Upserter upserter, URISpec uriSpec) {
+	private static HikariConfig toConfig(Dialect dialect, URISpec uriSpec) {
 		HikariConfig config = new HikariConfig();
-		config.setPoolName(upserter.type.name() + "-Hikari-Pool");
-		if (null != upserter.type.driver) config.setDriverClassName(upserter.type.driver);
-		config.setJdbcUrl(upserter.urlAssemble(uriSpec.getScheme(), uriSpec.getHost(), uriSpec.getFile()));
+		config.setPoolName(dialect.type.name() + "-Hikari-Pool");
+		if (null != dialect.type.driver) config.setDriverClassName(dialect.type.driver);
+		String jdbcconn = dialect.jdbcConnStr(uriSpec);
+		logger.info("Connect to jdbc with connection string: \n\t" + jdbcconn);
+		config.setJdbcUrl(jdbcconn);
 		config.setUsername(uriSpec.getUsername());
 		config.setPassword(uriSpec.getPassword());
 		uriSpec.getParameters().forEach(config::addDataSourceProperty);
