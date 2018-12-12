@@ -9,13 +9,13 @@ public class TableCustomSet {
     //键的设置
     private List<List<String>> keys;
     //索引的设置
-    private List<Map<String, String>> indexes;
+    private List<Map<String, Object>> indexes;
 
-    public void setIndexes(List<Map<String, String>> indexes) {
+    public void setIndexes(List<Map<String, Object>> indexes) {
         this.indexes = indexes;
     }
 
-    public List<Map<String, String>> getIndexes() {
+    public List<Map<String, Object>> getIndexes() {
         return indexes;
     }
 
