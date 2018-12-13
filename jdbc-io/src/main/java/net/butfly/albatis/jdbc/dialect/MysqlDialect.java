@@ -82,10 +82,10 @@ public class MysqlDialect extends Dialect {
 			List<String> fieldSql = new ArrayList<>();
 			for (Field field : fields)
 				fieldSql.add(buildSqlField(field, tableCustomSet));
-			List<Map<String, String>> indexes = tableCustomSet.getIndexes();
+			List<Map<String, Object>> indexes = tableCustomSet.getIndexes();
 			if (null != indexes) {
 				for (int i = 0, len = indexes.size(); i < len; i++) {
-					Map<String, String> indexMap = indexes.get(i);
+					Map<String, Object> indexMap = indexes.get(i);
 					String type = (String) indexMap.get("type");
 					String alias = (String) indexMap.get("alias");
 					List<String> fieldList = com.alibaba.fastjson.JSONArray.parseArray(JSON.toJSONString(indexMap.get("field")),
