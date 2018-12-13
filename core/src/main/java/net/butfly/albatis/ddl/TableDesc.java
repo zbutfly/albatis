@@ -22,6 +22,7 @@ public class TableDesc extends Desc<TableDesc> {
 	private final Map<String, FieldDesc> fields = Maps.of();
 	// options
 	public final List<List<String>> keys = Colls.list();
+	public final List<Map<String, Object>> indexes = Colls.list();
 	// extras, deprecated into options
 	public Map<String, Object> construct = null;
 	public boolean destruct = false;
@@ -51,6 +52,7 @@ public class TableDesc extends Desc<TableDesc> {
 				if (t.fields.containsKey(k)) kk.add(k);
 			if (!kk.isEmpty()) t.keys.add(kk);
 		}
+		if(!parent.indexes.isEmpty()) t.indexes.addAll(parent.indexes);
 		return t;
 	}
 
