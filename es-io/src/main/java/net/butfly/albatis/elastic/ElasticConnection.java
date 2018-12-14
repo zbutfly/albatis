@@ -1,22 +1,6 @@
 package net.butfly.albatis.elastic;
 
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-
-import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
-import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
-import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
-import org.elasticsearch.action.admin.indices.mapping.put.PutMappingResponse;
-import org.elasticsearch.client.transport.TransportClient;
-
 import com.hzcominfo.albatis.nosql.NoSqlConnection;
-
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.serder.JsonSerder;
 import net.butfly.albacore.utils.collection.Colls;
@@ -24,6 +8,15 @@ import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.io.Input;
 import net.butfly.albatis.io.Rmap;
+import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
+import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
+import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
+import org.elasticsearch.action.admin.indices.mapping.put.PutMappingResponse;
+import org.elasticsearch.client.transport.TransportClient;
+
+import java.io.IOException;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 public class ElasticConnection extends NoSqlConnection<TransportClient> implements ElasticConnect {
     public ElasticConnection(URISpec uri, Map<String, String> props) throws IOException {
@@ -106,16 +99,7 @@ public class ElasticConnection extends NoSqlConnection<TransportClient> implemen
     }
 
     @Override
-    public boolean judge(String dbName, String table) {
-        String[] s = String.valueOf(table).split("/");
-        String index = null;
-        String type = null;
-        if (s.length == 2) {
-            index = s[0];
-            type = s[1];
-        } else if (s.length == 1) {
-            type = index = s[0];
-        }
+    public boolean judge(String index, String type) {
         boolean exists = false;
         try (ElasticConnection elasticConnection = new ElasticConnection(new URISpec(uri.toString()))) {
             IndicesExistsRequest existsRequest = new IndicesExistsRequest(index);
