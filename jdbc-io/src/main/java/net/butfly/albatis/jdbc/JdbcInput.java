@@ -33,6 +33,7 @@ public class JdbcInput extends net.butfly.albacore.base.Namedly implements OddIn
 		opening(this::openJdbc);
 		closing(this::closeJdbc);
 	}
+
 	public JdbcInput(final String name, JdbcConnection conn, String tableName) throws IOException, SQLException {
 		super(name);
 		this.tableName = tableName;
@@ -44,7 +45,6 @@ public class JdbcInput extends net.butfly.albacore.base.Namedly implements OddIn
 	public void query(String sql, Object... params) throws SQLException {
 		logger().debug("[" + name + "] query begin...");
 		conn = jdbc.client.getConnection();
-		conn.setTransactionIsolation(Connection.TRANSACTION_READ_UNCOMMITTED);
 		stat = conn.prepareStatement(sql);
 		stat.setFetchDirection(ResultSet.FETCH_FORWARD);
 		stat.setFetchSize(100);
@@ -114,7 +114,7 @@ public class JdbcInput extends net.butfly.albacore.base.Namedly implements OddIn
 						logger().error("SQL Error on JDBC column fetching", e);
 						v = null;
 					}
-					if(null != v)r.put(colNames[i], v);
+					if (null != v) r.put(colNames[i], v);
 				}
 				return new Rmap(tableName, r);
 			} finally {
