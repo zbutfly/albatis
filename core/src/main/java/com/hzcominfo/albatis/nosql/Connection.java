@@ -10,6 +10,7 @@ import java.util.ServiceLoader;
 
 import com.hzcominfo.albatis.nosql.EnvironmentConnection.$env$;
 
+import net.butfly.albacore.exception.NotImplementedException;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.io.lambda.Function;
 import net.butfly.albacore.serder.BsonSerder;
@@ -146,12 +147,20 @@ public interface Connection extends AutoCloseable, IOFactory {
 	}
 
 	// DDL
+	default void construct(String table,TableDesc tableDesc, List<FieldDesc> fields){
+		logger.warn("Constructing invoked but not implemented, ignore.");
+	}
+
 	default void construct(String table, FieldDesc... fields) {
 		logger.warn("Constructing invoked but not implemented, ignore.");
 	}
 
 	default void construct(Map<String, Object> tableConfig, FieldDesc... fields) {
 		logger.warn("Constructing invoked but not implemented, ignore.");
+	}
+
+	default boolean judge(String table){
+		throw new NotImplementedException();
 	}
 
 	default void destruct(String table) {
