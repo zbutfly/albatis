@@ -11,7 +11,9 @@ import java.util.List;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import net.butfly.albatis.ddl.Field;
+import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.ddl.TableCustomSet;
+import net.butfly.albatis.ddl.TableDesc;
 import org.apache.kudu.ColumnSchema;
 import org.apache.kudu.Schema;
 import org.apache.kudu.Type;
@@ -152,60 +154,59 @@ public class KuduConnection extends KuduConnectionBase<KuduConnection, KuduClien
         logger.info("Kudu table [" + table + "] created successfully.");
     }
 
-    /**
-     * kudu create table
-     *
-     * @param url
-     * @param table
-     * @param fields
-     * @param tableCustomSet
-     */
-    public void createKuduTable(String url, String table, List<Field> fields, TableCustomSet tableCustomSet) {
-        try (KuduClient client = new KuduClient.KuduClientBuilder(new URISpec(url).getHost()).defaultAdminOperationTimeoutMs(600000).build()) {
-            List<ColumnSchema> columns = new ArrayList();
-            List<ColumnSchema> columns2 = new ArrayList();
-            List<String> keys = new ArrayList<>();
-            CreateTableOptions tableOptions = new CreateTableOptions();
-            for (Field field : fields) {
-                // 创建列
-                if (tableCustomSet.getKeys().get(0).contains(field.getFieldName())) {
-                    Type type = buildKuduFieldType(field);
-                    ColumnSchema.ColumnSchemaBuilder keyBuilder = new ColumnSchema.ColumnSchemaBuilder(field.getFieldName(), type).encoding(type.equals(Type.STRING) ? ColumnSchema.Encoding.DICT_ENCODING
-                            : ColumnSchema.Encoding.BIT_SHUFFLE).compressionAlgorithm(ColumnSchema.CompressionAlgorithm.LZ4).nullable(false).key(true);
-                    columns2.add(keyBuilder.build());
-                    keys.add(field.getFieldName());
-                } else {
-                    Type type = buildKuduFieldType(field);
-                    ColumnSchema.ColumnSchemaBuilder builder = new ColumnSchema.ColumnSchemaBuilder(field.getFieldName(), type).encoding(type.equals(Type.STRING) ? ColumnSchema.Encoding.DICT_ENCODING
-                            : ColumnSchema.Encoding.BIT_SHUFFLE).compressionAlgorithm(ColumnSchema.CompressionAlgorithm.LZ4).nullable(true).key(false);
-                    columns.add(builder.build());
-                }
-            }
-            columns.forEach(column -> columns2.add(column));
-            // 创建schema
-            Schema schema = new Schema(columns2);
-            if (null == tableCustomSet.getOptions() || tableCustomSet.getOptions().size() == 0) {
-                tableOptions.addHashPartitions(keys, 3);
-                client.createTable(table, schema, tableOptions);
+
+    @Override
+    public void construct(String dbName, String table, TableDesc tableDesc, List<FieldDesc> fields) {
+        List<ColumnSchema> columns = new ArrayList();
+        List<ColumnSchema> columns2 = new ArrayList();
+        List<String> keys = new ArrayList<>();
+        CreateTableOptions tableOptions = new CreateTableOptions();
+        for (FieldDesc field : fields) {
+            // 创建列
+            if (tableDesc.keys.get(0).contains(field.name)) {
+                Type type = buildKuduFieldType(field);
+                ColumnSchema.ColumnSchemaBuilder keyBuilder = new ColumnSchema.ColumnSchemaBuilder(field.name, type).encoding(type.equals(Type.STRING) ? ColumnSchema.Encoding.DICT_ENCODING
+                        : ColumnSchema.Encoding.BIT_SHUFFLE).compressionAlgorithm(ColumnSchema.CompressionAlgorithm.LZ4).nullable(false).key(true);
+                columns2.add(keyBuilder.build());
+                keys.add(field.name);
             } else {
-                // 设置hash分区和数量
-                String bucket = JSONObject.parseObject(JSON.toJSONString(tableCustomSet.getOptions().get("bucket")), String.class);
-                if (null == bucket)
-                    //用列做为分区的参照
-                    tableOptions.setRangePartitionColumns(keys);
-                else
-                    // 添加key的hash分区
-                    tableOptions.addHashPartitions(keys, Integer.parseInt(bucket));
-                // 创建table,并设置partition
-                client.createTable(table, schema, tableOptions);
+                Type type = buildKuduFieldType(field);
+                ColumnSchema.ColumnSchemaBuilder builder = new ColumnSchema.ColumnSchemaBuilder(field.name, type).encoding(type.equals(Type.STRING) ? ColumnSchema.Encoding.DICT_ENCODING
+                        : ColumnSchema.Encoding.BIT_SHUFFLE).compressionAlgorithm(ColumnSchema.CompressionAlgorithm.LZ4).nullable(true).key(false);
+                columns.add(builder.build());
             }
-        } catch (KuduException e) {
-            throw new RuntimeException("create kudu failure  " + e);
+        }
+        columns.forEach(column -> columns2.add(column));
+
+        // 创建schema
+        Schema schema = new Schema(columns2);
+        if (null == tableDesc.construct || tableDesc.construct.size() == 0) {
+            tableOptions.addHashPartitions(keys, 3);
+            try {
+                client.createTable(table, schema, tableOptions);
+            } catch (KuduException e1) {
+                e1.printStackTrace();
+            }
+        } else {
+            // 设置hash分区和数量
+            String bucket = JSONObject.parseObject(JSON.toJSONString(tableDesc.construct.get("bucket")), String.class);
+            if (null == bucket)
+                //用列做为分区的参照
+                tableOptions.setRangePartitionColumns(keys);
+            else
+                // 添加key的hash分区
+                tableOptions.addHashPartitions(keys, Integer.parseInt(bucket));
+            // 创建table,并设置partition
+            try {
+                client.createTable(table, schema, tableOptions);
+            } catch (KuduException e) {
+                e.printStackTrace();
+            }
         }
     }
 
-    private static Type buildKuduFieldType(Field field) {
-        switch (field.getType().flag) {
+    private Type buildKuduFieldType(FieldDesc field) {
+        switch (field.type.flag) {
             case SHORT:
                 return Type.INT8;
             case INT:
@@ -232,18 +233,12 @@ public class KuduConnection extends KuduConnectionBase<KuduConnection, KuduClien
         }
     }
 
-    /**
-     * judge kudu whether create table
-     *
-     * @param url
-     * @param table
-     * @return
-     */
-    public boolean judgeKudu(String url, String table) {
+    @Override
+    public boolean judge(String dbName, String table) {
         boolean exists = false;
-        try (KuduClient client = new KuduClient.KuduClientBuilder(new URISpec(url).getHost()).build()) {
+        try {
             exists = client.tableExists(table);
-        } catch (IOException e) {
+        } catch (KuduException e) {
             e.printStackTrace();
         }
         return exists;

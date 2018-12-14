@@ -1,33 +1,21 @@
 package net.butfly.albatis.mongodb;
 
-import java.io.IOException;
-import java.net.UnknownHostException;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
-import net.butfly.albatis.ddl.TableCustomSet;
-import org.bson.BSONObject;
-
-import com.hzcominfo.albatis.nosql.Connection;
+import com.google.common.base.Joiner;
 import com.hzcominfo.albatis.nosql.NoSqlConnection;
-import com.mongodb.BasicDBList;
-import com.mongodb.BasicDBObject;
-import com.mongodb.Cursor;
-import com.mongodb.DB;
-import com.mongodb.DBCollection;
-import com.mongodb.DBObject;
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientURI;
-
+import com.mongodb.*;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
+import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.ddl.TableDesc;
+import org.bson.BSONObject;
+
+import java.io.IOException;
+import java.net.UnknownHostException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 
 /**
  * @author butfly
@@ -233,46 +221,21 @@ public class MongoConnection extends NoSqlConnection<MongoClient> {
         return new MongoOutput("MongoOutput", this);
     }
 
-    /**
-     * mongodb create collection
-     *
-     * @param url
-     * @param table
-     * @param tableCustomSet
-     */
-    public void createMongodbCollection(String url, String table, TableCustomSet tableCustomSet) {
-        try (MongoConnection mongoConnection = new MongoConnection(new URISpec(url))) {
-            DB db = mongoConnection.db();
+
+    @Override
+    public void construct(String dbName,String table,TableDesc tableDesc, List<FieldDesc> fields){
+            DB db = client.getDB(dbName);
             DBObject object = new BasicDBObject();
-            Map<String, Object> options = tableCustomSet.getOptions();
-            JSONObject capped = JSONObject.parseObject(JSON.toJSONString(options.get("capped")), JSONObject.class);
-            Iterator i = capped.keySet().iterator();
-            while (i.hasNext()) {
-                String k = (String) i.next();
-                Object v = capped.get(k);
-                object.put(k, v);
-            }
+            Object cappedSize = tableDesc.construct.get("capped_size");
+            Object cappedMax = tableDesc.construct.get("capped_max");
+            object.put("capped_size", cappedSize);
+            object.put("capped_max", cappedMax);
             db.createCollection(table, object);
-        } catch (IOException e) {
-            throw new RuntimeException("create mongodb collection failure  " + e);
-        }
     }
 
-    /**
-     *judge mongodb whether create collection
-     *
-     * @param url
-     * @param table
-     * @return
-     */
-    public boolean judgeMongo(String url, String table) {
-        boolean exists = false;
-        try (MongoConnection mongoConnection = new MongoConnection(new URISpec(url))) {
-            DB db = mongoConnection.db();
-            exists = db.getCollectionNames().contains(table);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return exists;
+    @Override
+    public boolean judge(String dbName, String table) {
+        DB db = client.getDB(dbName);
+        return db.getCollectionNames().contains(table);
     }
 }

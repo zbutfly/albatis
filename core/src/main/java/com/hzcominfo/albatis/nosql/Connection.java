@@ -147,7 +147,7 @@ public interface Connection extends AutoCloseable, IOFactory {
 	}
 
 	// DDL
-	default void construct(String table,TableDesc tableDesc, List<FieldDesc> fields){
+	default void construct(String dbName,String table,TableDesc tableDesc, List<FieldDesc> fields){
 		logger.warn("Constructing invoked but not implemented, ignore.");
 	}
 
@@ -159,7 +159,7 @@ public interface Connection extends AutoCloseable, IOFactory {
 		logger.warn("Constructing invoked but not implemented, ignore.");
 	}
 
-	default boolean judge(String table){
+	default boolean judge(String dbName,String table){
 		throw new NotImplementedException();
 	}
 

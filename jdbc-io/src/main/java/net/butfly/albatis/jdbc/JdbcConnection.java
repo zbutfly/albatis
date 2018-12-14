@@ -54,7 +54,7 @@ public class JdbcConnection extends NoSqlConnection<DataSource> {
     }
 
     @Override
-    public void construct(String table, TableDesc tableDesc, List<FieldDesc> fields) {
+    public void construct(String dbName,String table, TableDesc tableDesc, List<FieldDesc> fields) {
         try (Connection conn = client.getConnection()) {
             if (uri.getScheme().startsWith("jdbc:mysql:"))
                 new MysqlDialect().tableConstruct(conn, table, tableDesc, fields);
@@ -70,7 +70,7 @@ public class JdbcConnection extends NoSqlConnection<DataSource> {
     }
 
     @Override
-    public boolean judge(String table) {
+    public boolean judge(String dbName,String table) {
         try (Connection conn = client.getConnection()) {
             if (uri.getScheme().startsWith("jdbc:mysql:") ||
                     uri.getScheme().startsWith("jdbc:oracle:thin") ||

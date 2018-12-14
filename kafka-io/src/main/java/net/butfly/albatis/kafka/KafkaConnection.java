@@ -1,24 +1,21 @@
 package net.butfly.albatis.kafka;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Properties;
-
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
 import com.hzcominfo.albatis.nosql.Connection;
 import com.hzcominfo.albatis.nosql.NoSqlConnection;
-
 import kafka.admin.AdminUtils;
 import kafka.admin.RackAwareMode;
 import kafka.utils.ZkUtils;
 import net.butfly.albacore.exception.ConfigException;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.collection.Colls;
-import net.butfly.albatis.ddl.TableCustomSet;
+import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.ddl.TableDesc;
 import org.apache.kafka.common.security.JaasUtils;
 import scala.collection.JavaConversions;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Properties;
 
 public class KafkaConnection extends NoSqlConnection<Connection> {
     public KafkaConnection(URISpec uri) throws IOException {
@@ -65,39 +62,22 @@ public class KafkaConnection extends NoSqlConnection<Connection> {
         return null;
     }
 
-    /**
-     * create kafka topic
-     *
-     * @param url
-     * @param table
-     * @param tableCustomSet
-     */
-    public void createKafkaTopic(String url, String table, TableCustomSet tableCustomSet) {
-        if (url.endsWith("kafka")) {
-            //url: zookeeper地址：端口号
-            String kafkaUrl = url.substring(url.indexOf("//") + 2);
-            //sessionTimeoutMs, connectionTimeoutMs
-            ZkUtils zkUtils = ZkUtils.apply(kafkaUrl, 30000, 30000, JaasUtils.isZkSecurityEnabled());
-            JSONObject topic = JSONObject.parseObject(JSON.toJSONString(tableCustomSet.getOptions().get("topic")), JSONObject.class);
-            AdminUtils.createTopic(zkUtils, table, (Integer) topic.get("partition"), (Integer) topic.get("replication"), new Properties(), new RackAwareMode.Enforced$());
-            logger().info("create kafka topic successful");
-            zkUtils.close();
-        }
+    @Override
+    public void construct(String dbName, String table, TableDesc tableDesc, List<FieldDesc> fields) {
+        String kafkaUrl = uri.getHost()+"/kafka";
+        ZkUtils zkUtils = ZkUtils.apply(kafkaUrl, 30000, 30000, JaasUtils.isZkSecurityEnabled());
+        Integer partition = (Integer) tableDesc.construct.get("partition");
+        Integer replication = (Integer) tableDesc.construct.get("replication");
+        AdminUtils.createTopic(zkUtils, table, partition, replication, new Properties(), new RackAwareMode.Enforced$());
+        logger().info("create kafka topic successful");
+        zkUtils.close();
     }
 
-    /**
-     * judge kafka whether create topic
-     *
-     * @param url
-     * @param table
-     * @return
-     */
-    public boolean judgeKafka(String url, String table) {
-        if (url.endsWith("kafka")) {
-            String kafkaUrl = url.substring(url.indexOf("//") + 2);
-            ZkUtils zkUtils = ZkUtils.apply(kafkaUrl, 30000, 30000, JaasUtils.isZkSecurityEnabled());
-            List<String> topics = JavaConversions.seqAsJavaList(zkUtils.getAllTopics());
-            return topics.contains(table);
-        } else return false;
+    @Override
+    public boolean judge(String dbName, String table) {
+        String kafkaUrl = uri.getHost()+"/kafka";
+        ZkUtils zkUtils = ZkUtils.apply(kafkaUrl, 30000, 30000, JaasUtils.isZkSecurityEnabled());
+        List<String> topics = JavaConversions.seqAsJavaList(zkUtils.getAllTopics());
+        return topics.contains(table);
     }
 }
