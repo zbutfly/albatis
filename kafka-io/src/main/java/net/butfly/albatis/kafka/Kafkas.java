@@ -27,4 +27,8 @@ public interface Kafkas {
 	static KeyedMessage<byte[], byte[]> toKeyedMessage(Rmap m, Function<Map<String, Object>, byte[]> ser) {
 		return null == m.key() ? null : new KeyedMessage<>(m.table(), m.keyBytes(), ser.apply(m.map()));
 	}
+
+	static List<Rmap> strMessages(MessageAndMetadata<String, String> km, Function<String, List<Map<String, Object>>> der) {
+		return der.apply(km.message()).stream().map(m -> new Rmap(km.topic(), km.key(), m)).collect(Collectors.toList());
+	}
 }

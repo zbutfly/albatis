@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Properties;
 
 import org.apache.kafka.common.config.ConfigException;
+import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 
 import com.google.common.base.Joiner;
@@ -27,6 +28,8 @@ public abstract class KafkaConfigBase implements Serializable {
 	protected final long transferBufferBytes;
 	protected String keySerializerClass;
 	protected String valueSerializerClass;
+	protected String keyDeserializerClass;
+	protected String valueDeserializerClass;
 
 	private final long poolSize;
 	protected final List<String> topics;
@@ -102,6 +105,8 @@ public abstract class KafkaConfigBase implements Serializable {
 		transferBufferBytes = Long.valueOf(props.getOrDefault("socketBuffer", Long.toString(5 * 1024 * 1024)));
 		keySerializerClass = props.getOrDefault("kserial", ByteArraySerializer.class.getName());
 		valueSerializerClass = props.getOrDefault("vserial", ByteArraySerializer.class.getName());
+		keyDeserializerClass = props.getOrDefault("kdeserial", ByteArrayDeserializer.class.getName());
+		valueDeserializerClass = props.getOrDefault("vdeserial", ByteArrayDeserializer.class.getName());
 		poolSize = Long.parseLong(props.getOrDefault("pool", "3000000"));
 		topics = new ArrayList<>(new HashSet<>(Texts.split(props.getOrDefault("topics", "") + "," + props.getOrDefault("topic", ""), ",")));
 		backoffMs = Long.parseLong(props.getOrDefault("backoff", "100"));
@@ -113,6 +118,8 @@ public abstract class KafkaConfigBase implements Serializable {
 		if (null != bootstrapServers) props.setProperty("bootstrap.servers", bootstrapServers);
 		if (null != keySerializerClass) props.setProperty("key.serializer", keySerializerClass);
 		if (null != valueSerializerClass) props.setProperty("value.serializer", valueSerializerClass);
+		if (null != keyDeserializerClass) props.setProperty("key.deserializer", keyDeserializerClass);
+		if (null != valueDeserializerClass) props.setProperty("value.deserializer", valueDeserializerClass);
 		props.setProperty("connections.max.idle.ms", Long.toString(Long.MAX_VALUE));
 
 		return props;
