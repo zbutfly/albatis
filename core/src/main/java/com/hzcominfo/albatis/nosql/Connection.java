@@ -210,4 +210,15 @@ public interface Connection extends AutoCloseable, IOFactory {
 			return BsonSerder::maps;
 		}
 	}
+
+	static Function<String, List<Map<String, Object>>> strUriders(URISpec uri) {
+		String sd = null == uri ? "bson" : uri.getParameter("serder", "bson").toLowerCase();
+		switch (sd) {
+		case "json":
+			return m -> JsonSerder.JSON_MAPPER.ders(m);
+		default:
+			logger.warn("Current only support \"serder=bson|json\", \"" + sd + "\" is not supported, use bson by failback.");
+			return m -> JsonSerder.JSON_MAPPER.ders(m);
+		}
+	}
 }
