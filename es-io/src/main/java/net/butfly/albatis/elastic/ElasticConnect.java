@@ -65,8 +65,8 @@ public interface ElasticConnect extends Connection {
 		static Map<String, Object> fetchMetadata(InetSocketAddress... rest) {
 			if (_logger.isDebugEnabled()) _logger.debug("Fetch transport nodes meta from: " + of(rest).joinAsString(
 					InetSocketAddress::toString, ","));
-			try (RestClient client = RestClient.builder(Arrays.stream(rest).map(a -> new HttpHost(a.getHostName(), a.getPort())).toArray(
-					i -> new HttpHost[i])).build();) {
+			HttpHost[] v = Arrays.stream(rest).map(a -> new HttpHost(a.getHostName(), a.getPort())).toArray(i -> new HttpHost[i]);
+			try (RestClient client = RestClient.builder(v).build();) {
 				Response rep;
 				rep = client.performRequest("GET", "_nodes");
 				if (rep.getStatusLine().getStatusCode() != 200) throw new IOException(

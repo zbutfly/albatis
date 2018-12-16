@@ -48,10 +48,9 @@ public class KafkaInput extends net.butfly.albacore.base.Namedly implements Inpu
 	// for debug
 	private final AtomicLong skip;
 
-	private final Function<byte[], List<Map<String, Object>>> decoders;
+	private Function<byte[], List<Map<String, Object>>> decoders;
 
-	public KafkaInput(String name, String kafkaURI, String... topics) throws ConfigException,
-			IOException {
+	public KafkaInput(String name, String kafkaURI, String... topics) throws ConfigException, IOException {
 		this(name, new URISpec(kafkaURI), topics);
 	}
 
@@ -59,14 +58,13 @@ public class KafkaInput extends net.butfly.albacore.base.Namedly implements Inpu
 		this(name, kafkaURI, topic(kafkaURI).toArray(new String[0]));
 	}
 
-	private static Collection<String> topic(URISpec kafkaURI) {
+	protected static Collection<String> topic(URISpec kafkaURI) {
 		String topics = kafkaURI.getParameter("topic", kafkaURI.getFile());
 		if (null == topics) throw new RuntimeException("Kafka topic not defined, as File segment of uri or [topic=TOPIC1,TOPIC2,...]");
 		return Texts.split(topics, ",");
 	}
 
-	public KafkaInput(String name, URISpec uri, String... topics) throws ConfigException,
-			IOException {
+	public KafkaInput(String name, URISpec uri, String... topics) throws ConfigException, IOException {
 		super(name);
 		this.decoders = Connection.uriders(uri);
 		config = new KafkaInputConfig(name(), uri);
@@ -155,5 +153,9 @@ public class KafkaInput extends net.butfly.albacore.base.Namedly implements Inpu
 		} catch (Exception e) {
 			logger().error("[" + name() + "] shutdown fail", e);
 		}
+	}
+
+	protected final void decoder(Function<byte[], List<Map<String, Object>>> decoder) {
+		this.decoders = decoder;
 	}
 }

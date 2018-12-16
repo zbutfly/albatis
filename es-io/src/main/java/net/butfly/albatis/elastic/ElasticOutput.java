@@ -70,8 +70,8 @@ public class ElasticOutput extends OutputBase<Rmap> {
 		// int size = remains.size();
 		try {
 			while (!remains.isEmpty() && retry++ <= MAX_RETRY) {
-				@SuppressWarnings("rawtypes")
-				List<DocWriteRequest> reqs = of(remains.values()).map(Elastics::forWrite).list();
+				List<DocWriteRequest<?>> reqs = Colls.list();
+				remains.values().forEach(r -> reqs.add(Elastics.forWrite(r)));
 				if (reqs.isEmpty()) return;
 				BulkRequest bulk = new BulkRequest().add(reqs);
 				process(remains, s().statsOut(bulk, b -> {

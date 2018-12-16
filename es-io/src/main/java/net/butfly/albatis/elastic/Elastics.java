@@ -14,8 +14,7 @@ import net.butfly.albacore.utils.Pair;
 import net.butfly.albatis.io.Rmap;
 
 public class Elastics {
-	@SuppressWarnings("rawtypes")
-	public static DocWriteRequest forWrite(Rmap m) {
+	public static DocWriteRequest<?> forWrite(Rmap m) {
 		Pair<String, String> it = dessemble(m.table());
 		if (null == m.key()) return null;
 		switch (m.op()) {

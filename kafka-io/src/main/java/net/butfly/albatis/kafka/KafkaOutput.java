@@ -20,12 +20,12 @@ import net.butfly.albatis.kafka.config.KafkaOutputConfig;
 /**
  * @author zx
  */
-public final class KafkaOutput extends OutputBase<Rmap> {
+public class KafkaOutput extends OutputBase<Rmap> {
 	private static final long serialVersionUID = -7619558227408835825L;
 	private final URISpec uri;
 	private final KafkaOutputConfig config;
 	private final Producer<byte[], byte[]> producer;
-	private final Function<Map<String, Object>, byte[]> coder;
+	private Function<Map<String, Object>, byte[]> coder;
 
 	public KafkaOutput(String name, URISpec kafkaURI) throws ConfigException {
 		super(name);
@@ -34,11 +34,6 @@ public final class KafkaOutput extends OutputBase<Rmap> {
 		config = new KafkaOutputConfig(uri);
 		producer = new Producer<byte[], byte[]>(config.getConfig());
 		closing(producer::close);
-	}
-
-	@Override
-	public URISpec target() {
-		return uri;
 	}
 
 	@Override
@@ -63,5 +58,14 @@ public final class KafkaOutput extends OutputBase<Rmap> {
 
 	public String getDefaultTopic() {
 		return config.topics().isEmpty() ? null : config.topics().get(0);
+	}
+
+	public void coder(Function<Map<String, Object>, byte[]> c) {
+		this.coder = c;
+	}
+
+	@Override
+	public URISpec target() {
+		return uri;
 	}
 }

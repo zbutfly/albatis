@@ -1,5 +1,16 @@
 package net.butfly.albatis.kudu;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+
+import org.apache.kudu.client.KuduException;
+import org.apache.kudu.client.KuduScanner;
+import org.apache.kudu.client.RowResult;
+
 import net.butfly.albacore.io.lambda.Consumer;
 import net.butfly.albacore.io.lambda.Supplier;
 import net.butfly.albacore.paral.Sdream;
@@ -8,17 +19,6 @@ import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Statistic;
 import net.butfly.albatis.io.Input;
 import net.butfly.albatis.io.Rmap;
-import org.apache.kudu.ColumnSchema;
-import org.apache.kudu.client.KuduException;
-import org.apache.kudu.client.KuduScanner;
-import org.apache.kudu.client.RowResult;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 
 public class KuduInput extends net.butfly.albacore.base.Namedly implements Input<Rmap> {
 

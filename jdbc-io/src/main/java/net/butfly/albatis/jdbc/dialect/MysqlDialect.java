@@ -25,11 +25,10 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
-import com.alibaba.fastjson.JSON;
-
 import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.io.Rmap;
+import net.butfly.albatis.io.utils.JsonUtils;
 
 @DialectFor(subSchema = "mysql", jdbcClassname = "com.mysql.cj.jdbc.Driver")
 public class MysqlDialect extends Dialect {
@@ -86,7 +85,7 @@ public class MysqlDialect extends Dialect {
 				Map<String, Object> indexMap = indexes.get(i);
 				String type = (String) indexMap.get("type");
 				String alias = (String) indexMap.get("alias");
-				List<String> fieldList = com.alibaba.fastjson.JSONArray.parseArray(JSON.toJSONString(indexMap.get("field")), String.class);
+				List<String> fieldList = JsonUtils.parseFieldsByJson(indexMap.get("field"));
 				createIndex.append(type).append(" ").append(alias).append("(")//
 						.append(String.join(",", fieldList.toArray(new String[0]))).append(")");
 				if (i < len - 1) createIndex.append(",");
