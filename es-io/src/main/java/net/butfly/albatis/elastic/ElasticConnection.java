@@ -72,8 +72,7 @@ public class ElasticConnection extends NoSqlConnection<TransportClient> implemen
 	@Override
 	public void construct(Map<String, Object> indexConfig, FieldDesc... fields) {
 		if (indexConfig == null || indexConfig.isEmpty()) throw new RuntimeException("Please at least put index/type into indexConfig!");
-		String[] table = String.valueOf(indexConfig.get("index/type")).split("/");
-		indexConfig.remove("index/type");
+		String[] table = String.valueOf(indexConfig.remove("index/type")).split("/");
 		String index, type;
 		if (table.length == 2) {
 			index = table[0];
@@ -81,7 +80,7 @@ public class ElasticConnection extends NoSqlConnection<TransportClient> implemen
 		} else if (table.length == 1) {
 			type = index = table[0];
 		} else throw new RuntimeException("Please type in corrent es table format: index/type !");
-		MappingConstructor cstr = new MappingConstructor();
+		MappingConstructor cstr = new MappingConstructor(indexConfig);
 		Map<String, Object> mapping = cstr.construct(fields);
 		logger().debug("Mapping constructing: " + mapping);
 		if (client.admin().indices().prepareExists(index).execute().actionGet().isExists()) {

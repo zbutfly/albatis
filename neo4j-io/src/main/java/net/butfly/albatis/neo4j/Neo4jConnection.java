@@ -10,27 +10,33 @@ import com.hzcominfo.albatis.nosql.NoSqlConnection;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.collection.Colls;
+import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.io.Input;
-import net.butfly.albatis.io.Message;
 import net.butfly.albatis.io.Output;
+import net.butfly.albatis.io.Rmap;
 
 public class Neo4jConnection extends NoSqlConnection<org.neo4j.driver.v1.Driver> {
 	public Neo4jConnection(URISpec uri) throws IOException {
-		super(uri, u -> GraphDatabase.driver(u.toString(), AuthTokens.basic(u.getUsername(), u.getPassword())), 7687, "bolt", "neo4j");
+		super(uri, 7687, "neo4j", "bolt");
+	}
+
+	@Override
+	protected org.neo4j.driver.v1.Driver initialize(URISpec uri) {
+		return GraphDatabase.driver(uri.toString(), AuthTokens.basic(uri.getUsername(), uri.getPassword()));
 	}
 
 	@Override
 	public void close() throws IOException {
-		client().close();
+		client.close();
 	}
 
 	@Override
-	public <M extends Message> Input<M> input(String... table) throws IOException {
+	public <M extends Rmap> Input<M> input(TableDesc... table) throws IOException {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	public <M extends Message> Output<M> output() throws IOException {
+	public <M extends Rmap> Output<M> output(TableDesc... table) throws IOException {
 		throw new UnsupportedOperationException();
 	}
 

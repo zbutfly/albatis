@@ -61,7 +61,7 @@ public interface ElasticConnect extends Connection {
 	static final class Parser extends Utils {
 		private Parser() {}
 
-		@SuppressWarnings("unchecked")
+		@SuppressWarnings({ "unchecked", "deprecation" })
 		static Map<String, Object> fetchMetadata(InetSocketAddress... rest) {
 			if (_logger.isDebugEnabled()) _logger.debug("Fetch transport nodes meta from: " + of(rest).joinAsString(
 					InetSocketAddress::toString, ","));
@@ -69,8 +69,9 @@ public interface ElasticConnect extends Connection {
 			try (RestClient client = RestClient.builder(v).build();) {
 				Response rep;
 				rep = client.performRequest("GET", "_nodes");
-				if (rep.getStatusLine().getStatusCode() != 200) throw new IOException(
-						"Elastic transport meta parsing failed, connect directly\n\t" + rep.getStatusLine().getReasonPhrase());
+				if (rep.getStatusLine().getStatusCode() != 200) //
+					throw new IOException("Elastic transport meta parsing failed, connect directly\n\t" //
+							+ rep.getStatusLine().getReasonPhrase());
 				return JsonSerder.JSON_MAPPER.der(new InputStreamReader(rep.getEntity().getContent()), Map.class);
 			} catch (UnsupportedOperationException | IOException e) {
 				_logger.warn("Elastic transport meta parsing failed, connect directly", e);

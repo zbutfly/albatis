@@ -13,6 +13,7 @@ import com.hzcominfo.albatis.nosql.NoSqlConnection;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.serder.JsonSerder;
+import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.io.Input;
@@ -54,7 +55,7 @@ public class ElasticRestConnection extends NoSqlConnection<RestClient> implement
 	@Override
 	public void construct(String type, FieldDesc... fields) {
 		Map<String, Object> mapping;
-		MappingConstructor cstr = new MappingConstructor();
+		MappingConstructor cstr = new MappingConstructor(Maps.of());
 		mapping = cstr.construct(fields);
 		logger().debug("Mapping constructing: " + mapping);
 		String mappings = JsonSerder.JSON_MAPPER.ser(mapping);
@@ -62,6 +63,7 @@ public class ElasticRestConnection extends NoSqlConnection<RestClient> implement
 		req.source(mapping);
 		// if (null != getDefaultType()) tps.add(getDefaultType());
 		try {
+			@SuppressWarnings("deprecation")
 			StatusLine r = client.performRequest("PUT", getDefaultIndex() + "/_mapping/" + type, new HashMap<>(), new NStringEntity(
 					mappings)).getStatusLine();
 			if (200 != r.getStatusCode()) logger().error("Mapping failed on type [" + type + "]: \n\t" + r.getReasonPhrase());

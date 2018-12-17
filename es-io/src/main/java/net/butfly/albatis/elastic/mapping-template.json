@@ -1,0 +1,34 @@
+{"mappings": {"DPC_TEST_TABLE_5": {
+	"include_in_all": true,
+	// ---固化部分开始---
+	"dynamic": "true", //zx：增加建表参数，默认true，为false的时候不创建dynnamic_template段
+	"dynamic_templates": [
+		{"booleans": {"mapping": {"type": "boolean"}, "match_mapping_type": "boolean", "match": "*_b"}},
+		{"integers": {"mapping": {"type": "integer"}, "match_mapping_type": "long", "match": "*_i"}},
+		{"longs": {"mapping": {"type": "long"}, "match_mapping_type": "long", "match": "*_l"}},
+		{"floats": {"mapping": {"type": "float"}, "match_mapping_type": "double", "match": "*_f"}},
+		{"doubles": {"mapping": {"type": "double"}, "match_mapping_type": "double", "match": "*_d"}},
+		{"dates": {"mapping": {"type": "date"}, "match_mapping_type": "date", "match": "*_dt"}},
+		{"keyword_strings": {"mapping": {"type": "keyword"}, "match_mapping_type": "string", "match": "*_s"}},
+		// 因为这个analyzer的值是全局设定，允许和字段设定的不一样，建议设置一个系统变量来获取并设置
+		{"analyzed_strings": {"mapping": {"type": "text", "analyzer": "hanlp"}, "match_mapping_type": "string", "match": "*_tcn"}},
+		{"geo_points": {"mapping": {"type": "geo_point"}, "match_mapping_type": "string", "match": "*_rpt"}},
+		{"blobs": {"mapping": {"type": "binary"}, "match_mapping_type": "string", "match": "*_bin"}},
+	], 
+	// ---固化部分结束---
+	"properties": {
+		"fullText": {"type": "text", "analyzer": "hanlp"},
+		"BOOLEAN_FIELD_b": {"type": "boolean"},
+		"STRING_NOT_ANALYZE_FIELD_s": {"type": "keyword"},
+		"INTEGER_FIELD_i": {"type": "integer"},
+		"LONG_FIELD_l": {"type": "long"},
+		"DOUBLE_FIELD_d": {"type": "double", "copy_to": ["FIELD_NAME"]},
+		"FLOAT_FIELD_f": {"type": "float", "copy_to": "FIELD_NAME"} ,
+		"DATE_FIELD_dt": {"type": "date", "copy_to": ["FIELD1_NAME1", "FIELD2_NAME"]},
+		// STRING输出字段，直接取 DPC 字段映射 SQL 结果里面的DST_SEG_MODE的值，如果不为NULL，那么加上analyzer这个分词器设定。
+		"STRING_ANALYZE_FIELD_tcn": {"type": "text", "analyzer": "hanlp"}, 
+		// STRING输出字段，直接取 DPC 字段映射 SQL 结果里面的DST_SEG_MODE的值，如果为NULL，不需要加上analyzer这个分词器设定。
+		"GEO_POINT_FIELD_rpt": {"type": "geo_point"},
+		"BINARY_FIELD_bin": {"type": "binary"},
+	}
+}}}
