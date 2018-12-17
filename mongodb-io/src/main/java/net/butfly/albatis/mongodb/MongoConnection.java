@@ -226,10 +226,11 @@ public class MongoConnection extends NoSqlConnection<MongoClient> {
     public void construct(String dbName,String table,TableDesc tableDesc, List<FieldDesc> fields){
             DB db = client.getDB(dbName);
             DBObject object = new BasicDBObject();
-            Object cappedSize = tableDesc.construct.get("capped_size");
-            Object cappedMax = tableDesc.construct.get("capped_max");
-            object.put("capped_size", cappedSize);
-            object.put("capped_max", cappedMax);
+            Object cappedSize = tableDesc.construct.get("size");
+            Object cappedMax = tableDesc.construct.get("max");
+            object.put("capped",true);
+            object.put("size", cappedSize);
+            object.put("max", cappedMax);
             db.createCollection(table, object);
     }
 
