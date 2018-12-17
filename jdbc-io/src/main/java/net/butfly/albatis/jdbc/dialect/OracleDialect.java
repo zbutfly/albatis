@@ -93,13 +93,12 @@ public class OracleDialect extends Dialect {
 		sb.append("create table ").append(table).append("(").append(String.join(",", fieldSql.toArray(new String[0]))).append(")");
 		try (Statement statement = conn.createStatement()) {
 			statement.addBatch(sb.toString());
-			if (null != indexes) {
-				for (int i = 0, len = indexes.size(); i < len; i++) {
+			if (!indexes.isEmpty()) {
+				for (Map<String, Object> index : indexes) {
 					StringBuilder createIndex = new StringBuilder();
-					Map<String, Object> indexMap = indexes.get(i);
-					String type = (String) indexMap.get("type");
-					String alias = (String) indexMap.get("alias");
-					List<String> fieldList = JsonUtils.parseFieldsByJson(indexMap.get("field"));
+					String type = (String) index.get("type");
+					String alias = (String) index.get("alias");
+					List<String> fieldList = JsonUtils.parseFieldsByJson(index.get("field"));
 					createIndex.append("create ").append(type).append(" ").append(alias).append(" on ").append(table).append("(").append(
 							String.join(",", fieldList.toArray(new String[0]))).append(")");
 					statement.addBatch(createIndex.toString());
