@@ -13,20 +13,21 @@ import io.lettuce.core.api.sync.RedisCommands;
 import io.lettuce.core.codec.RedisCodec;
 import net.butfly.albacore.serder.JsonSerder;
 import net.butfly.albacore.utils.logger.Logger;
+import net.butfly.albatis.io.TypelessInput;
 import net.butfly.albatis.io.OddInput;
 import net.butfly.albatis.io.Rmap;
 import net.butfly.albatis.redis.key.RedisKey;
 
-public class RedisListInput extends net.butfly.albacore.base.Namedly implements OddInput<Rmap> {
+public class RedisListInput extends net.butfly.albacore.base.Namedly implements OddInput<Rmap>, TypelessInput {
 	private static final long serialVersionUID = -1411141076610748159L;
-	
+
 	private static final Logger logger = Logger.getLogger(RedisListInput.class);
 	private final RedisConnection redisConn;
 	private final Object[] keyArr;
 	private final BlockingQueue<RedisKey> keys = new LinkedBlockingQueue<>();
 	private final Map<RedisKey, Boolean> isEmptyMap = new ConcurrentHashMap<>();
 	private final StatefulRedisConnection<?, ?> src;
-	RedisCommands syncCommands;
+	private final RedisCommands syncCommands;
 
 	public RedisListInput(String name, RedisConnection redisConn, RedisCodec<?, ?> redisCodec, Object... tables) {
 		super(name);
@@ -34,7 +35,7 @@ public class RedisListInput extends net.butfly.albacore.base.Namedly implements 
 		this.keyArr = tables;
 		this.src = redisConn.redisClient.connect(redisCodec);
 		syncCommands = src.sync();
-		
+
 	}
 
 	@Override
@@ -56,25 +57,23 @@ public class RedisListInput extends net.butfly.albacore.base.Namedly implements 
 				try {
 					if ("byteArray".equals(redisConn.type)) {
 						byte[] bArr = (byte[]) syncCommands.lpop((byte[]) key.getKey());
-						if (bArr != null)
-							return new Rmap(new String((byte[]) key.getKey()), JsonSerder.JSON_MAPPER.fromBytes(bArr, HashMap.class));
+						if (bArr != null) return new Rmap(new String((byte[]) key.getKey()), JsonSerder.JSON_MAPPER.fromBytes(bArr,
+								HashMap.class));
 					} else if ("string".equals(redisConn.type)) {
 						String eStr = (String) syncCommands.lpop((String) key.getKey());
-						if (eStr != null)
-							return new Rmap((String) key.getKey(), JsonSerder.JSON_MAPPER.der(eStr, HashMap.class));
+						if (eStr != null) return new Rmap((String) key.getKey(), JsonSerder.JSON_MAPPER.der(eStr, HashMap.class));
 					} else {
 						throw new UnsupportedOperationException();
 					}
-				}
-				finally {
+				} finally {
 					if (null != key) keys.offer(key);
 				}
 				return null;
-			} 
+			}
 		}
 		return null;
 	}
-	
+
 	public void closeRedis() {
 		try {
 			redisConn.close();

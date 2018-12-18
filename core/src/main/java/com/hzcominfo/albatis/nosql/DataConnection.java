@@ -12,13 +12,13 @@ import com.hzcominfo.albatis.search.exception.SearchAPIError;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.logger.Loggable;
 
-public abstract class NoSqlConnection<C> implements Connection, Loggable {
+public abstract class DataConnection<C> implements Connection, Loggable {
 	protected final String[] supportedSchemas;
 	public final C client;
 	protected final URISpec uri;
 	protected final Properties parameters;
 
-	public NoSqlConnection() {
+	public DataConnection() {
 		// Required for JAVA SPI
 		uri = null;
 		supportedSchemas = null;
@@ -26,7 +26,7 @@ public abstract class NoSqlConnection<C> implements Connection, Loggable {
 		parameters = null;
 	}
 
-	protected NoSqlConnection(URISpec uri, int defaultPort, String... supportedSchema) throws IOException {
+	protected DataConnection(URISpec uri, int defaultPort, String... supportedSchema) throws IOException {
 		super();
 		supportedSchemas = null != supportedSchema ? supportedSchema : new String[0];
 		this.uri = uri;
@@ -51,7 +51,7 @@ public abstract class NoSqlConnection<C> implements Connection, Loggable {
 		return null;
 	}
 
-	protected NoSqlConnection(URISpec uri, String... supportedSchema) throws IOException {
+	protected DataConnection(URISpec uri, String... supportedSchema) throws IOException {
 		this(uri, -1, supportedSchema);
 	}
 

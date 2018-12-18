@@ -14,12 +14,13 @@ import java.util.List;
 
 import javax.sql.DataSource;
 
-import com.hzcominfo.albatis.nosql.NoSqlConnection;
+import com.hzcominfo.albatis.nosql.DataConnection;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.collection.Colls;
+import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.jdbc.dialect.Dialect;
@@ -29,7 +30,8 @@ import net.butfly.albatis.jdbc.dialect.MysqlDialect;
 import net.butfly.albatis.jdbc.dialect.OracleDialect;
 import net.butfly.albatis.jdbc.dialect.PostgresqlDialect;
 
-public class JdbcConnection extends NoSqlConnection<DataSource> {
+public class JdbcConnection extends DataConnection<DataSource> {
+	private static final Logger logger = Logger.getLogger(JdbcConnection.class);
 	final Dialect dialect;
 
 	public JdbcConnection(URISpec uri) throws IOException {
@@ -43,7 +45,7 @@ public class JdbcConnection extends NoSqlConnection<DataSource> {
 		try {
 			return new HikariDataSource(toConfig(dialect, uri));
 		} catch (Throwable t) {
-			logger.error("jdbc connection fail on [" + uri.toString() + "]");
+			logger().error("jdbc connection fail on [" + uri.toString() + "]");
 			throw new RuntimeException(t);
 		}
 	}
@@ -61,7 +63,7 @@ public class JdbcConnection extends NoSqlConnection<DataSource> {
 					ps.execute();
 					logger().info("Table constructed by:\n\t" + sql);
 				} catch (SQLException e) {
-					logger.error("Table construct failed", e);
+					logger().error("Table construct failed", e);
 				}
 			} else throw new UnsupportedOperationException("Jdbc table create not supported for:" + uri.getScheme());
 		} catch (SQLException e1) {}
@@ -75,7 +77,7 @@ public class JdbcConnection extends NoSqlConnection<DataSource> {
 			if (uri.getScheme().startsWith("jdbc:postgresql") || uri.getScheme().startsWith("jdbc:kingbaseanalyticsdb"))
 				new PostgresqlDialect().tableConstruct(conn, table, tableDesc, fields);
 		} catch (SQLException e) {
-			logger.error("construct table failure", e);
+			logger().error("construct table failure", e);
 		}
 
 	}
@@ -122,7 +124,7 @@ public class JdbcConnection extends NoSqlConnection<DataSource> {
 	}
 
 	@Override
-	public JdbcInput input(TableDesc... sql) throws IOException {
+	public JdbcInput createInput(TableDesc... sql) throws IOException {
 		if (sql.length > 1) throw new UnsupportedOperationException("Multiple sql input");
 		JdbcInput i;
 		try {

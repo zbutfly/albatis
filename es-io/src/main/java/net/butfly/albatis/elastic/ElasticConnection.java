@@ -15,7 +15,7 @@ import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.client.transport.TransportClient;
 
-import com.hzcominfo.albatis.nosql.NoSqlConnection;
+import com.hzcominfo.albatis.nosql.DataConnection;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.serder.JsonSerder;
@@ -25,7 +25,7 @@ import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.io.Input;
 import net.butfly.albatis.io.Rmap;
 
-public class ElasticConnection extends NoSqlConnection<TransportClient> implements ElasticConnect {
+public class ElasticConnection extends DataConnection<TransportClient> implements ElasticConnect {
 	public ElasticConnection(URISpec uri, Map<String, String> props) throws IOException {
 		super(uri.extra(props), 39300, "es", "elastic", "elasticsearch");
 	}
@@ -151,7 +151,7 @@ public class ElasticConnection extends NoSqlConnection<TransportClient> implemen
 	}
 
 	@Override
-	public Input<Rmap> input(TableDesc... table) throws IOException {
+	public Input<Rmap> createInput(TableDesc... table) throws IOException {
 		throw new UnsupportedOperationException();
 	}
 

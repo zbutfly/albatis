@@ -6,7 +6,7 @@ import java.util.List;
 import org.neo4j.driver.v1.AuthTokens;
 import org.neo4j.driver.v1.GraphDatabase;
 
-import com.hzcominfo.albatis.nosql.NoSqlConnection;
+import com.hzcominfo.albatis.nosql.DataConnection;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.collection.Colls;
@@ -15,7 +15,7 @@ import net.butfly.albatis.io.Input;
 import net.butfly.albatis.io.Output;
 import net.butfly.albatis.io.Rmap;
 
-public class Neo4jConnection extends NoSqlConnection<org.neo4j.driver.v1.Driver> {
+public class Neo4jConnection extends DataConnection<org.neo4j.driver.v1.Driver> {
 	public Neo4jConnection(URISpec uri) throws IOException {
 		super(uri, 7687, "neo4j", "bolt");
 	}
@@ -31,7 +31,7 @@ public class Neo4jConnection extends NoSqlConnection<org.neo4j.driver.v1.Driver>
 	}
 
 	@Override
-	public <M extends Rmap> Input<M> input(TableDesc... table) throws IOException {
+	public <M extends Rmap> Input<M> createInput(TableDesc... table) throws IOException {
 		throw new UnsupportedOperationException();
 	}
 

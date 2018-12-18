@@ -1,6 +1,6 @@
 package net.butfly.albatis.solr;
 
-import com.hzcominfo.albatis.nosql.NoSqlConnection;
+import com.hzcominfo.albatis.nosql.DataConnection;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.Config;
 import net.butfly.albacore.utils.Configs;
@@ -42,7 +42,7 @@ import java.util.List;
 import java.util.Map;
 
 @Config(value = "ddl.properties")
-public class SolrConnection extends NoSqlConnection<SolrClient> {
+public class SolrConnection extends DataConnection<SolrClient> {
     private static final Logger logger = Logger.getLogger(SolrConnection.class);
     private static final CloseableHttpClient HTTP_CLIENT = SolrHttpContext.createDefaultHttpclient();
     private static final Map<Class<? extends ResponseParser>, ResponseParser> PARSER_POOL = Maps.of();
@@ -258,7 +258,7 @@ public class SolrConnection extends NoSqlConnection<SolrClient> {
     }
 
     @Override
-    public Input<Rmap> input(TableDesc... table) throws IOException {
+    public Input<Rmap> createInput(TableDesc... table) throws IOException {
         throw new UnsupportedOperationException();
     }
 

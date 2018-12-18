@@ -100,6 +100,7 @@ public class Rmap extends ConcurrentHashMap<String, Object> {
 
 	public Rmap keyField(String keyField) {
 		this.keyField = keyField;
+		key(this.get(keyField));
 		return this;
 	}
 

@@ -38,7 +38,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.ClassSize;
 
 import com.hzcominfo.albatis.nosql.Connection;
-import com.hzcominfo.albatis.nosql.NoSqlConnection;
+import com.hzcominfo.albatis.nosql.DataConnection;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.io.lambda.Function;
@@ -55,7 +55,7 @@ import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.io.Rmap;
 import net.butfly.albatis.io.utils.JsonUtils;
 
-public class HbaseConnection extends NoSqlConnection<org.apache.hadoop.hbase.client.Connection> {
+public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.client.Connection> {
 	private final static Logger logger = Logger.getLogger(HbaseConnection.class);
 
 	static {
@@ -322,7 +322,7 @@ public class HbaseConnection extends NoSqlConnection<org.apache.hadoop.hbase.cli
 	}
 
 	@Override
-	public HbaseInput input(TableDesc... tables) throws IOException {
+	public HbaseInput createInput(TableDesc... tables) throws IOException {
 		HbaseInput input = new HbaseInput("HbaseInput", this);
 		for (TableDesc table : tables) {
 			String tableName = table.name;

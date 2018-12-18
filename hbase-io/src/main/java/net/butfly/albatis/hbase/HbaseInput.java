@@ -28,10 +28,10 @@ import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Statistic;
-import net.butfly.albatis.io.Input;
 import net.butfly.albatis.io.Rmap;
+import net.butfly.albatis.io.TypelessInput;
 
-public class HbaseInput extends Namedly implements Input<Rmap> {
+public class HbaseInput extends Namedly implements TypelessInput {
 	private static final long serialVersionUID = 6225222417568739808L;
 	private final long SCAN_BYTES = Props.propL(HbaseInput.class, "scan.bytes", 3145728); // 3M
 	private final int SCAN_ROWS = Props.propI(HbaseInput.class, "scan.rows", 1);
@@ -51,7 +51,7 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 			if (null != hconn.uri().getFile()) table(hconn.uri().getFile());
 			// else throw new RuntimeException("No table defined for input.");
 		}
-		Input.super.open();
+		TypelessInput.super.open();
 	}
 
 	private void closeHbase() {
@@ -68,7 +68,7 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 		final String logicalName;
 		final ResultScanner scaner;
 
-		public TableScaner(String table,String logicalTable) {
+		public TableScaner(String table, String logicalTable) {
 			super();
 			name = table;
 			this.logicalName = logicalTable;
@@ -80,7 +80,8 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 			}
 		}
 
-		public TableScaner(String table, String  logicalTable, byte[][] startAndEndRow) {
+		@SuppressWarnings("deprecation")
+		public TableScaner(String table, String logicalTable, byte[][] startAndEndRow) {
 			super();
 			name = table;
 			this.logicalName = logicalTable;
@@ -141,7 +142,7 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 		for (String t : table)
 			table(t);
 	}
-	
+
 	private void table(String table, String logicalTable, Supplier<TableScaner> constr) {
 		scansMap.compute(table, (t, existed) -> {
 			if (null != existed) {
@@ -155,11 +156,11 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 	}
 
 	public void table(String table, String logicalTable, Filter... filter) {
-		table(table, logicalTable,() -> new TableScaner(table, logicalTable, filter));
+		table(table, logicalTable, () -> new TableScaner(table, logicalTable, filter));
 	}
 
 	public void table(String table, String logicalTable, byte[]... startAndEndRow) {
-		table(table, logicalTable,() -> new TableScaner(table, logicalTable, startAndEndRow));
+		table(table, logicalTable, () -> new TableScaner(table, logicalTable, startAndEndRow));
 	}
 
 	public void table(String table, String logicalTable) {
@@ -169,7 +170,7 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 	public void tableWithFamily(String table, String... cf) {
 		Filter[] fs = filterFamily(cf);
 		if (null == fs) table(table);
-		else table(table, cf.length > 0 ? table :(table + "#" + cf[0]) ,fs);
+		else table(table, cf.length > 0 ? table : (table + "#" + cf[0]), fs);
 	}
 
 	private Filter[] filterFamily(String... cf) {
@@ -191,7 +192,7 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 	public void tableWithPrefix(String table, String... prefix) {
 		Filter f = filterPrefix(Arrays.asList(prefix));
 		if (null == f) table(table);
-		else table(table, prefix.length > 0 ? table :(table + ":" + prefix[0]), f);
+		else table(table, prefix.length > 0 ? table : (table + ":" + prefix[0]), f);
 	}
 
 	public void tableWithFamilAndPrefix(String table, List<String> prefixes, String... cf) {
@@ -199,17 +200,17 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 		Filter[] ff = filterFamily(cf);
 		List<Filter> filters = null == ff ? Colls.list() : Colls.list(ff);
 		if (null != pf) filters.add(pf);
-		
+
 		String logicalTable = table;
 		if (cf.length > 0) {
 			if (cf.length > 1) throw new RuntimeException("Now only supports one cf");
 			logicalTable += "#" + cf[0];
 		}
-		if (prefixes.size()> 0) {
+		if (prefixes.size() > 0) {
 			if (prefixes.size() > 1) throw new RuntimeException("Now only supports one prefix");
 			logicalTable += ":" + prefixes.get(0);
 		}
-		
+
 		if (filters.isEmpty()) table(table);
 		else table(table, logicalTable, filters.toArray(new Filter[(filters.size())]));
 	}

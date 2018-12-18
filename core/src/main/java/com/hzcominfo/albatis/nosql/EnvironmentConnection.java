@@ -52,8 +52,8 @@ public interface EnvironmentConnection extends Connection, Serializable {
 			}
 
 			@Override
-			public <M extends Rmap> Input<M> input(TableDesc... table) throws IOException {
-				Input<M> i = env.input(targetSpec, table);
+			public Input<Rmap> createInput(TableDesc... table) throws IOException {
+				Input<Rmap> i = env.input(targetSpec, table);
 				if (null != i) return i;
 				if (null == target) target = DriverManager.connect(targetSpec);
 				return target.input(table);

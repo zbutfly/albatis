@@ -1,7 +1,7 @@
 package net.butfly.albatis.mongodb;
 
 import com.google.common.base.Joiner;
-import com.hzcominfo.albatis.nosql.NoSqlConnection;
+import com.hzcominfo.albatis.nosql.DataConnection;
 import com.mongodb.*;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.collection.Colls;
@@ -20,7 +20,7 @@ import java.util.Map;
 /**
  * @author butfly
  */
-public class MongoConnection extends NoSqlConnection<MongoClient> {
+public class MongoConnection extends DataConnection<MongoClient> {
     final static String schema = "mongodb";
     private static final Logger logger = Logger.getLogger(MongoConnection.class);
     private final Map<String, DB> dbs;
@@ -209,7 +209,7 @@ public class MongoConnection extends NoSqlConnection<MongoClient> {
     }
 
     @Override
-    public MongoInput input(TableDesc... table) throws IOException {
+    public MongoInput createInput(TableDesc... table) throws IOException {
         MongoInput i = new MongoInput("MongoInput", this);
         List<String> l = Colls.list(t -> t.name, table);
         i.table(l.toArray(new String[l.size()]));

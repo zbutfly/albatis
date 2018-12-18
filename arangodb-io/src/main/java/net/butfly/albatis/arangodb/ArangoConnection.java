@@ -19,17 +19,20 @@ import com.arangodb.ArangoDBAsync.Builder;
 import com.arangodb.ArangoDatabaseAsync;
 import com.arangodb.entity.BaseDocument;
 import com.arangodb.entity.LoadBalancingStrategy;
-import com.hzcominfo.albatis.nosql.NoSqlConnection;
+import com.hzcominfo.albatis.nosql.DataConnection;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.io.lambda.BinaryOperator;
 import net.butfly.albacore.paral.Exeter;
 import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.collection.Colls;
+import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albacore.utils.logger.Statistic;
 import net.butfly.albatis.ddl.TableDesc;
 
-public class ArangoConnection extends NoSqlConnection<ArangoDBAsync> {
+@SuppressWarnings("deprecation")
+public class ArangoConnection extends DataConnection<ArangoDBAsync> {
+	private static final Logger logger = Logger.getLogger(ArangoConnection.class);
 	private static final int MAX_CONNECTIONS = Integer.parseInt(Configs.gets("albatis.arango.connection.max.conn", "0"));
 	private static final int TIMEOUT_SECS = Integer.parseInt(Configs.gets("albatis.arango.connection.timeout", "0"));
 	private static final int CHUNK_SIZE = Integer.parseInt(Configs.gets("albatis.arango.connection.chunk.size", //
@@ -76,7 +79,7 @@ public class ArangoConnection extends NoSqlConnection<ArangoDBAsync> {
 	}
 
 	@Override
-	public ArangoInput input(TableDesc... table) throws IOException {
+	public ArangoInput createInput(TableDesc... table) throws IOException {
 		ArangoInput i = new ArangoInput("ArangoInput", this);
 		return i;
 	}

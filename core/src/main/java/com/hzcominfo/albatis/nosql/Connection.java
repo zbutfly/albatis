@@ -1,9 +1,7 @@
 package com.hzcominfo.albatis.nosql;
 
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.ServiceLoader;
@@ -15,7 +13,6 @@ import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.io.lambda.Function;
 import net.butfly.albacore.serder.BsonSerder;
 import net.butfly.albacore.serder.JsonSerder;
-import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.ddl.FieldDesc;
@@ -26,7 +23,6 @@ import net.butfly.albatis.io.Output;
 import net.butfly.albatis.io.Rmap;
 
 public interface Connection extends AutoCloseable, IOFactory {
-	static final Logger logger = Logger.getLogger(Connection.class);
 	static final String PARAM_KEY_BATCH = "batch";
 	static final int DEFAULT_BATCH_SIZE = 500;
 	static final Connection DUMMY = new Connection() {
@@ -44,7 +40,7 @@ public interface Connection extends AutoCloseable, IOFactory {
 		}
 
 		@Override
-		public <M extends Rmap> Input<M> input(TableDesc... table) throws IOException {
+		public <M extends Rmap> Input<M> createInput(TableDesc... table) throws IOException {
 			return null;
 		}
 
@@ -53,7 +49,6 @@ public interface Connection extends AutoCloseable, IOFactory {
 			return null;
 		}
 	};
-	static final boolean SPARING = Connect.sparking();
 
 	String defaultSchema();
 
@@ -82,7 +77,7 @@ public interface Connection extends AutoCloseable, IOFactory {
 				// DRIVERS.put(schema, driver);
 				Class<?> c = driver.getClass().getEnclosingClass();
 				if (null == c) c = driver.getClass();
-				logger.debug("Connection driver loaded: " + c.toString() + " as schema " + driver.schemas());
+				_Logger.logger.debug("Connection driver loaded: " + c.toString() + " as schema " + driver.schemas());
 			}
 		}
 
@@ -104,62 +99,24 @@ public interface Connection extends AutoCloseable, IOFactory {
 					else break;
 				}
 			}
-			// return Connect.connect(uriSpec, d.connectClass());
 			throw new RuntimeException("No matched connection for schema [" + uriSpec.getScheme() + "]");
 		}
 	}
 
-	@Deprecated
-	class Connect {
-		public static <T extends Connection> T connect(URISpec uri, Class<T> clazz) throws IOException {
-			return connect(uri, clazz, new HashMap<>());
-		}
-
-		public static <T extends Connection> T connect(URISpec uri, Class<T> clazz, String... params) throws IOException {
-			Pair<String, Object[]> p = Maps.parseFirstKey((Object[]) params);
-			return connect(uri, clazz, Maps.of(p.v1(), p.v2()));
-		}
-
-		public static <T extends Connection> T connect(URISpec uriSpec, Class<T> clazz, Map<String, String> props) throws IOException {
-			try {
-				return clazz.getConstructor(new Class[] { URISpec.class }).newInstance(uriSpec);
-			} catch (NoSuchMethodException | SecurityException | InstantiationException | IllegalAccessException
-					| IllegalArgumentException e) {
-				throw new RuntimeException(e);
-			} catch (InvocationTargetException e) {
-				Throwable ee = e.getTargetException();
-				if (e instanceof InvocationTargetException && e.getTargetException() instanceof IOException) throw (IOException) ee;
-				throw new RuntimeException(e.getTargetException());
-			}
-		}
-
-		static boolean sparking() {
-			try {
-				Class.forName("net.butfly.albatis.spark.impl.SparkConnection");
-				String suri = System.getProperty("albatis.io.env.uri", "spark:///");
-				logger.info("Spark IO classloader found, init the spark env: " + suri);
-				System.setProperty("albatis.io.env.uri", suri);
-				return true;
-			} catch (ClassNotFoundException e) {
-				return false;
-			}
-		}
-	}
-
-	// DDL
-	default void construct(String dbName,String table,TableDesc tableDesc, List<FieldDesc> fields){
-		logger.warn("Constructing invoked but not implemented, ignore.");
+	// ddl
+	default void construct(String dbName, String table, TableDesc tableDesc, List<FieldDesc> fields) {
+		logger().warn("Constructing invoked but not implemented, ignore.");
 	}
 
 	default void construct(String table, FieldDesc... fields) {
-		logger.warn("Constructing invoked but not implemented, ignore.");
+		logger().warn("Constructing invoked but not implemented, ignore.");
 	}
 
 	default void construct(Map<String, Object> tableConfig, FieldDesc... fields) {
-		logger.warn("Constructing invoked but not implemented, ignore.");
+		logger().warn("Constructing invoked but not implemented, ignore.");
 	}
 
-	default boolean judge(String dbName,String table){
+	default boolean judge(String dbName, String table) {
 		throw new NotImplementedException();
 	}
 
@@ -171,6 +128,7 @@ public interface Connection extends AutoCloseable, IOFactory {
 		throw new UnsupportedOperationException();
 	}
 
+	// utils
 	static Function<Map<String, Object>, byte[]> uriser(URISpec uri) {
 		String sd = null == uri ? "bson" : uri.getParameter("serder", "bson").toLowerCase();
 		switch (sd) {
@@ -180,7 +138,7 @@ public interface Connection extends AutoCloseable, IOFactory {
 			return m -> JsonSerder.JSON_MAPPER.ser(m).getBytes(StandardCharsets.UTF_8);
 
 		default:
-			logger.warn("Current only support \"serder=bson|json\", \"" + sd + "\" is not supported, use bson by failback.");
+			_Logger.logger.warn("Current only support \"serder=bson|json\", \"" + sd + "\" is not supported, use bson by failback.");
 			return BsonSerder::map;
 		}
 	}
@@ -193,7 +151,7 @@ public interface Connection extends AutoCloseable, IOFactory {
 		case "json":
 			return m -> JsonSerder.JSON_MAPPER.der(new String(m, StandardCharsets.UTF_8));
 		default:
-			logger.warn("Current only support \"serder=bson|json\", \"" + sd + "\" is not supported, use bson by failback.");
+			_Logger.logger.warn("Current only support \"serder=bson|json\", \"" + sd + "\" is not supported, use bson by failback.");
 			return BsonSerder::map;
 		}
 	}
@@ -206,7 +164,7 @@ public interface Connection extends AutoCloseable, IOFactory {
 		case "json":
 			return m -> JsonSerder.JSON_MAPPER.ders(new String(m, StandardCharsets.UTF_8));
 		default:
-			logger.warn("Current only support \"serder=bson|json\", \"" + sd + "\" is not supported, use bson by failback.");
+			_Logger.logger.warn("Current only support \"serder=bson|json\", \"" + sd + "\" is not supported, use bson by failback.");
 			return BsonSerder::maps;
 		}
 	}
@@ -217,8 +175,14 @@ public interface Connection extends AutoCloseable, IOFactory {
 		case "json":
 			return m -> JsonSerder.JSON_MAPPER.ders(m);
 		default:
-			logger.warn("Current only support \"serder=bson|json\", \"" + sd + "\" is not supported, use bson by failback.");
+			_Logger.logger.warn("Current only support \"serder=bson|json\", \"" + sd + "\" is not supported, use bson by failback.");
 			return m -> JsonSerder.JSON_MAPPER.ders(m);
 		}
 	}
+
+	class _Logger {
+		private static final Logger logger = Logger.getLogger(Connection.class);
+	}
+
+	static final boolean SPARING = Connect.sparking();
 }

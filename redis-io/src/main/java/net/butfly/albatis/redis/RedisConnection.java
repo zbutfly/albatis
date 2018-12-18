@@ -3,7 +3,7 @@ package net.butfly.albatis.redis;
 import java.io.IOException;
 import java.util.List;
 
-import com.hzcominfo.albatis.nosql.NoSqlConnection;
+import com.hzcominfo.albatis.nosql.DataConnection;
 
 import io.lettuce.core.RedisClient;
 import io.lettuce.core.api.StatefulRedisConnection;
@@ -17,7 +17,7 @@ import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.io.Output;
 import net.butfly.albatis.io.Rmap;
 
-public class RedisConnection extends NoSqlConnection<RedisClient> {
+public class RedisConnection extends DataConnection<RedisClient> {
 	final static String schema = "redis";
 	public final String type;
 
@@ -29,7 +29,7 @@ public class RedisConnection extends NoSqlConnection<RedisClient> {
 	}
 	
 	@Override
-	public RedisListInput input(TableDesc... table) throws IOException {
+	public RedisListInput createInput(TableDesc... table) throws IOException {
 		List<String> l = Colls.list(t -> t.name, table);
 		if (type.equals("byteArray"))
 			return new RedisListInput("RedisListInput", this, new ByteArrayCodec(), l.toArray(new String[0]));

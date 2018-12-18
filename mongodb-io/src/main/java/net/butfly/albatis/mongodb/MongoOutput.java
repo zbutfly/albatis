@@ -15,7 +15,7 @@ import net.butfly.albacore.utils.parallel.Lambdas;
 import net.butfly.albatis.io.OutputBase;
 import net.butfly.albatis.io.Rmap;
 
-public final class MongoOutput extends OutputBase<Rmap> {
+public class MongoOutput extends OutputBase<Rmap> {
 	private static final long serialVersionUID = -6150620515173963739L;
 	private final boolean upsert;
 	private final MongoConnection conn;

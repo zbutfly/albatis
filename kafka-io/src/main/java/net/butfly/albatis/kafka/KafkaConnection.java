@@ -6,7 +6,7 @@ import java.util.List;
 import org.apache.kafka.common.security.JaasUtils;
 
 import com.hzcominfo.albatis.nosql.Connection;
-import com.hzcominfo.albatis.nosql.NoSqlConnection;
+import com.hzcominfo.albatis.nosql.DataConnection;
 
 import kafka.utils.ZkUtils;
 import net.butfly.albacore.exception.ConfigException;
@@ -17,13 +17,13 @@ import net.butfly.albatis.io.Input;
 import net.butfly.albatis.io.Rmap;
 import scala.collection.JavaConversions;
 
-public class KafkaConnection extends NoSqlConnection<Connection> {
+public class KafkaConnection extends DataConnection<Connection> {
     public KafkaConnection(URISpec uri) throws IOException {
         super(uri, "kafka");
     }
 
     @Override
-    public Input<Rmap> input(TableDesc... topic) throws IOException {
+    public Input<Rmap> createInput(TableDesc... topic) throws IOException {
         List<String> l = Colls.list(t -> t.name, topic);
         try {
         	if (null != uri.getParameter("inputSeriar") && "string".equals(uri.getParameter("inputSeriar")))

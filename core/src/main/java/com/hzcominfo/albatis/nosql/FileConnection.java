@@ -10,7 +10,7 @@ import net.butfly.albatis.io.Input;
 import net.butfly.albatis.io.Rmap;
 import net.butfly.albatis.io.ext.FileOutput;
 
-public class FileConnection extends NoSqlConnection<Connection> {
+public class FileConnection extends DataConnection<Connection> {
 	public final String format;
 	public final String root;
 	public final String ext;
@@ -25,7 +25,7 @@ public class FileConnection extends NoSqlConnection<Connection> {
 	}
 
 	@Override
-	public <M extends Rmap> Input<M> input(TableDesc... table) throws IOException {
+	public <M extends Rmap> Input<M> createInput(TableDesc... table) throws IOException {
 		return null;
 	}
 

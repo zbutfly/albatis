@@ -9,7 +9,7 @@ import org.apache.http.nio.entity.NStringEntity;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.elasticsearch.client.RestClient;
 
-import com.hzcominfo.albatis.nosql.NoSqlConnection;
+import com.hzcominfo.albatis.nosql.DataConnection;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.serder.JsonSerder;
@@ -20,7 +20,7 @@ import net.butfly.albatis.io.Input;
 import net.butfly.albatis.io.Output;
 import net.butfly.albatis.io.Rmap;
 
-public class ElasticRestConnection extends NoSqlConnection<RestClient> implements ElasticConnect {
+public class ElasticRestConnection extends DataConnection<RestClient> implements ElasticConnect {
 	public ElasticRestConnection(URISpec uri, Map<String, String> props) throws IOException {
 		super(uri, 39200, "http", "https");
 	}
@@ -87,7 +87,7 @@ public class ElasticRestConnection extends NoSqlConnection<RestClient> implement
 	}
 
 	@Override
-	public Input<Rmap> input(TableDesc... table) throws IOException {
+	public Input<Rmap> createInput(TableDesc... table) throws IOException {
 		throw new UnsupportedOperationException();
 	}
 

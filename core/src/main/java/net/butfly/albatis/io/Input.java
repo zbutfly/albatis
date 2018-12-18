@@ -14,6 +14,7 @@ import net.butfly.albacore.io.lambda.Predicate;
 import net.butfly.albacore.io.lambda.Supplier;
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.collection.Colls;
+import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albatis.io.ext.DryOutput;
 import net.butfly.albatis.io.ext.FanOutput;
 import net.butfly.albatis.io.ext.PrefetchInput;
@@ -33,6 +34,51 @@ public interface Input<V> extends IO, Dequeuer<V> {
 		return 0;
 	}
 
+	static final Map<Input<?>, String> KEY_FIELDS = Maps.of();
+
+	default String keyField() {
+		return KEY_FIELDS.get(this);
+	}
+
+	default Input<V> keyField(String keyFieldName) {
+		KEY_FIELDS.put(this, keyFieldName);
+		return this;
+	}
+
+	default Input<V> tableOpen(String... tablename) {
+		return this;
+	}
+
+	default Input<V> tableOpen(Map<String, ?> tableAndQueries) {
+		return this;
+	}
+
+	// constructor
+	public static <T> Input<T> of(Collection<? extends T> collection, int batchSize) {
+		return new Input<T>() {
+			private static final long serialVersionUID = 3793970608919903578L;
+			private final BlockingQueue<T> undly = new LinkedBlockingQueue<>(collection);
+
+			@Override
+			public void dequeue(Consumer<Sdream<T>> using) {
+				final List<T> l = Colls.list();
+				undly.drainTo(l, batchSize);
+				if (!l.isEmpty()) using.accept(Sdream.of(l));
+			}
+		};
+	}
+
+	public static <T> Input<T> of(Supplier<? extends T> next, Supplier<Boolean> ending, int batchSize) {
+		return using -> {
+			final List<T> l = Colls.list();
+			T t;
+			while (!ending.get() && null != (t = next.get()) && l.size() < batchSize)
+				l.add(t);
+			using.accept(Sdream.of(l));
+		};
+	}
+
+	// atomic methods
 	default Input<V> filter(Map<String, Object> criteria) {
 		throw new UnsupportedOperationException();
 	}
@@ -60,34 +106,9 @@ public interface Input<V> extends IO, Dequeuer<V> {
 		dequeue(s -> using.accept(s.mapFlat(conv))));
 	}
 
-	// more extends
+	// expands
 	default PrefetchInput<V> prefetch(Queue<V> pool) {
 		return new PrefetchInput<V>(this, pool);
-	}
-
-	// constructor
-	public static <T> Input<T> of(Collection<? extends T> collection, int batchSize) {
-		return new Input<T>() {
-			private static final long serialVersionUID = 3793970608919903578L;
-			private final BlockingQueue<T> undly = new LinkedBlockingQueue<>(collection);
-
-			@Override
-			public void dequeue(Consumer<Sdream<T>> using) {
-				final List<T> l = Colls.list();
-				undly.drainTo(l, batchSize);
-				if (!l.isEmpty()) using.accept(Sdream.of(l));
-			}
-		};
-	}
-
-	public static <T> Input<T> of(Supplier<? extends T> next, Supplier<Boolean> ending, int batchSize) {
-		return using -> {
-			final List<T> l = Colls.list();
-			T t;
-			while (!ending.get() && null != (t = next.get()) && l.size() < batchSize)
-				l.add(t);
-			using.accept(Sdream.of(l));
-		};
 	}
 
 	// pump

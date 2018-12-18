@@ -17,7 +17,7 @@ import org.apache.kudu.client.RowError;
 import org.apache.kudu.client.RowErrorsAndOverflowStatus;
 import org.apache.kudu.client.SessionConfiguration;
 
-import com.hzcominfo.albatis.nosql.NoSqlConnection;
+import com.hzcominfo.albatis.nosql.DataConnection;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.io.lambda.BiConsumer;
@@ -33,7 +33,7 @@ import net.butfly.albatis.io.Rmap;
 
 @SuppressWarnings("unchecked")
 public abstract class KuduConnectionBase<C extends KuduConnectionBase<C, KC, S>, KC extends AutoCloseable, S extends SessionConfiguration>
-		extends NoSqlConnection<KC> {
+		extends DataConnection<KC> {
 	protected static final Logger logger = Logger.getLogger(KuduConnectionBase.class);
 	private static final Map<String, KuduTable> tables = Maps.of();
 	private static final Map<String, Map<String, ColumnSchema>> SCHEMAS_CI = Maps.of();
@@ -169,7 +169,7 @@ public abstract class KuduConnectionBase<C extends KuduConnectionBase<C, KC, S>,
 	}
 
 	@Override
-	public Input<Rmap> input(TableDesc... table) throws IOException {
+	public Input<Rmap> createInput(TableDesc... table) throws IOException {
 		throw new UnsupportedOperationException();
 	}
 

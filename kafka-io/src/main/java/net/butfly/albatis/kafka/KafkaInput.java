@@ -24,6 +24,7 @@ import kafka.consumer.ConsumerTimeoutException;
 import kafka.consumer.KafkaStream;
 import kafka.javaapi.consumer.ConsumerConnector;
 import kafka.message.MessageAndMetadata;
+import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.exception.ConfigException;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.io.lambda.Consumer;
@@ -35,11 +36,11 @@ import net.butfly.albacore.utils.Texts;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Statistic;
-import net.butfly.albatis.io.Input;
 import net.butfly.albatis.io.Rmap;
+import net.butfly.albatis.io.TypelessInput;
 import net.butfly.albatis.kafka.config.KafkaInputConfig;
 
-public class KafkaInput extends net.butfly.albacore.base.Namedly implements Input<Rmap> {
+public class KafkaInput extends Namedly implements TypelessInput {
 	private static final long serialVersionUID = 998704625489437241L;
 	private final KafkaInputConfig config;
 	private final Map<String, Integer> allTopics = Maps.of();

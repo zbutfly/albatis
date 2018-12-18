@@ -9,7 +9,7 @@ public abstract class WrapperBase<B extends IO> extends Namedly implements Wrapp
 	protected final B base;
 
 	public WrapperBase() {
-		super();
+		super("WrapperInutOfNone");
 		base = null;
 	}
 

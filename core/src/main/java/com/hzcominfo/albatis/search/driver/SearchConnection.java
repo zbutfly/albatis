@@ -23,7 +23,7 @@ import com.hzcominfo.albatis.search.result.Result;
  * @author ljx
  * @date 2016-11-24
  */
-public interface Connection extends java.sql.Connection, com.hzcominfo.albatis.nosql.Connection {
+public interface SearchConnection extends java.sql.Connection, com.hzcominfo.albatis.nosql.Connection {
 	Query getQuery();
 
 	void obtainDrive(DriverType type) throws SearchAPIException;
