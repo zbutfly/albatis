@@ -9,6 +9,7 @@ import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Loggable;
 import net.butfly.albatis.ddl.TableDesc;
+import net.butfly.alserder.SDer;
 
 public interface IOFactory extends Loggable {
 	URISpec uri();
@@ -37,6 +38,18 @@ public interface IOFactory extends Loggable {
 
 	default Input<Rmap> input(TableDesc... table) throws IOException {
 		Input<Rmap> i = createInput(table);
+
+		// serializing
+		String format = uri().fetchParameter("df");
+		if (null != format) {
+			@SuppressWarnings("rawtypes")
+			SDer sd = SDer.lookup(format);
+			i = i.then(m -> {
+				return m;
+			});
+		}
+
+		// key field filfulling
 		Map<String, String> keys = Maps.of();
 		for (TableDesc t : table)
 			if (null != t.rowkey()) keys.put(t.name, t.rowkey());
@@ -53,6 +66,7 @@ public interface IOFactory extends Loggable {
 		return i;
 	}
 
+	@Deprecated
 	default Input<Rmap> input(Map<String, String> keyMapping) throws IOException {
 		List<TableDesc> l = Colls.list(keyMapping.entrySet(), e -> {
 			TableDesc t = TableDesc.dummy(e.getKey());

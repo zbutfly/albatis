@@ -45,14 +45,6 @@ public interface Input<V> extends IO, Dequeuer<V> {
 		return this;
 	}
 
-	default Input<V> tableOpen(String... tablename) {
-		return this;
-	}
-
-	default Input<V> tableOpen(Map<String, ?> tableAndQueries) {
-		return this;
-	}
-
 	// constructor
 	public static <T> Input<T> of(Collection<? extends T> collection, int batchSize) {
 		return new Input<T>() {
