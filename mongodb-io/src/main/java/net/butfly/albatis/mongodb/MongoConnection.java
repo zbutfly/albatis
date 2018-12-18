@@ -217,7 +217,7 @@ public class MongoConnection extends DataConnection<MongoClient> {
     }
 
     @Override
-    public MongoOutput output(TableDesc... table) throws IOException {
+    public MongoOutput createOutput(TableDesc... table) throws IOException {
         return new MongoOutput("MongoOutput", this);
     }
 

@@ -25,7 +25,7 @@ public class KafkaTest {
 		double total = 0;
 		long begin = new Date().getTime();
 		long now = begin;
-		try (KafkaInput in = new KafkaInput("KafkaIn", args[0]);) {
+		try (KafkaInput<byte[]> in = new KafkaInput<byte[]>("KafkaIn", args[0], byte[].class);) {
 			do {
 				AtomicInteger count = new AtomicInteger(0);
 				AtomicLong size = new AtomicLong();

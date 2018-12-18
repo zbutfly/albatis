@@ -28,10 +28,10 @@ import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Statistic;
+import net.butfly.albatis.io.Input;
 import net.butfly.albatis.io.Rmap;
-import net.butfly.albatis.io.TypelessInput;
 
-public class HbaseInput extends Namedly implements TypelessInput {
+public class HbaseInput extends Namedly implements Input<Rmap> {
 	private static final long serialVersionUID = 6225222417568739808L;
 	private final long SCAN_BYTES = Props.propL(HbaseInput.class, "scan.bytes", 3145728); // 3M
 	private final int SCAN_ROWS = Props.propI(HbaseInput.class, "scan.rows", 1);
@@ -51,7 +51,7 @@ public class HbaseInput extends Namedly implements TypelessInput {
 			if (null != hconn.uri().getFile()) table(hconn.uri().getFile());
 			// else throw new RuntimeException("No table defined for input.");
 		}
-		TypelessInput.super.open();
+		Input.super.open();
 	}
 
 	private void closeHbase() {

@@ -156,7 +156,7 @@ public class ElasticConnection extends DataConnection<TransportClient> implement
 	}
 
 	@Override
-	public ElasticOutput output(TableDesc... table) throws IOException {
+	public ElasticOutput createOutput(TableDesc... table) throws IOException {
 		return new ElasticOutput("ElasticOutput", this);
 	}
 

@@ -86,13 +86,7 @@ public class ArangoConnection extends DataConnection<ArangoDBAsync> {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public ArangoOutput output(TableDesc... table) throws IOException {
-		return new ArangoOutput("ArangoOutput", this);
-	}
-
-	@SuppressWarnings("unchecked")
-	@Override
-	public ArangoOutput output(String... table) throws IOException {
+	public ArangoOutput createOutput(TableDesc... table) throws IOException {
 		return new ArangoOutput("ArangoOutput", this);
 	}
 

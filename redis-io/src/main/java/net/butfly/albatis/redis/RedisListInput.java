@@ -13,12 +13,12 @@ import io.lettuce.core.api.sync.RedisCommands;
 import io.lettuce.core.codec.RedisCodec;
 import net.butfly.albacore.serder.JsonSerder;
 import net.butfly.albacore.utils.logger.Logger;
-import net.butfly.albatis.io.TypelessInput;
+import net.butfly.albatis.io.Input;
 import net.butfly.albatis.io.OddInput;
 import net.butfly.albatis.io.Rmap;
 import net.butfly.albatis.redis.key.RedisKey;
 
-public class RedisListInput extends net.butfly.albacore.base.Namedly implements OddInput<Rmap>, TypelessInput {
+public class RedisListInput extends net.butfly.albacore.base.Namedly implements OddInput<Rmap>, Input<Rmap> {
 	private static final long serialVersionUID = -1411141076610748159L;
 
 	private static final Logger logger = Logger.getLogger(RedisListInput.class);

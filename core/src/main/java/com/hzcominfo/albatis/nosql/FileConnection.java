@@ -30,7 +30,7 @@ public class FileConnection extends DataConnection<Connection> {
 	}
 
 	@Override
-	public FileOutput output(TableDesc... table) throws IOException {
+	public FileOutput createOutput(TableDesc... table) throws IOException {
 		return new FileOutput(this);
 	}
 

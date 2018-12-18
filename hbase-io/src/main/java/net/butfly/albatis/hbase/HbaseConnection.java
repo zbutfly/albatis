@@ -53,9 +53,10 @@ import net.butfly.albacore.utils.logger.Statistic;
 import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.io.Rmap;
+import net.butfly.albatis.io.TypelessIO;
 import net.butfly.albatis.io.utils.JsonUtils;
 
-public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.client.Connection> {
+public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.client.Connection> implements TypelessIO {
 	private final static Logger logger = Logger.getLogger(HbaseConnection.class);
 
 	static {
@@ -343,7 +344,7 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 	}
 
 	@Override
-	public HbaseOutput output(TableDesc... table) throws IOException {
+	public HbaseOutput createOutput(TableDesc... table) throws IOException {
 		return new HbaseOutput("HbaseOutput", this, conv);
 	}
 

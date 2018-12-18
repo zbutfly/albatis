@@ -36,7 +36,7 @@ public class Neo4jConnection extends DataConnection<org.neo4j.driver.v1.Driver> 
 	}
 
 	@Override
-	public <M extends Rmap> Output<M> output(TableDesc... table) throws IOException {
+	public <M extends Rmap> Output<M> createOutput(TableDesc... table) throws IOException {
 		throw new UnsupportedOperationException();
 	}
 

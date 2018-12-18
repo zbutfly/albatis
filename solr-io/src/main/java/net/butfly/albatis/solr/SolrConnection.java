@@ -1,17 +1,13 @@
 package net.butfly.albatis.solr;
 
-import com.hzcominfo.albatis.nosql.DataConnection;
-import net.butfly.albacore.io.URISpec;
-import net.butfly.albacore.utils.Config;
-import net.butfly.albacore.utils.Configs;
-import net.butfly.albacore.utils.Reflections;
-import net.butfly.albacore.utils.collection.Colls;
-import net.butfly.albacore.utils.collection.Maps;
-import net.butfly.albacore.utils.logger.Logger;
-import net.butfly.albatis.ddl.FieldDesc;
-import net.butfly.albatis.ddl.TableDesc;
-import net.butfly.albatis.io.Input;
-import net.butfly.albatis.io.Rmap;
+import java.io.IOException;
+import java.io.Serializable;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.http.HttpRequestInterceptor;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.config.ConnectionConfig;
@@ -24,22 +20,32 @@ import org.apache.http.impl.nio.client.HttpAsyncClients;
 import org.apache.solr.client.solrj.ResponseParser;
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrServerException;
-import org.apache.solr.client.solrj.impl.*;
+import org.apache.solr.client.solrj.impl.BinaryResponseParser;
+import org.apache.solr.client.solrj.impl.CloudSolrClient;
+import org.apache.solr.client.solrj.impl.HttpClientUtil;
+import org.apache.solr.client.solrj.impl.HttpSolrClient;
 import org.apache.solr.client.solrj.impl.HttpSolrClient.Builder;
 import org.apache.solr.client.solrj.impl.HttpSolrClient.RemoteSolrException;
+import org.apache.solr.client.solrj.impl.XMLResponseParser;
 import org.apache.solr.client.solrj.request.CollectionAdminRequest;
 import org.apache.solr.client.solrj.response.CollectionAdminResponse;
 import org.apache.solr.client.solrj.response.DelegationTokenResponse.JsonMapResponseParser;
 import org.apache.solr.common.cloud.DocCollection;
 import org.apache.solr.common.params.ModifiableSolrParams;
 
-import java.io.IOException;
-import java.io.Serializable;
-import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import com.hzcominfo.albatis.nosql.DataConnection;
+
+import net.butfly.albacore.io.URISpec;
+import net.butfly.albacore.utils.Config;
+import net.butfly.albacore.utils.Configs;
+import net.butfly.albacore.utils.Reflections;
+import net.butfly.albacore.utils.collection.Colls;
+import net.butfly.albacore.utils.collection.Maps;
+import net.butfly.albacore.utils.logger.Logger;
+import net.butfly.albatis.ddl.FieldDesc;
+import net.butfly.albatis.ddl.TableDesc;
+import net.butfly.albatis.io.Input;
+import net.butfly.albatis.io.Rmap;
 
 @Config(value = "ddl.properties")
 public class SolrConnection extends DataConnection<SolrClient> {
@@ -263,7 +269,7 @@ public class SolrConnection extends DataConnection<SolrClient> {
     }
 
     @Override
-    public SolrOutput output(TableDesc... table) throws IOException {
+    public SolrOutput createOutput(TableDesc... table) throws IOException {
         return new SolrOutput("SolrOutput", this);
     }
 

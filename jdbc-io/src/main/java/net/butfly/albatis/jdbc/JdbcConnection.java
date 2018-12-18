@@ -137,7 +137,7 @@ public class JdbcConnection extends DataConnection<DataSource> {
 	}
 
 	@Override
-	public JdbcOutput output(TableDesc... table) throws IOException {
+	public JdbcOutput createOutput(TableDesc... table) throws IOException {
 		return new JdbcOutput("JdbcOutput", this);
 	}
 

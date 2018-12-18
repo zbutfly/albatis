@@ -92,7 +92,7 @@ public class ElasticRestConnection extends DataConnection<RestClient> implements
 	}
 
 	@Override
-	public Output<Rmap> output(TableDesc... table) throws IOException {
+	public Output<Rmap> createOutput(TableDesc... table) throws IOException {
 		throw new UnsupportedOperationException();
 	}
 }

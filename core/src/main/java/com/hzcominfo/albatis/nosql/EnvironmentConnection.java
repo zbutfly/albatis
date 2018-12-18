@@ -60,11 +60,11 @@ public interface EnvironmentConnection extends Connection, Serializable {
 			}
 
 			@Override
-			public <M extends Rmap> Output<M> output(TableDesc... table) throws IOException {
+			public <M extends Rmap> Output<M> createOutput(TableDesc... table) throws IOException {
 				Output<M> o = env.output(targetSpec, table);
 				if (null != o) return o;
 				if (null == target) target = DriverManager.connect(targetSpec);
-				return target.output(table);
+				return target.createOutput(table);
 			}
 		}
 	}

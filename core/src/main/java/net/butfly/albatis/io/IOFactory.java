@@ -1,5 +1,7 @@
 package net.butfly.albatis.io;
 
+import static net.butfly.albatis.ddl.TableDesc.dummy;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -9,46 +11,36 @@ import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Loggable;
 import net.butfly.albatis.ddl.TableDesc;
-import net.butfly.alserder.SDer;
+import net.butfly.alserder.SD;
 
 public interface IOFactory extends Loggable {
 	URISpec uri();
 
-	@Deprecated
+	// implementations
 	<M extends Rmap> Input<M> createInput(TableDesc... table) throws IOException;
 
-	default <M extends Rmap> Output<M> output(Map<String, String> keyMapping) throws IOException {
-		List<TableDesc> l = Colls.list(keyMapping.entrySet(), e -> {
-			TableDesc t = TableDesc.dummy(e.getKey());
-			t.keys.add(Colls.list(e.getValue()));
-			return t;
-		});
-		return output(l.toArray(new TableDesc[0]));
+	<M extends Rmap> Output<M> createOutput(TableDesc... table) throws IOException;
+
+	@SuppressWarnings("rawtypes")
+	default List<SD> serders(String... formats) {
+		return Colls.list(f -> f.isEmpty() ? null : SD.lookup(f), formats);
 	}
 
-	default <M extends Rmap> Output<M> output(String... table) throws IOException {
-		return output(Colls.list(n -> TableDesc.dummy(n), table).toArray(new TableDesc[0]));
-	}
-
-	<M extends Rmap> Output<M> output(TableDesc... table) throws IOException;
-
-	default Input<Rmap> input(String... table) throws IOException {
-		return input(Colls.list(n -> TableDesc.dummy(n), table).toArray(new TableDesc[0]));
-	}
-
-	default Input<Rmap> input(TableDesc... table) throws IOException {
-		Input<Rmap> i = createInput(table);
-
-		// serializing
+	// apis
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	default <M extends Rmap> Input<M> input(TableDesc... table) throws IOException {
+		Input<M> i = createInput(table);
+		// deserializing
 		String format = uri().fetchParameter("df");
 		if (null != format) {
-			@SuppressWarnings("rawtypes")
-			SDer sd = SDer.lookup(format);
-			i = i.then(m -> {
-				return m;
-			});
+			List<SD> sds = serders(format.split(","));// ;
+			for (SD sd : sds)
+				i = i.then(m -> {
+					for (String k : m.keySet())
+						m.put(k, sd.der(m.get(k)));
+					return m;
+				});
 		}
-
 		// key field filfulling
 		Map<String, String> keys = Maps.of();
 		for (TableDesc t : table)
@@ -66,13 +58,42 @@ public interface IOFactory extends Loggable {
 		return i;
 	}
 
+	@SuppressWarnings("unchecked")
+	default <M extends Rmap> Output<M> output(TableDesc... table) throws IOException {
+		Output<M> o = createOutput(table);
+		// serializing
+		String format = uri().fetchParameter("df");
+		if (null != format) {
+			for (String f : format.split(",")) {
+				if (f.isEmpty()) continue;
+				@SuppressWarnings("rawtypes")
+				SD sd = SD.lookup(format);
+				o = o.prior(m -> {
+					for (String k : m.keySet())
+						m.put(k, sd.ser(m.get(k)));
+					return m;
+				});
+			}
+		}
+		return o;
+	}
+
+	// other format
+	default <M extends Rmap> Input<M> input(String... table) throws IOException {
+		return input(dummy(table));
+	}
+
+	default <M extends Rmap> Output<M> output(String... table) throws IOException {
+		return output(dummy(table));
+	}
+
+	@Deprecated
+	default <M extends Rmap> Output<M> output(Map<String, String> keyMapping) throws IOException {
+		return output(dummy(keyMapping));
+	}
+
 	@Deprecated
 	default Input<Rmap> input(Map<String, String> keyMapping) throws IOException {
-		List<TableDesc> l = Colls.list(keyMapping.entrySet(), e -> {
-			TableDesc t = TableDesc.dummy(e.getKey());
-			t.keys.add(Colls.list(e.getValue()));
-			return t;
-		});
-		return input(l.toArray(new TableDesc[0]));
+		return input(dummy(keyMapping));
 	}
 }

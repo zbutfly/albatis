@@ -52,7 +52,7 @@ public class TableDesc extends Desc<TableDesc> {
 				if (t.fields.containsKey(k)) kk.add(k);
 			if (!kk.isEmpty()) t.keys.add(kk);
 		}
-		if(!parent.indexes.isEmpty()) t.indexes.addAll(parent.indexes);
+		if (!parent.indexes.isEmpty()) t.indexes.addAll(parent.indexes);
 		return t;
 	}
 
@@ -193,5 +193,21 @@ public class TableDesc extends Desc<TableDesc> {
 		t.destruct = destruct;
 		t.referTable = referTable;
 		return t;
+	}
+
+	public static TableDesc[] dummy(Map<String, String> keyMapping) {
+		return Colls.list(keyMapping.entrySet(), e -> {
+			TableDesc t = TableDesc.dummy(e.getKey());
+			t.keys.add(Colls.list(e.getValue()));
+			return t;
+		}).toArray(new TableDesc[0]);
+	}
+
+	public static TableDesc[] dummy(String... table) {
+		return dummy(Colls.list(table));
+	}
+
+	public static TableDesc[] dummy(List<String> table) {
+		return Colls.list(table, TableDesc::dummy).toArray(new TableDesc[0]);
 	}
 }

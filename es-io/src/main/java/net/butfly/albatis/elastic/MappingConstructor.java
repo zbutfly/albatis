@@ -65,7 +65,7 @@ public class MappingConstructor {
 		for (FieldDesc f : fields) {
 			Map<String, Object> fm = fieldType(f);
 			String c2 = f.attr(Desc.FULLTEXT);
-			if (null != c2) {
+			if (null != c2 && !c2.isEmpty()) {
 				String[] c2s = c2.split(",");
 				if (c2s != null && c2s.length != 0) fm.put("copy_to", c2s.length == 1 ? c2s[0] : c2s);
 			}

@@ -174,7 +174,7 @@ public abstract class KuduConnectionBase<C extends KuduConnectionBase<C, KC, S>,
 	}
 
 	@Override
-	public <M extends Rmap> Output<M> output(TableDesc... table) throws IOException {
+	public <M extends Rmap> Output<M> createOutput(TableDesc... table) throws IOException {
 		return (Output<M>) new KuduOutput("KuduOutput", this);
 	}
 }
