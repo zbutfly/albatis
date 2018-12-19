@@ -35,6 +35,11 @@ public class MysqlDialect extends Dialect {
 	private static final String UPSERT_SQL_TEMPLATE = "INSERT INTO %s (%s) VALUES (%s) ON DUPLICATE KEY UPDATE %s";
 
 	@Override
+	protected void doUpsert(Connection conn, String table, String keyField, List<Rmap> records, AtomicLong count){
+		doInsertOnUpsert(conn, table, records, count);
+	}
+
+	@Override
 	protected void doInsertOnUpsert(Connection conn, String table, List<Rmap> records, AtomicLong count) {
 		records.forEach(r -> {
 			List<String> allFields = new ArrayList<>(r.keySet());

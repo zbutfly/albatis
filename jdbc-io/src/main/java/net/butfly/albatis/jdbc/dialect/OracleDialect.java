@@ -33,6 +33,36 @@ import net.butfly.albatis.io.utils.JsonUtils;
 @DialectFor(subSchema = "oracle:thin", jdbcClassname = "oracle.jdbc.OracleDriver")
 public class OracleDialect extends Dialect {
 	private static final String UPSERT_SQL_TEMPLATE = "MERGE INTO %s USING DUAL ON (%s = ?) WHEN NOT MATCHED THEN INSERT (%s) VALUES (%s) WHEN MATCHED THEN UPDATE SET %s";
+	private static final String INSERT_SQL_TEMPLATE = "INSERT INTO %s (%s) VALUES (%s)";
+
+	@Override
+	protected void doInsertOnUpsert(Connection conn, String table, List<Rmap> records, AtomicLong count) {
+		records.sort((m1, m2) -> m2.size() - m1.size());
+		List<String> allFields = new ArrayList<>(records.get(0).keySet());
+
+		String fieldnames = allFields.stream().collect(Collectors.joining(", "));
+		String values = allFields.stream().map(f -> "?").collect(Collectors.joining(", "));
+		String sql = String.format(INSERT_SQL_TEMPLATE, table, fieldnames, values);
+
+		try (PreparedStatement ps = conn.prepareStatement(sql)) {
+			records.forEach(m -> {
+				try {
+					for (int i = 0; i < allFields.size(); i++) {
+						Object value = m.get(allFields.get(i));
+						Dialects.setObject(ps, i + 1, value);
+					}
+					ps.addBatch();
+				} catch (SQLException e) {
+					logger().warn(() -> "add `" + m + "` to batch error, ignore this message and continue.", e);
+				}
+			});
+			int[] rs = ps.executeBatch();
+			long sucessed = Arrays.stream(rs).filter(r -> r >= 0).count();
+			count.addAndGet(sucessed);
+		} catch (SQLException e) {
+			logger().warn(() -> "execute batch(size: " + records.size() + ") error, operation may not take effect. reason:", e);
+		}
+	}
 
 	@Override
 	protected void doUpsert(Connection conn, String table, String keyField, List<Rmap> records, AtomicLong count) {
