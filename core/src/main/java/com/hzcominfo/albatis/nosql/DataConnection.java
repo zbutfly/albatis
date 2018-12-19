@@ -7,7 +7,6 @@ import java.util.Map;
 import java.util.Properties;
 
 import com.google.common.base.Joiner;
-import com.hzcominfo.albatis.search.exception.SearchAPIError;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.logger.Loggable;
@@ -41,7 +40,7 @@ public abstract class DataConnection<C> implements Connection, Loggable {
 		if (qstr != null && !qstr.isEmpty()) {
 			Arrays.asList(qstr.split("&")).forEach(value -> {
 				String[] keyValue = value.split("=", 2);
-				if (keyValue.length != 2) throw new SearchAPIError("parameter error " + Arrays.toString(keyValue));
+				if (keyValue.length != 2) throw new IllegalArgumentException("parameter error " + Arrays.toString(keyValue));
 				parameters.put(keyValue[0], keyValue[1]);
 			});
 		}

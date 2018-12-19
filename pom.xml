@@ -58,6 +58,7 @@
 		<module>es</module>
 		<!-- <module>demo</module> -->
 		<!-- <module>util</module> -->
+		<module>search</module>
 	</modules>
 	<dependencies>
 		<dependency>

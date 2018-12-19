@@ -207,7 +207,7 @@ public class TableDesc extends Desc<TableDesc> {
 		return dummy(Colls.list(table));
 	}
 
-	public static TableDesc[] dummy(List<String> table) {
+	public static TableDesc[] dummy(Iterable<String> table) {
 		return Colls.list(table, TableDesc::dummy).toArray(new TableDesc[0]);
 	}
 }
