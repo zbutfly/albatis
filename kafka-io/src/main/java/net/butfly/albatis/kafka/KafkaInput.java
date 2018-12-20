@@ -3,6 +3,8 @@ package net.butfly.albatis.kafka;
 import static net.butfly.albatis.ddl.TableDesc.dummy;
 
 import java.io.IOException;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -12,6 +14,7 @@ import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 import kafka.common.ConsumerRebalanceFailedException;
 import kafka.common.MessageStreamsExistException;
@@ -20,8 +23,6 @@ import kafka.consumer.ConsumerTimeoutException;
 import kafka.consumer.KafkaStream;
 import kafka.javaapi.consumer.ConsumerConnector;
 import kafka.message.MessageAndMetadata;
-import kafka.serializer.Decoder;
-import kafka.serializer.DefaultDecoder;
 import kafka.serializer.StringDecoder;
 import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.exception.ConfigException;
@@ -29,6 +30,7 @@ import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.io.lambda.Function;
 import net.butfly.albacore.paral.Exeter;
 import net.butfly.albacore.paral.Task;
+import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.Texts;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
@@ -43,7 +45,8 @@ public class KafkaInput<T> extends Namedly implements OddInput<Rmap> {
 	private final KafkaInputConfig config;
 	private final Map<String, Integer> allTopics = Maps.of();
 	private ConsumerConnector connect;
-	private final BlockingQueue<ConsumerIterator<T, T>> consumers;
+	@SuppressWarnings("rawtypes")
+	private final BlockingQueue<ConsumerIterator> consumers;
 	private final Function<T, String> keying;
 	// for debug
 	private final AtomicLong skip;
@@ -62,7 +65,6 @@ public class KafkaInput<T> extends Namedly implements OddInput<Rmap> {
 		return Texts.split(topics, ",").toArray(new String[0]);
 	}
 
-	@SuppressWarnings("unchecked")
 	public KafkaInput(String name, URISpec uri, Class<T> nativeClass, TableDesc... topics) throws ConfigException, IOException {
 		super(name);
 		config = new KafkaInputConfig(name(), uri);
@@ -86,20 +88,19 @@ public class KafkaInput<T> extends Namedly implements OddInput<Rmap> {
 		}
 		logger().trace("[" + name() + "] parallelism of topics: " + allTopics.toString() + ".");
 
-		Decoder<T> d;
 		if (String.class.isAssignableFrom(nativeClass)) {
 			keying = s -> (String) s;
-			d = (Decoder<T>) new DefaultDecoder(null);
+			consumers = new LinkedBlockingQueue<>(createStringConsumers());
 		} else if (byte[].class.isAssignableFrom(nativeClass)) {
 			keying = b -> new String((byte[]) b);
-			d = (Decoder<T>) new StringDecoder(null);
+			consumers = new LinkedBlockingQueue<>(createBinaryConsumers());
 		} else throw new IllegalArgumentException();
-		consumers = new LinkedBlockingQueue<>(createConsumers(d));
 		closing(this::closeKafka);
 	}
 
-	private List<ConsumerIterator<T, T>> createConsumers(Decoder<T> d) throws ConfigException {
-		Map<String, List<KafkaStream<T, T>>> temp = null;
+	private List<ConsumerIterator<String, String>> createStringConsumers() throws ConfigException {
+		Map<String, List<KafkaStream<String, String>>> temp = null;
+		StringDecoder d = new StringDecoder(null);
 		ConsumerConnector c = null;
 		do
 			try {
@@ -114,9 +115,32 @@ public class KafkaInput<T> extends Namedly implements OddInput<Rmap> {
 		while (temp == null);
 		connect = c;
 		logger().info("[" + name() + "] connected.");
-		List<ConsumerIterator<T, T>> l = Colls.list();
-		for (Entry<String, List<KafkaStream<T, T>>> e : temp.entrySet())
-			for (KafkaStream<T, T> ks : e.getValue())
+		List<ConsumerIterator<String, String>> l = Colls.list();
+		for (Entry<String, List<KafkaStream<String, String>>> e : temp.entrySet())
+			for (KafkaStream<String, String> ks : e.getValue())
+				l.add(ks.iterator());
+		return l;
+	}
+
+	private List<ConsumerIterator<byte[], byte[]>> createBinaryConsumers() throws ConfigException {
+		Map<String, List<KafkaStream<byte[], byte[]>>> temp = null;
+		ConsumerConnector c = null;
+		do
+			try {
+				c = kafka.consumer.Consumer.createJavaConsumerConnector(config.getConfig());
+				temp = c.createMessageStreams(allTopics);
+			} catch (ConsumerRebalanceFailedException | MessageStreamsExistException e) {
+				logger().warn("[" + name() + "] reopen too quickly, wait 10 seconds and retry");
+				if (c != null) c.shutdown();
+				temp = null;
+				if (!Task.waitSleep(1000 * 10)) throw e;
+			}
+		while (temp == null);
+		connect = c;
+		logger().info("[" + name() + "] connected.");
+		List<ConsumerIterator<byte[], byte[]>> l = Colls.list();
+		for (Entry<String, List<KafkaStream<byte[], byte[]>>> e : temp.entrySet())
+			for (KafkaStream<byte[], byte[]> ks : e.getValue())
 				l.add(ks.iterator());
 		return l;
 	}
@@ -127,6 +151,10 @@ public class KafkaInput<T> extends Namedly implements OddInput<Rmap> {
 				.<MessageAndMetadata<byte[], byte[]>> sampling(km -> new String(km.key())).detailing(Exeter.of()::toString);
 	}
 
+	private static final long EMPTY_INFO_ITV = Long.parseLong(Configs.gets("albatis.kafka.input.empty.info.interval", "10"));
+	private static final AtomicReference<Instant> LAST_FETCH = new AtomicReference<>(null);
+
+	@SuppressWarnings("unchecked")
 	@Override
 	public Rmap dequeue() {
 		ConsumerIterator<T, T> it;
@@ -136,12 +164,13 @@ public class KafkaInput<T> extends Namedly implements OddInput<Rmap> {
 				try {
 					if (null != (m = it.next())) {
 						MessageAndMetadata<T, T> km = (MessageAndMetadata<T, T>) s().stats(m);
-						String k = keying.apply(km.key());
-						return new Rmap(km.topic(), k, k, km.message());
+						String k = null == km.key() ? null : keying.apply(km.key());
+						return new Rmap(km.topic(), k, null == k ? "_k" : k, km.message());
 					}
-				} catch (ConsumerTimeoutException ex) {
-					return null;
-				} catch (NoSuchElementException ex) {
+				} catch (ConsumerTimeoutException | NoSuchElementException ex) {
+					Instant last = LAST_FETCH.get();
+					if (null != last && Duration.between(Instant.now(), last).abs().getSeconds() > EMPTY_INFO_ITV) //
+						logger().debug("No data (kafka timeout) for more than 10 minutes.");
 					return null;
 				} catch (Exception ex) {
 					logger().warn("Unprocessed kafka error [" + ex.getClass().toString() + ": " + ex.getMessage()
@@ -149,6 +178,7 @@ public class KafkaInput<T> extends Namedly implements OddInput<Rmap> {
 					return null;
 				} finally {
 					consumers.offer(it);
+					LAST_FETCH.set(Instant.now());
 				}
 			}
 		return null;

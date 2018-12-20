@@ -26,7 +26,6 @@ import net.butfly.albatis.io.Input;
 import net.butfly.albatis.io.OddInput;
 import net.butfly.albatis.io.Rmap;
 
-@SuppressWarnings("deprecation")
 public class MongoInput extends net.butfly.albacore.base.Namedly implements OddInput<Rmap> {
 	private static final long serialVersionUID = -1542477278520256900L;
 	private static final Logger logger = Logger.getLogger(MongoInput.class);

@@ -17,7 +17,7 @@ import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.io.Input;
 import net.butfly.albatis.io.Rmap;
 import net.butfly.albatis.io.TypelessIO;
-import net.butfly.alserder.SD;
+import net.butfly.alserder.SerDes;
 import scala.collection.JavaConversions;
 
 public class KafkaConnection extends DataConnection<Connection> implements TypelessIO {
@@ -27,24 +27,19 @@ public class KafkaConnection extends DataConnection<Connection> implements Typel
 
 	@SuppressWarnings("rawtypes")
 	@Override
-	public List<SD> serders(String... formats) {
-		@SuppressWarnings("deprecation")
-		String biz = Configs.gets("albatis.format.biz.default");
-		List<SD> sds = TypelessIO.super.serders(formats);
-		if (null != biz && sds.size() == 1) {
-			SD sd = SD.lookup(biz);
-			if (null != sd) sds.add(sd);
-		}
+	public List<SerDes> serdes(boolean input) {
+		String biz = Configs.gets("albatis.format.biz.default", "etl"); // should be config by
+		List<SerDes> sds = TypelessIO.super.serdes(input);
+		SerDes sd;
+		if (null != biz && sds.size() == 1 && null != (sd = SerDes.sd(biz))) sds.add(sd);
 		return sds;
 	}
 
 	@Override
 	public Input<Rmap> createInput(TableDesc... topic) throws IOException {
-		@SuppressWarnings("rawtypes")
-		SD sd = nativeSerder();
 		try {
-			if (String.class.isAssignableFrom(sd.toClass())) return new KafkaInput<>("KafkaInput", uri, String.class, topic);
-			else if (byte[].class.isAssignableFrom(sd.toClass())) return new KafkaInput<>("KafkaInput", uri, byte[].class, topic);
+			if (String.class.isAssignableFrom(nativeClass(true))) return new KafkaInput<>("KafkaInput", uri, String.class, topic);
+			else if (byte[].class.isAssignableFrom(nativeClass(true))) return new KafkaInput<>("KafkaInput", uri, byte[].class, topic);
 			else throw new IllegalArgumentException();
 		} catch (ConfigException e) {
 			throw new IllegalArgumentException(e);

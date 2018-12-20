@@ -41,10 +41,10 @@ public class ZkConnection implements AutoCloseable {
 			byte[] b = zk.getData(path, false, null);
 			return null == b ? null : new String(b);
 		} catch (KeeperException e) {
-			logger.error("ZK failure: " + e.getMessage());
+			logger.warn("ZK failure: " + e.getMessage());
 			return null;
 		} catch (InterruptedException e) {
-			logger.error("Kafka connecting [" + zk.toString() + "] path [" + path + "] interrupted." + e.getMessage());
+			logger.warn("Kafka connecting [" + zk.toString() + "] path [" + path + "] interrupted." + e.getMessage());
 			return null;
 		}
 	}

@@ -30,7 +30,6 @@ import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albacore.utils.logger.Statistic;
 import net.butfly.albatis.ddl.TableDesc;
 
-@SuppressWarnings("deprecation")
 public class ArangoConnection extends DataConnection<ArangoDBAsync> {
 	private static final Logger logger = Logger.getLogger(ArangoConnection.class);
 	private static final int MAX_CONNECTIONS = Integer.parseInt(Configs.gets("albatis.arango.connection.max.conn", "0"));
