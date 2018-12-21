@@ -1,4 +1,4 @@
-package net.butfly.albatis.kafka;
+package net.butfly.albatis.kafka.old;
 
 import java.io.IOException;
 import java.util.HashMap;
