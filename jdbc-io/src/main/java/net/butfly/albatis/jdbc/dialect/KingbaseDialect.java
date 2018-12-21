@@ -10,7 +10,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
-@DialectFor(subSchema = "kingbaseanalyticsdb", jdbcClassname = "com.kingbase.kingbaseanalyticsdb.ds.KBSimpleDataSource")
+@DialectFor(subSchema = "kingbaseanalyticsdb", jdbcClassname = "com.kingbase.kingbaseanalyticsdb.Driver")
 public class KingbaseDialect extends Dialect {
     private static final String UPSERT_SQL_TEMPLATE = "INSERT INTO %s (%s) VALUES (%s)";
 
