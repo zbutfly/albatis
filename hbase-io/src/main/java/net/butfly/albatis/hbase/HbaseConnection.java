@@ -1,6 +1,8 @@
 package net.butfly.albatis.hbase;
 
 import static net.butfly.albacore.paral.Sdream.of;
+import static net.butfly.albatis.ddl.FieldDesc.SPLIT_CF;
+import static net.butfly.albatis.ddl.FieldDesc.SPLIT_PREFIX;
 
 import java.io.BufferedWriter;
 import java.io.FileOutputStream;
@@ -329,9 +331,9 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 			String tableName = table.name;
 			String prefix = null;
 			String cf = null;
-			String[] splitPrefix = table.name.split(":");
+			String[] splitPrefix = table.name.split(SPLIT_PREFIX);
 			if (splitPrefix.length == 2) prefix = splitPrefix[1];
-			String[] splitCf = splitPrefix[0].split("#");
+			String[] splitCf = splitPrefix[0].split(SPLIT_CF);
 			if (splitCf.length == 2) cf = splitCf[1];
 			List<String> ps = new ArrayList<>();
 			if (prefix != null && !"".equals(prefix)) {

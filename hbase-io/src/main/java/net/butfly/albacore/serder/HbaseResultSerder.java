@@ -1,4 +1,5 @@
 package net.butfly.albacore.serder;
+import static net.butfly.albatis.ddl.FieldDesc.SPLIT_CF;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
@@ -39,7 +40,7 @@ public final class HbaseResultSerder implements BeanSerder<Object, Result> {
 		if (null == from) return null;
 		T t = Reflections.construct(to);
 		for (Field f : Reflections.getDeclaredFields(to)) {
-			String[] qulifier = mappingField(f).split(":");
+			String[] qulifier = mappingField(f).split(SPLIT_CF);
 			try {
 				Cell cell = from.getColumnLatestCell(Text.encode(qulifier[0]).array(), Text.encode(qulifier[1]).array());
 				if (cell != null) Reflections.set(t, f, fromBytes(f.getType(), CellUtil.cloneValue(cell)));
@@ -70,7 +71,7 @@ public final class HbaseResultSerder implements BeanSerder<Object, Result> {
 						: HbaseColumnFamily.DEFAULT_COLUMN_FAMILY);
 		if (family == null) throw new IllegalArgumentException("Column family is not defined on " + to.toString() + ", field " + f
 				.getName());
-		return family + ":" + col;
+		return family + SPLIT_CF + col;
 	}
 
 	@SuppressWarnings({ "unchecked", "rawtypes" })

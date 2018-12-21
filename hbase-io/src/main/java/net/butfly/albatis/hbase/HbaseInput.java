@@ -1,6 +1,8 @@
 package net.butfly.albatis.hbase;
 
 import static net.butfly.albacore.paral.Sdream.of;
+import static net.butfly.albatis.ddl.FieldDesc.SPLIT_CF;
+import static net.butfly.albatis.ddl.FieldDesc.SPLIT_PREFIX;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -80,7 +82,6 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 			}
 		}
 
-		@SuppressWarnings("deprecation")
 		public TableScaner(String table, String logicalTable, byte[][] startAndEndRow) {
 			super();
 			name = table;
@@ -170,7 +171,7 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 	public void tableWithFamily(String table, String... cf) {
 		Filter[] fs = filterFamily(cf);
 		if (null == fs) table(table);
-		else table(table, cf.length > 0 ? table : (table + "#" + cf[0]), fs);
+		else table(table, cf.length > 0 ? table : (table + SPLIT_CF + cf[0]), fs);
 	}
 
 	private Filter[] filterFamily(String... cf) {
@@ -192,7 +193,7 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 	public void tableWithPrefix(String table, String... prefix) {
 		Filter f = filterPrefix(Arrays.asList(prefix));
 		if (null == f) table(table);
-		else table(table, prefix.length > 0 ? table : (table + ":" + prefix[0]), f);
+		else table(table, prefix.length > 0 ? table : (table + SPLIT_PREFIX + prefix[0]), f);
 	}
 
 	public void tableWithFamilAndPrefix(String table, List<String> prefixes, String... cf) {
@@ -204,11 +205,11 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 		String logicalTable = table;
 		if (cf.length > 0) {
 			if (cf.length > 1) throw new RuntimeException("Now only supports one cf");
-			logicalTable += "#" + cf[0];
+			logicalTable += SPLIT_CF + cf[0];
 		}
 		if (prefixes.size() > 0) {
 			if (prefixes.size() > 1) throw new RuntimeException("Now only supports one prefix");
-			logicalTable += ":" + prefixes.get(0);
+			logicalTable += SPLIT_PREFIX + prefixes.get(0);
 		}
 
 		if (filters.isEmpty()) table(table);

@@ -1,5 +1,7 @@
 package net.butfly.albatis.hbase;
 
+import static net.butfly.albatis.ddl.FieldDesc.SPLIT_CF;
+import static net.butfly.albatis.ddl.FieldDesc.SPLIT_PREFIX;
 import static net.butfly.albatis.io.Rmap.Op.INCREASE;
 import static net.butfly.albatis.io.Rmap.Op.INSERT;
 import static net.butfly.albatis.io.Rmap.Op.UPSERT;
@@ -83,7 +85,7 @@ public final class Hbases extends Utils {
 	}
 
 	public static String colFamily(Cell cell) {
-		return Bytes.toString(CellUtil.cloneFamily(cell)) + ":" + Bytes.toString(CellUtil.cloneQualifier(cell));
+		return Bytes.toString(CellUtil.cloneFamily(cell)) + SPLIT_CF + Bytes.toString(CellUtil.cloneQualifier(cell));
 	}
 
 	public static byte[] toBytes(Result result) throws IOException {
@@ -125,16 +127,15 @@ public final class Hbases extends Utils {
 	}
 
 	public static Map<String, byte[]> map(Stream<Cell> cells) {
-		return null == cells ? Maps.of()
-				: cells.collect(Collectors.toConcurrentMap(//
-						c -> Bytes
-								.toString(CellUtil.cloneQualifier(c)), ///* Bytes.toString(CellUtil.cloneFamily(c)) + ":" + */ 
-						c -> CellUtil.cloneValue(c)));
+		return null == cells ? Maps.of() : cells.collect(Collectors.toConcurrentMap(c -> {
+			String[] fqs = Bytes.toString(CellUtil.cloneQualifier(c)).split(SPLIT_PREFIX, 2);
+			return fqs[fqs.length == 2 ? 1 : 0];
+		}, c -> CellUtil.cloneValue(c)));
 	}
 
 	public static interface Results {
 		static byte[][] parseFQ(String name) {
-			String[] fq = name.split(":", 2);
+			String[] fq = name.split(SPLIT_CF, 2);
 			byte[] f, q;
 			if (fq.length == 1) {
 				f = DEFAULT_COL_FAMILY_VALUE;
@@ -203,7 +204,7 @@ public final class Hbases extends Utils {
 						fc++;
 					} catch (Exception ee) {
 						logger.warn("Hbase cell converting failure, ignored and continued, row: " + row + ", cell: " + Bytes.toString(
-								CellUtil.cloneFamily(c)) + ":" + Bytes.toString(CellUtil.cloneQualifier(c)), ee);
+								CellUtil.cloneFamily(c)) + SPLIT_CF + Bytes.toString(CellUtil.cloneQualifier(c)), ee);
 					}
 				}
 				return fc == 0 ? null : put;
