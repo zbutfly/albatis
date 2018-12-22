@@ -1,5 +1,6 @@
 package net.butfly.albatis.elastic;
 
+import static net.butfly.albacore.utils.Configs.gets;
 import static net.butfly.albacore.utils.collection.Maps.of;
 import static net.butfly.albatis.ddl.vals.ValType.Flags.BINARY;
 import static net.butfly.albatis.ddl.vals.ValType.Flags.BOOL;
@@ -26,13 +27,16 @@ import net.butfly.albatis.ddl.vals.ValType;
 public class MappingConstructor {
 	protected final Logger logger = Logger.getLogger(MappingConstructor.class);
 	public static final String DEFAULT_FULLTEXT_NAME = "fullText";
-	private String DEFAULT_GLOBAL_ANALYZER;
+	private static final String CONFIG_PREFIX = "albatis.es.mapping.";
+
+	private final boolean includeAll;
+	private String analyzer;
 	private boolean dynamic;
 
 	public MappingConstructor(Map<String, Object> options) {
-		this.dynamic = Boolean.valueOf(options.getOrDefault("dynamic", "true").toString());
-		this.DEFAULT_GLOBAL_ANALYZER = options.getOrDefault("analyzer", //
-				System.getProperty("albatis.es.mapping.text.analyzer", "standard")).toString();
+		this.includeAll = Boolean.valueOf(options.getOrDefault("includeAll", gets(CONFIG_PREFIX + "include.all", "false")).toString());
+		this.dynamic = Boolean.valueOf(options.getOrDefault("dynamic", gets(CONFIG_PREFIX + "dynamic", "true")).toString());
+		this.analyzer = options.getOrDefault("analyzer", gets(CONFIG_PREFIX + "text.analyzer", "standard")).toString();
 	}
 
 	protected List<Map<String, Object>> templates() {
@@ -71,7 +75,7 @@ public class MappingConstructor {
 			}
 			props.put(f.name, fm);
 		}
-		Map<String, Object> all = of("include_in_all", true, "dynamic", String.valueOf(dynamic), "properties", props);
+		Map<String, Object> all = of("include_in_all", includeAll, "dynamic", String.valueOf(dynamic), "properties", props);
 		if (dynamic) all.put("dynamic_templates", templates());
 		return all;
 	}
@@ -105,7 +109,7 @@ public class MappingConstructor {
 	}
 
 	protected Map<String, Object> fieldAnalyzer() {
-		return fieldAnalyzer(DEFAULT_GLOBAL_ANALYZER);
+		return fieldAnalyzer(analyzer);
 	}
 
 	protected Map<String, Object> fieldAnalyzer(String a) {
