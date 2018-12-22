@@ -1,8 +1,7 @@
 package net.butfly.albatis.hbase;
 
 import static net.butfly.albacore.paral.Sdream.of;
-import static net.butfly.albatis.ddl.FieldDesc.SPLIT_CF;
-import static net.butfly.albatis.ddl.FieldDesc.SPLIT_PREFIX;
+import static net.butfly.albatis.ddl.FieldDesc.SPLIT_ZWNJ;
 
 import java.io.BufferedWriter;
 import java.io.FileOutputStream;
@@ -10,7 +9,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.InetSocketAddress;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -52,6 +50,7 @@ import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albacore.utils.logger.Statistic;
+import net.butfly.albatis.ddl.Builder;
 import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.io.Rmap;
@@ -64,7 +63,7 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 
 	static {
 		logger.warn(
-				"Hbase client common lib not support 2 digitals jdk version (checked by \"\\d\\.\\d\\..*\" in org.apache.hadoop.hbase.util.ClassSize:118) hacking into 9.0.4 -_-");
+				"Hbase client common lib not support 2 digitals jdk version\n\t(checked by \"\\d\\.\\d\\..*\" in org.apache.hadoop.hbase.util.ClassSize:118)\nhacking into 9.0.4 -_-");
 		System.setProperty("java.version", "9.0.4");
 		// XXX: check
 		ClassSize.align(ClassSize.OBJECT + 2 * ClassSize.REFERENCE + 1 * Bytes.SIZEOF_LONG + ClassSize.REFERENCE + ClassSize.REFERENCE
@@ -325,32 +324,29 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 		}
 	}
 
-	@SuppressWarnings({ "rawtypes", "unchecked" })
+	@SuppressWarnings("rawtypes")
 	@Override
 	public List<SerDes> serdes(boolean input) {
+		// String biz = Configs.gets("albatis.format.biz.default", "subject"); // should be config by
 		List<SerDes> sds = TypelessIO.super.serdes(input);
-		if (sds.isEmpty()) sds.add(SerDes.sd(DEFAULT_FORMAT));
+		// SerDes sd;
+		// if (null != biz && sds.size() == 1 && null != (sd = SerDes.sd(biz))) sds.add(sd);
 		return sds;
 	}
 
-	@Override // TODO: add cf/split/row handlering
+	@Override
 	public HbaseInput createInput(TableDesc... tables) throws IOException {
 		HbaseInput input = new HbaseInput("HbaseInput", this);
 		for (TableDesc table : tables) {
-			String tableName = table.name;
-			String prefix = null;
-			String cf = null;
-			String[] splitPrefix = table.name.split(SPLIT_PREFIX);
-			if (splitPrefix.length == 2) prefix = splitPrefix[1];
-			String[] splitCf = splitPrefix[0].split(SPLIT_CF);
-			if (splitCf.length == 2) cf = splitCf[1];
-			List<String> ps = new ArrayList<>();
-			if (prefix != null && !"".equals(prefix)) {
-				ps.add(prefix);
-			}
-			tableName = splitCf[0];
-			if (null == cf) input.tableWithPrefix(tableName, ps.toArray(new String[ps.size()]));
-			else input.tableWithFamilAndPrefix(tableName, ps, cf);
+			String[] fqs = Builder.parseTableAndField(table.name, null);
+			List<String> pfxs = null == fqs[2] ? Colls.list() : Colls.list(p -> "".equals(p) ? null : p, fqs[2].split(SPLIT_ZWNJ));
+			List<String> cfs = null == fqs[1] ? Colls.list() : Colls.list(p -> "".equals(p) ? null : p, fqs[1].split(SPLIT_ZWNJ));
+			fqs = fqs[0].split(SPLIT_ZWNJ);
+			if (fqs.length > 1) {// row key mode
+				List<byte[]> rows = Colls.list(Bytes::toBytes, fqs);
+				rows.remove(0);
+				input.table(fqs[0], table.name, rows.toArray(new byte[rows.size()][]));
+			} else input.tableWithFamilAndPrefix(fqs[0], pfxs, cfs.toArray(new String[0]));
 		}
 		return input;
 	}

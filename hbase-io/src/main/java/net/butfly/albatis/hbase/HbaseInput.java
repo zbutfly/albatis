@@ -82,7 +82,7 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 			}
 		}
 
-		public TableScaner(String table, String logicalTable, byte[][] startAndEndRow) {
+		public TableScaner(String table, String logicalTable, byte[]... startAndEndRow) {
 			super();
 			name = table;
 			this.logicalName = logicalTable;
@@ -169,15 +169,14 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 	}
 
 	public void tableWithFamily(String table, String... cf) {
-		Filter[] fs = filterFamily(cf);
-		if (null == fs) table(table);
-		else table(table, cf.length > 0 ? table : (table + SPLIT_CF + cf[0]), fs);
+		List<Filter> fs = filterFamily(cf);
+		if (fs.isEmpty()) table(table);
+		else table(table, cf.length > 0 ? table : (table + SPLIT_CF + cf[0]), fs.toArray(new Filter[0]));
 	}
 
-	private Filter[] filterFamily(String... cf) {
-		if (null == cf || 0 == cf.length) return null;
-		return Arrays.stream(cf).map(c -> new FamilyFilter(CompareOp.EQUAL, new BinaryComparator(Bytes.toBytes(c)))).toArray(
-				i -> new Filter[i]);
+	private List<Filter> filterFamily(String... cf) {
+		return null == cf || 0 == cf.length ? Colls.list()
+				: Colls.list(c -> new FamilyFilter(CompareOp.EQUAL, new BinaryComparator(Bytes.toBytes(c))), cf);
 	}
 
 	private Filter filterPrefix(List<String> prefixes) {
@@ -197,10 +196,9 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 	}
 
 	public void tableWithFamilAndPrefix(String table, List<String> prefixes, String... cf) {
-		Filter pf = filterPrefix(prefixes);
-		Filter[] ff = filterFamily(cf);
-		List<Filter> filters = null == ff ? Colls.list() : Colls.list(ff);
-		if (null != pf) filters.add(pf);
+		Filter prefixFilter = filterPrefix(prefixes);
+		List<Filter> filters = filterFamily(cf);
+		if (null != prefixFilter) filters.add(prefixFilter);
 
 		String logicalTable = table;
 		if (cf.length > 0) {
