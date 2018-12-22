@@ -8,7 +8,7 @@ import com.hzcominfo.albatis.in;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.collection.Colls;
 
-public class KafkaTest {
+public class DpcIoTest {
 	public static void main(String... args) throws Exception {
 		// // bson as default and output an map toString
 		// input("kafka://data01:2181,data02:2181,data03:2181/kafka", "flow_PEOPLE_1218_DBRW_inc");
@@ -16,6 +16,7 @@ public class KafkaTest {
 		// input("kafka://data01:2181,data02:2181,data03:2181/kafka?df=bson,rev:json", "flow_PEOPLE_1218_DBRW_inc");
 		// string kafka without key (null key)
 		input("kafka://data01:2181,data02:2181,data03:2181/kafka?df=json", "KAFKA_STRING_TEST");
+//		input("kafka://data01:2181,data02:2181,data03:2181/kafka?df=jsons", "HIK_STR_TEST");
 	}
 
 	public static void input(String uri, String... topics) throws Exception {

@@ -170,7 +170,7 @@ public class KafkaInput<T> extends Namedly implements OddInput<Rmap> {
 				} catch (ConsumerTimeoutException | NoSuchElementException ex) {
 					Instant last = LAST_FETCH.get();
 					if (null != last && Duration.between(Instant.now(), last).abs().getSeconds() > EMPTY_INFO_ITV) //
-						logger().debug("No data (kafka timeout) for more than 10 minutes.");
+						logger().debug("No data (kafka timeout) for more than " + EMPTY_INFO_ITV + " seconds.");
 					return null;
 				} catch (Exception ex) {
 					logger().warn("Unprocessed kafka error [" + ex.getClass().toString() + ": " + ex.getMessage()
