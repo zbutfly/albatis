@@ -57,6 +57,7 @@ import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.io.Rmap;
 import net.butfly.albatis.io.TypelessIO;
 import net.butfly.albatis.io.utils.JsonUtils;
+import net.butfly.alserder.SerDes;
 
 public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.client.Connection> implements TypelessIO {
 	private final static Logger logger = Logger.getLogger(HbaseConnection.class);
@@ -324,7 +325,15 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 		}
 	}
 
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	@Override
+	public List<SerDes> serdes(boolean input) {
+		List<SerDes> sds = TypelessIO.super.serdes(input);
+		if (sds.isEmpty()) sds.add(SerDes.sd(DEFAULT_FORMAT));
+		return sds;
+	}
+
+	@Override // TODO: add cf/split/row handlering
 	public HbaseInput createInput(TableDesc... tables) throws IOException {
 		HbaseInput input = new HbaseInput("HbaseInput", this);
 		for (TableDesc table : tables) {
@@ -340,7 +349,8 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 				ps.add(prefix);
 			}
 			tableName = splitCf[0];
-			input.tableWithFamilAndPrefix(tableName, ps, cf);
+			if (null == cf) input.tableWithPrefix(tableName, ps.toArray(new String[ps.size()]));
+			else input.tableWithFamilAndPrefix(tableName, ps, cf);
 		}
 		return input;
 	}
@@ -353,6 +363,7 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 	@Override
 	public void construct(String dbName, String table, TableDesc tableDesc, List<FieldDesc> fields) {
 		try (Admin admin = client.getAdmin()) {
+			@SuppressWarnings("deprecation")
 			List<String> columnFamilies = JsonUtils.parseFieldsByJson(tableDesc.construct.get("columnFamilies"));
 			Integer region = (Integer) tableDesc.construct.get("region");
 			if (null == region) {

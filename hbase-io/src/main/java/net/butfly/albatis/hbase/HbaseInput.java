@@ -141,7 +141,7 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 
 	public void table(String... table) {
 		for (String t : table)
-			table(t);
+			table(t, t);
 	}
 
 	private void table(String table, String logicalTable, Supplier<TableScaner> constr) {

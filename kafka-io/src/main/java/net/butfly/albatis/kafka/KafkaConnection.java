@@ -25,7 +25,7 @@ public class KafkaConnection extends DataConnection<Connection> implements Typel
 		super(uri, "kafka");
 	}
 
-	@SuppressWarnings("rawtypes")
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	@Override
 	public List<SerDes> serdes(boolean input) {
 		String biz = Configs.gets("albatis.format.biz.default", "etl"); // should be config by
