@@ -103,12 +103,12 @@ public class ElasticOutput extends OutputBase<Rmap> {
 			Rmap o = remains.remove(r.getId());
 			if (!r.isFailed()) {
 				succs++;
-				logger.trace(() -> "es writing successed: \n\tData: " + o.toString() + "\n\tResp: " + r.getResponse().toString());
+				if (null != o && null != r.getResponse()) logger.trace(() -> //
+				"es writing successed: \n\tData: " + o.toString() + "\n\tResp: " + r.getResponse().toString());
 			} else if (null != o) {
-				if (noRetry(r.getFailure().getCause())) {
-					logger.error(() -> "ElasticOutput [" + name() + "] failed for [" + unwrap(r.getFailure().getCause()).toString()
-							+ "]: \n\t" + o.toString());
-				} else retries.add(o);
+				if (noRetry(r.getFailure().getCause())) logger.error(() -> //
+				"ElasticOutput [" + name() + "] failed for [" + unwrap(r.getFailure().getCause()).toString() + "]: \n\t" + o.toString());
+				else retries.add(o);
 			}
 		}
 		if (succs > 0) succeeded(succs);
