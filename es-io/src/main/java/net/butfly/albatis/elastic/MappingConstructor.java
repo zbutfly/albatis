@@ -32,7 +32,7 @@ public class MappingConstructor {
 	public MappingConstructor(Map<String, Object> options) {
 		this.dynamic = Boolean.valueOf(options.getOrDefault("dynamic", "true").toString());
 		this.DEFAULT_GLOBAL_ANALYZER = options.getOrDefault("analyzer", //
-				System.getProperty("albatis.es.mapping.text.analyzer", "hanlp")).toString();
+				System.getProperty("albatis.es.mapping.text.analyzer", "standard")).toString();
 	}
 
 	protected List<Map<String, Object>> templates() {
