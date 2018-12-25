@@ -15,10 +15,6 @@ import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.serder.JsonSerder;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albatis.ddl.FieldDesc;
-import net.butfly.albatis.ddl.TableDesc;
-import net.butfly.albatis.io.Input;
-import net.butfly.albatis.io.Output;
-import net.butfly.albatis.io.Rmap;
 
 public class ElasticRestConnection extends DataConnection<RestClient> implements ElasticConnect {
 	public ElasticRestConnection(URISpec uri, Map<String, String> props) throws IOException {
@@ -84,15 +80,5 @@ public class ElasticRestConnection extends DataConnection<RestClient> implements
 		} catch (IOException e) {
 			logger().error("Close failure", e);
 		}
-	}
-
-	@Override
-	public Input<Rmap> createInput(TableDesc... table) throws IOException {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	public Output<Rmap> createOutput(TableDesc... table) throws IOException {
-		throw new UnsupportedOperationException();
 	}
 }

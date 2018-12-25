@@ -209,7 +209,7 @@ public class MongoConnection extends DataConnection<MongoClient> {
     }
 
     @Override
-    public MongoInput createInput(TableDesc... table) throws IOException {
+    public MongoInput inputRaw(TableDesc... table) throws IOException {
         MongoInput i = new MongoInput("MongoInput", this);
         List<String> l = Colls.list(t -> t.name, table);
         i.table(l.toArray(new String[l.size()]));
@@ -217,7 +217,7 @@ public class MongoConnection extends DataConnection<MongoClient> {
     }
 
     @Override
-    public MongoOutput createOutput(TableDesc... table) throws IOException {
+    public MongoOutput outputRaw(TableDesc... table) throws IOException {
         return new MongoOutput("MongoOutput", this);
     }
 

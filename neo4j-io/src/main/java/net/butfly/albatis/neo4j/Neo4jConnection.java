@@ -10,10 +10,6 @@ import com.hzcominfo.albatis.nosql.DataConnection;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.collection.Colls;
-import net.butfly.albatis.ddl.TableDesc;
-import net.butfly.albatis.io.Input;
-import net.butfly.albatis.io.Output;
-import net.butfly.albatis.io.Rmap;
 
 public class Neo4jConnection extends DataConnection<org.neo4j.driver.v1.Driver> {
 	public Neo4jConnection(URISpec uri) throws IOException {
@@ -28,16 +24,6 @@ public class Neo4jConnection extends DataConnection<org.neo4j.driver.v1.Driver> 
 	@Override
 	public void close() throws IOException {
 		client.close();
-	}
-
-	@Override
-	public <M extends Rmap> Input<M> createInput(TableDesc... table) throws IOException {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	public <M extends Rmap> Output<M> createOutput(TableDesc... table) throws IOException {
-		throw new UnsupportedOperationException();
 	}
 
 	public static class Driver implements com.hzcominfo.albatis.nosql.Connection.Driver<Neo4jConnection> {

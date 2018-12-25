@@ -169,12 +169,12 @@ public abstract class KuduConnectionBase<C extends KuduConnectionBase<C, KC, S>,
 	}
 
 	@Override
-	public Input<Rmap> createInput(TableDesc... table) throws IOException {
+	public Input<Rmap> inputRaw(TableDesc... table) throws IOException {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	public <M extends Rmap> Output<M> createOutput(TableDesc... table) throws IOException {
-		return (Output<M>) new KuduOutput("KuduOutput", this);
+	public KuduOutput outputRaw(TableDesc... table) throws IOException {
+		return new KuduOutput("KuduOutput", this);
 	}
 }

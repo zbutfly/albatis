@@ -56,7 +56,7 @@ public class KafkaInput<T> extends Namedly implements OddInput<Rmap> {
 	}
 
 	public KafkaInput(String name, URISpec kafkaURI, Class<T> nativeClass) throws ConfigException, IOException {
-		this(name, kafkaURI, nativeClass, dummy(topic(kafkaURI)));
+		this(name, kafkaURI, nativeClass, dummy(topic(kafkaURI)).toArray(new TableDesc[0]));
 	}
 
 	protected static String[] topic(URISpec kafkaURI) {
@@ -74,7 +74,7 @@ public class KafkaInput<T> extends Namedly implements OddInput<Rmap> {
 		int configTopicParallinism = Props.propI(KafkaInput.class, "topic.paral", config.getDefaultPartitionParallelism());
 		if (configTopicParallinism > 0) //
 			logger().debug("[" + name() + "] default topic parallelism [" + configTopicParallinism + "]");
-		if (topics == null || topics.length == 0) topics = dummy(config.topics());
+		if (topics == null || topics.length == 0) topics = dummy(config.topics()).toArray(new TableDesc[0]);
 		Set<String> ts = new HashSet<>(Colls.list(t -> t.name, topics));
 		Map<String, Integer> topicPartitions = config.getTopicPartitions(ts);
 

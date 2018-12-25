@@ -335,7 +335,7 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 	}
 
 	@Override
-	public HbaseInput createInput(TableDesc... tables) throws IOException {
+	public HbaseInput inputRaw(TableDesc... tables) throws IOException {
 		HbaseInput input = new HbaseInput("HbaseInput", this);
 		for (TableDesc table : tables) {
 			String[] fqs = Builder.parseTableAndField(table.name, null);
@@ -352,7 +352,7 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 	}
 
 	@Override
-	public HbaseOutput createOutput(TableDesc... table) throws IOException {
+	public HbaseOutput outputRaw(TableDesc... table) throws IOException {
 		return new HbaseOutput("HbaseOutput", this, conv);
 	}
 

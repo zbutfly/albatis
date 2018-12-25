@@ -124,7 +124,7 @@ public class JdbcConnection extends DataConnection<DataSource> {
 	}
 
 	@Override
-	public JdbcInput createInput(TableDesc... sql) throws IOException {
+	public JdbcInput inputRaw(TableDesc... sql) throws IOException {
 		if (sql.length > 1) throw new UnsupportedOperationException("Multiple sql input");
 		JdbcInput i;
 		try {
@@ -137,7 +137,7 @@ public class JdbcConnection extends DataConnection<DataSource> {
 	}
 
 	@Override
-	public JdbcOutput createOutput(TableDesc... table) throws IOException {
+	public JdbcOutput outputRaw(TableDesc... table) throws IOException {
 		return new JdbcOutput("JdbcOutput", this);
 	}
 

@@ -14,8 +14,6 @@ import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albatis.ddl.TableDesc;
-import net.butfly.albatis.io.Input;
-import net.butfly.albatis.io.Rmap;
 import net.butfly.albatis.io.TypelessIO;
 import net.butfly.alserder.SerDes;
 import scala.collection.JavaConversions;
@@ -35,8 +33,9 @@ public class KafkaConnection extends DataConnection<Connection> implements Typel
 		return sds;
 	}
 
+	@SuppressWarnings({ "unchecked", "rawtypes" })
 	@Override
-	public Input<Rmap> createInput(TableDesc... topic) throws IOException {
+	public KafkaInput inputRaw(TableDesc... topic) throws IOException {
 		try {
 			if (String.class.isAssignableFrom(nativeClass(true))) return new KafkaInput<>("KafkaInput", uri, String.class, topic);
 			else if (byte[].class.isAssignableFrom(nativeClass(true))) return new KafkaInput<>("KafkaInput", uri, byte[].class, topic);
@@ -47,7 +46,7 @@ public class KafkaConnection extends DataConnection<Connection> implements Typel
 	}
 
 	@Override
-	public KafkaOutput createOutput(TableDesc... table) throws IOException {
+	public KafkaOutput outputRaw(TableDesc... topic) throws IOException {
 		try {
 			return new KafkaOutput("KafkaInput", uri);
 		} catch (ConfigException e) {

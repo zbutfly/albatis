@@ -78,14 +78,14 @@ public class ArangoConnection extends DataConnection<ArangoDBAsync> {
 	}
 
 	@Override
-	public ArangoInput createInput(TableDesc... table) throws IOException {
+	public ArangoInput inputRaw(TableDesc... table) throws IOException {
 		ArangoInput i = new ArangoInput("ArangoInput", this);
 		return i;
 	}
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public ArangoOutput createOutput(TableDesc... table) throws IOException {
+	public ArangoOutput outputRaw(TableDesc... table) throws IOException {
 		return new ArangoOutput("ArangoOutput", this);
 	}
 

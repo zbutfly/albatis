@@ -22,8 +22,6 @@ import net.butfly.albacore.serder.JsonSerder;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.ddl.TableDesc;
-import net.butfly.albatis.io.Input;
-import net.butfly.albatis.io.Rmap;
 
 public class ElasticConnection extends DataConnection<TransportClient> implements ElasticConnect {
 	public ElasticConnection(URISpec uri, Map<String, String> props) throws IOException {
@@ -161,12 +159,7 @@ public class ElasticConnection extends DataConnection<TransportClient> implement
 	}
 
 	@Override
-	public Input<Rmap> createInput(TableDesc... table) throws IOException {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	public ElasticOutput createOutput(TableDesc... table) throws IOException {
+	public ElasticOutput outputRaw(TableDesc... table) throws IOException {
 		return new ElasticOutput("ElasticOutput", this);
 	}
 

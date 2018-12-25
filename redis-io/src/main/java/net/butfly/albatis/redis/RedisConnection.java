@@ -27,16 +27,16 @@ public class RedisConnection extends DataConnection<RedisClient> implements Type
 		type = uriSpec.getParameter("type");
 	}
 
-	@Override
-	public RedisListInput createInput(TableDesc... table) throws IOException {
+	@Override // TODO: use serder class, not param type
+	public RedisListInput inputRaw(TableDesc... table) throws IOException {
 		List<String> l = Colls.list(t -> t.name, table);
-		if (type.equals("byteArray")) return new RedisListInput("RedisListInput", this, new ByteArrayCodec(), l.toArray(new String[0]));
-		else if (type.equals("string")) return new RedisListInput("RedisListInput", this, new StringCodec(), l.toArray(new String[0]));
-		return new RedisListInput("RedisListInput", this, new Utf8StringCodec(), l.toArray(new String[0]));
+		if (type.equals("byteArray")) return new RedisListInput("RedisListInput", this, new ByteArrayCodec(), l.toArray(new Object[0]));
+		else if (type.equals("string")) return new RedisListInput("RedisListInput", this, new StringCodec(), l.toArray(new Object[0]));
+		return new RedisListInput("RedisListInput", this, new Utf8StringCodec(), l.toArray(new Object[0]));
 	}
 
 	@Override
-	public RedisOutput createOutput(TableDesc... table) throws IOException {
+	public RedisOutput outputRaw(TableDesc... table) throws IOException {
 		return new RedisOutput("RedisOutput", this);
 	}
 
