@@ -56,7 +56,6 @@ import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.io.Rmap;
 import net.butfly.albatis.io.TypelessIO;
 import net.butfly.albatis.io.utils.JsonUtils;
-import net.butfly.alserder.SerDes;
 
 public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.client.Connection> implements TypelessIO {
 	private final static Logger logger = Logger.getLogger(HbaseConnection.class);
@@ -322,16 +321,6 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 		public List<String> schemas() {
 			return Colls.list("hbase", "hbase:zk");
 		}
-	}
-
-	@SuppressWarnings("rawtypes")
-	@Override
-	public List<SerDes> serdes(boolean input) {
-		// String biz = Configs.gets("albatis.format.biz.default", "subject"); // should be config by
-		List<SerDes> sds = TypelessIO.super.serdes(input);
-		// SerDes sd;
-		// if (null != biz && sds.size() == 1 && null != (sd = SerDes.sd(biz))) sds.add(sd);
-		return sds;
 	}
 
 	@Override

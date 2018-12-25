@@ -24,13 +24,13 @@
 			<groupId>mysql</groupId>
 			<artifactId>mysql-connector-java</artifactId>
 			<version>6.0.6</version>
-			<scope>runtime</scope>
+			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.postgresql</groupId>
 			<artifactId>postgresql</artifactId>
 			<version>42.1.4</version>
-			<scope>runtime</scope>
+			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>com.oracle.db</groupId>
@@ -41,14 +41,13 @@
 			<groupId>com.microsoft.sqlserver</groupId>
 			<artifactId>mssql-jdbc</artifactId>
 			<version>6.4.0.jre8</version>
-			<scope>runtime</scope>
-			<!--<scope>test</scope> -->
+			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>com.kingbase.kingbaseanalyticsdb</groupId>
 			<artifactId>kingbaseanalyticsdb</artifactId>
 			<version>3.0-jdbc</version>
-			<scope>runtime</scope>
+			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>junit</groupId>

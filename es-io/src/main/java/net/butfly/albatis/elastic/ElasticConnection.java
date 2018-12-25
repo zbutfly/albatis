@@ -81,15 +81,14 @@ public class ElasticConnection extends DataConnection<TransportClient> implement
 		} else if (table.length == 1) {
 			type = index = table[0];
 		} else throw new RuntimeException("Please type in corrent es table format: index/type !");
-		MappingConstructor cstr = new MappingConstructor(indexConfig);
-		Map<String, Object> mapping = cstr.construct(fields);
-		logger().debug("Mapping constructing: " + mapping);
+		Map<String, Object> mapping = new MappingConstructor(indexConfig).construct(fields);
+		logger().debug(() -> "Mapping constructing: \n\t" + JsonSerder.JSON_MAPPER.ser(mapping));
 		if (client.admin().indices().prepareExists(index).execute().actionGet().isExists()) {
 			PutMappingRequest req = new PutMappingRequest(index);
 			req.source(mapping);
 			AcknowledgedResponse r = client.admin().indices().putMapping(req.type(type)).actionGet();
 			if (!r.isAcknowledged()) logger().error("Mapping failed on type [" + type + "]" + req.toString());
-			else logger().info(() -> "Mapping on [" + type + "] construced sussesfully: \n\t" + JsonSerder.JSON_MAPPER.ser(mapping));
+			else logger().info(() -> "Mapping on [" + type + "] construced sussesfully.");
 			return;
 		}
 		CreateIndexResponse r;
@@ -100,11 +99,12 @@ public class ElasticConnection extends DataConnection<TransportClient> implement
 				+ JsonSerder.JSON_MAPPER.ser(mapping));
 		IndicesExistsRequest indexExists = new IndicesExistsRequest(index);
 		IndicesExistsRequest aliasExists = new IndicesExistsRequest(alias);
-		if (client.admin().indices().exists(indexExists).actionGet().isExists()&&!client.admin().indices().exists(aliasExists).actionGet().isExists()) {
+		if (client.admin().indices().exists(indexExists).actionGet().isExists() && !client.admin().indices().exists(aliasExists).actionGet()
+				.isExists()) {
 			AcknowledgedResponse response = client.admin().indices().prepareAliases().addAlias(index, alias).execute().actionGet();
 			if (!response.isAcknowledged()) logger().error("create elastic index alias failure:" + response.toString());
 			else logger().info("create elastic index alias successful");
-		}else logger().info("es aliases also index duplicate names.");
+		} else logger().info("es aliases also index duplicate names.");
 	}
 
 	@Override
@@ -165,7 +165,7 @@ public class ElasticConnection extends DataConnection<TransportClient> implement
 
 	@Deprecated
 	public void construct(Map<String, Object> mapping, String... types) {
-		logger().debug("Mapping constructing: " + mapping);
+		logger().debug("Mapping constructing: \n\t" + JsonSerder.JSON_MAPPER.ser(mapping));
 		PutMappingRequest req = new PutMappingRequest(getDefaultIndex());
 		req.source(mapping);
 		Set<String> tps = new HashSet<>(Arrays.asList(types));
@@ -173,7 +173,7 @@ public class ElasticConnection extends DataConnection<TransportClient> implement
 		for (String t : tps) {
 			AcknowledgedResponse r = client.admin().indices().putMapping(req.type(t)).actionGet();
 			if (!r.isAcknowledged()) logger().error("Mapping failed on type [" + t + "]" + req.toString());
-			else logger().info(() -> "Mapping on [" + t + "] construced sussesfully: \n\t" + JsonSerder.JSON_MAPPER.ser(mapping));
+			else logger().info(() -> "Mapping on [" + t + "] construced sussesfully.");
 		}
 	}
 }

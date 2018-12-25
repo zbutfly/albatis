@@ -25,9 +25,9 @@ public class KafkaConnection extends DataConnection<Connection> implements Typel
 
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	@Override
-	public List<SerDes> serdes(boolean input) {
+	public List<SerDes> serdes() {
 		String biz = Configs.gets("albatis.format.biz.default", "etl"); // should be config by
-		List<SerDes> sds = TypelessIO.super.serdes(input);
+		List<SerDes> sds = TypelessIO.super.serdes();
 		SerDes sd;
 		if (null != biz && sds.size() == 1 && null != (sd = SerDes.sd(biz))) sds.add(sd);
 		return sds;
@@ -36,9 +36,10 @@ public class KafkaConnection extends DataConnection<Connection> implements Typel
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	@Override
 	public KafkaInput inputRaw(TableDesc... topic) throws IOException {
+		Class nativeClass = nativeSD().toClass();
 		try {
-			if (String.class.isAssignableFrom(nativeClass(true))) return new KafkaInput<>("KafkaInput", uri, String.class, topic);
-			else if (byte[].class.isAssignableFrom(nativeClass(true))) return new KafkaInput<>("KafkaInput", uri, byte[].class, topic);
+			if (String.class.isAssignableFrom(nativeClass)) return new KafkaInput<>("KafkaInput", uri, String.class, topic);
+			else if (byte[].class.isAssignableFrom(nativeClass)) return new KafkaInput<>("KafkaInput", uri, byte[].class, topic);
 			else throw new IllegalArgumentException();
 		} catch (ConfigException e) {
 			throw new IllegalArgumentException(e);

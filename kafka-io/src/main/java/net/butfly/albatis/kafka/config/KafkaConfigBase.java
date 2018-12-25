@@ -14,6 +14,7 @@ import org.apache.kafka.common.serialization.ByteArraySerializer;
 import com.google.common.base.Joiner;
 
 import net.butfly.albacore.io.URISpec;
+import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.Texts;
 import net.butfly.albacore.utils.logger.Logger;
 
@@ -89,7 +90,7 @@ public abstract class KafkaConfigBase implements Serializable {
 				bootstrapServers = String.join(",", zks);
 				zookeeperConnect = uri.getHost() + path;
 			} else {
-				bootstrapServers = null;
+				bootstrapServers = Configs.gets(PROP_PREFIX + "brokers");
 				zookeeperConnect = uri.getHost() + uri.getPath();
 			}
 			break;
