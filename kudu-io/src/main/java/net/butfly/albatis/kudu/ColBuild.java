@@ -49,6 +49,7 @@ interface ColBuild {
 		case STR:
 		case STRL:
 		case GEO:
+		case net.butfly.albatis.ddl.vals.ValType.Flags.JSON_STR:
 		case UNKNOWN:
 			type = Type.STRING;
 			break;
