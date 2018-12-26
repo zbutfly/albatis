@@ -29,7 +29,7 @@ public class KafkaConnection extends DataConnection<Connection> implements Typel
 		String biz = Configs.gets("albatis.format.biz.default", "etl"); // should be config by
 		List<SerDes> sds = TypelessIO.super.serdes();
 		SerDes sd;
-		if (null != biz && sds.size() == 1 && null != (sd = SerDes.sd(biz))) sds.add(sd);
+		if (null != biz && sds.size() == 0 && null != (sd = SerDes.sd(biz))) sds.add(sd);
 		return sds;
 	}
 
