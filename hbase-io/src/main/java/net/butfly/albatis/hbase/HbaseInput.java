@@ -36,7 +36,7 @@ import net.butfly.albatis.io.Rmap;
 public class HbaseInput extends Namedly implements Input<Rmap> {
 	private static final long serialVersionUID = 6225222417568739808L;
 	private final long SCAN_BYTES = Props.propL(HbaseInput.class, "scan.bytes", 3145728); // 3M
-	private final int SCAN_ROWS = Props.propI(HbaseInput.class, "scan.rows", 1);
+	private final int SCAN_ROWS = Props.propI(HbaseInput.class, "scan.rows", 100);
 	private final HbaseConnection hconn;
 	private final BlockingQueue<TableScaner> scans = new LinkedBlockingQueue<>();
 	private final Map<String, TableScaner> scansMap = Maps.of();
