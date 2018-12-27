@@ -22,7 +22,8 @@ public class RedisConnection extends DataConnection<RedisClient> implements Type
 
 	public final RedisClient redisClient;
 
-	public RedisConnection(URISpec uriSpec) {
+	public RedisConnection(URISpec uriSpec) throws IOException {
+		super(uriSpec, "redis");
 		redisClient = RedisClient.create(uriSpec.toString());
 		type = uriSpec.getParameter("type");
 	}
