@@ -16,13 +16,12 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.transport.client.PreBuiltTransportClient;
 
-import com.hzcominfo.albatis.nosql.Connection;
-
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.serder.JsonSerder;
 import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.Utils;
 import net.butfly.albacore.utils.logger.Logger;
+import net.butfly.albatis.Connection;
 import net.butfly.albatis.io.Rmap;
 
 public interface ElasticConnect extends Connection {

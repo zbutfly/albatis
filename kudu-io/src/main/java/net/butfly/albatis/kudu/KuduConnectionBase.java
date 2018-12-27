@@ -17,14 +17,13 @@ import org.apache.kudu.client.RowError;
 import org.apache.kudu.client.RowErrorsAndOverflowStatus;
 import org.apache.kudu.client.SessionConfiguration;
 
-import com.hzcominfo.albatis.nosql.DataConnection;
-
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.io.lambda.BiConsumer;
 import net.butfly.albacore.paral.Exeter;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
+import net.butfly.albatis.DataConnection;
 import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.io.Input;
@@ -134,7 +133,7 @@ public abstract class KuduConnectionBase<C extends KuduConnectionBase<C, KC, S>,
 		construct(table, ColBuild.buildColumns(false, fields));
 	}
 
-	public static class Driver implements com.hzcominfo.albatis.nosql.Connection.Driver<KuduConnection> {
+	public static class Driver implements net.butfly.albatis.Connection.Driver<KuduConnection> {
 		static {
 			DriverManager.register(new Driver());
 		}
@@ -151,7 +150,7 @@ public abstract class KuduConnectionBase<C extends KuduConnectionBase<C, KC, S>,
 	}
 
 	@Deprecated
-	public static class AsyncDriver implements com.hzcominfo.albatis.nosql.Connection.Driver<KuduConnectionAsync> {
+	public static class AsyncDriver implements net.butfly.albatis.Connection.Driver<KuduConnectionAsync> {
 		static {
 			DriverManager.register(new Driver());
 		}

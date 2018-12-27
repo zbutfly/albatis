@@ -15,11 +15,10 @@ import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.client.transport.TransportClient;
 
-import com.hzcominfo.albatis.nosql.DataConnection;
-
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.serder.JsonSerder;
 import net.butfly.albacore.utils.collection.Colls;
+import net.butfly.albatis.DataConnection;
 import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.ddl.TableDesc;
 
@@ -142,7 +141,7 @@ public class ElasticConnection extends DataConnection<TransportClient> implement
 		logger().debug("ES connection thread pool terminated...");
 	}
 
-	public static class Driver implements com.hzcominfo.albatis.nosql.Connection.Driver<ElasticConnection> {
+	public static class Driver implements net.butfly.albatis.Connection.Driver<ElasticConnection> {
 		static {
 			DriverManager.register(new Driver());
 		}

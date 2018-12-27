@@ -9,11 +9,10 @@ import org.apache.http.nio.entity.NStringEntity;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.elasticsearch.client.RestClient;
 
-import com.hzcominfo.albatis.nosql.DataConnection;
-
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.serder.JsonSerder;
 import net.butfly.albacore.utils.collection.Maps;
+import net.butfly.albatis.DataConnection;
 import net.butfly.albatis.ddl.FieldDesc;
 
 public class ElasticRestConnection extends DataConnection<RestClient> implements ElasticConnect {

@@ -10,6 +10,7 @@ import static net.butfly.albatis.ddl.vals.ValType.Flags.DOUBLE;
 import static net.butfly.albatis.ddl.vals.ValType.Flags.FLOAT;
 import static net.butfly.albatis.ddl.vals.ValType.Flags.GEO;
 import static net.butfly.albatis.ddl.vals.ValType.Flags.INT;
+import static net.butfly.albatis.ddl.vals.ValType.Flags.JSON_STR;
 import static net.butfly.albatis.ddl.vals.ValType.Flags.LONG;
 import static net.butfly.albatis.ddl.vals.ValType.Flags.STR;
 import static net.butfly.albatis.ddl.vals.ValType.Flags.UNKNOWN;
@@ -97,7 +98,7 @@ public class MappingConstructor {
 		case UNKNOWN:
 		case STR:
 		case CHAR:
-		case net.butfly.albatis.ddl.vals.ValType.Flags.JSON_STR:
+		case JSON_STR:
 			// STRING输出字段，直接取 DPC 字段映射 SQL 结果里面的DST_SEG_MODE的值，如果不为NULL，那么加上analyzer这个分词器设定。
 			// STRING输出字段，直接取 DPC 字段映射 SQL 结果里面的DST_SEG_MODE的值，如果为NULL，不需要加上analyzer这个分词器设定。
 			return fieldAnalyzer(f.attr(Desc.SEGMODE));

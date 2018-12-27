@@ -8,6 +8,7 @@ import static net.butfly.albatis.ddl.vals.ValType.Flags.DOUBLE;
 import static net.butfly.albatis.ddl.vals.ValType.Flags.FLOAT;
 import static net.butfly.albatis.ddl.vals.ValType.Flags.GEO;
 import static net.butfly.albatis.ddl.vals.ValType.Flags.INT;
+import static net.butfly.albatis.ddl.vals.ValType.Flags.JSON_STR;
 import static net.butfly.albatis.ddl.vals.ValType.Flags.LONG;
 import static net.butfly.albatis.ddl.vals.ValType.Flags.STR;
 import static net.butfly.albatis.ddl.vals.ValType.Flags.STRL;
@@ -49,7 +50,7 @@ interface ColBuild {
 		case STR:
 		case STRL:
 		case GEO:
-		case net.butfly.albatis.ddl.vals.ValType.Flags.JSON_STR:
+		case JSON_STR:
 		case UNKNOWN:
 			type = Type.STRING;
 			break;

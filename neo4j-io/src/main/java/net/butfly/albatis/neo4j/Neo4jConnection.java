@@ -6,7 +6,7 @@ import java.util.List;
 import org.neo4j.driver.v1.AuthTokens;
 import org.neo4j.driver.v1.GraphDatabase;
 
-import com.hzcominfo.albatis.nosql.DataConnection;
+import net.butfly.albatis.DataConnection;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.collection.Colls;
@@ -26,7 +26,7 @@ public class Neo4jConnection extends DataConnection<org.neo4j.driver.v1.Driver> 
 		client.close();
 	}
 
-	public static class Driver implements com.hzcominfo.albatis.nosql.Connection.Driver<Neo4jConnection> {
+	public static class Driver implements net.butfly.albatis.Connection.Driver<Neo4jConnection> {
 		static {
 			DriverManager.register(new Driver());
 		}

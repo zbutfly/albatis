@@ -5,8 +5,8 @@ import java.util.List;
 
 import org.apache.kafka.common.security.JaasUtils;
 
-import com.hzcominfo.albatis.nosql.Connection;
-import com.hzcominfo.albatis.nosql.DataConnection;
+import net.butfly.albatis.Connection;
+import net.butfly.albatis.DataConnection;
 
 import kafka.utils.ZkUtils;
 import net.butfly.albacore.exception.ConfigException;
@@ -55,7 +55,7 @@ public class KafkaConnection extends DataConnection<Connection> implements Typel
 		}
 	}
 
-	public static class Driver implements com.hzcominfo.albatis.nosql.Connection.Driver<KafkaConnection> {
+	public static class Driver implements net.butfly.albatis.Connection.Driver<KafkaConnection> {
 		static {
 			DriverManager.register(new Driver());
 		}

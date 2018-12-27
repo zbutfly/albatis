@@ -33,7 +33,7 @@ import org.apache.solr.client.solrj.response.DelegationTokenResponse.JsonMapResp
 import org.apache.solr.common.cloud.DocCollection;
 import org.apache.solr.common.params.ModifiableSolrParams;
 
-import com.hzcominfo.albatis.nosql.DataConnection;
+import net.butfly.albatis.DataConnection;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.Config;
@@ -246,7 +246,7 @@ public class SolrConnection extends DataConnection<SolrClient> {
 		}
 	}
 
-	public static class Driver implements com.hzcominfo.albatis.nosql.Connection.Driver<SolrConnection> {
+	public static class Driver implements net.butfly.albatis.Connection.Driver<SolrConnection> {
 		static {
 			DriverManager.register(new Driver());
 		}

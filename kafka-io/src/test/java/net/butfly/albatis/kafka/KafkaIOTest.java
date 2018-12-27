@@ -4,12 +4,11 @@ import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
-import com.hzcominfo.albatis.in;
-import com.hzcominfo.albatis.out;
-
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albatis.io.Rmap;
+import net.butfly.albatis.io.utils.in;
+import net.butfly.albatis.io.utils.out;
 
 public class KafkaIOTest {
 	public static void main(String... args) throws Exception {

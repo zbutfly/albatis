@@ -3,7 +3,7 @@ package net.butfly.albatis.kafka.config;
 import java.util.Map;
 import java.util.Properties;
 
-import com.hzcominfo.albatis.nosql.Connection;
+import net.butfly.albatis.Connection;
 
 import kafka.producer.ProducerConfig;
 import net.butfly.albacore.exception.ConfigException;

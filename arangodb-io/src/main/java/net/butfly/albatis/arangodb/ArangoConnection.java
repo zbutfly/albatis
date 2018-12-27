@@ -19,7 +19,7 @@ import com.arangodb.ArangoDBAsync.Builder;
 import com.arangodb.ArangoDatabaseAsync;
 import com.arangodb.entity.BaseDocument;
 import com.arangodb.entity.LoadBalancingStrategy;
-import com.hzcominfo.albatis.nosql.DataConnection;
+import net.butfly.albatis.DataConnection;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.io.lambda.BinaryOperator;
@@ -89,7 +89,7 @@ public class ArangoConnection extends DataConnection<ArangoDBAsync> {
 		return new ArangoOutput("ArangoOutput", this);
 	}
 
-	public static class Driver implements com.hzcominfo.albatis.nosql.Connection.Driver<ArangoConnection> {
+	public static class Driver implements net.butfly.albatis.Connection.Driver<ArangoConnection> {
 		static {
 			DriverManager.register(new Driver());
 		}

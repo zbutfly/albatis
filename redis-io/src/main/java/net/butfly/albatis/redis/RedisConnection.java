@@ -3,8 +3,6 @@ package net.butfly.albatis.redis;
 import java.io.IOException;
 import java.util.List;
 
-import com.hzcominfo.albatis.nosql.DataConnection;
-
 import io.lettuce.core.RedisClient;
 import io.lettuce.core.api.StatefulRedisConnection;
 import io.lettuce.core.api.sync.RedisCommands;
@@ -13,6 +11,7 @@ import io.lettuce.core.codec.StringCodec;
 import io.lettuce.core.codec.Utf8StringCodec;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.collection.Colls;
+import net.butfly.albatis.DataConnection;
 import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.io.TypelessIO;
 
@@ -41,7 +40,7 @@ public class RedisConnection extends DataConnection<RedisClient> implements Type
 		return new RedisOutput("RedisOutput", this);
 	}
 
-	public static class Driver implements com.hzcominfo.albatis.nosql.Connection.Driver<RedisConnection> {
+	public static class Driver implements net.butfly.albatis.Connection.Driver<RedisConnection> {
 		static {
 			DriverManager.register(new Driver());
 		}

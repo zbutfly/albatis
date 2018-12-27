@@ -37,9 +37,6 @@ import org.apache.hadoop.hbase.ipc.RemoteWithExtrasException;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.ClassSize;
 
-import com.hzcominfo.albatis.nosql.Connection;
-import com.hzcominfo.albatis.nosql.DataConnection;
-
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.io.lambda.Function;
 import net.butfly.albacore.paral.Exeter;
@@ -50,6 +47,8 @@ import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albacore.utils.logger.Statistic;
+import net.butfly.albatis.Connection;
+import net.butfly.albatis.DataConnection;
 import net.butfly.albatis.ddl.Builder;
 import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.ddl.TableDesc;
@@ -307,7 +306,7 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 		// scans.offer(s);
 	}
 
-	public static class Driver implements com.hzcominfo.albatis.nosql.Connection.Driver<HbaseConnection> {
+	public static class Driver implements net.butfly.albatis.Connection.Driver<HbaseConnection> {
 		static {
 			DriverManager.register(new Driver());
 		}

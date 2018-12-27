@@ -14,13 +14,13 @@ import java.util.List;
 
 import javax.sql.DataSource;
 
-import com.hzcominfo.albatis.nosql.DataConnection;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.logger.Logger;
+import net.butfly.albatis.DataConnection;
 import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.jdbc.dialect.Dialect;
@@ -141,7 +141,7 @@ public class JdbcConnection extends DataConnection<DataSource> {
 		return new JdbcOutput("JdbcOutput", this);
 	}
 
-	public static class Driver implements com.hzcominfo.albatis.nosql.Connection.Driver<JdbcConnection> {
+	public static class Driver implements net.butfly.albatis.Connection.Driver<JdbcConnection> {
 		static {
 			DriverManager.register(new Driver());
 		}

@@ -1,14 +1,15 @@
 package net.butfly.albatis.mongodb;
 
 import com.google.common.base.Joiner;
-import com.hzcominfo.albatis.nosql.DataConnection;
 import com.mongodb.*;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
+import net.butfly.albatis.DataConnection;
 import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.ddl.TableDesc;
+
 import org.bson.BSONObject;
 
 import java.io.IOException;
@@ -192,7 +193,7 @@ public class MongoConnection extends DataConnection<MongoClient> {
         return cursor;
     }
 
-    public static class Driver implements com.hzcominfo.albatis.nosql.Connection.Driver<MongoConnection> {
+    public static class Driver implements net.butfly.albatis.Connection.Driver<MongoConnection> {
         static {
             DriverManager.register(new Driver());
         }
