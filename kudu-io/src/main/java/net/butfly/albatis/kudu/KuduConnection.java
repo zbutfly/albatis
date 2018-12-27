@@ -17,7 +17,6 @@ import org.apache.kudu.client.OperationResponse;
 import org.apache.kudu.client.SessionConfiguration.FlushMode;
 import org.apache.kudu.client.Upsert;
 
-import com.hzcominfo.albatis.nosql.Connection;
 import com.hzcominfo.albatis.nosql.NoSqlConnection;
 
 import net.butfly.albacore.io.URISpec;
@@ -31,8 +30,8 @@ public class KuduConnection extends NoSqlConnection<KuduClient> {
 	private final KuduSession session;
 	private Thread failHandler;
 
-	public KuduConnection(URISpec kuduUri, Map<String, String> props) throws IOException {
-		super(kuduUri, r -> new KuduClient.KuduClientBuilder(kuduUri.getHost()).build(), "kudu", "kudu");
+	public KuduConnection(URISpec kuduUri) throws IOException {
+		super(kuduUri, r -> new KuduClient.KuduClientBuilder(kuduUri.getHost()).build(), "kudu");
 		session = client().newSession();
 		session.setFlushMode(FlushMode.AUTO_FLUSH_BACKGROUND);
 		session.setTimeoutMillis(10000);
@@ -40,20 +39,19 @@ public class KuduConnection extends NoSqlConnection<KuduClient> {
 			do {
 				processError();
 			} while (Concurrents.waitSleep());
-		} , "KuduErrorHandler[" + kuduUri.toString() + "]");
+		}, "KuduErrorHandler[" + kuduUri.toString() + "]");
 		failHandler.setDaemon(true);
 		failHandler.start();
 	}
 
 	private void processError() {
-		if (session.getPendingErrors() != null)
-			Arrays.asList(session.getPendingErrors().getRowErrors()).forEach(p -> {
-				try {
-					session.apply(p.getOperation());
-				} catch (KuduException e) {
-					throw new RuntimeException("retry apply operation fail.");
-				}
-			});
+		if (session.getPendingErrors() != null) Arrays.asList(session.getPendingErrors().getRowErrors()).forEach(p -> {
+			try {
+				session.apply(p.getOperation());
+			} catch (KuduException e) {
+				throw new RuntimeException("retry apply operation fail.");
+			}
+		});
 	}
 
 	@Override
@@ -85,10 +83,9 @@ public class KuduConnection extends NoSqlConnection<KuduClient> {
 			try {
 				return client().openTable(t);
 			} catch (KuduException e) {
-				logger().error("Kudu table [" + table + "] open fail", e);
+				logger().error("Kudu table open fail", e);
 				return null;
 			}
-			return t;
 		});
 
 	}
