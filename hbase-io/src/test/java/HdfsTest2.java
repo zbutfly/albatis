@@ -28,7 +28,7 @@ public class HdfsTest2 {
 		if (null == path) return dconfig;
 		dconfig.addResource(new Path(path + "/core-site.xml"));
 		dconfig.addResource(new Path(path + "/hdfs-site.xml"));
-		org.apache.hadoop.fs.FileSystem afs;
+//		org.apache.hadoop.fs.FileSystem afs;
 		dconfig.set("fs.hdfs.impl", org.apache.hadoop.hdfs.DistributedFileSystem.class.getName());
 		dconfig.set("fs.file.impl", org.apache.hadoop.fs.LocalFileSystem.class.getName());
 		return dconfig;

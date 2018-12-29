@@ -33,8 +33,6 @@ import org.apache.solr.client.solrj.response.DelegationTokenResponse.JsonMapResp
 import org.apache.solr.common.cloud.DocCollection;
 import org.apache.solr.common.params.ModifiableSolrParams;
 
-import net.butfly.albatis.DataConnection;
-
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.Config;
 import net.butfly.albacore.utils.Configs;
@@ -42,18 +40,17 @@ import net.butfly.albacore.utils.Reflections;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
+import net.butfly.albatis.DataConnection;
 import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.ddl.TableDesc;
-import net.butfly.albatis.io.Input;
-import net.butfly.albatis.io.Rmap;
 
 @Config(value = "ddl.properties")
 public class SolrConnection extends DataConnection<SolrClient> {
 	private static final Logger logger = Logger.getLogger(SolrConnection.class);
 	private static final CloseableHttpClient HTTP_CLIENT = SolrHttpContext.createDefaultHttpclient();
 	private static final Map<Class<? extends ResponseParser>, ResponseParser> PARSER_POOL = Maps.of();
-	private final SolrMeta meta;
 	private static final String DEFAULT_CORE_NAME = Configs.of(SolrConnection.class).get("ddl.solr.default.collection", "AB_CJRTXL");
+	private final SolrMeta meta;
 
 	public SolrConnection(String connection) throws IOException {
 		this(new URISpec(connection));
@@ -68,6 +65,7 @@ public class SolrConnection extends DataConnection<SolrClient> {
 		meta = parsing ? SolrMeta.parse(uri) : null;
 	}
 
+	@SuppressWarnings("deprecation")
 	@Override
 	protected SolrClient initialize(URISpec uri) {
 		Class<? extends ResponseParser> parserClass = ResponseFormat.parse(uri);
@@ -277,6 +275,7 @@ public class SolrConnection extends DataConnection<SolrClient> {
 		System.out.println("Parse Solr URI [" + u + "] => " + SolrMeta.parse(new URISpec(u)));
 	}
 
+	@SuppressWarnings("deprecation")
 	@Override
 	public void construct(String dbName, String table, TableDesc tableDesc, List<FieldDesc> fields) {
 		String solrUrl = uri.getHost();
@@ -292,6 +291,7 @@ public class SolrConnection extends DataConnection<SolrClient> {
 		}
 	}
 
+	@SuppressWarnings("deprecation")
 	@Override
 	public boolean judge(String dbName, String table) {
 		boolean exists = false;
@@ -302,7 +302,7 @@ public class SolrConnection extends DataConnection<SolrClient> {
 			collectionsMap.forEach((k, v) -> list.add(v.getName()));
 			exists = list.contains(table);
 		} catch (IOException e) {
-			e.printStackTrace();
+			throw new RuntimeException(e);
 		}
 		return exists;
 	}

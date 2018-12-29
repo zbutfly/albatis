@@ -1,0 +1,16 @@
+<beans>
+    <filterChain name="queryFilterChain"
+                 class="com.hzcominfo.albatis.search.filter.FilterLoader"
+    in>
+        <filter clazz="com.hzcominfo.albatis.search.filter.AuthFilter" order="1">
+            <param key="" value=""/>
+        </filter>
+    </filterChain>
+
+    <filterChain name="queryFilterChain"
+                 class="com.hzcominfo.albatis.search.filter.FilterLoader">
+        <filter clazz="com.hzcominfo.albatis.search.filter.FilterLoader">
+            <param key="" value=""/>
+        </filter>
+    </filterChain>
+</beans>
