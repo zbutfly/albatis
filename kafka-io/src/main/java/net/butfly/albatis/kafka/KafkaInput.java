@@ -165,7 +165,7 @@ public class KafkaInput<T> extends Namedly implements OddInput<Rmap> {
 					if (null != (m = it.next())) {
 						MessageAndMetadata<T, T> km = (MessageAndMetadata<T, T>) s().stats(m);
 						String k = null == km.key() ? null : keying.apply(km.key());
-						return new Rmap(km.topic(), k, null == k ? "_k" : k, km.message());
+						return new Rmap(km.topic(), k, null == k ? "km" : k, km.message());
 					}
 				} catch (ConsumerTimeoutException | NoSuchElementException ex) {
 					Instant last = LAST_FETCH.get();

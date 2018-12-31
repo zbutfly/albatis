@@ -1,1 +1,1 @@
-net.butfly.albatis.solr.SolrConnection$Driver
+net.butfly.albatis.neo4j.Neo4jConnection$Driver
