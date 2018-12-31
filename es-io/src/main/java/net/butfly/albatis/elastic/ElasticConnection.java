@@ -157,6 +157,7 @@ public class ElasticConnection extends DataConnection<TransportClient> implement
 		}
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public ElasticOutput outputRaw(TableDesc... table) throws IOException {
 		return new ElasticOutput("ElasticOutput", this);

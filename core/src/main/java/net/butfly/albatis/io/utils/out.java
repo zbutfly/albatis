@@ -14,10 +14,11 @@ import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albatis.Connection;
 import net.butfly.albatis.io.Output;
 import net.butfly.albatis.io.Rmap;
-import net.butfly.alserder.SerDes;
+import net.butfly.alserder.json.JsonSerDes;
 
 public class out {
-	private static final SerDes<Map<String, Object>, String> json = SerDes.sd("json");
+	private static final JsonSerDes json = new JsonSerDes();
+//	private static final Format json = Format.of("json");
 
 	public static void main(String... args) {
 		List<String> argus = Colls.list(args);

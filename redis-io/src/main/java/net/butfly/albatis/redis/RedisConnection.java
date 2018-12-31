@@ -13,9 +13,11 @@ import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albatis.DataConnection;
 import net.butfly.albatis.ddl.TableDesc;
-import net.butfly.albatis.io.TypelessIO;
+import net.butfly.albatis.io.IOFactory;
+import net.butfly.alserder.SerDes;
 
-public class RedisConnection extends DataConnection<RedisClient> implements TypelessIO {
+@SerDes.As("json")
+public class RedisConnection extends DataConnection<RedisClient> implements IOFactory {
 	final static String schema = "redis";
 	public final String type;
 
@@ -27,6 +29,7 @@ public class RedisConnection extends DataConnection<RedisClient> implements Type
 		type = uriSpec.getParameter("type");
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override // TODO: use serder class, not param type
 	public RedisListInput inputRaw(TableDesc... table) throws IOException {
 		List<String> l = Colls.list(t -> t.name, table);
@@ -35,6 +38,7 @@ public class RedisConnection extends DataConnection<RedisClient> implements Type
 		return new RedisListInput("RedisListInput", this, new Utf8StringCodec(), l.toArray(new Object[0]));
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public RedisOutput outputRaw(TableDesc... table) throws IOException {
 		return new RedisOutput("RedisOutput", this);

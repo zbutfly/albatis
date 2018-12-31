@@ -7,9 +7,7 @@ import net.butfly.albacore.paral.Sdream;
 import net.butfly.albatis.elastic.ElasticConnection;
 import net.butfly.albatis.elastic.ElasticInput;
 
-/**
- * Created by hzcominfo67 on 2017/1/18.
- */
+@SuppressWarnings("deprecation")
 public class ElasticInputTest {
 	@Test
 	public void ioInputTest() throws IOException {

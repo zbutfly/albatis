@@ -77,6 +77,7 @@ public class ArangoConnection extends DataConnection<ArangoDBAsync> {
 		client.shutdown();
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public ArangoInput inputRaw(TableDesc... table) throws IOException {
 		ArangoInput i = new ArangoInput("ArangoInput", this);

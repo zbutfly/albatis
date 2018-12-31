@@ -52,11 +52,13 @@ import net.butfly.albatis.DataConnection;
 import net.butfly.albatis.ddl.Builder;
 import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.ddl.TableDesc;
+import net.butfly.albatis.io.IOFactory;
 import net.butfly.albatis.io.Rmap;
-import net.butfly.albatis.io.TypelessIO;
 import net.butfly.albatis.io.utils.JsonUtils;
+import net.butfly.alserder.SerDes;
 
-public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.client.Connection> implements TypelessIO {
+@SerDes.As("hbase")
+public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.client.Connection> implements IOFactory {
 	private final static Logger logger = Logger.getLogger(HbaseConnection.class);
 
 	static {
@@ -322,6 +324,7 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 		}
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public HbaseInput inputRaw(TableDesc... tables) throws IOException {
 		HbaseInput input = new HbaseInput("HbaseInput", this);
@@ -339,6 +342,7 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 		return input;
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public HbaseOutput outputRaw(TableDesc... table) throws IOException {
 		return new HbaseOutput("HbaseOutput", this, conv);

@@ -22,6 +22,7 @@ public class FileConnection extends DataConnection<Connection> {
 		ext = "." + format;
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public FileOutput outputRaw(TableDesc... table) throws IOException {
 		return new FileOutput(this);
