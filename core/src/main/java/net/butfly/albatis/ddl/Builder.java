@@ -30,7 +30,7 @@ public abstract class Builder {
 	}
 
 	private static ValType type(Map<String, ?> ops) {
-		ValType t = ValType.valueOf(ops.remove("type").toString());
+		ValType t = ValType.of(ops.remove("type").toString());
 		Object val = ops.remove("length");
 		Number len;
 		if (null != val && val instanceof Number && (len = (Number) val).intValue() > 0) //

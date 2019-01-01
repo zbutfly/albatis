@@ -86,11 +86,14 @@ public class Rmap extends ConcurrentHashMap<String, Object> {
 	}
 
 	public Object key() {
-		return key;
+		if (null != key) return key;
+		if (null != keyField) return get(keyField);
+		return null;
 	}
 
 	public Rmap key(Object key) {
 		this.key = key;
+		if (null != keyField) put(keyField, key);
 		return this;
 	}
 
@@ -184,5 +187,15 @@ public class Rmap extends ConcurrentHashMap<String, Object> {
 		clear();
 		putAll(map);
 		return this;
+	}
+
+	public Rmap skeleton() {
+		Rmap r = new Rmap(table()).op(op);
+		if (null != keyField) r.keyField(keyField);
+		return r;
+	}
+
+	public static boolean empty(Rmap r) {
+		return null == r || ((Rmap) r).isEmpty();
 	}
 }

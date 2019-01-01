@@ -123,6 +123,7 @@ public class JdbcConnection extends DataConnection<DataSource> {
 		} catch (Exception e) {}
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public JdbcInput inputRaw(TableDesc... sql) throws IOException {
 		if (sql.length > 1) throw new UnsupportedOperationException("Multiple sql input");
@@ -136,6 +137,7 @@ public class JdbcConnection extends DataConnection<DataSource> {
 		return i;
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public JdbcOutput outputRaw(TableDesc... table) throws IOException {
 		return new JdbcOutput("JdbcOutput", this);

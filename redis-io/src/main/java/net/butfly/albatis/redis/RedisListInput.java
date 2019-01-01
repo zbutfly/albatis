@@ -18,7 +18,7 @@ import net.butfly.albatis.io.OddInput;
 import net.butfly.albatis.io.Rmap;
 import net.butfly.albatis.redis.key.RedisKey;
 
-public class RedisListInput extends net.butfly.albacore.base.Namedly implements OddInput<Rmap>, Input<Rmap> {
+public class RedisListInput<T> extends net.butfly.albacore.base.Namedly implements OddInput<Rmap>, Input<Rmap> {
 	private static final long serialVersionUID = -1411141076610748159L;
 
 	private static final Logger logger = Logger.getLogger(RedisListInput.class);
@@ -26,10 +26,10 @@ public class RedisListInput extends net.butfly.albacore.base.Namedly implements 
 	private final Object[] keyArr;
 	private final BlockingQueue<RedisKey> keys = new LinkedBlockingQueue<>();
 	private final Map<RedisKey, Boolean> isEmptyMap = new ConcurrentHashMap<>();
-	private final StatefulRedisConnection<?, ?> src;
-	private final RedisCommands syncCommands;
+	private final StatefulRedisConnection<T, T> src;
+	private final RedisCommands<T, T> syncCommands;
 
-	public RedisListInput(String name, RedisConnection redisConn, RedisCodec<?, ?> redisCodec, Object... tables) {
+	public RedisListInput(String name, RedisConnection redisConn, RedisCodec<T, T> redisCodec, Object... tables) {
 		super(name);
 		this.redisConn = redisConn;
 		this.keyArr = tables;
@@ -49,6 +49,7 @@ public class RedisListInput extends net.butfly.albacore.base.Namedly implements 
 		closing(this::closeRedis);
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public Rmap dequeue() {
 		RedisKey key;
@@ -56,12 +57,13 @@ public class RedisListInput extends net.butfly.albacore.base.Namedly implements 
 			if (null != (key = keys.poll())) {
 				try {
 					if ("byteArray".equals(redisConn.type)) {
-						byte[] bArr = (byte[]) syncCommands.lpop((byte[]) key.getKey());
-						if (bArr != null) return new Rmap(new String((byte[]) key.getKey()), JsonSerder.JSON_MAPPER.fromBytes(bArr,
-								HashMap.class));
+						byte[] bArr = (byte[]) syncCommands.lpop((T) (byte[]) key.getKey());
+						if (bArr != null) return new Rmap(new String((byte[]) key.getKey()), //
+								JsonSerder.JSON_MAPPER.fromBytes(bArr, HashMap.class));
 					} else if ("string".equals(redisConn.type)) {
-						String eStr = (String) syncCommands.lpop((String) key.getKey());
-						if (eStr != null) return new Rmap((String) key.getKey(), JsonSerder.JSON_MAPPER.der(eStr, HashMap.class));
+						String eStr = (String) syncCommands.lpop((T) (String) key.getKey());
+						if (eStr != null) return new Rmap((String) key.getKey(), //
+								JsonSerder.JSON_MAPPER.der(eStr, HashMap.class));
 					} else {
 						throw new UnsupportedOperationException();
 					}

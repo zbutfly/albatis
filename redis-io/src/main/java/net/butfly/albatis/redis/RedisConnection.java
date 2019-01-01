@@ -29,13 +29,15 @@ public class RedisConnection extends DataConnection<RedisClient> implements IOFa
 		type = uriSpec.getParameter("type");
 	}
 
-	@SuppressWarnings("unchecked")
+	@SuppressWarnings({ "unchecked", "rawtypes" })
 	@Override // TODO: use serder class, not param type
 	public RedisListInput inputRaw(TableDesc... table) throws IOException {
 		List<String> l = Colls.list(t -> t.name, table);
-		if (type.equals("byteArray")) return new RedisListInput("RedisListInput", this, new ByteArrayCodec(), l.toArray(new Object[0]));
-		else if (type.equals("string")) return new RedisListInput("RedisListInput", this, new StringCodec(), l.toArray(new Object[0]));
-		return new RedisListInput("RedisListInput", this, new Utf8StringCodec(), l.toArray(new Object[0]));
+		if (type.equals("byteArray")) //
+			return new RedisListInput<byte[]>("RedisListInput", this, new ByteArrayCodec(), l.toArray(new Object[0]));
+		else if (type.equals("string")) //
+			return new RedisListInput<String>("RedisListInput", this, new StringCodec(), l.toArray(new Object[0]));
+		return new RedisListInput<String>("RedisListInput", this, new Utf8StringCodec(), l.toArray(new Object[0]));
 	}
 
 	@SuppressWarnings("unchecked")

@@ -176,6 +176,7 @@ public final class Hbases extends Utils {
 		}
 
 		@SuppressWarnings("unchecked")
+		@Deprecated
 		static Mutation op(Rmap m, Function<Map<String, Object>, byte[]> conv) {
 			if (m.isEmpty()) return null;
 			Object rowo = m.key();
@@ -196,6 +197,57 @@ public final class Hbases extends Utils {
 						String s = ((CharSequence) v).toString();
 						if (s.length() > 0) val = Bytes.toBytes(s);
 					} else if (v instanceof Map) val = conv.apply((Map<String, Object>) v);
+					if (null == val || val.length == 0) return null;
+					byte[][] fqs = Results.parseFQ(e.getKey());
+					Cell c = CellUtil.createCell(rowk, fqs[0], fqs[1], HConstants.LATEST_TIMESTAMP, Type.Put.getCode(), (byte[]) val);
+					if (null != c) try {
+						put.add(c);
+						fc++;
+					} catch (Exception ee) {
+						logger.warn("Hbase cell converting failure, ignored and continued, row: " + row + ", cell: " + Bytes.toString(
+								CellUtil.cloneFamily(c)) + SPLIT_CF + Bytes.toString(CellUtil.cloneQualifier(c)), ee);
+					}
+				}
+				return fc == 0 ? null : put;
+			case INCREASE:
+				Increment inc = new Increment(rowk);
+				for (Entry<String, Object> e : m.entrySet()) {
+					byte[][] fq = Results.parseFQ(e.getKey());
+					Object v = e.getValue();
+					inc.addColumn(fq[0], fq[1], null == v ? 1 : ((Long) v).longValue());
+					fc++;
+				}
+				return inc;
+			default:
+				logger.warn("Op not support: " + m.toString());
+				return null;
+			}
+		}
+
+		static Mutation op(Rmap m) {
+			if (m.isEmpty()) return null;
+			Object rowo = m.key();
+			if (null == rowo) return null;
+			String row = rowo.toString();
+			if (row.isEmpty()) return null;
+			byte[] rowk = Bytes.toBytes(row);
+			int fc = 0;
+			switch (m.op()) {
+			case INSERT:
+			case UPSERT:
+				Put put = new Put(rowk);
+				for (Entry<String, Object> e : m.entrySet()) {
+					byte[] val = null;
+					Object v = e.getValue();
+					if (v instanceof byte[]) val = (byte[]) v;
+					else if (v instanceof CharSequence) {
+						String s = ((CharSequence) v).toString();
+						if (s.length() > 0) val = Bytes.toBytes(s);
+					} else if (v instanceof Map) {
+						logger.warn("Map field [" + e.getKey() + "] not supported, add ?df=format to conv, value lost: \n\t" + v
+								.toString());
+						return null;
+					}
 					if (null == val || val.length == 0) return null;
 					byte[][] fqs = Results.parseFQ(e.getKey());
 					Cell c = CellUtil.createCell(rowk, fqs[0], fqs[1], HConstants.LATEST_TIMESTAMP, Type.Put.getCode(), (byte[]) val);

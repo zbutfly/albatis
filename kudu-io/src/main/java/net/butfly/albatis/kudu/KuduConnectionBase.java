@@ -27,7 +27,6 @@ import net.butfly.albatis.DataConnection;
 import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.io.Input;
-import net.butfly.albatis.io.Output;
 import net.butfly.albatis.io.Rmap;
 
 @SuppressWarnings("unchecked")

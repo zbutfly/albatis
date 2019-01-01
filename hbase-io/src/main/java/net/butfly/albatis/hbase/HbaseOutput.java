@@ -12,7 +12,6 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import net.butfly.albacore.io.URISpec;
-import net.butfly.albacore.io.lambda.Function;
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.Exceptions;
 import net.butfly.albacore.utils.collection.Colls;
@@ -26,7 +25,7 @@ import net.butfly.albatis.io.Rmap.Op;
 /**
  * Subject (embedded document serialized as BSON with prefixed column name) writer to hbase.
  */
-public final class HbaseOutput extends OutputBase<Rmap> {
+public class HbaseOutput extends OutputBase<Rmap> {
 	private static final long serialVersionUID = 3301721159039265076L;
 	public static final @HbaseProps String MAX_CONCURRENT_OP_PROP_NAME = HbaseProps.OUTPUT_CONCURRENT_OPS;
 	public static final int MAX_CONCURRENT_OP_DEFAULT = Integer.MAX_VALUE;
@@ -34,7 +33,7 @@ public final class HbaseOutput extends OutputBase<Rmap> {
 	private transient HbaseConnection conn;
 	private final URISpec target;
 
-	public HbaseOutput(String name, HbaseConnection hconn, Function<Map<String, Object>, byte[]> ser) throws IOException {
+	public HbaseOutput(String name, HbaseConnection hconn) throws IOException {
 		super(name);
 		this.target = hconn.uri();
 		this.conn = hconn;
@@ -63,7 +62,7 @@ public final class HbaseOutput extends OutputBase<Rmap> {
 		msgs.eachs(m -> map.computeIfAbsent(m.table(), t -> Colls.list()).add(m));
 		map.forEach((t, l) -> {
 			if (l.isEmpty()) return;
-			if (1 == l.size()) enq1(t, Hbases.Results.op(l.get(0), conn.conv::apply), l.get(0));
+			if (1 == l.size()) enq1(t, op(l.get(0)), l.get(0));
 			else enq(t, l);
 		});
 	}
@@ -116,7 +115,7 @@ public final class HbaseOutput extends OutputBase<Rmap> {
 		}
 	}
 
-	private void incs(String table, List<Rmap> msgs, List<Rmap> origins, List<Mutation> puts) {
+	protected void incs(String table, List<Rmap> msgs, List<Rmap> origins, List<Mutation> puts) {
 		Map<Object, List<Rmap>> incByKeys = Maps.of();
 		for (Rmap m : msgs)
 			switch (m.op()) {
@@ -131,7 +130,7 @@ public final class HbaseOutput extends OutputBase<Rmap> {
 				logger().error("Message marked as delete but ignore: " + m.toString());
 				break;
 			default:
-				Mutation r = Hbases.Results.op(m, conn.conv::apply);
+				Mutation r = op(m);
 				if (null != r) {
 					origins.add(m);
 					puts.add(r);
@@ -146,7 +145,7 @@ public final class HbaseOutput extends OutputBase<Rmap> {
 			for (String k : merge.keySet())
 				if (((Long) merge.get(k)).longValue() <= 0) merge.remove(k);
 			if (!merge.isEmpty()) {
-				Mutation r = Hbases.Results.op(merge, conn.conv::apply);
+				Mutation r = op(merge);
 				if (null != r) {
 					origins.add(merge);
 					puts.add(r);
@@ -157,5 +156,9 @@ public final class HbaseOutput extends OutputBase<Rmap> {
 
 	private long lvalue(Object o) {
 		return null != o && Number.class.isAssignableFrom(o.getClass()) ? ((Number) o).longValue() : 0;
+	}
+
+	protected Mutation op(Rmap m) {
+		return Hbases.Results.op(m);
 	}
 }

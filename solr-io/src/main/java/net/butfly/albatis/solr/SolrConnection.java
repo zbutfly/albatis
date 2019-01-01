@@ -260,6 +260,7 @@ public class SolrConnection extends DataConnection<SolrClient> {
 		}
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public SolrOutput outputRaw(TableDesc... table) throws IOException {
 		return new SolrOutput("SolrOutput", this);

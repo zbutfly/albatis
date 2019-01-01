@@ -117,6 +117,7 @@ public interface Connection extends AutoCloseable, IOFactory {
 	}
 
 	// utils
+	@Deprecated
 	static Function<Map<String, Object>, byte[]> uriser(URISpec uri) {
 		String sd = null == uri ? "bson" : uri.getParameter("serder", "bson").toLowerCase();
 		switch (sd) {
@@ -130,6 +131,7 @@ public interface Connection extends AutoCloseable, IOFactory {
 		}
 	}
 
+	@Deprecated
 	static Function<byte[], Map<String, Object>> urider(URISpec uri) {
 		String sd = null == uri ? "bson" : uri.getParameter("serder", "bson").toLowerCase();
 		switch (sd) {
@@ -143,6 +145,7 @@ public interface Connection extends AutoCloseable, IOFactory {
 		}
 	}
 
+	@Deprecated
 	static Function<byte[], List<Map<String, Object>>> uriders(URISpec uri) {
 		String sd = null == uri ? "bson" : uri.getParameter("serder", "bson").toLowerCase();
 		switch (sd) {
@@ -156,6 +159,7 @@ public interface Connection extends AutoCloseable, IOFactory {
 		}
 	}
 
+	@Deprecated
 	static Function<String, List<Map<String, Object>>> strUriders(URISpec uri) {
 		String sd = null == uri ? "bson" : uri.getParameter("serder", "bson").toLowerCase();
 		switch (sd) {

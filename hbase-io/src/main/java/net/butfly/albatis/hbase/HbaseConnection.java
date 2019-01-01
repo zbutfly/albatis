@@ -47,7 +47,6 @@ import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albacore.utils.logger.Statistic;
-import net.butfly.albatis.Connection;
 import net.butfly.albatis.DataConnection;
 import net.butfly.albatis.ddl.Builder;
 import net.butfly.albatis.ddl.FieldDesc;
@@ -59,7 +58,7 @@ import net.butfly.alserder.SerDes;
 
 @SerDes.As("hbase")
 public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.client.Connection> implements IOFactory {
-	private final static Logger logger = Logger.getLogger(HbaseConnection.class);
+	protected final static Logger logger = Logger.getLogger(HbaseConnection.class);
 
 	static {
 		logger.warn(
@@ -76,10 +75,9 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 	private static final int GET_SCAN_BYTES = Integer.parseInt(Configs.gets("albatis.hbase.connection.get.result.bytes", "3145728")); // 3M
 	private static final int GET_SCAN_LIMIT = Integer.parseInt(Configs.gets("albatis.hbase.connection.get.result.limit", "1"));
 	private static final long GET_STATS_STEP = Long.parseLong(Configs.gets("albatis.hbase.connection.get.stats.step", "-1"));
-	private static final long GET_DUMP_MIN_SIZE = Integer.parseInt(Configs.gets("albatis.hbase.connection.get.dump.min.bytes", "2097152")); // 2M
+	protected static final long GET_DUMP_MIN_SIZE = Integer.parseInt(Configs.gets("albatis.hbase.connection.get.dump.min.bytes", "2097152")); // 2M
 	private final Map<String, Table> tables;
 	private final LinkedBlockingQueue<Scan> scans = new LinkedBlockingQueue<>(GET_SCAN_OBJS);
-	public final Function<Map<String, Object>, byte[]> conv;
 
 	public HbaseConnection() throws IOException {
 		this(new URISpec("hbase:///"));
@@ -87,7 +85,6 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 
 	public HbaseConnection(URISpec uri) throws IOException {
 		super(uri, "hbase");
-		conv = Connection.uriser(uri);
 		tables = Maps.of();
 	}
 
@@ -345,7 +342,7 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 	@SuppressWarnings("unchecked")
 	@Override
 	public HbaseOutput outputRaw(TableDesc... table) throws IOException {
-		return new HbaseOutput("HbaseOutput", this, conv);
+		return new HbaseOutput("HbaseOutput", this);
 	}
 
 	@Override

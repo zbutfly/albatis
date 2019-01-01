@@ -1,6 +1,6 @@
 package net.butfly.albatis.kafka;
 
-import static net.butfly.albatis.io.format.Format.of;
+import static net.butfly.alserder.format.Format.of;
 
 import java.io.IOException;
 import java.util.List;
@@ -16,7 +16,7 @@ import net.butfly.albatis.Connection;
 import net.butfly.albatis.DataConnection;
 import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.io.IOFactory;
-import net.butfly.albatis.io.format.Format;
+import net.butfly.albatis.io.format.RmapFormat;
 import net.butfly.alserder.SerDes;
 import scala.collection.JavaConversions;
 
@@ -27,9 +27,9 @@ public class KafkaConnection extends DataConnection<Connection> implements IOFac
 	}
 
 	@Override
-	public List<Format> formats() {
-		List<Format> fmts = super.formats();
-		Format def = of(Configs.gets("albatis.format.biz.default", "etl"));
+	public List<RmapFormat> formats() {
+		List<RmapFormat> fmts = super.formats();
+		RmapFormat def = of(Configs.gets("albatis.format.biz.default", "etl"));
 		if (null == def) return fmts;
 		else if (fmts.size() == 1 && fmts.get(0).equals(of("bson"))) //
 			return Colls.list(fmts.get(0), def);
@@ -79,17 +79,6 @@ public class KafkaConnection extends DataConnection<Connection> implements IOFac
 	protected Connection initialize(URISpec uri) {
 		return null;
 	}
-
-	// @Override
-	// public void construct(String dbName, String table, TableDesc tableDesc, List<FieldDesc> fields) {
-	// String kafkaUrl = uri.getHost()+"/kafka";
-	// ZkUtils zkUtils = ZkUtils.apply(kafkaUrl, 30000, 30000, JaasUtils.isZkSecurityEnabled());
-	// Integer partition = (Integer) tableDesc.construct.get("partition");
-	// Integer replication = (Integer) tableDesc.construct.get("replication");
-	// AdminUtils.createTopic(zkUtils, table, partition, replication, new Properties(), new RackAwareMode.Enforced$());
-	// logger().info("create kafka topic successful");
-	// zkUtils.close();
-	// }
 
 	@Override
 	public boolean judge(String dbName, String table) {

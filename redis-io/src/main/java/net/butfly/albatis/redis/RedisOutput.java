@@ -14,18 +14,16 @@ import net.butfly.albatis.io.Rmap;
 
 public class RedisOutput extends OutputBase<Rmap> {
 	private static final long serialVersionUID = -4110089452435157612L;
-	private final RedisConnection redisConn;
-	private final StatefulRedisConnection<?, ?> src;
-	private final RedisCommands syncCommands;
+	private final StatefulRedisConnection<String, String> src;
+	private final RedisCommands<String, String> syncCommands;
 	private final String prefix = Configs.get("albatis.redis.key.prefix", "DPC:CODEMAP:");
 
 	public RedisOutput(String name, RedisConnection redisConn) {
 		this(name, redisConn, new Utf8StringCodec());
 	}
 
-	public RedisOutput(String name, RedisConnection redisConn, RedisCodec<?, ?> redisCodec) {
+	public RedisOutput(String name, RedisConnection redisConn, RedisCodec<String, String> redisCodec) {
 		super(name);
-		this.redisConn = redisConn;
 		src = redisConn.redisClient.connect(redisCodec);
 		syncCommands = src.sync();
 		closing(this::close);
@@ -34,8 +32,11 @@ public class RedisOutput extends OutputBase<Rmap> {
 	@Override
 	protected void enqsafe(Sdream<Rmap> msgs) {
 		AtomicLong n = new AtomicLong();
-		n.set(msgs.map(m -> syncCommands.set(prefix + m.table().replaceAll(":", "") + ":" + m.key(), JsonSerder.JSON_MAPPER.ser(m))).filter(
-				s -> "OK".equals(s)).count());
+		n.set(msgs.map(m -> {
+			String k = prefix + m.table().replaceAll(":", "") + ":" + m.key();
+			String json = JsonSerder.JSON_MAPPER.ser(m);
+			return syncCommands.set(k, json);
+		}).filter(s -> "OK".equals(s)).count());
 		succeeded(n.get());
 	}
 

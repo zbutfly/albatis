@@ -15,7 +15,7 @@ public abstract class ValType implements Serializable {
 	public static interface Flags {
 		@Deprecated
 		public static final String VOID = "v";
-		@Deprecated
+		// @Deprecated
 		public static final String UNKNOWN = "";
 		// basic type: primitive
 		public static final String BOOL = "bl";
@@ -39,7 +39,7 @@ public abstract class ValType implements Serializable {
 
 	@Deprecated
 	public static final BasicValType VOID = new BasicValType(void.class, Void.class, Types.OTHER, Flags.VOID, "void");
-	@Deprecated
+	// @Deprecated
 	public static final BasicValType UNKNOWN = new BasicValType(Object.class, Object.class, Types.OTHER, Flags.UNKNOWN);
 	// basic type: primitive
 	public static final BasicValType BOOL = new BasicValType(boolean.class, Boolean.class, Types.BOOLEAN, Flags.BOOL, "bool", "boolean");
@@ -62,7 +62,7 @@ public abstract class ValType implements Serializable {
 	// assembly type
 	public static final ListValType GEO = new ListValType(new String[] { Flags.GEO, "geo" }, DOUBLE, DOUBLE);
 	public static final ListValType LOCATION_RPT = new ListValType(new String[] { Flags.LOCATION_RPT, "string_srpt" }, STR);
-	public static final ListValType JSON_STR = new ListValType(new String[] {Flags.JSON_STR, "json", "j"}, STR);
+	public static final ListValType JSON_STR = new ListValType(new String[] { Flags.JSON_STR, "json", "j" }, STR);
 
 	public final Class<?> rawClass;
 	public final Class<?> boxedClass;
@@ -91,8 +91,24 @@ public abstract class ValType implements Serializable {
 		return this;
 	}
 
-	public static ValType valueOf(String flag) {
+	public static ValType of(String flag) {
 		return null == flag ? UNKNOWN : MAPPING.getOrDefault(flag, UNKNOWN);
 	}
 
+	public static ValType obj(Object obj) {
+		if (null == obj) return VOID;
+		Class<?> cls = obj.getClass();
+		if (Boolean.class.isAssignableFrom(cls) || boolean.class.isAssignableFrom(cls)) return BOOL;
+		if (Character.class.isAssignableFrom(cls) || char.class.isAssignableFrom(cls)) return CHAR;
+		if (Byte.class.isAssignableFrom(cls) || byte.class.isAssignableFrom(cls)) return BYTE;
+		if (Short.class.isAssignableFrom(cls) || short.class.isAssignableFrom(cls)) return SHORT;
+		if (Integer.class.isAssignableFrom(cls) || int.class.isAssignableFrom(cls)) return INT;
+		if (Long.class.isAssignableFrom(cls) || long.class.isAssignableFrom(cls)) return LONG;
+		if (Float.class.isAssignableFrom(cls) || float.class.isAssignableFrom(cls)) return FLOAT;
+		if (Double.class.isAssignableFrom(cls) || double.class.isAssignableFrom(cls)) return DOUBLE;
+		if (CharSequence.class.isAssignableFrom(cls)) return STR;
+		if (byte[].class.isAssignableFrom(cls)) return BIN;
+		if (Date.class.isAssignableFrom(cls)) return DATE;
+		return UNKNOWN;
+	}
 }

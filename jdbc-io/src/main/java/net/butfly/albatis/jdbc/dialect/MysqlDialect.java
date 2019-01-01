@@ -107,7 +107,6 @@ public class MysqlDialect extends Dialect {
 		}
 	}
 
-	@SuppressWarnings("deprecation")
 	@Override
 	protected String buildSqlField(TableDesc tableDesc, FieldDesc field) {
 		StringBuilder sb = new StringBuilder();

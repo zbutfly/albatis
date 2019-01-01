@@ -24,7 +24,7 @@ public class EsConstructTest {
 		@SuppressWarnings("deprecation")
 		DBDesc dbDesc = new DBDesc("es_test", url);
 		TableDesc tableDesc = new TableDesc(dbDesc, "es_test");
-		ValType type = ValType.valueOf("string");
+		ValType type = ValType.of("string");
 		FieldDesc f = new FieldDesc(tableDesc, "name", type);
 		fields.add(f);
 		FieldDesc[] fieldDescs = new FieldDesc[fields.size()];
