@@ -11,7 +11,6 @@ import kafka.utils.ZkUtils;
 import net.butfly.albacore.exception.ConfigException;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.Configs;
-import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albatis.Connection;
 import net.butfly.albatis.DataConnection;
@@ -19,7 +18,6 @@ import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.io.IOFactory;
 import net.butfly.albatis.io.format.Format;
 import net.butfly.alserder.SerDes;
-import net.butfly.alserder.SerDes.As;
 import scala.collection.JavaConversions;
 
 @SerDes.As("bson")
@@ -29,19 +27,19 @@ public class KafkaConnection extends DataConnection<Connection> implements IOFac
 	}
 
 	@Override
-	public List<Pair<Format, As>> formats() {
-		List<Pair<Format, As>> fmts = super.formats();
+	public List<Format> formats() {
+		List<Format> fmts = super.formats();
 		Format def = of(Configs.gets("albatis.format.biz.default", "etl"));
 		if (null == def) return fmts;
-		else if (fmts.size() == 1 && fmts.get(0).v1().equals(of("bson"))) //
-			return Colls.list(fmts.get(0), new Pair<>(def, null));
+		else if (fmts.size() == 1 && fmts.get(0).equals(of("bson"))) //
+			return Colls.list(fmts.get(0), def);
 		else return fmts;
 	}
 
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	@Override
 	public KafkaInput inputRaw(TableDesc... topic) throws IOException {
-		Class<?> nativeClass = formats().get(0).v1().rawClass();
+		Class<?> nativeClass = formats().get(0).rawClass();
 		try {
 			if (String.class.isAssignableFrom(nativeClass)) return new KafkaInput<>("KafkaInput", uri, String.class, topic);
 			else if (byte[].class.isAssignableFrom(nativeClass)) return new KafkaInput<>("KafkaInput", uri, byte[].class, topic);
