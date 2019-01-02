@@ -7,6 +7,7 @@ import org.apache.hadoop.hbase.client.Mutation;
 import net.butfly.albatis.io.Rmap;
 
 @Deprecated
+@SuppressWarnings("deprecation")
 public final class HbaseConvOutput extends HbaseOutput {
 	private static final long serialVersionUID = 3301721159039265076L;
 	private transient HbaseConvConnection conn;
@@ -15,6 +16,7 @@ public final class HbaseConvOutput extends HbaseOutput {
 		super(name, hconn);
 	}
 
+	@Override
 	protected Mutation op(Rmap m) {
 		return Hbases.Results.op(m, conn.conv::apply);
 	}

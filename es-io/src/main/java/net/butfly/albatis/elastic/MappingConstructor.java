@@ -24,7 +24,6 @@ import net.butfly.albatis.ddl.Desc;
 import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.ddl.vals.ValType;
 
-@SuppressWarnings("deprecation")
 public class MappingConstructor {
 	protected final Logger logger = Logger.getLogger(MappingConstructor.class);
 	public static final String DEFAULT_FULLTEXT_NAME = "fullText";

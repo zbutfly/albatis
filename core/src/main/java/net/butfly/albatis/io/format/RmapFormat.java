@@ -11,16 +11,19 @@ import net.butfly.alserder.format.Format;
 public abstract class RmapFormat extends Format<Rmap, TableDesc> implements RmapFormatApi {
 	private static final long serialVersionUID = -1644417093671209720L;
 
+	@Override
 	public Rmap assemble(Rmap m, TableDesc... dst) {
 		if (null == m || m.isEmpty()) return null;
 		return dst.length == 0 ? assemble(m) : assemble(m, match(m.table(), dst).fields());
 	}
 
+	@Override
 	public Rmap disassemble(Rmap r, TableDesc... src) {
 		if (null == r || r.isEmpty()) return null;
 		return src.length == 0 ? disassemble(r) : disassemble(r, match(r.table(), src).fields());
 	}
 
+	@Override
 	public Rmap assembles(List<Rmap> l, TableDesc... dst) {
 		if (null == l || l.isEmpty()) return null;
 		if (dst.length == 0) return assembles(l);
@@ -29,6 +32,7 @@ public abstract class RmapFormat extends Format<Rmap, TableDesc> implements Rmap
 		throw new UnsupportedOperationException("Schemaness record list format not implemented now.");
 	}
 
+	@Override
 	public List<Rmap> disassembles(Rmap m, TableDesc... src) {
 		if (null == m || m.isEmpty()) return Colls.list();
 		if (src.length == 0) return disassembles(m);

@@ -40,6 +40,7 @@ public interface Connection extends AutoCloseable, IOFactory {
 
 	String defaultSchema();
 
+	@Override
 	URISpec uri();
 
 	@SuppressWarnings("unchecked")
