@@ -1,7 +1,7 @@
 package net.butfly.albatis.io;
 
 import static net.butfly.albatis.ddl.TableDesc.dummy;
-import static net.butfly.albatis.io.Rmap.empty;
+import static net.butfly.albacore.utils.collection.Colls.empty;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
@@ -59,8 +59,8 @@ public interface IOFactory extends Formatable<Rmap, TableDesc, RmapFormat> {
 		// deserializing
 		if (null != fotmats) for (RmapFormat f : fotmats)
 			i = f.as().list() //
-					? i.thenFlat(r -> empty((Rmap) r) ? Sdream.of() : Sdream.of(f.disassembles((Rmap) r, tbls.get(((Rmap) r).table()))))
-					: i.then(r -> empty((Rmap) r) ? null : f.disassemble((Rmap) r, tbls.get(((Rmap) r).table())));
+					? i.thenFlat(r -> empty((Rmap) r) ? Sdream.of() : Sdream.of(f.desers((Rmap) r, tbls.get(((Rmap) r).table()))))
+					: i.then(r -> empty((Rmap) r) ? null : f.deser((Rmap) r, tbls.get(((Rmap) r).table())));
 		// key field filfulling
 		Map<String, String> keys = Maps.of();
 		for (TableDesc t : tables)
@@ -86,8 +86,8 @@ public interface IOFactory extends Formatable<Rmap, TableDesc, RmapFormat> {
 		// serializing
 		if (null != fotmats) for (RmapFormat f : fotmats)
 			o = f.as().list() //
-					? o.prior(r -> empty((Rmap) r) ? null : f.assembles(Colls.list((Rmap) r), tbls.get(((Rmap) r).table())))
-					: o.prior(r -> empty((Rmap) r) ? null : f.assemble((Rmap) r, tbls.get(((Rmap) r).table())));
+					? o.prior(r -> empty((Rmap) r) ? null : f.sers(Colls.list((Rmap) r), tbls.get(((Rmap) r).table())))
+					: o.prior(r -> empty((Rmap) r) ? null : f.ser((Rmap) r, tbls.get(((Rmap) r).table())));
 		return o;
 	}
 }

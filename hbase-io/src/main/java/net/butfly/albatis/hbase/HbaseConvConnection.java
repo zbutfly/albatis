@@ -9,7 +9,6 @@ import net.butfly.albatis.Connection;
 import net.butfly.albatis.ddl.TableDesc;
 
 @Deprecated
-@SuppressWarnings("deprecation")
 public class HbaseConvConnection extends HbaseConnection {
 	public final Function<Map<String, Object>, byte[]> conv;
 

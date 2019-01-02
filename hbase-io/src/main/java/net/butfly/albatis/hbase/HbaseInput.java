@@ -180,7 +180,7 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 	}
 
 	private Filter filterPrefix(List<String> prefixes) {
-		if (null == prefixes || prefixes.isEmpty()) return null;
+		if (Colls.empty(prefixes)) return null;
 		if (1 == prefixes.size()) return null == prefixes.get(0) ? null : new ColumnPrefixFilter(Bytes.toBytes(prefixes.get(0)));
 		byte[][] ps = prefixes.stream().filter(p -> null != p).map(Bytes::toBytes).filter(b -> null != b && b.length > 0).toArray(
 				i -> new byte[i][]);

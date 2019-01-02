@@ -1,5 +1,7 @@
 package net.butfly.albatis.io.format;
 
+import static net.butfly.albacore.utils.collection.Colls.empty;
+
 import java.util.Map;
 
 import net.butfly.albatis.io.Rmap;
@@ -15,7 +17,7 @@ public class MapSerDesFormat extends RmapFormat {
 	}
 
 	@Override
-	public Rmap assemble(Rmap m) {
+	public Rmap ser(Rmap m) {
 		Object k = m.key();
 		Map<String, Object> data = sd.ser(m.map());
 		m.clear();
@@ -25,8 +27,8 @@ public class MapSerDesFormat extends RmapFormat {
 	}
 
 	@Override
-	public Rmap disassemble(Rmap r) {
-		if (null == r || r.isEmpty()) return null;
+	public Rmap deser(Rmap r) {
+		if (empty(r)) return null;
 		Object k = r.key();
 		Map<String, Object> data = sd.ser(r.map());
 		r.clear();

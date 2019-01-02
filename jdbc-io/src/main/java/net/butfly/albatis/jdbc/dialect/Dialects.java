@@ -6,6 +6,7 @@ import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
 
+import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albatis.io.Rmap;
 
 public interface Dialects {
@@ -21,7 +22,7 @@ public interface Dialects {
 	}
 
 	static String determineKeyField(List<Rmap> list) {
-		if (null == list || list.isEmpty()) return null;
+		if (Colls.empty(list)) return null;
 		Rmap msg = list.get(0);
 		Object key = msg.key();
 		if (null == key) return null;

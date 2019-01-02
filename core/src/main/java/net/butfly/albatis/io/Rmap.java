@@ -194,8 +194,4 @@ public class Rmap extends ConcurrentHashMap<String, Object> {
 		if (null != keyField) r.keyField(keyField);
 		return r;
 	}
-
-	public static boolean empty(Rmap r) {
-		return null == r || ((Rmap) r).isEmpty();
-	}
 }

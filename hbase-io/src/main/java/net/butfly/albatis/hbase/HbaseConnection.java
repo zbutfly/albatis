@@ -43,7 +43,6 @@ import net.butfly.albacore.paral.Exeter;
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.Texts;
-import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albacore.utils.logger.Statistic;
@@ -55,6 +54,7 @@ import net.butfly.albatis.io.IOFactory;
 import net.butfly.albatis.io.Rmap;
 import net.butfly.albatis.io.utils.JsonUtils;
 import net.butfly.alserder.SerDes;
+import static net.butfly.albacore.utils.collection.Colls.*;
 
 @SerDes.As("hbase")
 public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.client.Connection> implements IOFactory {
@@ -75,7 +75,8 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 	private static final int GET_SCAN_BYTES = Integer.parseInt(Configs.gets("albatis.hbase.connection.get.result.bytes", "3145728")); // 3M
 	private static final int GET_SCAN_LIMIT = Integer.parseInt(Configs.gets("albatis.hbase.connection.get.result.limit", "1"));
 	private static final long GET_STATS_STEP = Long.parseLong(Configs.gets("albatis.hbase.connection.get.stats.step", "-1"));
-	protected static final long GET_DUMP_MIN_SIZE = Integer.parseInt(Configs.gets("albatis.hbase.connection.get.dump.min.bytes", "2097152")); // 2M
+	protected static final long GET_DUMP_MIN_SIZE = Integer.parseInt(Configs.gets("albatis.hbase.connection.get.dump.min.bytes",
+			"2097152")); // 2M
 	private final Map<String, Table> tables;
 	private final LinkedBlockingQueue<Scan> scans = new LinkedBlockingQueue<>(GET_SCAN_OBJS);
 
@@ -158,7 +159,7 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 	}
 
 	public void put(String table, List<Row> ops) throws IOException {
-		if (null == ops || ops.isEmpty()) return;
+		if (empty(ops)) return;
 		Table t = table(table);
 		Object[] results = new Object[ops.size()];
 		try {
@@ -191,14 +192,14 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 	}
 
 	public List<Rmap> get(String table, List<Get> gets) {
-		if (gets == null || gets.isEmpty()) return Colls.list();
+		if (empty(gets)) return list();
 		if (gets.size() == 1) {
 			Rmap r = Hbases.Results.result(table, s.stats(scan(table, gets.get(0))));
-			return null == r ? Colls.list() : Colls.list(r);
+			return null == r ? list() : list(r);
 		}
 		List<Result> rr = s.statsIns(() -> table(table, t -> {
 			try {
-				return Colls.list(t.get(gets));
+				return list(t.get(gets));
 			} catch (IOException e) {
 				return of(gets).map(g -> scan(table, g)).nonNull().list();
 			}
@@ -233,17 +234,17 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 
 	@Deprecated
 	public List<Rmap> get1(String table, List<Get> gets) {
-		if (gets == null || gets.isEmpty()) return Colls.list();
-		if (gets.size() == 1) return Colls.list(Hbases.Results.result(table, s.stats(scan(table, gets.get(0)))));
+		if (empty(gets)) return list();
+		if (gets.size() == 1) return list(Hbases.Results.result(table, s.stats(scan(table, gets.get(0)))));
 		return table(table, t -> {
 			LinkedBlockingQueue<Get> all = new LinkedBlockingQueue<>(gets);
-			List<Callable<List<Rmap>>> tasks = Colls.list();
+			List<Callable<List<Rmap>>> tasks = list();
 			while (!all.isEmpty()) {
-				List<Get> batch = Colls.list();
+				List<Get> batch = list();
 				all.drainTo(batch, GET_BATCH_SIZE);
 				tasks.add(() -> {
 					try {
-						return of(s.stats(Colls.list(t.get(batch)))).map(r -> Hbases.Results.result(table, r)).list();
+						return of(s.stats(list(t.get(batch)))).map(r -> Hbases.Results.result(table, r)).list();
 					} catch (Exception ex) {
 						return of(batch).map(g -> Hbases.Results.result(table, s.stats(scan(table, gets.get(0))))).nonNull().list();
 					}
@@ -317,7 +318,7 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 
 		@Override
 		public List<String> schemas() {
-			return Colls.list("hbase", "hbase:zk");
+			return list("hbase", "hbase:zk");
 		}
 	}
 
@@ -327,11 +328,11 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 		HbaseInput input = new HbaseInput("HbaseInput", this);
 		for (TableDesc table : tables) {
 			String[] fqs = Builder.parseTableAndField(table.name, null);
-			List<String> pfxs = null == fqs[2] ? Colls.list() : Colls.list(p -> "".equals(p) ? null : p, fqs[2].split(SPLIT_ZWNJ));
-			List<String> cfs = null == fqs[1] ? Colls.list() : Colls.list(p -> "".equals(p) ? null : p, fqs[1].split(SPLIT_ZWNJ));
+			List<String> pfxs = null == fqs[2] ? list() : list(p -> "".equals(p) ? null : p, fqs[2].split(SPLIT_ZWNJ));
+			List<String> cfs = null == fqs[1] ? list() : list(p -> "".equals(p) ? null : p, fqs[1].split(SPLIT_ZWNJ));
 			fqs = fqs[0].split(SPLIT_ZWNJ);
 			if (fqs.length > 1) {// row key mode
-				List<byte[]> rows = Colls.list(Bytes::toBytes, fqs);
+				List<byte[]> rows = list(Bytes::toBytes, fqs);
 				rows.remove(0);
 				input.table(fqs[0], table.name, rows.toArray(new byte[rows.size()][]));
 			} else input.tableWithFamilAndPrefix(fqs[0], pfxs, cfs.toArray(new String[0]));

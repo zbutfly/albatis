@@ -66,7 +66,7 @@ public class MongoInput extends net.butfly.albacore.base.Namedly implements OddI
 	}
 
 	public void table(Map<String, DBObject> tablesAndQueries) {
-		if (null == tablesAndQueries || tablesAndQueries.isEmpty()) return;
+		if (Colls.empty(tablesAndQueries)) return;
 		logger.info("[" + name + "] from [" + conn.uri().toString() + "], collection [" + tablesAndQueries.toString() + "]");
 		List<Runnable> queries = Colls.list();
 		for (String t : tablesAndQueries.keySet())

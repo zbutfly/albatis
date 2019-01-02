@@ -23,6 +23,7 @@ import org.apache.kudu.client.Upsert;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.Pair;
+import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albatis.io.OddOutputBase;
 import net.butfly.albatis.io.Rmap;
@@ -81,7 +82,7 @@ public class KuduOutput extends OddOutputBase<Rmap> {
 
 	@Override
 	protected boolean enqsafe(Rmap m) {
-		if (null == m || m.isEmpty()) return false;
+		if (Colls.empty(m)) return false;
 		conn.apply(op(m), (op, e) -> failed(Sdream.of1(m)));
 		return true;
 	}

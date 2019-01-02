@@ -42,6 +42,7 @@ import net.butfly.albacore.io.lambda.Function;
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.IOs;
 import net.butfly.albacore.utils.Utils;
+import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albacore.utils.parallel.Lambdas;
@@ -162,7 +163,7 @@ public final class Hbases extends Utils {
 		}
 
 		static Rmap result(String table, String row, List<Cell> cells) {
-			if (null == cells || cells.isEmpty()) return new Rmap(table, row);
+			if (Colls.empty(cells)) return new Rmap(table, row);
 			else return result(table, row, cells.stream());
 		}
 

@@ -1,43 +1,46 @@
 package net.butfly.albatis.io.format;
 
+import static net.butfly.albacore.utils.collection.Colls.empty;
+
 import java.util.List;
 
 import net.butfly.albacore.utils.collection.Colls;
+import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.io.Rmap;
 import net.butfly.alserder.SerDes;
 import net.butfly.alserder.format.Format;
 
-public abstract class RmapFormat extends Format<Rmap, TableDesc> implements RmapFormatApi {
+public abstract class RmapFormat extends Format<Rmap, TableDesc> {
 	private static final long serialVersionUID = -1644417093671209720L;
 
 	@Override
-	public Rmap assemble(Rmap m, TableDesc... dst) {
-		if (null == m || m.isEmpty()) return null;
-		return dst.length == 0 ? assemble(m) : assemble(m, match(m.table(), dst).fields());
+	public Rmap ser(Rmap m, TableDesc... dst) {
+		if (empty(m)) return null;
+		return empty(dst) || null == dst[0] ? ser(m) : ser(m, match(m.table(), dst).fields());
 	}
 
 	@Override
-	public Rmap disassemble(Rmap r, TableDesc... src) {
-		if (null == r || r.isEmpty()) return null;
-		return src.length == 0 ? disassemble(r) : disassemble(r, match(r.table(), src).fields());
+	public Rmap deser(Rmap r, TableDesc... src) {
+		if (empty(r)) return null;
+		return empty(src) || null == src[0] ? deser(r) : deser(r, match(r.table(), src).fields());
 	}
 
 	@Override
-	public Rmap assembles(List<Rmap> l, TableDesc... dst) {
-		if (null == l || l.isEmpty()) return null;
-		if (dst.length == 0) return assembles(l);
+	public Rmap sers(List<Rmap> l, TableDesc... dst) {
+		if (Colls.empty(l)) return null;
+		if (empty(dst) || null == dst[0]) return sers(l);
 		// TODO
-		// else return assembles(l, match(m.table(), dst).fields());
+		// else return sers(l, match(m.table(), dst).fields());
 		throw new UnsupportedOperationException("Schemaness record list format not implemented now.");
 	}
 
 	@Override
-	public List<Rmap> disassembles(Rmap m, TableDesc... src) {
-		if (null == m || m.isEmpty()) return Colls.list();
-		if (src.length == 0) return disassembles(m);
+	public List<Rmap> desers(Rmap m, TableDesc... src) {
+		if (empty(m)) return Colls.list();
+		if (empty(src) || null == src[0]) return desers(m);
 		// TODO
-		// else return disassembles(l, match(m.table(), dst).fields());
+		// else return desers(l, match(m.table(), dst).fields());
 		throw new UnsupportedOperationException("Schemaness record list format not implemented now.");
 
 	}
@@ -59,4 +62,23 @@ public abstract class RmapFormat extends Format<Rmap, TableDesc> implements Rmap
 			if (excepted.equals(t.name)) return t;
 		return tables[0];
 	}
+
+	/**
+	 * <b>Schemaness</b> record assemble.<br>
+	 * default as if schemaless
+	 */
+	protected Rmap ser(Rmap src, FieldDesc... fields) {
+		return ser(src); //
+	}
+
+	/**
+	 * <b>Schemaness</b> record disassemble.<br>
+	 * default as if schemaless
+	 */
+	protected Rmap deser(Rmap dst, FieldDesc... fields) {
+		return deser(dst);
+	}
+
+	// TODO: List schemaness dis/assembling
+
 }

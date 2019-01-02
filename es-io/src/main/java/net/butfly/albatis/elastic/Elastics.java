@@ -11,6 +11,7 @@ import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.update.UpdateRequest;
 
 import net.butfly.albacore.utils.Pair;
+import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albatis.io.Rmap;
 
 public class Elastics {
@@ -59,7 +60,7 @@ public class Elastics {
 	}
 
 	public static Pair<String, String> dessemble(String indexAndType) {
-		if (null == indexAndType || indexAndType.isEmpty()) return new Pair<>(null, null);
+		if (Colls.empty(indexAndType)) return new Pair<>(null, null);
 		String[] it = indexAndType.split("/", 2);
 		for (int i = 0; i < it.length; i++)
 			if (it[i].isEmpty()) it[i] = null;

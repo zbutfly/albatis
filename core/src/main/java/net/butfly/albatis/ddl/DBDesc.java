@@ -1,5 +1,7 @@
 package net.butfly.albatis.ddl;
 
+import static net.butfly.albacore.utils.collection.Colls.empty;
+
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -31,7 +33,7 @@ public final class DBDesc extends Desc<DBDesc> {
 	@SuppressWarnings("unchecked")
 	public static Map<String, DBDesc> of(Map<String, Map<String, Object>> modelsMap) {
 		Map<String, DBDesc> models = Maps.of();
-		if (null == modelsMap || modelsMap.isEmpty()) return models;
+		if (empty(modelsMap)) return models;
 		for (String dbName : modelsMap.keySet())
 			if (!dbName.startsWith("//") && !dbName.startsWith(".")) {
 				Object v = modelsMap.get(dbName);

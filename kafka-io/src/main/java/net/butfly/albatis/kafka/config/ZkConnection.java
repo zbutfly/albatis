@@ -13,6 +13,7 @@ import org.apache.zookeeper.ZooKeeper;
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.serder.JsonSerder;
 import net.butfly.albacore.utils.Pair;
+import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.logger.Logger;
 
 public class ZkConnection implements AutoCloseable {
@@ -63,7 +64,7 @@ public class ZkConnection implements AutoCloseable {
 	@Deprecated
 	protected <T> T fetchTree(String path, Class<T> cl) {
 		List<String> nodes = fetchChildren(path).list();
-		if (null == nodes || nodes.isEmpty()) {
+		if (Colls.empty(nodes)) {
 			Map<String, Object> map = fetchMap(path);
 			return null == map ? fetchValue(path, cl) : (T) map;
 		} else return (T) of(nodes).partitions(n -> n, node -> {

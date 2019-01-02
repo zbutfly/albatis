@@ -19,7 +19,6 @@ import com.arangodb.ArangoDBAsync.Builder;
 import com.arangodb.ArangoDatabaseAsync;
 import com.arangodb.entity.BaseDocument;
 import com.arangodb.entity.LoadBalancingStrategy;
-import net.butfly.albatis.DataConnection;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.io.lambda.BinaryOperator;
@@ -28,6 +27,7 @@ import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albacore.utils.logger.Statistic;
+import net.butfly.albatis.DataConnection;
 import net.butfly.albatis.ddl.TableDesc;
 
 public class ArangoConnection extends DataConnection<ArangoDBAsync> {
@@ -121,7 +121,7 @@ public class ArangoConnection extends DataConnection<ArangoDBAsync> {
 				long total = count.incrementAndGet();
 				String avg = AVG.format(((double) spent.addAndGet(tt)) / total);
 				return "AQL: [spent " + tt + " ms, total " + total + ", avg " + avg + " ms] with aql: " + aql //
-						+ (null == param || param.isEmpty() ? "" : "\n\tparams: " + param) + ".";
+						+ (Colls.empty(param) ? "" : "\n\tparams: " + param) + ".";
 			});
 			return s.stats(c.asListRemaining());
 		}, Exeter.of());
@@ -152,7 +152,7 @@ public class ArangoConnection extends DataConnection<ArangoDBAsync> {
 	}
 
 	public static CompletableFuture<List<BaseDocument>> merge(List<CompletableFuture<List<BaseDocument>>> fs) {
-		if (null == fs || fs.isEmpty()) return empty();
+		if (Colls.empty(fs)) return empty();
 		CompletableFuture<List<BaseDocument>> f = fs.get(0);
 		for (int i = 1; i < fs.size(); i++)
 			f = f.thenCombineAsync(fs.get(i), ArangoConnection::merge, Exeter.of());

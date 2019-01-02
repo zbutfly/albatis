@@ -30,7 +30,7 @@ public class HbaseFormat extends RmapFormat {
 	private static final long serialVersionUID = 4733354000209088889L;
 
 	@Override
-	public Rmap assemble(Rmap src) {
+	public Rmap ser(Rmap src) {
 		Rmap r = src.skeleton();
 		src.forEach((k, v) -> {
 			byte[] bb = assemble(v, ValType.obj(v));
@@ -40,7 +40,7 @@ public class HbaseFormat extends RmapFormat {
 	}
 
 	@Override
-	public Rmap assemble(Rmap src, FieldDesc... fields) {
+	public Rmap ser(Rmap src, FieldDesc... fields) {
 		Rmap r = src.skeleton();
 		byte[] b;
 		for (FieldDesc f : fields)
@@ -49,12 +49,12 @@ public class HbaseFormat extends RmapFormat {
 	}
 
 	@Override
-	public Rmap disassemble(Rmap dst) {
+	public Rmap deser(Rmap dst) {
 		throw new IllegalArgumentException("Disassemble from hbase need schema.");
 	}
 
 	@Override
-	public Rmap disassemble(Rmap dst, FieldDesc... fields) {
+	public Rmap deser(Rmap dst, FieldDesc... fields) {
 		Rmap m = dst.skeleton();
 		Object v;
 		for (FieldDesc f : fields)

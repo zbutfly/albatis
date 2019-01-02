@@ -38,7 +38,7 @@ public class TableDesc extends Desc<TableDesc> {
 	 *            cf:prefix#
 	 */
 	public static TableDesc of(DBDesc db, TableDesc parent, String sub) {
-		if (null == sub || sub.isEmpty()) return parent;
+		if (Colls.empty(sub)) return parent;
 		TableDesc t = new TableDesc(null, parent.name + "." + sub, parent.destruct).attw(parent.attrs);
 		if (null != parent.construct) {
 			t.construct = Maps.of();
