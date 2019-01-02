@@ -9,7 +9,7 @@
 			<dependency>
 				<groupId>net.butfly.albatis</groupId>
 				<artifactId>albatis-redis-io</artifactId>
-				<version>1.5.2-SNAPSHOT</version>
+				<version>1.5.3-SNAPSHOT</version>
 			</dependency>
 	
 2. URISpec
