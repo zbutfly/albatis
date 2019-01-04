@@ -1,7 +1,8 @@
 package net.butfly.albatis.io;
 
-import static net.butfly.albatis.ddl.TableDesc.dummy;
 import static net.butfly.albacore.utils.collection.Colls.empty;
+import static net.butfly.albatis.ddl.TableDesc.dummy;
+
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
@@ -11,10 +12,10 @@ import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albatis.ddl.TableDesc;
-import net.butfly.albatis.io.format.RmapFormat;
+import net.butfly.alserder.format.Format;
 import net.butfly.alserder.format.Formatable;
 
-public interface IOFactory extends Formatable<Rmap, TableDesc, RmapFormat> {
+public interface IOFactory extends Formatable {
 	default <M extends Rmap> Input<M> input(TableDesc... table) throws IOException {
 		return input(Arrays.asList(table), formats());
 	}
@@ -53,18 +54,16 @@ public interface IOFactory extends Formatable<Rmap, TableDesc, RmapFormat> {
 	}
 
 	@SuppressWarnings({ "unchecked", "rawtypes" })
-	default <M extends Rmap> Input<M> input(List<TableDesc> tables, List<RmapFormat> fotmats) throws IOException {
+	default <M extends Rmap> Input<M> input(List<TableDesc> tables, List<? extends Format> fotmats) throws IOException {
 		Map<String, TableDesc> tbls = Maps.distinct(tables, t -> t.name);
 		Input i = inputRaw(tables.toArray(new TableDesc[0]));
 		// deserializing
-		if (null != fotmats) for (RmapFormat f : fotmats)
-			i = f.as().list() //
-					? i.thenFlat(r -> empty((Rmap) r) ? Sdream.of() : Sdream.of(f.desers((Rmap) r, tbls.get(((Rmap) r).table()))))
-					: i.then(r -> empty((Rmap) r) ? null : f.deser((Rmap) r, tbls.get(((Rmap) r).table())));
+		if (null != fotmats) for (Format f : fotmats) i = f.as().list() //
+				? i.thenFlat(r -> empty((Rmap) r) ? Sdream.of() : Sdream.of(f.desers((Rmap) r, (TableDesc) tbls.get(((Rmap) r).table()))))
+				: i.then(r -> empty((Rmap) r) ? null : f.deser((Rmap) r, (TableDesc) tbls.get(((Rmap) r).table())));
 		// key field filfulling
 		Map<String, String> keys = Maps.of();
-		for (TableDesc t : tables)
-			if (null != t.rowkey()) keys.put(t.name, t.rowkey());
+		for (TableDesc t : tables) if (null != t.rowkey()) keys.put(t.name, t.rowkey());
 		if (!keys.isEmpty()) {
 			logger().info("Key fields found, Input will fill the key field value: \n\t" + keys.toString());
 			i = i.then(r -> {
@@ -80,14 +79,13 @@ public interface IOFactory extends Formatable<Rmap, TableDesc, RmapFormat> {
 	}
 
 	@SuppressWarnings({ "unchecked", "rawtypes" })
-	default <M extends Rmap> Output<M> output(List<TableDesc> tables, List<RmapFormat> fotmats) throws IOException {
+	default <M extends Rmap> Output<M> output(List<TableDesc> tables, List<? extends Format> fotmats) throws IOException {
 		Map<String, TableDesc> tbls = Maps.distinct(tables, t -> t.name);
 		Output o = outputRaw(tables.toArray(new TableDesc[0]));
 		// serializing
-		if (null != fotmats) for (RmapFormat f : fotmats)
-			o = f.as().list() //
-					? o.prior(r -> empty((Rmap) r) ? null : f.sers(Colls.list((Rmap) r), tbls.get(((Rmap) r).table())))
-					: o.prior(r -> empty((Rmap) r) ? null : f.ser((Rmap) r, tbls.get(((Rmap) r).table())));
+		if (null != fotmats) for (Format f : fotmats) o = f.as().list() //
+				? o.prior(r -> empty((Rmap) r) ? null : f.sers(Colls.list((Rmap) r), (TableDesc) tbls.get(((Rmap) r).table())))
+				: o.prior(r -> empty((Rmap) r) ? null : f.ser((Rmap) r, (TableDesc) tbls.get(((Rmap) r).table())));
 		return o;
 	}
 }

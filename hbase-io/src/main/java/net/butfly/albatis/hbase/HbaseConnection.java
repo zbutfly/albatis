@@ -61,8 +61,8 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 	protected final static Logger logger = Logger.getLogger(HbaseConnection.class);
 
 	static {
-		logger.warn(
-				"Hbase client common lib not support 2 digitals jdk version\n\t(checked by \"\\d\\.\\d\\..*\" in org.apache.hadoop.hbase.util.ClassSize:118)\nhacking into 9.0.4 -_-");
+		logger.warn("Hbase client common lib not support 2 digitals jdk version\n\t"//
+				+ "(checked by \"\\d\\.\\d\\..*\" in org.apache.hadoop.hbase.util.ClassSize:118)\nhacking into 9.0.4 -_-");
 		System.setProperty("java.version", "9.0.4");
 		// XXX: check
 		ClassSize.align(ClassSize.OBJECT + 2 * ClassSize.REFERENCE + 1 * Bytes.SIZEOF_LONG + ClassSize.REFERENCE + ClassSize.REFERENCE

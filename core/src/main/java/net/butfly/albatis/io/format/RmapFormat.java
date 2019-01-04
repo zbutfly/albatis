@@ -15,30 +15,30 @@ public abstract class RmapFormat extends Format<Rmap, TableDesc> {
 	private static final long serialVersionUID = -1644417093671209720L;
 
 	@Override
-	public Rmap ser(Rmap m, TableDesc... dst) {
+	public Rmap ser(Rmap m, TableDesc dst) {
 		if (empty(m)) return null;
-		return empty(dst) || null == dst[0] ? ser(m) : ser(m, match(m.table(), dst).fields());
+		return null == dst ? ser(m) : ser(m, match(m.table(), dst).fields());
 	}
 
 	@Override
-	public Rmap deser(Rmap r, TableDesc... src) {
+	public Rmap deser(Rmap r, TableDesc src) {
 		if (empty(r)) return null;
-		return empty(src) || null == src[0] ? deser(r) : deser(r, match(r.table(), src).fields());
+		return null == src ? deser(r) : deser(r, match(r.table(), src).fields());
 	}
 
 	@Override
-	public Rmap sers(List<Rmap> l, TableDesc... dst) {
+	public Rmap sers(List<Rmap> l, TableDesc dst) {
 		if (Colls.empty(l)) return null;
-		if (empty(dst) || null == dst[0]) return sers(l);
+		if (null == dst) return sers(l);
 		// TODO
 		// else return sers(l, match(m.table(), dst).fields());
 		throw new UnsupportedOperationException("Schemaness record list format not implemented now.");
 	}
 
 	@Override
-	public List<Rmap> desers(Rmap m, TableDesc... src) {
+	public List<Rmap> desers(Rmap m, TableDesc src) {
 		if (empty(m)) return Colls.list();
-		if (empty(src) || null == src[0]) return desers(m);
+		if (null == src) return desers(m);
 		// TODO
 		// else return desers(l, match(m.table(), dst).fields());
 		throw new UnsupportedOperationException("Schemaness record list format not implemented now.");
@@ -58,8 +58,7 @@ public abstract class RmapFormat extends Format<Rmap, TableDesc> {
 	}
 
 	private static TableDesc match(String excepted, TableDesc... tables) {
-		if (tables.length != 1 && null != excepted) for (TableDesc t : tables)
-			if (excepted.equals(t.name)) return t;
+		if (tables.length != 1 && null != excepted) for (TableDesc t : tables) if (excepted.equals(t.name)) return t;
 		return tables[0];
 	}
 

@@ -16,8 +16,8 @@ import net.butfly.albatis.Connection;
 import net.butfly.albatis.DataConnection;
 import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.io.IOFactory;
-import net.butfly.albatis.io.format.RmapFormat;
 import net.butfly.alserder.SerDes;
+import net.butfly.alserder.format.Format;
 import scala.collection.JavaConversions;
 
 @SerDes.As("bson")
@@ -26,10 +26,11 @@ public class KafkaConnection extends DataConnection<Connection> implements IOFac
 		super(uri, "kafka");
 	}
 
+	@SuppressWarnings("rawtypes")
 	@Override
-	public List<RmapFormat> formats() {
-		List<RmapFormat> fmts = super.formats();
-		RmapFormat def = of(Configs.gets("albatis.format.biz.default", "etl"));
+	public List<Format> formats() {
+		List<Format> fmts = super.formats();
+		Format def = of(Configs.gets("albatis.format.biz.default", "etl"));
 		if (null == def) return fmts;
 		else if (fmts.size() == 1 && fmts.get(0).equals(of("bson"))) //
 			return Colls.list(fmts.get(0), def);

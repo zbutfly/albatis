@@ -1,14 +1,16 @@
 package net.butfly.albatis.redis;
 
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import io.lettuce.core.api.StatefulRedisConnection;
 import io.lettuce.core.api.sync.RedisCommands;
 import io.lettuce.core.codec.RedisCodec;
 import io.lettuce.core.codec.Utf8StringCodec;
 import net.butfly.albacore.paral.Sdream;
-import net.butfly.albacore.serder.JsonSerder;
 import net.butfly.albacore.utils.Configs;
+import net.butfly.albacore.utils.collection.Colls;
+import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albatis.io.OutputBase;
 import net.butfly.albatis.io.Rmap;
 
@@ -31,13 +33,20 @@ public class RedisOutput extends OutputBase<Rmap> {
 
 	@Override
 	protected void enqsafe(Sdream<Rmap> msgs) {
-		AtomicLong n = new AtomicLong();
-		n.set(msgs.map(m -> {
-			String k = prefix + m.table().replaceAll(":", "") + ":" + m.key();
-			String json = JsonSerder.JSON_MAPPER.ser(m);
-			return syncCommands.set(k, json);
-		}).filter(s -> "OK".equals(s)).count());
-		succeeded(n.get());
+		List<Rmap> fails = Colls.list();
+		AtomicInteger c = new AtomicInteger();
+		msgs.eachs(m -> {
+			if (!Colls.empty(m)) m.forEach((k, v) -> send(k, v, m.table(), m.key(), fails, c));
+		});
+		this.failed(Sdream.of(fails));
+		succeeded(c.get());
+	}
+
+	private void send(String k, Object v, String table, Object key, List<Rmap> fails, AtomicInteger c) {
+		String kk = prefix + table.replaceAll(":", "") + ":" + key;
+		String r = syncCommands.set(kk, v.toString());
+		if (null != r && "OK".equals(r)) c.getAndIncrement();
+		else fails.add(new Rmap(table, key, Maps.of(k, v)));
 	}
 
 	@Override
