@@ -12,8 +12,8 @@ import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albatis.ddl.TableDesc;
-import net.butfly.alserder.format.Format;
-import net.butfly.alserder.format.Formatable;
+import net.butfly.alserdes.format.Format;
+import net.butfly.alserdes.format.Formatable;
 
 public interface IOFactory extends Formatable {
 	default <M extends Rmap> Input<M> input(TableDesc... table) throws IOException {

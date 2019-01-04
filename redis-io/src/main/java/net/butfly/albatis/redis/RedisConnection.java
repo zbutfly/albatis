@@ -14,7 +14,7 @@ import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albatis.DataConnection;
 import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.io.IOFactory;
-import net.butfly.alserder.SerDes;
+import net.butfly.alserdes.SerDes;
 
 @SerDes.As("json")
 public class RedisConnection extends DataConnection<RedisClient> implements IOFactory {

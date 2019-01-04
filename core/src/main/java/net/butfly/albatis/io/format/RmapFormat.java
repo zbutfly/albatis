@@ -8,8 +8,8 @@ import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.io.Rmap;
-import net.butfly.alserder.SerDes;
-import net.butfly.alserder.format.Format;
+import net.butfly.alserdes.SerDes;
+import net.butfly.alserdes.format.Format;
 
 public abstract class RmapFormat extends Format<Rmap, TableDesc> {
 	private static final long serialVersionUID = -1644417093671209720L;

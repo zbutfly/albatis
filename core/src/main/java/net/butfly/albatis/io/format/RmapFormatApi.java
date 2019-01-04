@@ -2,7 +2,7 @@
 //
 //import net.butfly.albatis.ddl.FieldDesc;
 //import net.butfly.albatis.io.Rmap;
-//import net.butfly.alserder.format.FormatApi;
+//import net.butfly.alserdes.format.FormatApi;
 //
 //public interface RmapFormatApi extends FormatApi<Rmap> {
 //	/**

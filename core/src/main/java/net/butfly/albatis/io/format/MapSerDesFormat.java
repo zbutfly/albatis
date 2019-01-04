@@ -5,7 +5,7 @@ import static net.butfly.albacore.utils.collection.Colls.empty;
 import java.util.Map;
 
 import net.butfly.albatis.io.Rmap;
-import net.butfly.alserder.SerDes;
+import net.butfly.alserdes.SerDes;
 
 public class MapSerDesFormat extends RmapFormat {
 	private static final long serialVersionUID = -1201642827803301187L;

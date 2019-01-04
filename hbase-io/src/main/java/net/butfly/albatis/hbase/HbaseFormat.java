@@ -23,7 +23,7 @@ import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.ddl.vals.ValType;
 import net.butfly.albatis.io.Rmap;
 import net.butfly.albatis.io.format.RmapFormat;
-import net.butfly.alserder.SerDes;
+import net.butfly.alserdes.SerDes;
 
 @SerDes.As("hbase")
 public class HbaseFormat extends RmapFormat {

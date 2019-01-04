@@ -53,7 +53,7 @@ import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.io.IOFactory;
 import net.butfly.albatis.io.Rmap;
 import net.butfly.albatis.io.utils.JsonUtils;
-import net.butfly.alserder.SerDes;
+import net.butfly.alserdes.SerDes;
 import static net.butfly.albacore.utils.collection.Colls.*;
 
 @SerDes.As("hbase")
