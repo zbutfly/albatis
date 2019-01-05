@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.ddl.Desc;
 import net.butfly.albatis.ddl.FieldDesc;
@@ -27,11 +28,15 @@ import net.butfly.albatis.ddl.vals.ValType;
 public class MappingConstructor {
 	protected final Logger logger = Logger.getLogger(MappingConstructor.class);
 	public static final String DEFAULT_FULLTEXT_NAME = "fullText";
-	private static final String CONFIG_PREFIX = "albatis.es.mapping.";
+	public static final String CONFIG_PREFIX = "albatis.es.mapping.";
 
-	private final boolean includeAll;
-	private String analyzer;
-	private boolean dynamic;
+	public final boolean includeAll;
+	public final String analyzer;
+	public final boolean dynamic;
+
+	public MappingConstructor() {
+		this(Maps.of());
+	}
 
 	public MappingConstructor(Map<String, Object> options) {
 		this.includeAll = Boolean.valueOf(options.getOrDefault("includeAll", gets(CONFIG_PREFIX + "include.all", "false")).toString());
@@ -39,7 +44,7 @@ public class MappingConstructor {
 		this.analyzer = options.getOrDefault("analyzer", gets(CONFIG_PREFIX + "text.analyzer", "standard")).toString();
 	}
 
-	protected List<Map<String, Object>> templates() {
+	public List<Map<String, Object>> templates() {
 		List<Map<String, Object>> templates = new ArrayList<>();
 		templates.add(of("booleans", // new
 				of("match_mapping_type", "boolean", "match", "*_b", "mapping", of("type", "boolean"))));
@@ -113,7 +118,7 @@ public class MappingConstructor {
 		return fieldAnalyzer(analyzer);
 	}
 
-	protected Map<String, Object> fieldAnalyzer(String a) {
+	public Map<String, Object> fieldAnalyzer(String a) {
 		return null == a ? of("type", "keyword") : of("type", "text", "analyzer", a);
 	}
 }

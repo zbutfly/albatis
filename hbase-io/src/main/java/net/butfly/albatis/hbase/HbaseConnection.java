@@ -99,6 +99,7 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 		Map<String, String> params = null;
 		if (null != uri) {
 			params = new ConcurrentHashMap<>(uri.getParameters());
+//			params.remove("df");
 			switch (uri.getScheme()) {
 			case "hbase":
 				if (uri.getInetAddrs().length == 1) {

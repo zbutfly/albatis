@@ -93,7 +93,7 @@ public class Rmap extends ConcurrentHashMap<String, Object> {
 
 	public Rmap key(Object key) {
 		this.key = key;
-		if (null != keyField) put(keyField, key);
+		if (null != keyField && null != key) put(keyField, key);
 		return this;
 	}
 
@@ -152,7 +152,7 @@ public class Rmap extends ConcurrentHashMap<String, Object> {
 
 	@Override
 	public String toString() {
-		return "[Table: " + table + ", Key: " + (null == keyField ? "" : (keyField + " => ")) + key + ", Op: " + opname(op) + "] => "
+		return "[Table: " + table + ", Key: " + (null == keyField ? "" : (keyField + " => ")) + key + ", Op: " + opname(op) + "] => \n\t"
 				+ super.toString();
 	}
 
