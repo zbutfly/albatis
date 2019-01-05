@@ -1,16 +1,5 @@
 package net.butfly.albatis.kudu;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-
-import org.apache.kudu.client.KuduException;
-import org.apache.kudu.client.KuduScanner;
-import org.apache.kudu.client.RowResult;
-
 import net.butfly.albacore.io.lambda.Consumer;
 import net.butfly.albacore.io.lambda.Supplier;
 import net.butfly.albacore.paral.Sdream;
@@ -19,11 +8,22 @@ import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Statistic;
 import net.butfly.albatis.io.Input;
 import net.butfly.albatis.io.Rmap;
+import org.apache.kudu.ColumnSchema;
+import org.apache.kudu.client.AsyncKuduScanner;
+import org.apache.kudu.client.KuduException;
+import org.apache.kudu.client.KuduScanner;
+import org.apache.kudu.client.KuduTable;
+
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 public class KuduInput extends net.butfly.albacore.base.Namedly implements Input<Rmap> {
 
     private static final long serialVersionUID = 2766579669550942687L;
     private final KuduConnectionBase<?, ?, ?> conn;
+    private static KuduTable kuduTable;
     private final BlockingQueue<TableScanner> scanners = new LinkedBlockingQueue<>();
     private final Map<String, TableScanner> scannerMap = Maps.of();
 
@@ -68,12 +68,15 @@ public class KuduInput extends net.butfly.albacore.base.Namedly implements Input
     }
 
     private class TableScanner {
+
         final String name;
-        KuduScanner scanner;
+        AsyncKuduScanner scanner;
 
         public TableScanner(String table) {
             super();
             name = table;
+            kuduTable = conn.table(table);
+            scanner = kuduTable.getAsyncClient().newScannerBuilder(kuduTable).build();
         }
 
         public void close() {
@@ -85,17 +88,6 @@ public class KuduInput extends net.butfly.albacore.base.Namedly implements Input
                 scannerMap.remove(name);
             }
         }
-
-        public List<RowResult> next() {
-            try {
-                List<RowResult> rowResults = new ArrayList<>();
-                scanner.nextRows().forEach(rowResults::add);
-                return rowResults;
-            } catch (IOException e) {
-                logger().error("scanner row data failure",e);
-                return null;
-            }
-        }
     }
 
     @Override
@@ -104,7 +96,7 @@ public class KuduInput extends net.butfly.albacore.base.Namedly implements Input
             try {
                 return ks.nextRows().next().rowToString();
             } catch (KuduException e) {
-                logger().error("trace numRow and row data exception",e);
+                logger().error("trace numRow and row data exception", e);
                 return null;
             }
         });
@@ -116,7 +108,7 @@ public class KuduInput extends net.butfly.albacore.base.Namedly implements Input
     }
 
     public Rmap result(String table) {
-        return new Rmap(table,conn.schemas(table));
+        return new Rmap(table, conn.schemas(table));
     }
 
     @Override
@@ -125,9 +117,9 @@ public class KuduInput extends net.butfly.albacore.base.Namedly implements Input
         while (opened() && !empty())
             if (null != (s = scanners.poll())) {
                 try {
-                    List<RowResult> results = s.next();
-                    if (null != results) {
-                        if (results.size() > 0) {
+                    Map<String, ColumnSchema> map = conn.schemas(s.name);
+                    if (null != map) {
+                        if (map.size() > 0) {
                             List<Rmap> ms = Colls.list();
                             ms.add(result(s.name));
                             if (!ms.isEmpty()) {
