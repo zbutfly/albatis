@@ -1,18 +1,13 @@
 package net.butfly.albatis.redis;
 
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 
-import io.lettuce.core.api.StatefulRedisConnection;
-import io.lettuce.core.api.sync.RedisCommands;
-import io.lettuce.core.codec.RedisCodec;
-import net.butfly.albacore.serder.JsonSerder;
-import net.butfly.albacore.utils.logger.Logger;
+import net.butfly.albacore.utils.collection.Colls;
+import net.butfly.albacore.utils.collection.Maps;
+import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.io.OddInput;
 import net.butfly.albatis.io.Rmap;
 import net.butfly.albatis.redis.key.RedisKey;
@@ -20,66 +15,38 @@ import net.butfly.albatis.redis.key.RedisKey;
 public class RedisListInput<T> extends net.butfly.albacore.base.Namedly implements OddInput<Rmap> {
 	private static final long serialVersionUID = -1411141076610748159L;
 
-	private static final Logger logger = Logger.getLogger(RedisListInput.class);
-	private final RedisConnection redisConn;
-	private final Object[] keyArr;
+	private final RedisConnection<T> conn;
 	private final BlockingQueue<RedisKey> keys = new LinkedBlockingQueue<>();
-	private final Map<RedisKey, Boolean> isEmptyMap = new ConcurrentHashMap<>();
-	private final StatefulRedisConnection<T, T> src;
-	private final RedisCommands<T, T> syncCommands;
+	private final Map<T, TableDesc> descs = Maps.of();
 
-	public RedisListInput(String name, RedisConnection redisConn, RedisCodec<T, T> redisCodec, Object... tables) {
-		super(name);
-		this.redisConn = redisConn;
-		this.keyArr = tables;
-		this.src = redisConn.redisClient.connect(redisCodec);
-		syncCommands = src.sync();
-
+	public RedisListInput(RedisConnection<T> conn, TableDesc... table) {
+		super("RedisListInput");
+		this.conn = conn;
+		if (!Colls.empty(table)) for (TableDesc t : table) {
+			T k = conn.keying(t.name);
+			keys.add(RedisKey.setKey(k));
+			descs.put(k, t);
+		}
 	}
 
 	@Override
-	public void open() {
-		OddInput.super.open();
-		Arrays.asList(keyArr).forEach(t -> {
-			RedisKey key = RedisKey.setKey(t);
-			isEmptyMap.put(key, false);
-			keys.add(key);
-		});
-		closing(this::closeRedis);
+	public void close() {
+		OddInput.super.close();
+		conn.close();
 	}
 
 	@SuppressWarnings("unchecked")
 	@Override
 	public Rmap dequeue() {
-		RedisKey key;
 		while (opened() && !keys.isEmpty()) {
-			if (null != (key = keys.poll())) {
-				try {
-					if ("byteArray".equals(redisConn.type)) {
-						byte[] bArr = (byte[]) syncCommands.lpop((T) (byte[]) key.getKey());
-						if (bArr != null) return new Rmap(new String((byte[]) key.getKey()), //
-								JsonSerder.JSON_MAPPER.fromBytes(bArr, HashMap.class));
-					} else if ("string".equals(redisConn.type)) {
-						String eStr = (String) syncCommands.lpop((T) (String) key.getKey());
-						if (eStr != null) return new Rmap((String) key.getKey(), //
-								JsonSerder.JSON_MAPPER.der(eStr, HashMap.class));
-					} else {
-						throw new UnsupportedOperationException();
-					}
-				} finally {
-					if (null != key) keys.offer(key);
-				}
-				return null;
-			}
+			RedisKey rk = keys.poll();
+			if (null == (rk)) return null;
+			T k = (T) rk.getKey();
+			T v = conn.sync.lpop(k);
+			if (null == v) return null;
+			return new Rmap(descs.get(k).name, Maps.of(UUID.randomUUID().toString(), v));
 		}
 		return null;
 	}
 
-	public void closeRedis() {
-		try {
-			redisConn.close();
-		} catch (IOException e) {
-			logger.error("", e);
-		}
-	}
 }

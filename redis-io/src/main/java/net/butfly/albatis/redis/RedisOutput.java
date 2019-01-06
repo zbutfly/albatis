@@ -1,56 +1,70 @@
 package net.butfly.albatis.redis;
 
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import io.lettuce.core.api.StatefulRedisConnection;
-import io.lettuce.core.api.sync.RedisCommands;
-import io.lettuce.core.codec.RedisCodec;
-import io.lettuce.core.codec.Utf8StringCodec;
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.Configs;
+import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
+import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.io.OutputBase;
 import net.butfly.albatis.io.Rmap;
 
-public class RedisOutput extends OutputBase<Rmap> {
+public class RedisOutput<T> extends OutputBase<Rmap> {
 	private static final long serialVersionUID = -4110089452435157612L;
-	private final StatefulRedisConnection<String, String> src;
-	private final RedisCommands<String, String> syncCommands;
-	private final String prefix = Configs.get("albatis.redis.key.prefix", "DPC:CODEMAP:");
+	private final static String KEY_PREFIX = Configs.get("albatis.redis.key.prefix", "DPC:CODEMAP:");
 
-	public RedisOutput(String name, RedisConnection redisConn) {
-		this(name, redisConn, new Utf8StringCodec());
-	}
+	private final RedisConnection<T> conn;
+	private final Map<String, TableDesc> descs = Maps.of();
 
-	public RedisOutput(String name, RedisConnection redisConn, RedisCodec<String, String> redisCodec) {
-		super(name);
-		src = redisConn.redisClient.connect(redisCodec);
-		syncCommands = src.sync();
-		closing(this::close);
-	}
-
-	@Override
-	protected void enqsafe(Sdream<Rmap> msgs) {
-		List<Rmap> fails = Colls.list();
-		AtomicInteger c = new AtomicInteger();
-		msgs.eachs(m -> {
-			if (!Colls.empty(m)) m.forEach((k, v) -> send(k, v, m.table(), m.key(), fails, c));
-		});
-		this.failed(Sdream.of(fails));
-		succeeded(c.get());
-	}
-
-	private void send(String k, Object v, String table, Object key, List<Rmap> fails, AtomicInteger c) {
-		String kk = prefix + table.replaceAll(":", "") + ":" + key;
-		String r = syncCommands.set(kk, v.toString());
-		if (null != r && "OK".equals(r)) c.getAndIncrement();
-		else fails.add(new Rmap(table, key, Maps.of(k, v)));
+	public RedisOutput(RedisConnection<T> conn, TableDesc... prefix) {
+		super("RedisOutput");
+		this.conn = conn;
+		if (!Colls.empty(prefix)) for (TableDesc t : prefix)
+			descs.put(t.name, t);
 	}
 
 	@Override
 	public void close() {
-		src.close();
+		super.close();
+		conn.close();
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	protected void enqsafe(Sdream<Rmap> msgs) {
+		List<Rmap> retry = Colls.list();
+		AtomicInteger c = new AtomicInteger();
+		msgs.eachs(m -> {
+			if (Colls.empty(m)) return;
+			List<Pair<String, T>> fails = Colls.list();
+			m.forEach((fieldname, fieldvalue) -> {
+				Pair<String, T> r = send(key(m.table(), fieldname), fieldname, (T) fieldvalue, m);
+				if (null == r) c.incrementAndGet();
+				else fails.add(r);
+			});
+			Rmap failed = m.skeleton();
+			fails.forEach(p -> m.put(p.v1(), p.v2()));
+			retry.add(failed);
+		});
+		failed(Sdream.of(retry));
+		succeeded(c.get());
+	}
+
+	private T key(String table, String key) {
+		if (Colls.empty(table) || Colls.empty(key)) return null;
+		String kk = KEY_PREFIX + table.replaceAll(":", "_") + ":" + key;
+		return conn.keying(kk);
+	}
+
+	// return non-null for retry
+	private Pair<String, T> send(T rk, String fieldname, T fieldvalue, Rmap m) {
+		if (null == rk) return null;
+		logger().trace("Redis send: " + rk + " => " + fieldvalue);
+		String r = conn.sync.set(rk, fieldvalue);
+		if (null != r && "OK".equals(r)) return null;
+		else return new Pair<>(fieldname, fieldvalue);
 	}
 }
