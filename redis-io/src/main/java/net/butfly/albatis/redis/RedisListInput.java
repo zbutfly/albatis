@@ -39,12 +39,18 @@ public class RedisListInput<T> extends net.butfly.albacore.base.Namedly implemen
 	@Override
 	public Rmap dequeue() {
 		while (opened() && !keys.isEmpty()) {
-			RedisKey rk = keys.poll();
-			if (null == (rk)) return null;
-			T k = (T) rk.getKey();
-			T v = conn.sync.lpop(k);
-			if (null == v) return null;
-			return new Rmap(descs.get(k).name, Maps.of(UUID.randomUUID().toString(), v));
+			RedisKey rk = null;
+			try {
+				rk = keys.poll();
+				if (null == (rk)) return null;
+				T k = (T) rk.getKey();
+				T v = conn.sync.lpop(k);
+				if (null == v) return null;
+				return new Rmap(descs.get(k).name, Maps.of(UUID.randomUUID().toString(), v));
+			} finally {
+				if (null != rk)
+					while (!keys.add(rk));
+			}
 		}
 		return null;
 	}
