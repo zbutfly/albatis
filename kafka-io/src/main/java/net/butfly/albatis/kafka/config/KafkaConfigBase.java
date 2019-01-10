@@ -77,6 +77,7 @@ public abstract class KafkaConfigBase implements Serializable {
 		case "zk:kafka":
 		case "zookeeper":
 		case "kafka":
+		case "kafka:zk":
 			String path = uri.getPath();
 			String[] zks = new String[0];
 			do {
@@ -95,6 +96,7 @@ public abstract class KafkaConfigBase implements Serializable {
 			}
 			break;
 		case "bootstrap":
+		case "kafka:bootstrap":
 			bootstrapServers = uri.getHost();
 			zookeeperConnect = null;
 			break;

@@ -72,7 +72,7 @@ public abstract class DataConnection<C> implements Connection, Loggable {
 		if (null == schema) return defaultSchema();
 		for (String s : supportedSchemas)
 			if (schema.toLowerCase().startsWith(s.toLowerCase())) return s;
-		return null;
+		return defaultSchema();
 	}
 
 	@Override
