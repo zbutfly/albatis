@@ -1,6 +1,5 @@
 package net.butfly.albatis.hbase;
 
-import static net.butfly.albacore.utils.Texts.iso8601;
 import static net.butfly.albatis.ddl.vals.ValType.Flags.BINARY;
 import static net.butfly.albatis.ddl.vals.ValType.Flags.BOOL;
 import static net.butfly.albatis.ddl.vals.ValType.Flags.CHAR;
@@ -67,8 +66,9 @@ public class HbaseFormat extends RmapFormat {
 		switch (t.flag) {
 		case BINARY:
 			return b;
-		case DATE: // TODO
-			return iso8601(Bytes.toString(b));
+		case DATE:
+			Long ms = Bytes.toLong(b);
+			return null == ms || ms.longValue() <= 0 ? null : new Date(ms.longValue());
 		case INT:
 			return Bytes.toInt(b);
 		case LONG:
@@ -97,8 +97,8 @@ public class HbaseFormat extends RmapFormat {
 		switch (t.flag) {
 		case BINARY:
 			return (byte[]) v;
-		case DATE: // TODO
-			return Bytes.toBytes(iso8601((Date) v));
+		case DATE:
+			return Bytes.toBytes(((Date) v).getTime());
 		case INT:
 			return Bytes.toBytes((Integer) v);
 		case LONG:
