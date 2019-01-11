@@ -28,7 +28,7 @@ public abstract class RmapFormat extends Format<Rmap, TableDesc> {
 
 	@Override
 	public Rmap sers(List<Rmap> l, TableDesc dst) {
-		if (Colls.empty(l)) return null;
+		if (empty(l)) return null;
 		if (null == dst) return sers(l);
 		// TODO
 		// else return sers(l, match(m.table(), dst).fields());
@@ -53,12 +53,13 @@ public abstract class RmapFormat extends Format<Rmap, TableDesc> {
 	}
 
 	@Override
-	public Class<?> rawClass() {
+	public Class<?> formatClass() {
 		return Rmap.class;
 	}
 
 	private static TableDesc match(String excepted, TableDesc... tables) {
-		if (tables.length != 1 && null != excepted) for (TableDesc t : tables) if (excepted.equals(t.name)) return t;
+		if (tables.length != 1 && null != excepted) for (TableDesc t : tables)
+			if (excepted.equals(t.name)) return t;
 		return tables[0];
 	}
 

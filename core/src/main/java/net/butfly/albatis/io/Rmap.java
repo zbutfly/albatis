@@ -15,6 +15,8 @@ import net.butfly.albacore.utils.collection.Maps;
 
 public class Rmap extends ConcurrentHashMap<String, Object> {
 	private static final long serialVersionUID = 2316795812336748252L;
+	public static final String RAW_KEY_FIELD = ".rawkey";
+
 	protected Object key;
 	protected String keyField;
 	protected String table;
@@ -119,7 +121,6 @@ public class Rmap extends ConcurrentHashMap<String, Object> {
 	}
 
 	public String table() {
-		if (null == table) return null;
 		return table;
 	}
 
@@ -192,7 +193,7 @@ public class Rmap extends ConcurrentHashMap<String, Object> {
 	}
 
 	public Rmap skeleton() {
-		Rmap r = new Rmap(table()).op(op);
+		Rmap r = new Rmap(table(), key).op(op);
 		if (null != keyField) r.keyField(keyField);
 		return r;
 	}

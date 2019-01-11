@@ -54,16 +54,27 @@ public interface IOFactory extends Formatable {
 	}
 
 	@SuppressWarnings({ "unchecked", "rawtypes" })
-	default <M extends Rmap> Input<M> input(List<TableDesc> tables, List<? extends Format> fotmats) throws IOException {
+	default <M extends Rmap> Input<M> input(List<TableDesc> tables, List<? extends Format> formats) throws IOException {
 		Map<String, TableDesc> tbls = Maps.distinct(tables, t -> t.name);
 		Input i = inputRaw(tables.toArray(new TableDesc[0]));
 		// deserializing
-		if (null != fotmats) for (Format f : fotmats) i = f.as().list() //
-				? i.thenFlat(r -> empty((Rmap) r) ? Sdream.of() : Sdream.of(f.desers((Rmap) r, (TableDesc) tbls.get(((Rmap) r).table()))))
-				: i.then(r -> empty((Rmap) r) ? null : f.deser((Rmap) r, (TableDesc) tbls.get(((Rmap) r).table())));
+		if (!empty(formats)) {
+			logger().info("Input [" + i.toString() + "] with formats: " + String.join(",", Colls.list(formats, f -> f.as().value())));
+			for (Format f : formats)
+				if (f.as().list()) //
+					i = i.thenFlat(r -> {
+						if (empty((Rmap) r)) return Sdream.of();
+						else return Sdream.of(f.desers((Rmap) r, (TableDesc) tbls.get(((Rmap) r).table())));
+					});
+				else i = i.then(r -> {
+					if (empty((Rmap) r)) return null;
+					else return f.deser((Rmap) r, (TableDesc) tbls.get(((Rmap) r).table()));
+				});
+		}
 		// key field filfulling
 		Map<String, String> keys = Maps.of();
-		for (TableDesc t : tables) if (null != t.rowkey()) keys.put(t.name, t.rowkey());
+		for (TableDesc t : tables)
+			if (null != t.rowkey()) keys.put(t.name, t.rowkey());
 		if (!keys.isEmpty()) {
 			logger().info("Key fields found, Input will fill the key field value: \n\t" + keys.toString());
 			i = i.then(r -> {
@@ -83,9 +94,10 @@ public interface IOFactory extends Formatable {
 		Map<String, TableDesc> tbls = Maps.distinct(tables, t -> t.name);
 		Output o = outputRaw(tables.toArray(new TableDesc[0]));
 		// serializing
-		if (null != fotmats) for (Format f : fotmats) o = f.as().list() //
-				? o.prior(r -> empty((Rmap) r) ? null : f.sers(Colls.list((Rmap) r), (TableDesc) tbls.get(((Rmap) r).table())))
-				: o.prior(r -> empty((Rmap) r) ? null : f.ser((Rmap) r, (TableDesc) tbls.get(((Rmap) r).table())));
+		if (null != fotmats) for (Format f : fotmats)
+			o = f.as().list() //
+					? o.prior(r -> empty((Rmap) r) ? null : f.sers(Colls.list((Rmap) r), (TableDesc) tbls.get(((Rmap) r).table())))
+					: o.prior(r -> empty((Rmap) r) ? null : f.ser((Rmap) r, (TableDesc) tbls.get(((Rmap) r).table())));
 		return o;
 	}
 }

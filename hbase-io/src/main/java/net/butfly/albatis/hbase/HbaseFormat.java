@@ -14,6 +14,9 @@ import static net.butfly.albatis.ddl.vals.ValType.Flags.STR;
 import static net.butfly.albatis.ddl.vals.ValType.Flags.STRL;
 import static net.butfly.albatis.ddl.vals.ValType.Flags.UNKNOWN;
 
+import java.nio.ByteBuffer;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.Date;
 
 import org.apache.hadoop.hbase.util.Bytes;
@@ -54,12 +57,22 @@ public class HbaseFormat extends RmapFormat {
 
 	@Override
 	public Rmap deser(Rmap dst, FieldDesc... fields) {
-		Rmap m = dst.skeleton();
 		Object v;
-		for (FieldDesc f : fields)
-			if (null != (v = disassemble((byte[]) dst.get(f.name), f.type))) m.put(f.name, v);
-		return m;
+		for (FieldDesc f : fields) {
+			v = dst.get(f.name);
+			if (v instanceof byte[]) {
+				v = disassemble((byte[]) v, f.type);
+				if (null != v) dst.put(f.name, v);
+			}
+			if (v instanceof ByteBuffer) {
+				v = disassemble(((ByteBuffer) v).array(), f.type);
+				if (null != v) dst.put(f.name, v);
+			}
+		}
+		return dst;
 	}
+
+	private static final ZoneOffset DEFAULT_OFFSET = OffsetDateTime.now().getOffset();
 
 	private Object disassemble(byte[] b, ValType t) {
 		if (null == b || b.length == 0) return null;

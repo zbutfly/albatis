@@ -31,7 +31,7 @@ public class RedisConnection<T> extends DataConnection<RedisClient> implements I
 
 	public RedisConnection(URISpec uriSpec) throws IOException {
 		super(uriSpec, "redis");
-		Class<?> nativeClass = formats().get(0).rawClass();
+		Class<?> nativeClass = formats().get(0).formatClass();
 		if (String.class.isAssignableFrom(nativeClass)) {
 			codec = (RedisCodec<T, T>) new Utf8StringCodec();
 			keying = s -> (T) s;
