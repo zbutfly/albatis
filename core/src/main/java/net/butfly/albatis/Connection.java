@@ -25,7 +25,7 @@ public interface Connection extends AutoCloseable, IOFactory {
 	static final int DEFAULT_BATCH_SIZE = 500;
 	static final Connection DUMMY = new Connection() {
 		@Override
-		public void close() throws Exception {}
+		public void close() throws IOException {}
 
 		@Override
 		public String defaultSchema() {
@@ -42,6 +42,9 @@ public interface Connection extends AutoCloseable, IOFactory {
 
 	@Override
 	URISpec uri();
+
+	@Override
+	void close() throws IOException;
 
 	@SuppressWarnings("unchecked")
 	static <T extends Connection> T connect(URISpec uriSpec) throws IOException {

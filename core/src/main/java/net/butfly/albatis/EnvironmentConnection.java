@@ -36,9 +36,8 @@ public interface EnvironmentConnection extends Connection, Serializable {
 			}
 
 			@Override
-			public void close() throws Exception {
+			public void close() throws IOException {
 				if (null != target) target.close();
-
 			}
 
 			@Override
