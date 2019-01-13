@@ -69,7 +69,8 @@ public class Elastics {
 	}
 
 	public static String assembly(String index, String type) {
-		if (index == null) return type;
+		if (null == index && null == type) return "";
+		if (index == null) return "/" + type;
 		if (type == null) return index + "/";
 		return index + "/" + type;
 	}

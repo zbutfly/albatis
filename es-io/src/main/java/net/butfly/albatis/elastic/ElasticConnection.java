@@ -1,12 +1,11 @@
 package net.butfly.albatis.elastic;
 
+import static net.butfly.albacore.utils.collection.Colls.empty;
+
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
@@ -17,6 +16,7 @@ import org.elasticsearch.client.transport.TransportClient;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.serder.JsonSerder;
+import net.butfly.albacore.serder.json.Jsons;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albatis.DataConnection;
 import net.butfly.albatis.ddl.FieldDesc;
@@ -163,17 +163,28 @@ public class ElasticConnection extends DataConnection<TransportClient> implement
 		return new ElasticOutput("ElasticOutput", this);
 	}
 
-	@Deprecated
-	public void construct(Map<String, Object> mapping, String... types) {
-		logger().debug("Mapping constructing: \n\t" + JsonSerder.JSON_MAPPER.ser(mapping));
-		PutMappingRequest req = new PutMappingRequest(getDefaultIndex());
+	/**
+	 * @param indexAndType
+	 *            format:
+	 *            <ul>
+	 *            <li><b>index</b>/<b>type</b></li>
+	 *            <li><b>index</b>/</li>&nbsp;(default type: <b>_doc</b>)</li>
+	 *            <li>/<b>type</b></li>
+	 *            <li><b>index</b>&nbsp;(default type: <b>_doc</b>)</li>
+	 *            <ul>
+	 */
+	public void construct(Map<String, Object> mapping, String indexAndType) {
+		String[] it = indexAndType.split("/", 2);
+		String[] its = 2 == it.length ? it : new String[] { it[0], null };
+		if (empty(its[0])) its[0] = getDefaultIndex();
+		if (empty(its[1])) its[1] = getDefaultType();
+		if (empty(its[1])) its[1] = "_doc";
+		logger().debug("Mapping constructing on " + String.join("/", its) + ": \n\t" + Jsons.pretty(mapping));
+
+		PutMappingRequest req = new PutMappingRequest(its[0]);
 		req.source(mapping);
-		Set<String> tps = new HashSet<>(Arrays.asList(types));
-		if (null != getDefaultType()) tps.add(getDefaultType());
-		for (String t : tps) {
-			AcknowledgedResponse r = client.admin().indices().putMapping(req.type(t)).actionGet();
-			if (!r.isAcknowledged()) logger().error("Mapping failed on type [" + t + "]" + req.toString());
-			else logger().info(() -> "Mapping on [" + t + "] construced sussesfully.");
-		}
+		AcknowledgedResponse r = client.admin().indices().putMapping(req.type(its[1])).actionGet();
+		if (!r.isAcknowledged()) logger().error("Mapping failed on type [" + its[1] + "]" + req.toString());
+		else logger().info(() -> "Mapping on " + its + " construced sussesfully.");
 	}
 }
