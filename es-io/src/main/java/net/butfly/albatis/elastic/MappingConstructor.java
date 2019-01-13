@@ -46,26 +46,22 @@ public class MappingConstructor {
 
 	public List<Map<String, Object>> templates() {
 		List<Map<String, Object>> templates = new ArrayList<>();
-		templates.add(of("booleans", // new
-				of("match_mapping_type", "boolean", "match", "*_b", "mapping", of("type", "boolean"))));
-		templates.add(of("integers", //
-				of("match_mapping_type", "long", "match", "*_i", "mapping", of("type", "integer"))));
-		templates.add(of("longs", //
-				of("match_mapping_type", "long", "match", "*_l", "mapping", of("type", "long"))));
-		templates.add(of("floats", //
-				of("match_mapping_type", "double", "match", "*_f", "mapping", of("type", "float"))));
-		templates.add(of("doubles", //
-				of("match_mapping_type", "double", "match", "*_d", "mapping", of("type", "double"))));
-		templates.add(of("dates", //
-				of("match_mapping_type", "date", "match", "*_dt", "mapping", of("type", "date"))));
-		templates.add(of("keyword_strings", // changed
-				of("match_mapping_type", "string", "match", "*_s", "mapping", of("type", "keyword"))));
-		templates.add(of("analyzed_strings", // new
-				of("match_mapping_type", "string", "match", "*_tcn", "mapping", fieldAnalyzer())));
-		templates.add(of("geo_points", // new
-				of("match_mapping_type", "string", "match", "*_rpt", "mapping", of("type", "geo_point"))));
-		templates.add(of("blobs", // new
-				of("match_mapping_type", "string", "match", "*_bin", "mapping", of("type", "binary"))));
+		templates.add(of("integers", of("match_mapping_type", "long", "match", "*_i", "mapping", of("type", "integer"))));
+		templates.add(of("longs", of("match_mapping_type", "long", "match", "*_l", "mapping", of("type", "long"))));
+		templates.add(of("floats", of("match_mapping_type", "double", "match", "*_f", "mapping", of("type", "float"))));
+		templates.add(of("doubles", of("match_mapping_type", "double", "match", "*_d", "mapping", of("type", "double"))));
+		templates.add(of("dates", of("match_mapping_type", "date", "match", "*_dt", "mapping", of("type", "date"))));
+		// changed
+		templates.add(of("keyword_strings", of("match_mapping_type", "string", "match", "*_s", "mapping", of("type", "keyword"))));
+		// new
+		templates.add(of("analyzed_strings", of("match_mapping_type", "string", "match", "*_tcn", "mapping", fieldAnalyzer())));
+		templates.add(of("geo_points", of("match_mapping_type", "string", "match", "*_rpt", "mapping", of("type", "geo_point"))));
+		templates.add(of("blobs", of("match_mapping_type", "string", "match", "*_bin", "mapping", of("type", "binary"))));
+		templates.add(of("booleans", of("match_mapping_type", "boolean", "match", "*_b", "mapping", of("type", "boolean"))));
+		// from subject
+		templates.add(of("strings", of("match_mapping_type", "string", "mapping", of("type", "keyword"))));
+		templates.add(of("detected_dates", of("mapping", of("type", "date"), "match_mapping_type", "string", "match", "*_dt")));
+
 		return templates;
 	}
 
