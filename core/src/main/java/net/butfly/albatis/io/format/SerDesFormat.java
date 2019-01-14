@@ -35,6 +35,7 @@ public class SerDesFormat extends RmapFormat {
 			Object k = r.key();
 			if (null == k || !(k instanceof CharSequence)) k = UUID.randomUUID();
 			r.put(k.toString(), v);
+			return r;
 		} else for (String k : m.keySet())
 			if (null != (v = sd.ser(m.get(k)))) m.put(k, v);
 		return m;
