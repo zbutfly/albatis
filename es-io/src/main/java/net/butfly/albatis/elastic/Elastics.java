@@ -70,8 +70,15 @@ public class Elastics {
 
 	public static String assembly(String index, String type) {
 		if (null == index && null == type) return "";
-		if (index == null) return "/" + type;
-		if (type == null) return index + "/";
+		if (null == index) {
+			if (type.indexOf("/") < 1) throw new IllegalArgumentException("Index not defined: " + type);
+			else return type;
+		}
+		if (null == type) {
+			if (index.indexOf("/") < 0 ) return index + "/_doc";
+			if (index.endsWith("/")) return index + "_doc";
+			return index;
+		}
 		return index + "/" + type;
 	}
 }
