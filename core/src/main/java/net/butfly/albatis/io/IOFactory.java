@@ -61,15 +61,9 @@ public interface IOFactory extends Formatable {
 		if (!empty(formats)) {
 			logger().info("Input [" + i.toString() + "] with formats: " + String.join(",", Colls.list(formats, f -> f.as().value())));
 			for (Format f : formats)
-				if (f.as().list()) //
-					i = i.thenFlat(r -> {
-						if (empty((Rmap) r)) return Sdream.of();
-						else return Sdream.of(f.desers((Rmap) r, (TableDesc) tbls.get(((Rmap) r).table())));
-					});
-				else i = i.then(r -> {
-					if (empty((Rmap) r)) return null;
-					else return f.deser((Rmap) r, (TableDesc) tbls.get(((Rmap) r).table()));
-				});
+				i = f.as().list() ? i.thenFlat(r -> empty((Rmap) r) ? Sdream.of()
+						: Sdream.of(f.desers((Rmap) r, (TableDesc) tbls.get(((Rmap) r).table()))))
+						: i.then(r -> empty((Rmap) r) ? null : f.deser((Rmap) r, (TableDesc) tbls.get(((Rmap) r).table())));
 		}
 		// key field filfulling
 		Map<String, String> keys = Maps.of();

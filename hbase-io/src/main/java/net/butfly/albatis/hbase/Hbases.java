@@ -129,8 +129,9 @@ public final class Hbases extends Utils {
 
 	public static Map<String, byte[]> map(Stream<Cell> cells) {
 		return null == cells ? Maps.of() : cells.collect(Collectors.toConcurrentMap(c -> {
+			String cf = Bytes.toString(CellUtil.cloneFamily(c));
 			String[] fqs = Bytes.toString(CellUtil.cloneQualifier(c)).split(SPLIT_PREFIX, 2);
-			return fqs[fqs.length == 2 ? 1 : 0];
+			return cf + SPLIT_CF + (fqs.length == 2 ? fqs[0] + SPLIT_PREFIX + fqs[1] : fqs[0]);
 		}, c -> CellUtil.cloneValue(c)));
 	}
 

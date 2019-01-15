@@ -54,7 +54,7 @@ public final class FieldDesc extends Desc<FieldDesc> {
 				prefix = s[1];
 			}
 		} else name = s[0];
-		attw(Desc.COL_FAMILY, cf).attw(Desc.COL_PREFIX, prefix);
+		attw(COL_FAMILY, cf).attw(COL_PREFIX, prefix);
 		return name;
 	}
 }

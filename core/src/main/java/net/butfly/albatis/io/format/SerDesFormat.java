@@ -61,7 +61,7 @@ public class SerDesFormat extends RmapFormat {
 					+ "] only convert first value.");
 			for (Entry<String, Object> e : m.entrySet()) {
 				Map<String, Object> mm = ((MapSerDes) sd).deser(e.getValue());
-				if (empty(mm)) continue;
+				// if (empty(mm)) continue; //XXX: changing kafka now contains an empty value map.
 				mm.put(Rmap.RAW_KEY_FIELD, e.getKey());
 				return empty(mm) ? null : new Rmap(m.table(), m.key(), mm).keyField(m.keyField()).op(m.op());
 			}

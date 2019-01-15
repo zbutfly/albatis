@@ -88,8 +88,8 @@ public abstract class Builder {
 		}
 		int sp = fqs[2].lastIndexOf(SPLIT_PREFIX_CH);
 		if (sp >= 0) {
+			fqs[1] = fqs[2].substring(0, sp);
 			fqs[2] = fqs[2].substring(sp + 1);
-			fqs[1] = fqs[1].substring(0, sp);
 		}
 		return fqs;
 	}
