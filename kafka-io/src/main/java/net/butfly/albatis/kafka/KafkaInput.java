@@ -27,7 +27,6 @@ import kafka.serializer.StringDecoder;
 import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.exception.ConfigException;
 import net.butfly.albacore.io.URISpec;
-import net.butfly.albacore.io.lambda.Function;
 import net.butfly.albacore.paral.Exeter;
 import net.butfly.albacore.paral.Task;
 import net.butfly.albacore.utils.Configs;
@@ -40,23 +39,23 @@ import net.butfly.albatis.io.OddInput;
 import net.butfly.albatis.io.Rmap;
 import net.butfly.albatis.kafka.config.KafkaInputConfig;
 
-public class KafkaInput<T> extends Namedly implements OddInput<Rmap> {
+public class KafkaInput extends Namedly implements OddInput<Rmap> {
 	private static final long serialVersionUID = 998704625489437241L;
 	private final KafkaInputConfig config;
 	private final Map<String, Integer> allTopics = Maps.of();
 	private ConsumerConnector connect;
 	@SuppressWarnings("rawtypes")
 	private final BlockingQueue<ConsumerIterator> consumers;
-	private final Function<T, String> keying;
+	// private final Function<T, String> keying;
 	// for debug
 	private final AtomicLong skip;
 
-	public KafkaInput(String name, String kafkaURI, Class<T> nativeClass, TableDesc... topics) throws ConfigException, IOException {
-		this(name, new URISpec(kafkaURI), nativeClass, topics);
+	public KafkaInput(String name, String kafkaURI, TableDesc... topics) throws ConfigException, IOException {
+		this(name, new URISpec(kafkaURI), topics);
 	}
 
-	public KafkaInput(String name, URISpec kafkaURI, Class<T> nativeClass) throws ConfigException, IOException {
-		this(name, kafkaURI, nativeClass, dummy(topic(kafkaURI)).toArray(new TableDesc[0]));
+	public KafkaInput(String name, URISpec kafkaURI) throws ConfigException, IOException {
+		this(name, kafkaURI, dummy(topic(kafkaURI)).toArray(new TableDesc[0]));
 	}
 
 	protected static String[] topic(URISpec kafkaURI) {
@@ -65,7 +64,7 @@ public class KafkaInput<T> extends Namedly implements OddInput<Rmap> {
 		return Texts.split(topics, ",").toArray(new String[0]);
 	}
 
-	public KafkaInput(String name, URISpec uri, Class<T> nativeClass, TableDesc... topics) throws ConfigException, IOException {
+	public KafkaInput(String name, URISpec uri, TableDesc... topics) throws ConfigException, IOException {
 		super(name);
 		config = new KafkaInputConfig(name(), uri);
 		skip = new AtomicLong(Long.parseLong(uri.getParameter("skip", "0")));
@@ -88,17 +87,17 @@ public class KafkaInput<T> extends Namedly implements OddInput<Rmap> {
 		}
 		logger().trace("[" + name() + "] parallelism of topics: " + allTopics.toString() + ".");
 
-		if (String.class.isAssignableFrom(nativeClass)) {
-			keying = s -> (String) s;
-			consumers = new LinkedBlockingQueue<>(createStringConsumers());
-		} else if (byte[].class.isAssignableFrom(nativeClass)) {
-			keying = b -> new String((byte[]) b);
-			consumers = new LinkedBlockingQueue<>(createBinaryConsumers());
-		} else throw new IllegalArgumentException();
+		// if (String.class.isAssignableFrom(nativeClass)) {
+		// keying = s -> (String) s;
+		// consumers = new LinkedBlockingQueue<>(createStringConsumers());
+		// } else if (byte[].class.isAssignableFrom(nativeClass)) {
+		// keying = b -> new String((byte[]) b);
+		consumers = new LinkedBlockingQueue<>(createBinaryConsumers());
+		// } else throw new IllegalArgumentException();
 		closing(this::closeKafka);
 	}
 
-	private List<ConsumerIterator<String, String>> createStringConsumers() throws ConfigException {
+	protected final List<ConsumerIterator<String, String>> createStringConsumers() throws ConfigException {
 		Map<String, List<KafkaStream<String, String>>> temp = null;
 		StringDecoder d = new StringDecoder(null);
 		ConsumerConnector c = null;
@@ -157,15 +156,15 @@ public class KafkaInput<T> extends Namedly implements OddInput<Rmap> {
 	@SuppressWarnings("unchecked")
 	@Override
 	public Rmap dequeue() {
-		ConsumerIterator<T, T> it;
-		MessageAndMetadata<T, T> m;
+		ConsumerIterator<byte[], byte[]> it;
+		MessageAndMetadata<byte[], byte[]> m;
 		while (opened())
 			if (null != (it = consumers.poll())) {
 				try {
 					if (null != (m = it.next())) {
-						MessageAndMetadata<T, T> km = (MessageAndMetadata<T, T>) s().stats(m);
-						String k = null == km.key() ? null : keying.apply(km.key());
-						return new Rmap(km.topic(), k, null == k ? "km" : k, km.message());
+						MessageAndMetadata<byte[], byte[]> km = (MessageAndMetadata<byte[], byte[]>) s().stats(m);
+						String k = null == km.key() || km.key().length == 0 ? null : new String(km.key());
+						return new Rmap(km.topic(), k, null == k ? "km" : k, (Object) km.message());
 					}
 				} catch (ConsumerTimeoutException | NoSuchElementException ex) {
 					Instant last = LAST_FETCH.get();

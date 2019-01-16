@@ -37,14 +37,15 @@ public class KafkaConnection extends DataConnection<Connection> implements IOFac
 		else return fmts;
 	}
 
-	@SuppressWarnings({ "unchecked", "rawtypes" })
+	@SuppressWarnings("unchecked")
 	@Override
 	public KafkaInput inputRaw(TableDesc... topic) throws IOException {
-		Class<?> nativeClass = formats().get(0).formatClass();
+		// Class<?> nativeClass = formats().get(0).formatClass();
 		try {
-			if (String.class.isAssignableFrom(nativeClass)) return new KafkaInput<>("KafkaInput", uri, String.class, topic);
-			else if (byte[].class.isAssignableFrom(nativeClass)) return new KafkaInput<>("KafkaInput", uri, byte[].class, topic);
-			else throw new IllegalArgumentException();
+			return new KafkaInput("KafkaInput", uri, topic);
+			// if (String.class.isAssignableFrom(nativeClass)) return new KafkaInput<>("KafkaInput", uri, String.class, topic);
+			// else if (byte[].class.isAssignableFrom(nativeClass)) return new KafkaInput<>("KafkaInput", uri, byte[].class, topic);
+			// else throw new IllegalArgumentException();
 		} catch (ConfigException e) {
 			throw new IllegalArgumentException(e);
 		}
