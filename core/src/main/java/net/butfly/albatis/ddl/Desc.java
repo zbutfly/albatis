@@ -16,6 +16,7 @@ public abstract class Desc<D extends Desc<D>> implements Serializable {
 	public static final String NESTED = "nested";
 	public static final String SEGMODE = "segmode";
 	public static final String FULLTEXT = "fulltext";
+	public static final String INDEXED = "indexed";
 	// field aggr
 	public static final String AGGR_MODE = "aggr";
 	public static final String AGGR_SUB_KEY = "aggr.sub.key";

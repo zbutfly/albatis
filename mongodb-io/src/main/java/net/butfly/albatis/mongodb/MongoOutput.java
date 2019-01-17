@@ -37,7 +37,7 @@ public class MongoOutput extends OutputBase<Rmap> {
 		super(name);
 		this.upsert = upsert;
 		this.conn = conn;
-		this.collection = this.conn.db().getCollection(collection);
+		this.collection = null == collection ? null : this.conn.db().getCollection(collection);
 		closing(this.conn::close);
 	}
 

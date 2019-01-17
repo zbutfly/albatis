@@ -68,7 +68,9 @@ public class MappingConstructor {
 	public Map<String, Object> construct(FieldDesc... fields) {
 		Map<String, Object> props = of(DEFAULT_FULLTEXT_NAME, fieldAnalyzer());
 		for (FieldDesc f : fields) {
+			boolean indexed = f.attr(Desc.INDEXED);
 			Map<String, Object> fm = fieldType(f);
+			if (!indexed) fm.put("index", false);
 			String c2 = f.attr(Desc.FULLTEXT);
 			if (null != c2 && !c2.isEmpty()) {
 				String[] c2s = c2.split(",");
