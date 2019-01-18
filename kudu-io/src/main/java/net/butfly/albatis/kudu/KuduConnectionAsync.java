@@ -32,18 +32,13 @@ import net.butfly.albacore.paral.Task;
 import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.Pair;
 
-@Deprecated
 public class KuduConnectionAsync extends KuduConnectionBase<KuduConnectionAsync, AsyncKuduClient, AsyncKuduSession> {
 	private BlockingQueue<Pair<Operation, Deferred<OperationResponse>>> PENDINGS = new LinkedBlockingQueue<>(1000);
 	private final Thread pendingHandler;
+	AsyncKuduSession session;
 
 	public KuduConnectionAsync(URISpec kuduUri) throws IOException {
 		super(kuduUri);
-		session = client.newSession();
-		session.setFlushMode(FlushMode.AUTO_FLUSH_BACKGROUND);
-		session.setTimeoutMillis(Long.parseLong(Configs.get(KuduProps.TIMEOUT, "2000")));
-		session.setFlushInterval(1000);
-		session.setMutationBufferSpace(5);
 
 		pendingHandler = new Thread(() -> {
 			List<Pair<Operation, Deferred<OperationResponse>>> m = new CopyOnWriteArrayList<Pair<Operation, Deferred<OperationResponse>>>();
@@ -77,6 +72,11 @@ public class KuduConnectionAsync extends KuduConnectionBase<KuduConnectionAsync,
 		if (null == op) return false;
 		Deferred<OperationResponse> or;
 		try {
+			session= op.getTable().getAsyncClient().newSession();
+			session.setFlushMode(FlushMode.AUTO_FLUSH_BACKGROUND);
+			session.setTimeoutMillis(Long.parseLong(Configs.get(KuduProps.TIMEOUT, "2000")));
+			session.setFlushInterval(1000);
+			session.setMutationBufferSpace(5);
 			or = session.apply(op);
 		} catch (KuduException e) {
 			if (isNonRecoverable(e)) logger.error("Kudu apply fail non-recoverable: " + e.getMessage());

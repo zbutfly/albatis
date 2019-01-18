@@ -13,6 +13,7 @@ import java.util.TreeSet;
 
 import org.apache.kudu.Type;
 import org.apache.kudu.client.PartialRow;
+import org.apache.kudu.client.RowResult;
 
 import net.butfly.albacore.utils.Texts;
 import net.butfly.albacore.utils.logger.Logger;
@@ -242,10 +243,28 @@ public class KuduCommon {
 		return dates;
 	}
 
-	// public static void main(String[] args) {
-	// splitByDay("2016-12-28", "2017-1-2").forEach(p -> {
-	// System.out.println(SDF.format(p));
-	// });
-	// }
-
+	public static Object getValue(RowResult row, String name, Type type) {
+		switch (type) {
+		case INT8:
+			return row.getByte(name);
+		case INT16:
+			return row.getShort(name);
+		case INT32:
+			return row.getInt(name);
+		case INT64:
+			return row.getLong(name);
+		case UNIXTIME_MICROS:
+			return row.getLong(name);
+		case STRING:
+			return row.getString(name);
+		case BOOL:
+			return row.getBoolean(name);
+		case FLOAT:
+			return row.getFloat(name);
+		case DOUBLE:
+			return row.getDouble(name);
+		default:
+			return row.getString(name);
+		}
+	}
 }
