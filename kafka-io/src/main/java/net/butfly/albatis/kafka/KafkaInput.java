@@ -38,7 +38,6 @@ import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.io.OddInput;
 import net.butfly.albatis.io.Rmap;
 import net.butfly.albatis.kafka.config.KafkaInputConfig;
-
 public class KafkaInput extends Namedly implements OddInput<Rmap> {
 	private static final long serialVersionUID = 998704625489437241L;
 	private final KafkaInputConfig config;
