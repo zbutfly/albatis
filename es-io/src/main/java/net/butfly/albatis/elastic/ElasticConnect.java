@@ -22,6 +22,7 @@ import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.Utils;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.Connection;
+import net.butfly.albatis.ddl.vals.GeoPointVal;
 import net.butfly.albatis.io.Rmap;
 
 public interface ElasticConnect extends Connection {
@@ -36,6 +37,9 @@ public interface ElasticConnect extends Connection {
 		if (null == p.v1()) p.v1(getDefaultIndex());
 		if (null == p.v2()) p.v2(getDefaultType());
 		m.table(Elastics.assembly(p.v1(), p.v2()));
+		Object v;
+		for (String k : m.keySet()) // process value type not supported by es
+			if ((v = m.get(k)) instanceof GeoPointVal) m.put(k, v.toString());
 		return m;
 	}
 
