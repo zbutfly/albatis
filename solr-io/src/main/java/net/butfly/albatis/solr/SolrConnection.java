@@ -1,13 +1,15 @@
 package net.butfly.albatis.solr;
 
-import java.io.IOException;
-import java.io.Serializable;
-import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-
+import net.butfly.albacore.io.URISpec;
+import net.butfly.albacore.utils.Config;
+import net.butfly.albacore.utils.Configs;
+import net.butfly.albacore.utils.Reflections;
+import net.butfly.albacore.utils.collection.Colls;
+import net.butfly.albacore.utils.collection.Maps;
+import net.butfly.albacore.utils.logger.Logger;
+import net.butfly.albatis.DataConnection;
+import net.butfly.albatis.ddl.FieldDesc;
+import net.butfly.albatis.ddl.TableDesc;
 import org.apache.http.HttpRequestInterceptor;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.config.ConnectionConfig;
@@ -20,29 +22,22 @@ import org.apache.http.impl.nio.client.HttpAsyncClients;
 import org.apache.solr.client.solrj.ResponseParser;
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrServerException;
-import org.apache.solr.client.solrj.impl.BinaryResponseParser;
-import org.apache.solr.client.solrj.impl.CloudSolrClient;
-import org.apache.solr.client.solrj.impl.HttpClientUtil;
-import org.apache.solr.client.solrj.impl.HttpSolrClient;
+import org.apache.solr.client.solrj.impl.*;
 import org.apache.solr.client.solrj.impl.HttpSolrClient.Builder;
 import org.apache.solr.client.solrj.impl.HttpSolrClient.RemoteSolrException;
-import org.apache.solr.client.solrj.impl.XMLResponseParser;
 import org.apache.solr.client.solrj.request.CollectionAdminRequest;
 import org.apache.solr.client.solrj.response.CollectionAdminResponse;
 import org.apache.solr.client.solrj.response.DelegationTokenResponse.JsonMapResponseParser;
 import org.apache.solr.common.cloud.DocCollection;
 import org.apache.solr.common.params.ModifiableSolrParams;
 
-import net.butfly.albacore.io.URISpec;
-import net.butfly.albacore.utils.Config;
-import net.butfly.albacore.utils.Configs;
-import net.butfly.albacore.utils.Reflections;
-import net.butfly.albacore.utils.collection.Colls;
-import net.butfly.albacore.utils.collection.Maps;
-import net.butfly.albacore.utils.logger.Logger;
-import net.butfly.albatis.DataConnection;
-import net.butfly.albatis.ddl.FieldDesc;
-import net.butfly.albatis.ddl.TableDesc;
+import java.io.IOException;
+import java.io.Serializable;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 
 @Config(value = "ddl.properties")
 public class SolrConnection extends DataConnection<SolrClient> {
@@ -278,17 +273,25 @@ public class SolrConnection extends DataConnection<SolrClient> {
 
 	@SuppressWarnings("deprecation")
 	@Override
-	public void construct(String dbName, String table, TableDesc tableDesc, List<FieldDesc> fields) {
+	public void construct(String dbName, String aliasName,String table, TableDesc tableDesc, List<FieldDesc> fields) {
 		String solrUrl = uri.getHost();
-		Integer numShards = (Integer) tableDesc.construct.get("number_of_shards");
-		Integer numReplicas = (Integer) tableDesc.construct.get("number_of_replicas");
-		try (CloudSolrClient client = new CloudSolrClient.Builder().withZkHost(solrUrl).sendUpdatesToAllReplicasInShard()
-				.withConnectionTimeout(600000).build()) {
-			CollectionAdminRequest.Create request = CollectionAdminRequest.createCollection(table, DEFAULT_CORE_NAME, numShards,
-					numReplicas);
+		int numShards = Integer.parseInt(tableDesc.construct.get("number_of_shards").toString());
+		int numReplicas = Integer.parseInt(tableDesc.construct.get("number_of_replicas").toString());
+		try (CloudSolrClient client = new CloudSolrClient.Builder().withZkHost(solrUrl).sendUpdatesToAllReplicasInShard().withConnectionTimeout(600000).build()) {
+			CollectionAdminRequest.Create request = CollectionAdminRequest.createCollection(table, DEFAULT_CORE_NAME, numShards, numReplicas);
 			request.process(client);
+			Map<String, DocCollection> collectionsMap = client.getZkStateReader().getClusterState().getCollectionsMap();
+			List<String> list = new ArrayList<>();
+			collectionsMap.forEach((k, v) -> list.add(v.getName()));
+			//judge alias and index are difference
+			if (list.contains(table) && !list.contains(aliasName)) {
+				CollectionAdminRequest.CreateAlias aliasRequest = CollectionAdminRequest.createAlias(aliasName, table);
+				aliasRequest.process(client);
+			} else {
+				logger().info("solr aliases also index duplicate names");
+			}
 		} catch (IOException | SolrServerException e) {
-			throw new RuntimeException("create solr core failure  " + e);
+			throw new RuntimeException("create solr core failure  ", e);
 		}
 	}
 

@@ -2,6 +2,7 @@ package net.butfly.albatis.io.utils;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 
@@ -18,11 +19,19 @@ public interface JsonUtils {
 		}
 	}
 
+	static Map<String, Object> parseObject2Map(Object object) {
+		try {
+			return Jsons.mapper.readValue(stringify(object), Jsons.mapper.getTypeFactory().constructMapType(Map.class, String.class, Object.class));
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
 	static String stringify(Object object) {
 		try {
 			return Jsons.mapper.writeValueAsString(object);
 		} catch (JsonProcessingException e) {
-			throw new IllegalArgumentException(e);
+			throw new RuntimeException(e);
 		}
 	}
 }
