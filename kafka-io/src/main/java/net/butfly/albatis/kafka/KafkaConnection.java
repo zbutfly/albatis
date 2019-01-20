@@ -1,64 +1,14 @@
 package net.butfly.albatis.kafka;
 
-import static net.butfly.alserdes.format.Format.of;
-
 import java.io.IOException;
 import java.util.List;
 
-import org.apache.kafka.common.security.JaasUtils;
-
-import kafka.utils.ZkUtils;
-import net.butfly.albacore.exception.ConfigException;
 import net.butfly.albacore.io.URISpec;
-import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.collection.Colls;
-import net.butfly.albatis.Connection;
-import net.butfly.albatis.DataConnection;
-import net.butfly.albatis.ddl.TableDesc;
-import net.butfly.albatis.io.IOFactory;
-import net.butfly.alserdes.SerDes;
-import net.butfly.alserdes.format.Format;
-import scala.collection.JavaConversions;
 
-@SerDes.As("bson")
-public class KafkaConnection extends DataConnection<Connection> implements IOFactory {
+public class KafkaConnection extends Kafka2Connection {
 	public KafkaConnection(URISpec uri) throws IOException {
 		super(uri, "kafka");
-	}
-
-	@SuppressWarnings("rawtypes")
-	@Override
-	public List<Format> formats() {
-		List<Format> fmts = super.formats();
-		Format def = of(Configs.gets("albatis.format.biz.default", "etl"));
-		if (null == def) return fmts;
-		else if (fmts.size() == 1 && fmts.get(0).equals(of("bson"))) //
-			return Colls.list(fmts.get(0), def);
-		else return fmts;
-	}
-
-	@SuppressWarnings("unchecked")
-	@Override
-	public KafkaInput inputRaw(TableDesc... topic) throws IOException {
-		// Class<?> nativeClass = formats().get(0).formatClass();
-		try {
-			return new KafkaInput("KafkaInput", uri, topic);
-			// if (String.class.isAssignableFrom(nativeClass)) return new KafkaInput<>("KafkaInput", uri, String.class, topic);
-			// else if (byte[].class.isAssignableFrom(nativeClass)) return new KafkaInput<>("KafkaInput", uri, byte[].class, topic);
-			// else throw new IllegalArgumentException();
-		} catch (ConfigException e) {
-			throw new IllegalArgumentException(e);
-		}
-	}
-
-	@SuppressWarnings("unchecked")
-	@Override
-	public KafkaOutput outputRaw(TableDesc... topic) throws IOException {
-		try {
-			return new KafkaOutput("KafkaInput", uri);
-		} catch (ConfigException e) {
-			throw new IOException(e);
-		}
 	}
 
 	public static class Driver implements net.butfly.albatis.Connection.Driver<KafkaConnection> {
@@ -75,18 +25,5 @@ public class KafkaConnection extends DataConnection<Connection> implements IOFac
 		public List<String> schemas() {
 			return Colls.list("kafka");
 		}
-	}
-
-	@Override
-	protected Connection initialize(URISpec uri) {
-		return null;
-	}
-
-	@Override
-	public boolean judge(String dbName, String table) {
-		String kafkaUrl = uri.getHost() + "/kafka";
-		ZkUtils zkUtils = ZkUtils.apply(kafkaUrl, 30000, 30000, JaasUtils.isZkSecurityEnabled());
-		List<String> topics = JavaConversions.seqAsJavaList(zkUtils.getAllTopics());
-		return topics.contains(table);
 	}
 }

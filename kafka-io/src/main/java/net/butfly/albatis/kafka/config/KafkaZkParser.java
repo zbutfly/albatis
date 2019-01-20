@@ -6,13 +6,18 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.stream.IntStream;
+
+import com.google.common.base.Joiner;
 
 import kafka.api.PartitionOffsetRequestInfo;
 import kafka.common.TopicAndPartition;
 import kafka.javaapi.OffsetRequest;
 import kafka.javaapi.consumer.SimpleConsumer;
 import kafka.utils.ZkUtils;
+import net.butfly.albacore.io.URISpec;
+import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.collection.Maps;
 
@@ -99,5 +104,46 @@ public class KafkaZkParser extends ZkConnection {
 			System.out.println(group + "@" + topic + ":" + zk.getLag(topic, group));
 			System.out.println(ZkUtils.apply(zkconn, 500, 500, false).getConsumerPartitionOwnerPath(group, topic, 0));
 		}
+	}
+
+	static Pair<String, String> bootstrapFromZk(URISpec uri) {
+		String path = uri.getPath();
+		String[] bstrs = new String[0];
+		do {
+			try (KafkaZkParser zk = new KafkaZkParser(uri.getHost() + path)) {
+				bstrs = zk.getBrokers();
+			} catch (Exception e) {
+				logger.warn("ZK [" + uri.getHost() + path + "] detecting failure, try parent uri as ZK.", e);
+			}
+		} while (bstrs.length == 0 && !(path = path.replaceAll("/[^/]*$", "")).isEmpty());
+		if (bstrs.length > 0) return new Pair<>(String.join(",", bstrs), uri.getHost() + path);
+		else return new Pair<>(Configs.gets(KafkaConfigBase.PROP_PREFIX + "brokers"), uri.getHost() + uri.getPath());
+	}
+
+	static String bootstrapFromZk(String zookeeperConnect) {
+		try (KafkaZkParser zk = new KafkaZkParser(zookeeperConnect)) {
+			String b = Joiner.on(",").join(zk.getBrokers());
+			logger.trace("Zookeeper detect broken list automatically: [" + b + "])");
+			return b;
+		} catch (Exception e) {
+			logger.warn("Zookeeper detect broken list failure", e);
+			return null;
+		}
+	}
+
+	static Map<String, Integer> getTopicPartitions(String zk, String gid, String... topics) {
+		Map<String, Integer> m = Maps.of();
+		if (null != zk) try (KafkaZkParser p = new KafkaZkParser(zk)) {
+			Map<String, int[]> topicParts = p.getTopicPartitions(topics);
+			for (Entry<String, int[]> e : topicParts.entrySet()) {
+				String t = e.getKey();
+				m.put(t, e.getValue().length);
+				if (logger.isDebugEnabled()) logger.debug("[" + zk + "] lag of " + gid //
+						+ "@" + t + ": " + p.getLag(t, gid));
+			}
+		} catch (IOException e) {
+			logger.warn("Topic partition parsing fail on zk [" + zk + "]: " + e.getMessage());
+		}
+		return m;
 	}
 }

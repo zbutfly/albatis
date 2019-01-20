@@ -13,7 +13,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import net.butfly.albacore.exception.ConfigException;
 import net.butfly.albacore.serder.BsonSerder;
-import net.butfly.albatis.kafka.KafkaInput;
+import net.butfly.albatis.kafka.Kafka2Input;
 
 public class KafkaTest {
 	public static void main(String[] args) throws ConfigException, IOException {
@@ -26,7 +26,7 @@ public class KafkaTest {
 		double total = 0;
 		long begin = new Date().getTime();
 		long now = begin;
-		try (KafkaInput in = new KafkaInput("KafkaIn", args[0]);) {
+		try (Kafka2Input in = new Kafka2Input("KafkaIn", args[0]);) {
 			do {
 				AtomicInteger count = new AtomicInteger(0);
 				AtomicLong size = new AtomicLong();

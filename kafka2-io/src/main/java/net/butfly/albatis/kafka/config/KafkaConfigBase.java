@@ -11,16 +11,15 @@ import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 
-import com.google.common.base.Joiner;
-
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.Configs;
+import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.Texts;
 import net.butfly.albacore.utils.logger.Logger;
 
 public abstract class KafkaConfigBase implements Serializable {
 	private static final long serialVersionUID = -4020530608706621876L;
-	protected static final String PROP_PREFIX = "albatis.kafka.";
+	public static final String PROP_PREFIX = "albatis.kafka.";
 	static final Logger logger = Logger.getLogger(KafkaConfigBase.class);
 	protected final String zookeeperConnect;
 	protected String bootstrapServers;
@@ -50,13 +49,7 @@ public abstract class KafkaConfigBase implements Serializable {
 		if (zookeeperConnect != null) {
 			if (bootstrapServers != null) logger.warn("Zookeeper detect broken list automatically, configured [" + PROP_PREFIX
 					+ "bootstrap.servers] is not used (current value: [" + bootstrapServers + "])");
-			try (KafkaZkParser zk = new KafkaZkParser(zookeeperConnect)) {
-				bootstrapServers = Joiner.on(",").join(zk.getBrokers());
-				logger.trace("Zookeeper detect broken list automatically: [" + bootstrapServers + "])");
-			} catch (Exception e) {
-				bootstrapServers = null;
-				logger.warn("Zookeeper detect broken list failure", e);
-			}
+			bootstrapServers = bootstrapFromZk(zookeeperConnect);
 		} else if (bootstrapServers == null) throw new ConfigException("Neither [" + PROP_PREFIX + "zookeeper] nor [" + PROP_PREFIX
 				+ "bootstrap.servers] found");
 		zookeeperConnectionTimeoutMs = Long.valueOf(props.getProperty(PROP_PREFIX + "zookeeper.connection.timeout.ms", "20000"));
@@ -66,6 +59,14 @@ public abstract class KafkaConfigBase implements Serializable {
 		poolSize = Long.parseLong(props.getProperty(PROP_PREFIX + "internal.pool.size", "3000000"));
 		topics = Texts.split(props.getProperty(PROP_PREFIX + "topic", ""), ",");
 		backoffMs = Long.parseLong(props.getProperty(PROP_PREFIX + "backoff.ms", "100"));
+	}
+
+	protected String bootstrapFromZk(String zookeeperConnect) {
+		return null;
+	}
+
+	protected Pair<String, String> bootstrapFromZk(URISpec uri) { // XXX: not work?
+		return new Pair<>(Configs.gets(PROP_PREFIX + "brokers"), uri.getHost() + uri.getPath());
 	}
 
 	public KafkaConfigBase(URISpec uri) {
@@ -78,22 +79,9 @@ public abstract class KafkaConfigBase implements Serializable {
 		case "zookeeper":
 		case "kafka":
 		case "kafka:zk":
-			String path = uri.getPath();
-			String[] zks = new String[0];
-			do {
-				try (KafkaZkParser zk = new KafkaZkParser(uri.getHost() + path)) {
-					zks = zk.getBrokers();
-				} catch (Exception e) {
-					logger.warn("ZK [" + uri.getHost() + path + "] detecting failure, try parent uri as ZK.", e);
-				}
-			} while (zks.length == 0 && !(path = path.replaceAll("/[^/]*$", "")).isEmpty());
-			if (zks.length > 0) {
-				bootstrapServers = String.join(",", zks);
-				zookeeperConnect = uri.getHost() + path;
-			} else {
-				bootstrapServers = Configs.gets(PROP_PREFIX + "brokers");
-				zookeeperConnect = uri.getHost() + uri.getPath();
-			}
+			Pair<String, String> bAndZk = bootstrapFromZk(uri);
+			bootstrapServers = bAndZk.v1();
+			zookeeperConnect = bAndZk.v2();
 			break;
 		case "bootstrap":
 		case "kafka:bootstrap":

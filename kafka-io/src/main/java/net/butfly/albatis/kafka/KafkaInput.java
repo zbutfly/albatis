@@ -38,6 +38,7 @@ import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.io.OddInput;
 import net.butfly.albatis.io.Rmap;
 import net.butfly.albatis.kafka.config.KafkaInputConfig;
+
 public class KafkaInput extends Namedly implements OddInput<Rmap> {
 	private static final long serialVersionUID = 998704625489437241L;
 	private final KafkaInputConfig config;
@@ -74,7 +75,7 @@ public class KafkaInput extends Namedly implements OddInput<Rmap> {
 			logger().debug("[" + name() + "] default topic parallelism [" + configTopicParallinism + "]");
 		if (topics == null || topics.length == 0) topics = dummy(config.topics()).toArray(new TableDesc[0]);
 		Set<String> ts = new HashSet<>(Colls.list(t -> t.name, topics));
-		Map<String, Integer> topicPartitions = config.getTopicPartitions(ts);
+		Map<String, Integer> topicPartitions = config.getTopicPartitions(ts.toArray(new String[ts.size()]));
 
 		for (String t : ts) {
 			int parts = topicPartitions.getOrDefault(t, 1);
