@@ -25,6 +25,7 @@ import net.butfly.albatis.Albatis;
 import net.butfly.albatis.io.Input;
 import net.butfly.albatis.io.OddInput;
 import net.butfly.albatis.io.Rmap;
+import org.bson.types.ObjectId;
 
 public class MongoInput extends net.butfly.albacore.base.Namedly implements OddInput<Rmap> {
 	private static final long serialVersionUID = -1542477278520256900L;
@@ -148,11 +149,10 @@ public class MongoInput extends net.butfly.albacore.base.Namedly implements OddI
 					Object key = m.containsKey("_id") ? m.get("_id").toString() : null;
 					Rmap msg = new Rmap(collection, key);
 					m.forEach((k, v) -> {
-						if (null == v) {
-							logger.error("Mongo result field [" + k + "] null at table [" + collection + "], id [" + key + "].");
-						} else {
-							msg.put(k, v);
-						}
+						if (null != v) {
+							if (v instanceof ObjectId) msg.put(k, v.toString());
+							else msg.put(k, v);
+						} else logger.error("Mongo result field [" + k + "] null at table [" + collection + "], id [" + key + "].");
 					});
 					return msg;
 				} else {

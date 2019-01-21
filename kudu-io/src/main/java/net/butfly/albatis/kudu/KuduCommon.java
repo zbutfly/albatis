@@ -1,6 +1,7 @@
 package net.butfly.albatis.kudu;
 
 import java.math.BigDecimal;
+import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
@@ -14,8 +15,6 @@ import java.util.TreeSet;
 import org.apache.kudu.Type;
 import org.apache.kudu.client.PartialRow;
 import org.apache.kudu.client.RowResult;
-
-import net.butfly.albacore.utils.Texts;
 
 public class KuduCommon {
 	// private static final Logger logger = Logger.getLogger(KuduCommon.class);
@@ -44,10 +43,6 @@ public class KuduCommon {
 			if (o instanceof Number) row.addLong(name, ((Number) o).longValue());
 			else if (o instanceof Date) row.addLong(name, ((Date) o).getTime());
 			else if (o instanceof CharSequence) row.addLong(name, Long.parseLong(((CharSequence) o).toString()));
-			else if (o instanceof Map && ((Map) o).containsKey("$date")) { // for mongodb date type
-				Date dt = Texts.iso8601(((Map) o).get("$date").toString());
-				if (null != dt) row.addLong(name, dt.getTime());
-			}
 			break;
 		case FLOAT:
 			if (o instanceof Number) row.addFloat(name, ((Number) o).floatValue());
@@ -58,9 +53,11 @@ public class KuduCommon {
 			else if (o instanceof CharSequence) row.addDouble(name, Double.parseDouble(((CharSequence) o).toString()));
 			break;
 		case UNIXTIME_MICROS: // datetime
-			if (o instanceof Date) row.addLong(name, ((Date) o).getTime());
-			else if (o instanceof Number) row.addLong(name, ((Number) o).longValue());
-			else if (o instanceof CharSequence) row.addLong(name, Long.parseLong(((CharSequence) o).toString()));
+			Timestamp ts = null;
+			if (o instanceof Date) ts = new Timestamp(((Date) o).getTime());
+			else if (o instanceof Number) ts = new Timestamp(((Number) o).longValue());
+			else if (o instanceof CharSequence) ts = new Timestamp(Long.parseLong(((CharSequence) o).toString()));
+			if (null != ts) row.addTimestamp(name, ts);
 			break;
 		case BOOL:
 			if (o instanceof Boolean) row.addBoolean(name, ((Boolean) o).booleanValue());
@@ -245,7 +242,8 @@ public class KuduCommon {
 		case INT64:
 			return row.getLong(name);
 		case UNIXTIME_MICROS:
-			return row.getLong(name);
+			Timestamp ts = row.getTimestamp(name);
+			return null == ts ? null : new Date(ts.getTime());
 		case STRING:
 			return row.getString(name);
 		case BOOL:
@@ -254,8 +252,11 @@ public class KuduCommon {
 			return row.getFloat(name);
 		case DOUBLE:
 			return row.getDouble(name);
-		default:
-			return row.getString(name);
+		case BINARY:
+			return row.getBinary(name);
+		case DECIMAL:
+			return row.getDecimal(name);
 		}
+		return null;
 	}
 }
