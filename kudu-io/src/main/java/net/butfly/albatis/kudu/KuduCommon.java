@@ -21,56 +21,55 @@ public class KuduCommon {
 	private static final TimeZone TIMEZONE = TimeZone.getTimeZone("GMT+8");
 	public static final SimpleDateFormat SDF = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
-	@SuppressWarnings("rawtypes")
-	public static final PartialRow generateColumnData(Type type, PartialRow row, String name, Object o) {
+	public static final PartialRow generateColumnData(Type type, int index, PartialRow row, Object o) {
 		switch (type) {
 		case STRING:
-			row.addString(name, o.toString());
+			row.addString(index, o.toString());
 			break;
 		case INT8:
-			if (o instanceof Number) row.addByte(name, ((Number) o).byteValue());
-			else if (o instanceof CharSequence) row.addByte(name, Byte.parseByte(((CharSequence) o).toString()));
+			if (o instanceof Number) row.addByte(index, ((Number) o).byteValue());
+			else if (o instanceof CharSequence) row.addByte(index, Byte.parseByte(((CharSequence) o).toString()));
 			break;
 		case INT16:
-			if (o instanceof Number) row.addShort(name, ((Number) o).shortValue());
-			else if (o instanceof CharSequence) row.addShort(name, Short.parseShort(((CharSequence) o).toString()));
+			if (o instanceof Number) row.addShort(index, ((Number) o).shortValue());
+			else if (o instanceof CharSequence) row.addShort(index, Short.parseShort(((CharSequence) o).toString()));
 			break;
 		case INT32:
-			if (o instanceof Number) row.addInt(name, ((Number) o).intValue());
-			else if (o instanceof CharSequence) row.addInt(name, Integer.parseInt(((CharSequence) o).toString()));
+			if (o instanceof Number) row.addInt(index, ((Number) o).intValue());
+			else if (o instanceof CharSequence) row.addInt(index, Integer.parseInt(((CharSequence) o).toString()));
 			break;
 		case INT64:
-			if (o instanceof Number) row.addLong(name, ((Number) o).longValue());
-			else if (o instanceof Date) row.addLong(name, ((Date) o).getTime());
-			else if (o instanceof CharSequence) row.addLong(name, Long.parseLong(((CharSequence) o).toString()));
+			if (o instanceof Number) row.addLong(index, ((Number) o).longValue());
+			else if (o instanceof Date) row.addLong(index, ((Date) o).getTime());
+			else if (o instanceof CharSequence) row.addLong(index, Long.parseLong(((CharSequence) o).toString()));
 			break;
 		case FLOAT:
-			if (o instanceof Number) row.addFloat(name, ((Number) o).floatValue());
-			else if (o instanceof CharSequence) row.addFloat(name, Float.parseFloat(((CharSequence) o).toString()));
+			if (o instanceof Number) row.addFloat(index, ((Number) o).floatValue());
+			else if (o instanceof CharSequence) row.addFloat(index, Float.parseFloat(((CharSequence) o).toString()));
 			break;
 		case DOUBLE:
-			if (o instanceof Number) row.addDouble(name, ((Number) o).doubleValue());
-			else if (o instanceof CharSequence) row.addDouble(name, Double.parseDouble(((CharSequence) o).toString()));
+			if (o instanceof Number) row.addDouble(index, ((Number) o).doubleValue());
+			else if (o instanceof CharSequence) row.addDouble(index, Double.parseDouble(((CharSequence) o).toString()));
 			break;
 		case UNIXTIME_MICROS: // datetime
 			Timestamp ts = null;
 			if (o instanceof Date) ts = new Timestamp(((Date) o).getTime());
 			else if (o instanceof Number) ts = new Timestamp(((Number) o).longValue());
 			else if (o instanceof CharSequence) ts = new Timestamp(Long.parseLong(((CharSequence) o).toString()));
-			if (null != ts) row.addTimestamp(name, ts);
+			if (null != ts) row.addTimestamp(index, ts);
 			break;
 		case BOOL:
-			if (o instanceof Boolean) row.addBoolean(name, ((Boolean) o).booleanValue());
-			else if (o instanceof Number) row.addBoolean(name, 0 == ((Number) o).doubleValue());
-			else if (o instanceof CharSequence) row.addBoolean(name, Boolean.parseBoolean(((CharSequence) o).toString()));
+			if (o instanceof Boolean) row.addBoolean(index, ((Boolean) o).booleanValue());
+			else if (o instanceof Number) row.addBoolean(index, 0 == ((Number) o).doubleValue());
+			else if (o instanceof CharSequence) row.addBoolean(index, Boolean.parseBoolean(((CharSequence) o).toString()));
 			break;
 		case BINARY:
-			if (o instanceof byte[]) row.addBinary(name, (byte[]) o);
-			else if (o instanceof CharSequence) row.addBinary(name, ((CharSequence) o).toString().getBytes());
+			if (o instanceof byte[]) row.addBinary(index, (byte[]) o);
+			else if (o instanceof CharSequence) row.addBinary(index, ((CharSequence) o).toString().getBytes());
 		case DECIMAL:
-			if (o instanceof BigDecimal) row.addDecimal(name, (BigDecimal) o);
-			else if (o instanceof Number) row.addDecimal(name, new BigDecimal(((Number) o).toString())); // dangerous!!!
-			else if (o instanceof CharSequence) row.addDecimal(name, new BigDecimal(((CharSequence) o).toString()));
+			if (o instanceof BigDecimal) row.addDecimal(index, (BigDecimal) o);
+			else if (o instanceof Number) row.addDecimal(index, new BigDecimal(((Number) o).toString())); // dangerous!!!
+			else if (o instanceof CharSequence) row.addDecimal(index, new BigDecimal(((CharSequence) o).toString()));
 			break;
 		}
 		return row;

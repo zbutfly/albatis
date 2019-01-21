@@ -93,12 +93,11 @@ public class KuduOutput extends OddOutputBase<Rmap> {
 
 	private Operation op(Rmap m) {
 		KuduTable t = conn.table(m.table());
-		Map<String, ColumnSchema> cols = conn.schemas(m.table());
-		ColumnSchema c;
+		ColumnSchema[] cols = conn.schemas(m.table());
 		if (null == t) return null;
 		switch (m.op()) {
 		case DELETE:
-			if (null != m.key()) for (ColumnSchema cs : cols.values())
+			if (null != m.key()) for (ColumnSchema cs : cols)
 				if (cs.isKey()) {
 					Delete del = t.newDelete();
 					del.getRow().addString(cs.getName(), m.key().toString());
@@ -110,9 +109,10 @@ public class KuduOutput extends OddOutputBase<Rmap> {
 		case UPSERT:
 			// regDups(m);
 			Upsert ups = conn.table(m.table()).newUpsert();
-			for (String f : m.keySet())
-				if (null != (c = cols.get(f.toLowerCase())))//
-					KuduCommon.generateColumnData(c.getType(), ups.getRow(), c.getName(), m.get(f));
+			Object v;
+			for (int i = 0; i < cols.length; i++)
+				if (null != (v = m.get(cols[i].getName()))) KuduCommon.generateColumnData(cols[i].getType(), i, ups.getRow(), v);
+
 			return ups;
 		default:
 			return null;
