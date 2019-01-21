@@ -113,7 +113,7 @@ public class ElasticConnection extends DataConnection<TransportClient> implement
 			IndicesExistsRequest existsRequest = new IndicesExistsRequest(index);
 			exists = elasticConnection.client.admin().indices().exists(existsRequest).actionGet().isExists();
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger().error("es judge table isExists error",e);
 		}
 		return exists;
 	}

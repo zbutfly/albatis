@@ -194,7 +194,7 @@ public class KuduConnection extends KuduConnectionBase<KuduConnection, KuduClien
             try {
                 client.createTable(table, schema, tableOptions);
             } catch (KuduException e1) {
-                e1.printStackTrace();
+               logger().error("kudu create table failure",e1);
             }
         } else {
             // 设置hash分区和数量
@@ -209,7 +209,7 @@ public class KuduConnection extends KuduConnectionBase<KuduConnection, KuduClien
             try {
                 client.createTable(table, schema, tableOptions);
             } catch (KuduException e) {
-                e.printStackTrace();
+                logger().error("kudu create table failure",e);
             }
         }
     }
@@ -249,7 +249,7 @@ public class KuduConnection extends KuduConnectionBase<KuduConnection, KuduClien
         try {
             exists = client.tableExists(table);
         } catch (KuduException e) {
-            e.printStackTrace();
+           logger().error("kudu judge table isExists error",e);
         }
         return exists;
     }

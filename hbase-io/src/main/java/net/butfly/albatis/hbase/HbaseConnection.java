@@ -352,12 +352,16 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
         byte[] startKeys = null;
         byte[] endKeys = null;
         byte[][] splitKeys = null;
+        String s = null;
         if (null != startKey)
             startKeys = JsonUtils.stringify(startKey).getBytes();
         if (null != endKey)
             endKeys = JsonUtils.stringify(endKey).getBytes();
         if (null != splitKey) {
-            String s = JsonUtils.stringify(splitKey);
+            if (splitKey instanceof String)
+                s = (String) splitKey;
+            else
+                s = JsonUtils.stringify(splitKey);
             if (null != s) {
                 String[] splitString = s.split(",");
                 splitKeys = new byte[splitString.length][];
@@ -457,7 +461,7 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
         try (Admin admin = client.getAdmin()) {
             exists = admin.tableExists(TableName.valueOf(table));
         } catch (IOException e) {
-            e.printStackTrace();
+            logger().error("hbase judge table isExists error",e);
         }
         return exists;
     }

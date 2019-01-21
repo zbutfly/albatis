@@ -89,7 +89,7 @@ public class JdbcConnection extends DataConnection<DataSource> {
 					"jdbc:postgresql")) new MysqlDialect().tableExisted(conn, table);
 			if (uri.getScheme().startsWith("jdbc:kingbaseanalyticsdb")) new KingbaseDialect().tableExisted(conn, table);
 		} catch (SQLException e) {
-
+			logger().error("jdbc judge table isExists error",e);
 		}
 		return false;
 	}
