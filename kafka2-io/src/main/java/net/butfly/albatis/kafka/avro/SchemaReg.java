@@ -7,7 +7,6 @@ import java.util.Map;
 import java.util.Properties;
 
 import org.apache.avro.Schema;
-import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
 
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
@@ -32,10 +31,7 @@ public class SchemaReg {
 	}
 
 	public byte[] ser(String topic, Map<String, Object> m, Schema schema) {
-		if (null == ser) return Builder.ser(m, schema);
-		GenericData.Record rec = new GenericData.Record(schema);
-		m.forEach(rec::put);
-		return ser.serialize(topic, rec);
+		return null == ser ? Builder.ser(m, schema) : ser.serialize(topic, Builder.rec(m, schema));
 	}
 
 	public Map<String, Object> deser(String topic, byte[] v, Schema schema) {
