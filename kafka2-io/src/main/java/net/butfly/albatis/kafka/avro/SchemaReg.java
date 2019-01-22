@@ -20,6 +20,14 @@ public class SchemaReg {
 	private static final Logger logger = Logger.getLogger(SchemaReg.class);
 	private static final String BASIC_CONF = "schema.registry.url";
 
+	public static final String SCHEMA_REGISTRY_URL_CONF = "albatis.kafka.schema.registry.url";
+	public static final String SCHEMA_REGISTRY_PROPS_FILE_CONF = "albatis.kafka.schema.registry.config";
+	static {
+		logger.info(SchemaReg.class.getName() + " loaded, settings: \n\t"//
+				+ "[" + SCHEMA_REGISTRY_PROPS_FILE_CONF + "=properties filename] priority and [" + BASIC_CONF + "] required, or \n\t"//
+				+ "[" + SCHEMA_REGISTRY_URL_CONF + "=schema registry url].");
+	}
+
 	private final KafkaAvroSerializer ser;
 	private final KafkaAvroDeserializer deser;
 
@@ -44,11 +52,11 @@ public class SchemaReg {
 	}
 
 	private static Map<String, Object> load() {
-		String fname = Configs.gets("dataggr.migrate.kafka.schema.registry.config");
+		String fname = Configs.gets(SCHEMA_REGISTRY_PROPS_FILE_CONF);
 		String regurl;
 		final Map<String, Object> m = Maps.of();
 		if (null == fname) {
-			if (null != (regurl = Configs.gets("dataggr.migrate.kafka.schema.registry.url"))) m.put(BASIC_CONF, regurl);
+			if (null != (regurl = Configs.gets(SCHEMA_REGISTRY_URL_CONF))) m.put(BASIC_CONF, regurl);
 		} else {
 			Properties props = new Properties();
 			try {

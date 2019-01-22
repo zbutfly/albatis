@@ -73,23 +73,22 @@ public abstract class KafkaConfigBase implements Serializable {
 		super();
 		String sch = uri.getScheme();
 		if (sch.startsWith("kafka:")) sch = sch.substring(6);
+		else if (sch.startsWith("kafka2:")) sch = sch.substring(7);
 		switch (sch) {
-		case "zk":
-		case "zk:kafka":
-		case "zookeeper":
 		case "kafka":
-		case "kafka:zk":
+		case "kafka2": // empty sub schema, default as zk
+		case "zk":
+		case "zookeeper":
 			Pair<String, String> bAndZk = bootstrapFromZk(uri);
 			bootstrapServers = bAndZk.v1();
 			zookeeperConnect = bAndZk.v2();
 			break;
-		case "bootstrap":
-		case "kafka:bootstrap":
+		case "bootstrap": // directly bootstrap support
 			bootstrapServers = uri.getHost();
 			zookeeperConnect = null;
 			break;
 		default:
-			throw new ConfigException("Neither [zk] nor [bootstrap.servers] found");
+			throw new ConfigException("Neither [zk] nor [bootstrap] found for uri [" + uri + "]");
 		}
 		Map<String, String> props = uri.getParameters();
 		zookeeperConnectionTimeoutMs = Long.valueOf(props.getOrDefault("zkconntimeout", "20000"));

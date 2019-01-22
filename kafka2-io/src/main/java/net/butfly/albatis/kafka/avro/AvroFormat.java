@@ -115,24 +115,30 @@ public class AvroFormat extends RmapFormat {
 		}
 
 		@SuppressWarnings("deprecation")
-		public static FieldDesc field(TableDesc t, Schema.Field f) {
-			switch (f.schema().getType()) {
+		public static FieldDesc field(TableDesc table, Schema.Field f) {
+			Schema.Type t;
+			try {
+				t = restrictType(f);
+			} catch (IllegalArgumentException e) {
+				return null;
+			}
+			switch (t) {
 			case STRING:
-				return new FieldDesc(t, f.name(), ValType.STR);
+				return new FieldDesc(table, f.name(), ValType.STR);
 			case BYTES:
-				return new FieldDesc(t, f.name(), ValType.BIN);
+				return new FieldDesc(table, f.name(), ValType.BIN);
 			case INT:
-				return new FieldDesc(t, f.name(), ValType.INT);
+				return new FieldDesc(table, f.name(), ValType.INT);
 			case LONG:
-				return new FieldDesc(t, f.name(), ValType.LONG);
+				return new FieldDesc(table, f.name(), ValType.LONG);
 			case FLOAT:
-				return new FieldDesc(t, f.name(), ValType.FLOAT);
+				return new FieldDesc(table, f.name(), ValType.FLOAT);
 			case DOUBLE:
-				return new FieldDesc(t, f.name(), ValType.DOUBLE);
+				return new FieldDesc(table, f.name(), ValType.DOUBLE);
 			case BOOLEAN:
-				return new FieldDesc(t, f.name(), ValType.BOOL);
+				return new FieldDesc(table, f.name(), ValType.BOOL);
 			case NULL:
-				return new FieldDesc(t, f.name(), ValType.VOID);
+				return new FieldDesc(table, f.name(), ValType.VOID);
 			case RECORD:
 			case ARRAY:
 			case MAP:
@@ -142,6 +148,51 @@ public class AvroFormat extends RmapFormat {
 				return null;
 			}
 			return null;
+		}
+
+		public static Schema.Type restrictType(Schema.Field f) {
+			Schema.Type t = f.schema().getType();
+			switch (t) {
+			case RECORD:
+			case ARRAY:
+			case ENUM:
+			case MAP:
+			case FIXED:
+			case NULL:
+				throw new IllegalArgumentException(t.toString());
+			case STRING:
+			case BYTES:
+			case INT:
+			case LONG:
+			case FLOAT:
+			case DOUBLE:
+			case BOOLEAN:
+				return t;
+			case UNION:
+				for (Schema ts : f.schema().getTypes()) {
+					switch (ts.getType()) {
+					case RECORD:
+					case ARRAY:
+					case ENUM:
+					case MAP:
+					case FIXED:
+					case UNION:
+						throw new IllegalArgumentException(ts.getType().toString());
+					case NULL:
+						continue;
+					case STRING:
+					case BYTES:
+					case INT:
+					case LONG:
+					case FLOAT:
+					case DOUBLE:
+					case BOOLEAN:
+						return ts.getType();
+					}
+				}
+				break;
+			}
+			throw new IllegalArgumentException(f.toString());
 		}
 
 		public static Schema.Field field(FieldDesc f) {

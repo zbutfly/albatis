@@ -1,28 +1,17 @@
 package net.butfly.albatis;
 
 import java.io.Serializable;
-import java.util.function.Function;
+import java.util.Map;
 
+import net.butfly.albacore.io.lambda.BiFunction;
 import net.butfly.albatis.ddl.vals.ValType;
 
-public interface TypeConv<T> extends Serializable {
-	ValType conv(T t);
+public interface TypeConv<T, R> extends Serializable {
+	T conv(ValType t);// ser from java into db
 
-	T unconv(ValType t);
+	ValType unconv(T t); // deser from db into java
 
-	static <T> TypeConv<T> of(Function<T, ValType> conv, Function<ValType, T> unconv) {
-		return new TypeConv<T>() {
-			private static final long serialVersionUID = 244789724685870487L;
+	R write(Map<String, Object> vals, BiFunction<String, Object, ValType> typing);
 
-			@Override
-			public ValType conv(T t) {
-				return conv.apply(t);
-			}
-
-			@Override
-			public T unconv(ValType t) {
-				return unconv(t);
-			}
-		};
-	}
+	Map<String, Object> read(R rec, BiFunction<String, R, T> typing);
 }
