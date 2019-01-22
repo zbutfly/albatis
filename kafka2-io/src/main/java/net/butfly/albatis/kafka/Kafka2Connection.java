@@ -43,13 +43,9 @@ public class Kafka2Connection extends DataConnection<Connection> implements IOFa
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public Kafka2Input inputRaw(TableDesc... topic) throws IOException {
-		// Class<?> nativeClass = formats().get(0).formatClass();
+	public KafkaIn inputRaw(TableDesc... topic) throws IOException {
 		try {
 			return new Kafka2Input("KafkaInput", uri, topic);
-			// if (String.class.isAssignableFrom(nativeClass)) return new KafkaInput<>("KafkaInput", uri, String.class, topic);
-			// else if (byte[].class.isAssignableFrom(nativeClass)) return new KafkaInput<>("KafkaInput", uri, byte[].class, topic);
-			// else throw new IllegalArgumentException();
 		} catch (ConfigException e) {
 			throw new IllegalArgumentException(e);
 		}
@@ -57,7 +53,7 @@ public class Kafka2Connection extends DataConnection<Connection> implements IOFa
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public Kafka2Output outputRaw(TableDesc... topic) throws IOException {
+	public KafkaOut outputRaw(TableDesc... topic) throws IOException {
 		try {
 			return new Kafka2Output("KafkaInput", uri);
 		} catch (ConfigException e) {

@@ -14,11 +14,10 @@ import net.butfly.albacore.exception.ConfigException;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.collection.Maps;
-import net.butfly.albatis.io.OutputBase;
 import net.butfly.albatis.io.Rmap;
 import net.butfly.albatis.kafka.config.Kafka2OutputConfig;
 
-public class Kafka2Output extends OutputBase<Rmap> {
+public class Kafka2Output extends KafkaOut {
 	private static final long serialVersionUID = -7619558227408835825L;
 	private final URISpec uri;
 	private final Kafka2OutputConfig config;

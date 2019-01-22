@@ -35,11 +35,10 @@ import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Statistic;
 import net.butfly.albatis.ddl.TableDesc;
-import net.butfly.albatis.io.OddInput;
 import net.butfly.albatis.io.Rmap;
 import net.butfly.albatis.kafka.config.KafkaInputConfig;
 
-public class KafkaInput extends Namedly implements OddInput<Rmap> {
+public class KafkaInput extends Namedly implements KafkaIn {
 	private static final long serialVersionUID = 998704625489437241L;
 	private final KafkaInputConfig config;
 	private final Map<String, Integer> allTopics = Maps.of();

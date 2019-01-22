@@ -5,6 +5,7 @@ import java.util.Properties;
 import kafka.producer.ProducerConfig;
 import net.butfly.albacore.exception.ConfigException;
 import net.butfly.albacore.io.URISpec;
+import net.butfly.albacore.utils.Pair;
 
 public class KafkaOutputConfig extends Kafka2OutputConfig {
 	private static final long serialVersionUID = -1434502766892006389L;
@@ -22,14 +23,19 @@ public class KafkaOutputConfig extends Kafka2OutputConfig {
 		Properties props = props();
 		Properties prod = new Properties();
 
-		prod.setProperty("metadata.broker.list", bootstrapServers);
+		if (null != bootstrapServers) prod.setProperty("metadata.broker.list", bootstrapServers);
 		prod.setProperty("partitioner.class", props.getProperty("partitioner.class", "kafka.producer.DefaultPartitioner"));
 		prod.setProperty("producer.type", async ? "async" : "sync");
-		prod.setProperty("compression.codec", compressionCodec);
+		if (null != (compressionCodec)) prod.setProperty("compression.codec", compressionCodec);
 		// prod.setProperty("compressed.topics", null);
 		prod.setProperty("retry.backoff.ms", Long.toString(backoffMs));
 		prod.setProperty("message.send.max.retries", Integer.toString(retries));
 		// prod.setProperty("topic.metadata.refresh.interval.ms", 600000);
 		return new ProducerConfig(prod);
+	}
+
+	@Override
+	protected Pair<String, String> bootstrapFromZk(URISpec uri) {
+		return KafkaZkParser.bootstrapFromZk(uri);
 	}
 }
