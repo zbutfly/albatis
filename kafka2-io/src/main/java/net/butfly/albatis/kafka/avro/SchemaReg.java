@@ -5,6 +5,7 @@ import static net.butfly.albacore.utils.collection.Colls.empty;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
@@ -38,8 +39,23 @@ public class SchemaReg {
 		deser = registryDeserializer(configs);
 	}
 
+	private static AtomicLong count = new AtomicLong(), spent = new AtomicLong(), size = new AtomicLong();
+
 	public byte[] ser(String topic, Map<String, Object> m, Schema schema) {
-		return null == ser ? Builder.ser(m, schema) : ser.serialize(topic, Builder.rec(m, schema));
+		if (null == ser) return Builder.ser(m, schema);
+		long now = System.currentTimeMillis();
+		byte[] b = null;
+		try {
+			b = ser.serialize(topic, Builder.rec(m, schema));
+		} finally {
+			long t = spent.addAndGet(System.currentTimeMillis() - now) / 1000;
+			long c = count.incrementAndGet();
+			long kb = size.addAndGet(b.length) / 1000;
+			if (t > 1 && c % 1000 == 0) //
+				logger.trace("\n\tSchema registry sent [" + c + " recs], spent [" + t + " s], size [" + kb + " kb], \n"//
+						+ "\t\tavg [" + kb * 1000 / c + " bytes/rec] and [" + c / t + " recs/sec].");
+		}
+		return b;
 	}
 
 	public Map<String, Object> deser(String topic, byte[] v, Schema schema) {

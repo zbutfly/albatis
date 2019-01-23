@@ -45,7 +45,7 @@ public class Kafka2Connection extends DataConnection<Connection> implements IOFa
 	@Override
 	public KafkaIn inputRaw(TableDesc... topic) throws IOException {
 		try {
-			return new Kafka2Input("KafkaInput", uri, topic);
+			return new Kafka2Input("Kafka2Input", uri, topic);
 		} catch (ConfigException e) {
 			throw new IllegalArgumentException(e);
 		}
@@ -55,7 +55,7 @@ public class Kafka2Connection extends DataConnection<Connection> implements IOFa
 	@Override
 	public KafkaOut outputRaw(TableDesc... topic) throws IOException {
 		try {
-			return new Kafka2Output("KafkaInput", uri);
+			return new Kafka2Output("Kafka2Onput", uri);
 		} catch (ConfigException e) {
 			throw new IOException(e);
 		}

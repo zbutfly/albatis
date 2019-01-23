@@ -80,7 +80,7 @@ public class Kafka2Input extends Namedly implements KafkaIn {
 	public Rmap dequeue() {
 		ConsumerRecords<byte[], byte[]> it;
 		while (opened())
-			if (!Colls.empty(it = connect.poll(TIMEOUT))) {
+			if (!Colls.empty(it = connect.poll(TIMEOUT.toMillis()))) {
 				try {
 					List<Rmap> rs = Colls.list();
 					for (ConsumerRecord<byte[], byte[]> km : it) {

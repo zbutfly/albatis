@@ -3,6 +3,7 @@ package net.butfly.albatis.kafka;
 import static net.butfly.albacore.paral.Sdream.of;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 
 import kafka.javaapi.producer.Producer;
 import kafka.producer.KeyedMessage;
@@ -27,6 +28,8 @@ public class KafkaOutput extends KafkaOut {
 		closing(producer::close);
 	}
 
+	private static AtomicLong count = new AtomicLong(), spent = new AtomicLong();
+
 	@Override
 	protected void enqsafe(Sdream<Rmap> messages) {
 		List<Rmap> msgs = messages.list();
@@ -37,16 +40,20 @@ public class KafkaOutput extends KafkaOut {
 		}).nonNull().list();
 		if (!ms.isEmpty()) try {
 			int s = ms.size();
-			if (s == 1) {
-				producer.send(ms.get(0));
-				logger().trace(() -> "kafka writing success: [" + new String(ms.get(0).key()) + "] -> " + ms.get(0).toString());
-			} else {
-				producer.send(ms);
-				for (KeyedMessage<byte[], byte[]> mm : ms)
-					logger().trace(() -> "kafka writing success: [" + new String(mm.key()) + "] -> " + mm.toString());
+			long now = System.currentTimeMillis();
+			try {
+				if (s == 1) producer.send(ms.get(0));
+				else producer.send(ms);
+			} finally {
+				long t = spent.addAndGet(System.currentTimeMillis() - now) / 1000;
+				long c = count.addAndGet(s);
+				if (t > 1 && c % 1000 == 0) //
+					logger().trace("\n\tKafka sent [" + c + " recs], spent [" + t + " s], avg [" + c / t + " recs/s].");
 			}
 			succeeded(s);
-		} catch (Exception e) {
+		} catch (
+
+		Exception e) {
 			failed(Sdream.of(msgs));
 		}
 	}

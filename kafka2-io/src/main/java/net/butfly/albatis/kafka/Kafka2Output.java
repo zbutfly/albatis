@@ -9,6 +9,7 @@ import java.util.Map;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.clients.producer.RecordMetadata;
 
 import net.butfly.albacore.exception.ConfigException;
 import net.butfly.albacore.io.URISpec;
@@ -39,14 +40,17 @@ public class Kafka2Output extends KafkaOut {
 		if (!ms.isEmpty()) ms.forEach(this::send);
 	}
 
+	protected final void callback(RecordMetadata meta, Exception err, ProducerRecord<byte[], byte[]> m, Rmap r) {
+		if (null == err) {// maybe error
+			logger().trace(() -> "kafka writing success: [" + new String(m.key()) + "] -> " + m.toString());
+			succeeded(1);
+		} else failed(of1(r));
+	}
+
 	private void send(ProducerRecord<byte[], byte[]> m, Rmap r) {
 		try {
-			producer.send(m, (meta, err) -> {
-				if (null == err) {// maybe error
-					logger().trace(() -> "kafka writing success: [" + new String(m.key()) + "] -> " + m.toString());
-					succeeded(1);
-				} else failed(of1(r));
-			});
+			producer.send(m/* , (meta, err) -> callback(meta, err, m, r) */);
+			logger().trace("One message sent to kafka [" + m.topic() + "]");
 		} catch (Exception e) {
 			failed(of1(r));
 		}
