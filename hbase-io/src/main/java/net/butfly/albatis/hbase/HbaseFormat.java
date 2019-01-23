@@ -19,6 +19,7 @@ import java.util.Date;
 
 import org.apache.hadoop.hbase.util.Bytes;
 
+import net.butfly.albatis.ddl.Builder;
 import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.ddl.vals.ValType;
 import net.butfly.albatis.io.Rmap;
@@ -57,14 +58,19 @@ public class HbaseFormat extends RmapFormat {
 	public Rmap deser(Rmap dst, FieldDesc... fields) {
 		Object v;
 		for (FieldDesc f : fields) {
-			v = dst.get(f.name);
-			if (v instanceof byte[]) {
-				v = disassemble((byte[]) v, f.type);
-				if (null != v) dst.put(f.name, v);
-			}
-			if (v instanceof ByteBuffer) {
-				v = disassemble(((ByteBuffer) v).array(), f.type);
-				if (null != v) dst.put(f.name, v);
+			for (String k : dst.keySet()) {
+				String fn = Builder.parseTableAndField(dst.table(), k)[2];
+				if (f.name.equals(fn)) {
+					v = dst.get(k);
+					if (v instanceof byte[]) {
+						v = disassemble((byte[]) v, f.type);
+						if (null != v) dst.put(fn, v);
+					} else if (v instanceof ByteBuffer) {
+						v = disassemble(((ByteBuffer) v).array(), f.type);
+						if (null != v) dst.put(fn, v);
+					}
+					break;
+				}
 			}
 		}
 		return dst;
