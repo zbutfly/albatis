@@ -59,7 +59,7 @@ public class HbaseFormat extends RmapFormat {
 		Object v;
 		for (FieldDesc f : fields) {
 			for (String k : dst.keySet()) {
-				String fn = Builder.parseTableAndField(dst.table(), k)[2];
+				String fn = Builder.parseTableAndField(dst.table(), k)[3];
 				if (f.name.equals(fn)) {
 					v = dst.get(k);
 					if (v instanceof byte[]) {
