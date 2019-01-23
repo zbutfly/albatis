@@ -8,24 +8,24 @@ import net.butfly.albatis.Connection;
 
 public class Kafka2OutputConfig extends KafkaConfigBase {
 	private static final long serialVersionUID = -3028341800709486625L;
-	public final boolean async;
-	public final int retries;
+	public final Boolean async;
+	public final Integer retries;
 	public final String requestRequiredAcks;
 	public final String compressionCodec;
-	public final int batchSize;
-	public final boolean batchBlock;
-	public final long bufferBytes;
+	public final Integer batchSize;
+	public final Boolean batchBlock;
+	public final Long bufferBytes;
 
 	public Kafka2OutputConfig(URISpec uri) {
 		super(uri);
 		Map<String, String> props = uri.getParameters();
-		async = Boolean.parseBoolean(props.getOrDefault("async", "false"));
-		requestRequiredAcks = props.getOrDefault("acks", "all");
-		compressionCodec = props.getOrDefault("compression", "snappy");
-		retries = Integer.parseInt(props.getOrDefault("retries", "0"));
-		batchSize = Integer.parseInt(props.getOrDefault("" + Connection.PARAM_KEY_BATCH, "5000"));
-		batchBlock = Boolean.parseBoolean(props.getOrDefault("block", "true"));
-		bufferBytes = Long.parseLong(props.getOrDefault("buffer", Long.toString(128 * 1024 * 1024)));
+		async = props.containsKey("async") ? Boolean.parseBoolean(props.get("async")) : null;
+		requestRequiredAcks = props.get("acks");
+		compressionCodec = props.get("compression");
+		retries = props.containsKey("retries") ? Integer.parseInt(props.get("retries")) : null;
+		batchSize = props.containsKey(Connection.PARAM_KEY_BATCH) ? Integer.parseInt(props.get(Connection.PARAM_KEY_BATCH)) : null;
+		batchBlock = props.containsKey("block") ? Boolean.parseBoolean(props.get("block")) : null;
+		bufferBytes = props.containsKey("buffer") ? Long.parseLong(props.get("buffer")) : null;
 	}
 
 	/**
@@ -34,30 +34,32 @@ public class Kafka2OutputConfig extends KafkaConfigBase {
 	@Deprecated
 	public Kafka2OutputConfig(Properties props) {
 		super(props);
-		async = Boolean.parseBoolean(props.getProperty(PROP_PREFIX + "async", "false"));
-		requestRequiredAcks = props.getProperty(PROP_PREFIX + "request.required.acks", "all");
-		compressionCodec = props.getProperty(PROP_PREFIX + "compression.codec", "snappy");
-		retries = Integer.parseInt(props.getProperty(PROP_PREFIX + "retries", "0"));
-		batchSize = Integer.parseInt(props.getProperty(PROP_PREFIX + "batch.size", "2000"));
-		batchBlock = Boolean.parseBoolean(props.getProperty(PROP_PREFIX + "batch.block", "true"));
-		bufferBytes = Long.parseLong(props.getProperty(PROP_PREFIX + "buffer", Long.toString(128 * 1024 * 1024)));
+		async = props.containsKey(PROP_PREFIX + "async") ? Boolean.parseBoolean(props.getProperty(PROP_PREFIX + "async")) : null;
+		requestRequiredAcks = props.containsKey(PROP_PREFIX + "request.required.acks") ? //
+				props.getProperty(PROP_PREFIX + "request.required.acks") : null;
+		compressionCodec = props.containsKey(PROP_PREFIX + "compression.codec") ? //
+				props.getProperty(PROP_PREFIX + "compression.codec") : null;
+		retries = props.containsKey(PROP_PREFIX + "retries") ? Integer.parseInt(props.getProperty(PROP_PREFIX + "retries")) : null;
+		batchSize = props.containsKey(PROP_PREFIX + "batch.size") ? Integer.parseInt(props.getProperty(PROP_PREFIX + "batch.size")) : null;
+		batchBlock = props.containsKey(PROP_PREFIX + "batch.block") ? //
+				Boolean.parseBoolean(props.getProperty(PROP_PREFIX + "batch.block")) : null;
+		bufferBytes = props.containsKey(PROP_PREFIX + "buffer") ? Long.parseLong(props.getProperty(PROP_PREFIX + "buffer")) : null;
 	}
 
 	@Override
 	public Properties props() {
 		Properties props = super.props();
-		props.setProperty("max.block.ms", Long.toString(zookeeperConnectionTimeoutMs));
-		props.setProperty("acks", requestRequiredAcks);
-		props.setProperty("compression.type", compressionCodec);
-		props.setProperty("retries", Integer.toString(retries));
-		props.setProperty("buffer.memory", Long.toString(bufferBytes));
-		props.setProperty("send.buffer.bytes", Long.toString(transferBufferBytes));
-		// props.setProperty("timeout.ms", "60000");
+		if (null != zookeeperConnectionTimeoutMs) props.setProperty("max.block.ms", Long.toString(zookeeperConnectionTimeoutMs));
+		if (null != requestRequiredAcks) props.setProperty("acks", requestRequiredAcks);
+		if (null != compressionCodec) props.setProperty("compression.type", compressionCodec);
+		if (null != retries) props.setProperty("retries", Integer.toString(retries));
+		if (null != bufferBytes) props.setProperty("buffer.memory", Long.toString(bufferBytes));
+		if (null != transferBufferBytes) props.setProperty("send.buffer.bytes", Long.toString(transferBufferBytes));
+		// props.setProperty("timeout.ms");
 		// props.setProperty("metric.reporters", );
 		// props.setProperty("metadata.max.age.ms", );
-		props.setProperty("batch.size", Long.toString(batchSize));
-		props.setProperty("batch.block", Boolean.toString(batchBlock));
-		props.setProperty("max.block.ms", Long.toString(Long.MAX_VALUE));
+		if (null != batchSize) props.setProperty("batch.size", Long.toString(batchSize));
+		if (null != batchBlock) props.setProperty("batch.block", Boolean.toString(batchBlock));
 		// props.setProperty("reconnect.backoff.ms", );
 
 		// props.setProperty("receive.buffer.bytes", );
@@ -75,7 +77,7 @@ public class Kafka2OutputConfig extends KafkaConfigBase {
 	}
 
 	public boolean isAsync() {
-		return async;
+		return null != async && async.booleanValue();
 	}
 
 	@Override

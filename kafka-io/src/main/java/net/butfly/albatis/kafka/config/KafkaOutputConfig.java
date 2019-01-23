@@ -24,12 +24,12 @@ public class KafkaOutputConfig extends Kafka2OutputConfig {
 		Properties prod = new Properties();
 
 		if (null != bootstrapServers) prod.setProperty("metadata.broker.list", bootstrapServers);
-		prod.setProperty("partitioner.class", props.getProperty("partitioner.class", "kafka.producer.DefaultPartitioner"));
-		prod.setProperty("producer.type", async ? "async" : "sync");
+		if (props.containsKey("partitioner.class")) prod.setProperty("partitioner.class", props.getProperty("partitioner.class"));
+		if (null != async) prod.setProperty("producer.type", async ? "async" : "sync");
 		if (null != (compressionCodec)) prod.setProperty("compression.codec", compressionCodec);
 		// prod.setProperty("compressed.topics", null);
-		prod.setProperty("retry.backoff.ms", Long.toString(backoffMs));
-		prod.setProperty("message.send.max.retries", Integer.toString(retries));
+		if (null != backoffMs) prod.setProperty("retry.backoff.ms", Long.toString(backoffMs));
+		if (null != retries) prod.setProperty("message.send.max.retries", Integer.toString(retries));
 		// prod.setProperty("topic.metadata.refresh.interval.ms", 600000);
 		return new ProducerConfig(prod);
 	}

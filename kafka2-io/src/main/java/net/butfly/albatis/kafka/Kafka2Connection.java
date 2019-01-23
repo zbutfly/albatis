@@ -34,11 +34,10 @@ public class Kafka2Connection extends DataConnection<Connection> implements IOFa
 	@Override
 	public List<Format> formats() {
 		List<Format> fmts = super.formats();
-		Format def = of(Configs.gets("albatis.format.biz.default", "etl"));
-		if (null == def) return fmts;
-		else if (fmts.size() == 1 && fmts.get(0).equals(of("bson"))) //
-			return Colls.list(fmts.get(0), def);
-		else return fmts;
+		if (null != fmts && fmts.size() == 1 && fmts.get(0).equals(of("bson"))) {
+			Format def = of(Configs.gets("albatis.format.biz.default", "etl"));
+			return null == def ? fmts : Colls.list(fmts.get(0), def);
+		} else return fmts;
 	}
 
 	@SuppressWarnings("unchecked")
