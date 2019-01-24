@@ -13,6 +13,7 @@ import org.apache.avro.generic.GenericRecord;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import net.butfly.albacore.utils.Configs;
+import net.butfly.albacore.utils.Systems;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.alserdes.avro.AvroSerDes.Builder;
@@ -48,12 +49,14 @@ public class SchemaReg {
 		try {
 			b = ser.serialize(topic, Builder.rec(m, schema));
 		} finally {
-			long t = spent.addAndGet(System.currentTimeMillis() - now) / 1000;
-			long c = count.incrementAndGet();
-			long kb = size.addAndGet(b.length) / 1000;
-			if (t > 1 && c % 5000 == 0) //
-				logger.trace("\n\tSchema registry sent [" + c + " recs], spent [" + t + " s], size [" + kb + " kb], \n"//
-						+ "\t\tavg [" + kb * 1000 / c + " bytes/rec] and [" + c / t + " recs/sec].");
+			if (Systems.isDebug()) {
+				long t = spent.addAndGet(System.currentTimeMillis() - now) / 1000;
+				long c = count.incrementAndGet();
+				long kb = size.addAndGet(b.length) / 1000;
+				if (t > 1 && c % 50000 == 0) //
+					logger.trace("\n\tSchema registry sent [" + c + " recs], spent [" + t + " s], size [" + kb + " kb], \n"//
+							+ "\t\tavg [" + kb * 1000 / c + " bytes/rec] and [" + c / t + " recs/sec].");
+			}
 		}
 		return b;
 	}
