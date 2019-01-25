@@ -62,15 +62,15 @@ public class Kafka2InputConfig extends KafkaConfigBase {
 		zookeeperSyncTimeMs = props.containsKey("zksynctime") ? Long.parseLong(props.get("zksynctime")) : null;
 		autoCommitIntervalMs = props.containsKey("autocommit") ? Long.parseLong(props.get("autocommit")) : null;
 		autoCommitEnable = null != autoCommitIntervalMs && autoCommitIntervalMs > 0;
-		autoOffsetReset = props.get("autoreset");
+		autoOffsetReset = props.containsKey("autoreset") ? props.get("autoreset") : "smallest";
 		sessionTimeoutMs = props.containsKey("sessiontimeout") ? Long.parseLong(props.get("sessiontimeout")) : null;
 		fetchWaitTimeoutMs = props.containsKey("fetchtimeout") ? Long.parseLong(props.get("fetchtimeout")) : null;
-		partitionAssignmentStrategy = props.get("strategy");
+		partitionAssignmentStrategy = props.containsKey("strategy") ? props.get("strategy") : "range";
 		fetchMessageMaxBytes = props.containsKey("fetchmax") ? Long.parseLong(props.get("fetchmax")) : null;
 		rebalanceRetries = props.containsKey("rebalanceretries") ? Integer.parseInt(props.get("rebalanceretries")) : null;
 		zookeeperSessionTimeoutMs = props.containsKey("zksessiontimeout") ? Long.parseLong(props.get("zksessiontimeout")) : null;
 
-		partitionParallelism = props.containsKey("parallelism") ? Integer.parseInt(props.get("parallelism")) : null;
+		partitionParallelism = props.containsKey("parallelism") ? Integer.parseInt(props.get("parallelism")) : -1;
 	}
 
 	/**
