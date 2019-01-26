@@ -16,6 +16,8 @@ import org.apache.kudu.Type;
 import org.apache.kudu.client.PartialRow;
 import org.apache.kudu.client.RowResult;
 
+import net.butfly.albatis.ddl.vals.ValType;
+
 public class KuduCommon {
 	// private static final Logger logger = Logger.getLogger(KuduCommon.class);
 	private static final TimeZone TIMEZONE = TimeZone.getTimeZone("GMT+8");
@@ -73,6 +75,33 @@ public class KuduCommon {
 			break;
 		}
 		return row;
+	}
+
+	public static final ValType valType(Type type) {
+		switch (type) {
+		case STRING:
+			return ValType.STR;
+		case INT8:
+			return ValType.BYTE;
+		case INT16:
+			return ValType.SHORT;
+		case INT32:
+			return ValType.INT;
+		case INT64:
+			return ValType.LONG;
+		case FLOAT:
+			return ValType.FLOAT;
+		case DOUBLE:
+		case DECIMAL:
+			return ValType.DOUBLE;
+		case UNIXTIME_MICROS: // datetime
+			return ValType.DATE;
+		case BOOL:
+			return ValType.BOOL;
+		case BINARY:
+			return ValType.BIN;
+		}
+		throw new IllegalArgumentException();
 	}
 
 	public static final Type kuduType(String type) {
