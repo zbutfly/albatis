@@ -13,7 +13,6 @@ public abstract class Desc<D extends Desc<D>> implements Serializable {
 	// field desc
 	public static final String FORMAT = "format";
 	public static final String VALIDATE = "validate";
-	public static final String NESTED = "nested";
 	public static final String SEGMODE = "segmode";
 	public static final String FULLTEXT = "fulltext";
 	public static final String INDEXED = "indexed";
