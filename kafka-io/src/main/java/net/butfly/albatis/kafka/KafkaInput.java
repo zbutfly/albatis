@@ -160,11 +160,10 @@ public class KafkaInput extends Namedly implements KafkaIn {
 		while (opened())
 			if (null != (it = consumers.poll())) {
 				try {
-					if (null != (m = it.next())) {
-						MessageAndMetadata<byte[], byte[]> km = (MessageAndMetadata<byte[], byte[]>) s().stats(m);
-						String k = null == km.key() || km.key().length == 0 ? null : new String(km.key());
-						return new Rmap(km.topic(), k, null == k ? "km" : k, (Object) km.message());
-					}
+					if (null == (m = it.next())) return null;
+					MessageAndMetadata<byte[], byte[]> km = (MessageAndMetadata<byte[], byte[]>) s().stats(m);
+					String k = null == km.key() || km.key().length == 0 ? null : new String(km.key());
+					return new Rmap(km.topic(), k, null == k ? "km" : k, (Object) km.message());
 				} catch (ConsumerTimeoutException | NoSuchElementException ex) {
 					Instant last = LAST_FETCH.get();
 					if (null != last && Duration.between(Instant.now(), last).abs().getSeconds() > EMPTY_INFO_ITV) //

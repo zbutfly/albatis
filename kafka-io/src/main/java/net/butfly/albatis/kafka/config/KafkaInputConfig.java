@@ -37,11 +37,13 @@ public class KafkaInputConfig extends Kafka2InputConfig {
 
 	public KafkaInputConfig(String consumerId, URISpec uri) {
 		super(consumerId, uri);
+		if (null == fetchWaitTimeoutMs) fetchWaitTimeoutMs = 0L;
 	}
 
 	@Deprecated
 	public KafkaInputConfig(String consumerId, Properties props) {
 		super(consumerId, props);
+		if (null == fetchWaitTimeoutMs) fetchWaitTimeoutMs = 0L;
 	}
 
 	public ConsumerConfig getConfig() throws ConfigException {

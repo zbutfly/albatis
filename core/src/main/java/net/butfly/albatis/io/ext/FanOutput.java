@@ -13,7 +13,7 @@ import net.butfly.albatis.io.Output;
 
 public class FanOutput<V> extends Namedly implements Output<V> {
 	private static final long serialVersionUID = -162999699679518749L;
-	private final List<Consumer<List<V>>> tasks;
+	private final List<Consumer<Sdream<V>>> tasks;
 	private final List<? extends Output<V>> outputs;
 	private final boolean concurrent;
 
@@ -46,16 +46,16 @@ public class FanOutput<V> extends Namedly implements Output<V> {
 		tasks = Colls.list();
 		this.outputs = Colls.list(outputs);
 		for (Output<V> o : outputs)
-			tasks.add(l -> o.enqueue(Sdream.of(l)));
+			tasks.add(l -> o.enqueue(l));
 	}
 
 	@Override
 	public void enqueue(Sdream<V> s) {
-		if (concurrent) Exeter.of().join(s.list(), tasks);
-		else {
-			List<V> l = s.list();
-			for (Consumer<List<V>> t : tasks)
-				t.accept(l);
-		}
+		if (Colls.empty(tasks)) return;
+		if (tasks.size() == 1) tasks.get(0).accept(s);
+		List<V> l = s.list(); // sdream is one-time, so had to terminate it and construct new sdream
+		if (concurrent) Exeter.of().join(of(l), tasks);
+		else for (Consumer<Sdream<V>> t : tasks)
+			t.accept(of(l));
 	}
 }

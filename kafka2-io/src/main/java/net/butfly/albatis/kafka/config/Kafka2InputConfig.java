@@ -46,7 +46,7 @@ public class Kafka2InputConfig extends KafkaConfigBase {
 	protected final Long sessionTimeoutMs;
 	protected final String partitionAssignmentStrategy;
 	protected final Long fetchMessageMaxBytes;
-	protected final Long fetchWaitTimeoutMs;
+	protected Long fetchWaitTimeoutMs;
 	protected final Integer rebalanceRetries;
 	protected final Long zookeeperSessionTimeoutMs;
 
@@ -125,8 +125,10 @@ public class Kafka2InputConfig extends KafkaConfigBase {
 		if (null != zookeeperSessionTimeoutMs) props.setProperty("zookeeper.session.timeout.ms", Long.toString(zookeeperSessionTimeoutMs));
 		if (null != zookeeperSyncTimeMs) props.setProperty("zookeeper.sync.time.ms", Long.toString(zookeeperSyncTimeMs));
 		if (null != sessionTimeoutMs) props.setProperty("socket.timeout.ms", Long.toString(sessionTimeoutMs));
-		if (null != fetchWaitTimeoutMs) props.setProperty("fetch.wait.max.ms", Long.toString(fetchWaitTimeoutMs));
-		if (null != fetchWaitTimeoutMs) props.setProperty("consumer.timeout.ms", Long.toString(fetchWaitTimeoutMs));
+		if (null != fetchWaitTimeoutMs) {
+			props.setProperty("fetch.wait.max.ms", Long.toString(fetchWaitTimeoutMs));
+			props.setProperty("consumer.timeout.ms", Long.toString(fetchWaitTimeoutMs));
+		}
 		if (null != backoffMs) props.setProperty("rebalance.backoff.ms", Long.toString(backoffMs));
 		if (null != rebalanceRetries) props.setProperty("rebalance.max.retries", Integer.toString(rebalanceRetries));
 		if (null != autoCommitIntervalMs) props.setProperty("auto.commit.interval.ms", Long.toString(autoCommitIntervalMs));
