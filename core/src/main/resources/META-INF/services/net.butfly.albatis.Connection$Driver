@@ -1,1 +1,1 @@
-net.butfly.albatis.FileConnection$Driver
+net.butfly.albatis.io.vfs.VfsConnection$Driver
