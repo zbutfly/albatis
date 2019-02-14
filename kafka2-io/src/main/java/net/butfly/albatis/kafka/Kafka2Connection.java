@@ -54,7 +54,7 @@ public class Kafka2Connection extends DataConnection<Connection> implements IOFa
 	@Override
 	public KafkaOut outputRaw(TableDesc... topic) throws IOException {
 		try {
-			return new Kafka2Output("Kafka2Onput", uri);
+			return new Kafka2Output("Kafka2Output", uri);
 		} catch (ConfigException e) {
 			throw new IOException(e);
 		}

@@ -27,7 +27,7 @@ public class KafkaConnection extends Kafka2Connection {
 	@Override
 	public KafkaOut outputRaw(TableDesc... topic) throws IOException {
 		try {
-			return new KafkaOutput("KafkaInput", uri);
+			return new KafkaOutput("KafkaOutput", uri);
 		} catch (ConfigException e) {
 			throw new IOException(e);
 		}
