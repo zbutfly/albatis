@@ -8,6 +8,7 @@ import static net.butfly.albatis.io.Rmap.Op.UPSERT;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Method;
@@ -63,8 +64,18 @@ public final class Hbases extends Utils {
 		Configuration hconf = HBaseConfiguration.create();
 		for (Entry<String, String> c : props().entrySet())
 			hconf.set(c.getKey(), c.getValue());
+		String confPath = conf.remove("albatis.hbase.config.path");
 		if (null != conf && !conf.isEmpty()) for (Entry<String, String> c : conf.entrySet())
 			hconf.set(c.getKey(), c.getValue());
+		if (null != confPath) {
+			File path = new File(confPath);
+			if (!path.exists() || !path.isDirectory()) throw new IllegalArgumentException("Config path not found or not directory: " + path
+					.toString());
+			for (File xml : path.listFiles(f -> f.isFile() && f.getName().endsWith(".xml"))) {
+				logger.debug("Hbase config file append: " + xml.toString());
+				hconf.addResource(new org.apache.hadoop.fs.Path(xml.toURI()));
+			}
+		}
 		while (true)
 			try {
 				return ConnectionFactory.createConnection(hconf, ex);

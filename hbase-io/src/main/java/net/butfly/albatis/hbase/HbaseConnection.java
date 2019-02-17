@@ -1,10 +1,56 @@
 package net.butfly.albatis.hbase;
 
+import static net.butfly.albacore.paral.Sdream.of;
+import static net.butfly.albacore.utils.collection.Colls.empty;
+import static net.butfly.albacore.utils.collection.Colls.list;
+import static net.butfly.albatis.ddl.FieldDesc.SPLIT_ZWNJ;
+import static net.butfly.albatis.io.IOProps.propI;
+import static net.butfly.albatis.io.IOProps.propL;
+
+import java.io.BufferedWriter;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.net.InetSocketAddress;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.LinkedBlockingQueue;
+
+import org.apache.hadoop.hbase.HColumnDescriptor;
+import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.HTableDescriptor;
+import org.apache.hadoop.hbase.KeepDeletedCells;
+import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.client.Admin;
+import org.apache.hadoop.hbase.client.Append;
+import org.apache.hadoop.hbase.client.Connection;
+import org.apache.hadoop.hbase.client.Delete;
+import org.apache.hadoop.hbase.client.Get;
+import org.apache.hadoop.hbase.client.Increment;
+import org.apache.hadoop.hbase.client.Mutation;
+import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.ResultScanner;
+import org.apache.hadoop.hbase.client.Row;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.client.Table;
+import org.apache.hadoop.hbase.filter.Filter;
+import org.apache.hadoop.hbase.io.compress.Compression;
+import org.apache.hadoop.hbase.io.encoding.DataBlockEncoding;
+import org.apache.hadoop.hbase.ipc.RemoteWithExtrasException;
+import org.apache.hadoop.hbase.regionserver.BloomType;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.util.ClassSize;
+
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.io.lambda.Function;
 import net.butfly.albacore.paral.Exeter;
 import net.butfly.albacore.paral.Sdream;
-import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.Texts;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
@@ -19,30 +65,6 @@ import net.butfly.albatis.io.IOStats;
 import net.butfly.albatis.io.Rmap;
 import net.butfly.albatis.io.utils.JsonUtils;
 import net.butfly.alserdes.SerDes;
-import org.apache.hadoop.hbase.*;
-import org.apache.hadoop.hbase.client.*;
-import org.apache.hadoop.hbase.filter.Filter;
-import org.apache.hadoop.hbase.io.compress.Compression;
-import org.apache.hadoop.hbase.io.encoding.DataBlockEncoding;
-import org.apache.hadoop.hbase.ipc.RemoteWithExtrasException;
-import org.apache.hadoop.hbase.regionserver.BloomType;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.hbase.util.ClassSize;
-
-import java.io.*;
-import java.net.InetSocketAddress;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.LinkedBlockingQueue;
-
-import static net.butfly.albacore.paral.Sdream.of;
-import static net.butfly.albacore.utils.collection.Colls.empty;
-import static net.butfly.albacore.utils.collection.Colls.list;
-import static net.butfly.albatis.ddl.FieldDesc.SPLIT_ZWNJ;
 
 @SerDes.As("hbase")
 public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.client.Connection> implements IOFactory, IOStats {
@@ -57,14 +79,11 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 				+ ClassSize.TREEMAP);
 	}
 
-	// private static final int GET_BATCH_SIZE = Integer.parseInt(Configs.gets("albatis.hbase.connection.get.batch.size", "100"));
-	private static final int GET_SCAN_OBJS = Integer.parseInt(Configs.gets("albatis.hbase.connection.get.scaner.queue", "500"));
-	private static final int GET_MAX_RETRIES = Integer.parseInt(Configs.gets("albatis.hbase.connection.get.retry", "2"));
-	private static final int GET_SCAN_BYTES = Integer.parseInt(Configs.gets("albatis.hbase.connection.get.result.bytes", "3145728")); // 3M
-	private static final int GET_SCAN_LIMIT = Integer.parseInt(Configs.gets("albatis.hbase.connection.get.result.limit", "1"));
-	// private static final long GET_STATS_STEP = Long.parseLong(Configs.gets("albatis.hbase.connection.get.stats.step", "-1"));
-	protected static final long GET_DUMP_MIN_SIZE = Integer.parseInt(Configs.gets("albatis.hbase.connection.get.dump.min.bytes",
-			"2097152")); // 2M
+	private final int GET_SCAN_OBJS = propI(this, "get.scaner.queue", 500);
+	private final int GET_MAX_RETRIES = propI(this, "get.retry", 2);
+	private final int GET_SCAN_BYTES = propI(this, "get.result.bytes", 3145728); // 3M
+	private final int GET_SCAN_LIMIT = propI(this, "get.result.limit", 1);
+	protected final long GET_DUMP_MIN_SIZE = propL(this, "get.dump.min.bytes", 2097152); // 2M
 	private final Map<String, Table> tables;
 	private final LinkedBlockingQueue<Scan> scans = new LinkedBlockingQueue<>(GET_SCAN_OBJS);
 
@@ -86,27 +105,33 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 		}
 		Map<String, String> params = null;
 		if (null != uri) {
+			boolean configed = false;
 			params = new ConcurrentHashMap<>(uri.getParameters());
 			// params.remove("df");
 			switch (uri.getScheme()) {
-			case "hbase":
+			case "hbase:master":
 				if (uri.getInetAddrs().length == 1) {
 					logger.warn("Deprecate master connect to hbase: " + uri.getHost());
 					params.put("hbase.master", "*" + uri.getHost() + "*");
+					configed = true;
 					break;
 				}
+			case "hbase":
 			case "zk":
 			case "zookeeper":
 			case "hbase:zk":
 			case "hbase:zookeeper":
-				if (uri.getInetAddrs().length > 0) for (InetSocketAddress a : uri.getInetAddrs()) {
-					params.put(HConstants.ZOOKEEPER_QUORUM, a.getHostName());
-					params.put(HConstants.ZOOKEEPER_CLIENT_PORT, Integer.toString(a.getPort()));
-				}
-				if (null != uri.getFile() && !"".equals(uri.getFile())) {
-					params.put(HConstants.ZOOKEEPER_ZNODE_PARENT, "/" + uri.getFile());
+				if (uri.getInetAddrs().length > 0) {
+					for (InetSocketAddress a : uri.getInetAddrs()) {
+						params.put(HConstants.ZOOKEEPER_QUORUM, a.getHostName());
+						params.put(HConstants.ZOOKEEPER_CLIENT_PORT, Integer.toString(a.getPort()));
+					}
+					if (!"/".equals(uri.getPath())) params.put(HConstants.ZOOKEEPER_ZNODE_PARENT, uri.getPath());
+					configed = true;
+					break;
 				}
 			}
+			if (!configed) configurateByFile(params, uri.getPath());
 		}
 		try {
 			return Hbases.connect(params);
@@ -114,6 +139,15 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 			logger.error("Connect failed", e);
 			return null;
 		}
+	}
+
+	private void configurateByFile(Map<String, String> params, String path) {
+		if (!path.endsWith("/")) throw new IllegalArgumentException("Hbase configuration should be a directory, but a file [" + path
+				+ "] is found.");
+		if ("/".equals(path)) return;// empty, classpath configuration files.
+		char prefix = path.charAt(1);
+		if (prefix == '.' || prefix == '~') path = path.substring(1);// relative path
+		params.put("albatis.hbase.config.path", path);
 	}
 
 	@Override
