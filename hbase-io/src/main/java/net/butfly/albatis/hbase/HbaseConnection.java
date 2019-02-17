@@ -15,6 +15,7 @@ import net.butfly.albatis.ddl.Builder;
 import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.io.IOFactory;
+import net.butfly.albatis.io.IOStats;
 import net.butfly.albatis.io.Rmap;
 import net.butfly.albatis.io.utils.JsonUtils;
 import net.butfly.alserdes.SerDes;
@@ -44,7 +45,7 @@ import static net.butfly.albacore.utils.collection.Colls.list;
 import static net.butfly.albatis.ddl.FieldDesc.SPLIT_ZWNJ;
 
 @SerDes.As("hbase")
-public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.client.Connection> implements IOFactory {
+public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.client.Connection> implements IOFactory, IOStats {
 	protected final static Logger logger = Logger.getLogger(HbaseConnection.class);
 
 	static {
@@ -56,12 +57,12 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 				+ ClassSize.TREEMAP);
 	}
 
-	private static final int GET_BATCH_SIZE = Integer.parseInt(Configs.gets("albatis.hbase.connection.get.batch.size", "100"));
+	// private static final int GET_BATCH_SIZE = Integer.parseInt(Configs.gets("albatis.hbase.connection.get.batch.size", "100"));
 	private static final int GET_SCAN_OBJS = Integer.parseInt(Configs.gets("albatis.hbase.connection.get.scaner.queue", "500"));
 	private static final int GET_MAX_RETRIES = Integer.parseInt(Configs.gets("albatis.hbase.connection.get.retry", "2"));
 	private static final int GET_SCAN_BYTES = Integer.parseInt(Configs.gets("albatis.hbase.connection.get.result.bytes", "3145728")); // 3M
 	private static final int GET_SCAN_LIMIT = Integer.parseInt(Configs.gets("albatis.hbase.connection.get.result.limit", "1"));
-	private static final long GET_STATS_STEP = Long.parseLong(Configs.gets("albatis.hbase.connection.get.stats.step", "-1"));
+	// private static final long GET_STATS_STEP = Long.parseLong(Configs.gets("albatis.hbase.connection.get.stats.step", "-1"));
 	protected static final long GET_DUMP_MIN_SIZE = Integer.parseInt(Configs.gets("albatis.hbase.connection.get.dump.min.bytes",
 			"2097152")); // 2M
 	private final Map<String, Table> tables;
@@ -161,8 +162,7 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 		return using.apply(table(name));
 	}
 
-	private final Statistic s = new Statistic(HbaseConnection.class).sizing(Result::getTotalSizeOfCells).step(GET_STATS_STEP).detailing(
-			() -> "Cached scaner object: " + scans.size());
+	private final Statistic s = stating().detailing(() -> "Cached scaner object: " + scans.size()).sizing(Result::getTotalSizeOfCells);
 
 	public Rmap get(String table, Get get) {
 		return table(table, t -> {
@@ -229,7 +229,7 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 			List<Callable<List<Rmap>>> tasks = list();
 			while (!all.isEmpty()) {
 				List<Get> batch = list();
-				all.drainTo(batch, GET_BATCH_SIZE);
+				all.drainTo(batch, batchSize());
 				tasks.add(() -> {
 					try {
 						return of(s.stats(list(t.get(batch)))).map(r -> Hbases.Results.result(table, r)).list();

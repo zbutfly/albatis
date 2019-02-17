@@ -1,5 +1,7 @@
 package net.butfly.albatis.io;
 
+import static net.butfly.albatis.io.IOProps.propI;
+
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -24,7 +26,7 @@ abstract class OutputSafeBase<V> extends Namedly implements Output<V> {
 	protected OutputSafeBase(String name) {
 		super(name);
 		this.opsPending = new AtomicInteger(0);
-		int maxOps = Props.propI(getClass(), PARAL_LIMIT, 0);
+		int maxOps = propI(getClass(), PARAL_LIMIT, 0);
 		this.opExceeded = maxOps > 0 ? () -> opsPending.get() > maxOps : () -> false;
 	}
 

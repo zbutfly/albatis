@@ -84,7 +84,7 @@ public class MongoInput extends net.butfly.albacore.base.Namedly implements OddI
 			this.col = col;
 			DBCursor c;
 			try {
-				c = conn.cursor(col, q).batchSize(conn.getBatchSize()).addOption(Bytes.QUERYOPTION_NOTIMEOUT);
+				c = conn.cursor(col, q).batchSize(batchSize()).addOption(Bytes.QUERYOPTION_NOTIMEOUT);
 				int limit = Integer.parseInt(Configs.gets(Albatis.PROP_DEBUG_INPUT_LIMIT, "-1"));
 				if (limit > 0) {
 					c = c.limit(limit);

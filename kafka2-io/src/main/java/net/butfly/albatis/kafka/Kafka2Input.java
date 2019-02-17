@@ -1,6 +1,7 @@
 package net.butfly.albatis.kafka;
 
 import static net.butfly.albatis.ddl.TableDesc.dummy;
+import static net.butfly.albatis.io.IOProps.propI;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -57,7 +58,7 @@ public class Kafka2Input extends Namedly implements KafkaIn {
 		skip = new AtomicLong(Long.parseLong(uri.getParameter("skip", "0")));
 		if (skip.get() > 0) logger().error("[" + name() + "] skip [" + skip.get()
 				+ "] for testing, the skip is estimated, especially in multiple topic subscribing.");
-		int configTopicParallinism = Props.propI(Kafka2Input.class, "topic.paral", config.getDefaultPartitionParallelism());
+		int configTopicParallinism = propI(Kafka2Input.class, "topic.paral", config.getDefaultPartitionParallelism());
 		if (configTopicParallinism > 0) //
 			logger().debug("[" + name() + "] default topic parallelism [" + configTopicParallinism + "]");
 		if (topics == null || topics.length == 0) topics = dummy(config.topics()).toArray(new TableDesc[0]);

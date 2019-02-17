@@ -12,7 +12,6 @@ import net.butfly.albatis.io.Rmap;
 import net.butfly.albatis.kudu.KuduConnectionAsync;
 import net.butfly.albatis.kudu.KuduConnectionBase;
 
-@SuppressWarnings("deprecation")
 public class KuduConnectionTest {
 	@Test
 	public void test() {

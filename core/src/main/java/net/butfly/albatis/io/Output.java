@@ -6,7 +6,6 @@ import net.butfly.albacore.io.Enqueuer;
 import net.butfly.albacore.io.lambda.Consumer;
 import net.butfly.albacore.io.lambda.Function;
 import net.butfly.albacore.paral.Sdream;
-import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albatis.io.ext.FailoverOutput;
 
 public interface Output<V> extends IO, Consumer<Sdream<V>>, Enqueuer<V> {
@@ -43,12 +42,6 @@ public interface Output<V> extends IO, Consumer<Sdream<V>>, Enqueuer<V> {
 
 	default FailoverOutput<V> failover(Queue<V> pool) {
 		return new FailoverOutput<V>(this, pool);
-	}
-
-	@Deprecated
-	default Output<V> batch(int batchSize) {
-		Props.PROPS.computeIfAbsent(this, io -> Maps.of()).put(Props.BATCH_SIZE, batchSize);
-		return this;
 	}
 
 	static <T> Output<T> of(Collection<? super T> underly) {

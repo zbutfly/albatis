@@ -49,16 +49,8 @@
 		<module>kafka-io</module>
 		<module>arangodb-io</module>
 		<module>redis-io</module>
-		<module>spark-io</module>
 		<!-- <module>neo4j-io</module> -->
 		<!-- ORM projects, now stay at 1.5.0 -->
-		<module>jdbc</module>
-		<module>mongodb</module>
-		<module>solr</module>
-		<module>es</module>
-		<!-- <module>demo</module> -->
-		<!-- <module>util</module> -->
-		<module>search</module>
 	</modules>
 	<dependencies>
 		<dependency>

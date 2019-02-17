@@ -3,6 +3,8 @@ package net.butfly.albatis.hbase;
 import static net.butfly.albacore.paral.Sdream.of;
 import static net.butfly.albatis.ddl.FieldDesc.SPLIT_CF;
 import static net.butfly.albatis.ddl.FieldDesc.SPLIT_PREFIX;
+import static net.butfly.albatis.io.IOProps.propI;
+import static net.butfly.albatis.io.IOProps.propL;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -35,8 +37,8 @@ import net.butfly.albatis.io.Rmap;
 
 public class HbaseInput extends Namedly implements Input<Rmap> {
 	private static final long serialVersionUID = 6225222417568739808L;
-	private final long SCAN_BYTES = Props.propL(HbaseInput.class, "scan.bytes", 3145728); // 3M
-	private final int SCAN_ROWS = Props.propI(HbaseInput.class, "scan.rows", 100);
+	private final long SCAN_BYTES = propL(HbaseInput.class, "scan.bytes", 3145728); // 3M
+	private final int SCAN_ROWS = propI(HbaseInput.class, "scan.rows", 100);
 	private final HbaseConnection hconn;
 	private final BlockingQueue<TableScaner> scans = new LinkedBlockingQueue<>();
 	private final Map<String, TableScaner> scansMap = Maps.of();

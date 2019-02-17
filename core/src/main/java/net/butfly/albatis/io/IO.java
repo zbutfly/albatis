@@ -1,5 +1,8 @@
 package net.butfly.albatis.io;
 
+import static net.butfly.albatis.io.IOProps.BATCH_SIZE;
+import static net.butfly.albatis.io.IOProps.propI;
+
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.Base64;
@@ -8,7 +11,6 @@ import net.butfly.albacore.base.Sizable;
 import net.butfly.albacore.io.Openable;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.serder.JavaSerder;
-import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albatis.Connection;
 
 public interface IO extends IOSchemaness, Sizable, Openable, Serializable, IOStats {
@@ -27,9 +29,7 @@ public interface IO extends IOSchemaness, Sizable, Openable, Serializable, IOSta
 	}
 
 	default int batchSize() {
-		IO b = Wrapper.bases(this);
-		return Props.PROPS.computeIfAbsent(this, io -> Maps.of()).computeIfAbsent(Props.BATCH_SIZE, //
-				k -> Props.propI(b.getClass(), k, 500)).intValue();
+		return propI(this, BATCH_SIZE, 500);
 	}
 
 	default int features() {

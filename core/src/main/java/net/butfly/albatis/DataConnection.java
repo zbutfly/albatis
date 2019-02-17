@@ -1,5 +1,8 @@
 package net.butfly.albatis;
 
+import static net.butfly.albatis.io.IOProps.BATCH_SIZE;
+import static net.butfly.albatis.io.IOProps.propI;
+
 import java.io.IOException;
 import java.net.ProtocolException;
 import java.util.Arrays;
@@ -54,7 +57,11 @@ public abstract class DataConnection<C> implements Connection, Loggable {
 		this(uri, -1, supportedSchema);
 	}
 
-	public final int getBatchSize() {
+	public final int batchSize() {
+		return propI(this, BATCH_SIZE, defBatchSize());
+	}
+
+	private int defBatchSize() {
 		String b = parameters.getProperty(PARAM_KEY_BATCH);
 		return null != b ? Integer.parseInt(b) : DEFAULT_BATCH_SIZE;
 	}

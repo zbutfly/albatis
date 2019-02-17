@@ -27,11 +27,7 @@ public class MongoSimpleInput extends net.butfly.albacore.base.Namedly implement
 		logger.info("[" + name + "] from [" + conn.toString() + "], collection [" + table + "]");
 		this.conn = conn;
 		logger.debug("[" + name + "] find begin...");
-		opening(() -> {
-			cursor = conn.cursor(table, filter);
-			cursor = cursor.batchSize(conn.getBatchSize());
-			cursor = cursor.addOption(Bytes.QUERYOPTION_NOTIMEOUT);
-		});
+		opening(() -> cursor = conn.cursor(table, filter).batchSize(batchSize()).addOption(Bytes.QUERYOPTION_NOTIMEOUT));
 		closing(this::closeMongo);
 	}
 

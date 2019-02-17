@@ -13,7 +13,6 @@ import com.mongodb.Bytes;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 
-import net.butfly.albacore.io.lambda.Function;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.parallel.Lambdas;
 import net.butfly.albatis.io.OddInput;
@@ -34,10 +33,10 @@ public class MongoLockedInput extends net.butfly.albacore.base.Namedly implement
 		final DBCursor cursor;
 		final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
 
-		public C(String table, DBCursor cursor) {
+		public C(MongoConnection conn, String table) {
 			super();
 			this.table = table;
-			this.cursor = cursor;
+			this.cursor = conn.cursor(table).batchSize(batchSize()).addOption(Bytes.QUERYOPTION_NOTIMEOUT);
 		}
 
 		@Override
@@ -60,20 +59,14 @@ public class MongoLockedInput extends net.butfly.albacore.base.Namedly implement
 		queryings = new AtomicInteger(tables.length);
 		this.conn = conn;
 		logger().debug("[" + name + "] find begin...");
-		cursors = of(tables).map(new Function<String, C>() {
-			private static final long serialVersionUID = 9173440279090985263L;
-
-			@Override
-			public C apply(String t) {
-				try {
-					DBCursor c = conn.cursor(t).batchSize(conn.getBatchSize()).addOption(Bytes.QUERYOPTION_NOTIMEOUT);
-					return new C(t, c);
-				} catch (Exception e) {
-					logger().error("MongoDB query [" + t + "]failed", e);
-					return null;
-				} finally {
-					queryings.decrementAndGet();
-				}
+		cursors = of(tables).map(t -> {
+			try {
+				return new C(conn, t);
+			} catch (Exception e) {
+				logger().error("MongoDB query [" + t + "]failed", e);
+				return null;
+			} finally {
+				queryings.decrementAndGet();
 			}
 		}).filter(Lambdas.notNull()).list();
 		closing(this::closeMongo);
@@ -92,8 +85,7 @@ public class MongoLockedInput extends net.butfly.albacore.base.Namedly implement
 		logger().debug("[" + name + "] find begin...");
 		cursors = of(tablesAndQueries).map(e -> {
 			try {
-				return new C(e.getKey(), conn.cursor(e.getKey(), e.getValue()).batchSize(conn.getBatchSize()).addOption(
-						Bytes.QUERYOPTION_NOTIMEOUT));
+				return new C(conn, e.getKey());
 			} catch (Exception ex) {
 				logger().error("MongoDB query [" + e.getKey() + "]failed", ex);
 				return null;
