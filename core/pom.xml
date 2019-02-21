@@ -12,6 +12,12 @@
 			<groupId>net.butfly.albacore</groupId>
 			<artifactId>albacore-core</artifactId>
 			<version>${version.albacore}</version>
+			<exclusions>
+				<exclusion>
+					<groupId>junit</groupId>
+					<artifactId>junit</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>net.butfly.alserdes</groupId>

@@ -124,7 +124,7 @@
 		<repository>
 			<id>cdh</id>
 			<name>cdh repository</name>
-			<url>https://repository.cloudera.com/content/repositories/releases/</url>
+			<url>http://repository.cloudera.com/content/repositories/releases/</url>
 		</repository>
 	</repositories>
 	<scm>

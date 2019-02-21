@@ -15,6 +15,12 @@
 			<groupId>org.apache.kafka</groupId>
 			<artifactId>kafka_${version.scala.main}</artifactId>
 			<version>${version.kafka}</version>
+			<exclusions>
+				<exclusion>
+					<groupId>junit</groupId>
+					<artifactId>junit</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>net.butfly.albatis</groupId>
