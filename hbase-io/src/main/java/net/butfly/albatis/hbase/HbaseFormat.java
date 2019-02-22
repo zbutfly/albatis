@@ -87,6 +87,12 @@ public class HbaseFormat extends RmapFormat {
 			Long ms = Bytes.toLong(b);
 			return null == ms || ms.longValue() <= 0 ? null : new Date(ms.longValue());
 		case INT:
+			switch (b.length) {
+			case 1 : return b[0];
+			case 2 : return Bytes.toShort(b);
+			case 4 : return Bytes.toInt(b);
+			case 8 : return Bytes.toLong(b);
+			}
 			return Bytes.toInt(b);
 		case LONG:
 			return Bytes.toLong(b);
