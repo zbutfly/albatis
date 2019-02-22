@@ -23,12 +23,7 @@ import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.DataConnection;
 import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.ddl.TableDesc;
-import net.butfly.albatis.jdbc.dialect.Dialect;
-import net.butfly.albatis.jdbc.dialect.DialectFor;
-import net.butfly.albatis.jdbc.dialect.KingbaseDialect;
-import net.butfly.albatis.jdbc.dialect.MysqlDialect;
-import net.butfly.albatis.jdbc.dialect.OracleDialect;
-import net.butfly.albatis.jdbc.dialect.PostgresqlDialect;
+import net.butfly.albatis.jdbc.dialect.*;
 
 public class JdbcConnection extends DataConnection<DataSource> {
 	private static final Logger logger = Logger.getLogger(JdbcConnection.class);
@@ -76,6 +71,8 @@ public class JdbcConnection extends DataConnection<DataSource> {
 			if (uri.getScheme().startsWith("jdbc:oracle:thin")) new OracleDialect().tableConstruct(conn, table, tableDesc, fields);
 			if (uri.getScheme().startsWith("jdbc:postgresql") || uri.getScheme().startsWith("jdbc:kingbaseanalyticsdb"))
 				new PostgresqlDialect().tableConstruct(conn, table, tableDesc, fields);
+			if(uri.getScheme().startsWith("jdbc:postgresql:libra"))
+				new LibraDialect().tableConstruct(conn,table,tableDesc,fields);
 		} catch (SQLException e) {
 			logger().error("construct table failure", e);
 		}
@@ -109,8 +106,8 @@ public class JdbcConnection extends DataConnection<DataSource> {
 		String jdbcconn = dialect.jdbcConnStr(uriSpec);
 		logger.info("Connect to jdbc with connection string: \n\t" + jdbcconn);
 		config.setJdbcUrl(jdbcconn);
-		config.setUsername(uriSpec.getUsername());
-		config.setPassword(uriSpec.getPassword());
+		config.setUsername(uriSpec.getParameter("user"));
+		config.setPassword(uriSpec.getParameter("password"));
 		uriSpec.getParameters().forEach(config::addDataSourceProperty);
 		return config;
 	}

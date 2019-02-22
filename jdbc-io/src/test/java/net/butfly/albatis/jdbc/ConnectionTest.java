@@ -1,12 +1,19 @@
 package net.butfly.albatis.jdbc;
 
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 
+import net.butfly.albatis.ddl.DBDesc;
+import net.butfly.albatis.ddl.FieldDesc;
+import net.butfly.albatis.ddl.TableDesc;
+import net.butfly.albatis.ddl.vals.ValType;
 import org.junit.Test;
 
 import net.butfly.albacore.io.URISpec;
@@ -116,5 +123,28 @@ public class ConnectionTest {
 			 * while (rs.next()) { System.out.println("column 1 = " + rs.getObject(1)); }
 			 */
 		}
+	}
+
+	@Test
+	public void testLibra() throws IOException {
+		String url = "jdbc:postgresql:libra://172.16.17.42:5432/cominfo?user=cominfo&password=cominfo";
+		JdbcConnection connection = new JdbcConnection(new URISpec(url));
+		List<FieldDesc> fields = new ArrayList();
+		DBDesc dbDesc = new DBDesc("cominfo", url);
+		TableDesc tableDesc = new TableDesc(dbDesc, "test_libra");
+		List<List<String>> keys = new ArrayList<>();
+		List<String> key  = new ArrayList<>();
+		key.add("id");
+		tableDesc.keys.add(key);
+		ValType type1 = ValType.of("int");
+		ValType type2 = ValType.of("string");
+		FieldDesc f1 = new FieldDesc(tableDesc, "id", type1);
+		FieldDesc f2 = new FieldDesc(tableDesc, "name", type2);
+		fields.add(f1);
+		fields.add(f2);
+		FieldDesc[] fieldDescs = new FieldDesc[fields.size()];
+		for (int i = 0; i < fields.size(); i++)
+			fieldDescs[i] = fields.get(i);
+		connection.construct("test_libra",fieldDescs);
 	}
 }
