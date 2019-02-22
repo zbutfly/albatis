@@ -47,8 +47,8 @@ public class JdbcConnection extends DataConnection<DataSource> {
 
 	@Override
 	public void construct(String table, FieldDesc... fields) {
-		try (Connection conn = client.getConnection();) {
-			if (uri.getScheme().startsWith("jdbc:oracle:")) {
+		try (Connection conn = client.getConnection()) {
+			if (uri.getScheme().startsWith("jdbc:oracle")) {
 				StringBuilder sql = new StringBuilder();
 				List<String> fieldSql = new ArrayList<>();
 				for (FieldDesc f : fields)
@@ -61,18 +61,21 @@ public class JdbcConnection extends DataConnection<DataSource> {
 					logger().error("Table construct failed", e);
 				}
 			} else throw new UnsupportedOperationException("Jdbc table create not supported for:" + uri.getScheme());
-		} catch (SQLException e1) {}
+		} catch (SQLException e1) {
+		}
 	}
 
 	@Override
 	public void construct(String dbName, String table, TableDesc tableDesc, List<FieldDesc> fields) {
 		try (Connection conn = client.getConnection()) {
-			if (uri.getScheme().startsWith("jdbc:mysql:")) new MysqlDialect().tableConstruct(conn, table, tableDesc, fields);
-			if (uri.getScheme().startsWith("jdbc:oracle:thin")) new OracleDialect().tableConstruct(conn, table, tableDesc, fields);
+			if (uri.getScheme().startsWith("jdbc:mysql"))
+				new MysqlDialect().tableConstruct(conn, table, tableDesc, fields);
+			if (uri.getScheme().startsWith("jdbc:oracle:thin"))
+				new OracleDialect().tableConstruct(conn, table, tableDesc, fields);
+			if (uri.getScheme().startsWith("jdbc:postgresql:libra"))
+				new LibraDialect().tableConstruct(conn, table, tableDesc, fields);
 			if (uri.getScheme().startsWith("jdbc:postgresql") || uri.getScheme().startsWith("jdbc:kingbaseanalyticsdb"))
 				new PostgresqlDialect().tableConstruct(conn, table, tableDesc, fields);
-			if(uri.getScheme().startsWith("jdbc:postgresql:libra"))
-				new LibraDialect().tableConstruct(conn,table,tableDesc,fields);
 		} catch (SQLException e) {
 			logger().error("construct table failure", e);
 		}
@@ -82,7 +85,7 @@ public class JdbcConnection extends DataConnection<DataSource> {
 	@Override
 	public boolean judge(String dbName, String table) {
 		try (Connection conn = client.getConnection()) {
-			if (uri.getScheme().startsWith("jdbc:mysql:") || uri.getScheme().startsWith("jdbc:oracle:thin") || uri.getScheme().startsWith(
+			if (uri.getScheme().startsWith("jdbc:mysql") || uri.getScheme().startsWith("jdbc:oracle:thin") || uri.getScheme().startsWith(
 					"jdbc:postgresql")) new MysqlDialect().tableExisted(conn, table);
 			if (uri.getScheme().startsWith("jdbc:kingbaseanalyticsdb")) new KingbaseDialect().tableExisted(conn, table);
 		} catch (SQLException e) {
@@ -117,7 +120,8 @@ public class JdbcConnection extends DataConnection<DataSource> {
 		DataSource hds = client;
 		if (null != hds && hds instanceof AutoCloseable) try {
 			((AutoCloseable) hds).close();
-		} catch (Exception e) {}
+		} catch (Exception e) {
+		}
 	}
 
 	@SuppressWarnings("unchecked")
@@ -159,20 +163,20 @@ public class JdbcConnection extends DataConnection<DataSource> {
 	private static String buildField(FieldDesc field) {
 		StringBuilder sb = new StringBuilder();
 		switch (field.type.flag) {
-		case INT:
-			sb.append(field.name).append(" number(32, 0)");
-			break;
-		case LONG:
-			sb.append(field.name).append(" number(64, 0)");
-			break;
-		case STR:
-			sb.append(field.name).append(" varchar2(100)");
-			break;
-		case DATE:
-			sb.append(field.name).append(" date");
-			break;
-		default:
-			break;
+			case INT:
+				sb.append(field.name).append(" number(32, 0)");
+				break;
+			case LONG:
+				sb.append(field.name).append(" number(64, 0)");
+				break;
+			case STR:
+				sb.append(field.name).append(" varchar2(100)");
+				break;
+			case DATE:
+				sb.append(field.name).append(" date");
+				break;
+			default:
+				break;
 		}
 		if (field.rowkey) sb.append(" not null primary key");
 		return sb.toString();

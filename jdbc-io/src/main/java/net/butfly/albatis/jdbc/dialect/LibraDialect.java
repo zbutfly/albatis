@@ -5,7 +5,9 @@ import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.io.utils.JsonUtils;
 
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -88,21 +90,6 @@ public class LibraDialect extends Dialect {
 		}
 		if (tableDesc.keys.get(0).contains(field.name)) sb.append(" not null primary key");
 		return sb.toString();
-	}
-
-	@Override
-	public boolean tableExisted(Connection conn, String table) {
-		DatabaseMetaData dbm = null;
-		try {
-			dbm = conn.getMetaData();
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-		try (ResultSet rs = dbm.getTables(null, null, table, null)) {
-			return rs.next();
-		} catch (SQLException e) {
-			throw new RuntimeException(e);
-		}
 	}
 
 }
