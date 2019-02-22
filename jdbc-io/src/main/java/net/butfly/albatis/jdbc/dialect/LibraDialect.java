@@ -5,9 +5,7 @@ import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.io.utils.JsonUtils;
 
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -90,6 +88,54 @@ public class LibraDialect extends Dialect {
 		}
 		if (tableDesc.keys.get(0).contains(field.name)) sb.append(" not null primary key");
 		return sb.toString();
+	}
+
+	@Override
+	public List<String> getFieldNameList(Connection conn, String table) {
+		List<String> columnNames = new ArrayList<>();
+		String sql = "select * from " + table;
+		try (PreparedStatement ps = conn.prepareStatement(sql)) {
+			//结果集元数据
+			ResultSetMetaData rsmd = ps.getMetaData();
+			//表列数
+			int size = rsmd.getColumnCount();
+			for (int i = 0; i < size; i++) {
+				columnNames.add(rsmd.getColumnName(i + 1));
+			}
+		} catch (SQLException e) {
+			logger().error("Getting MPP libra column name list is failure ", e);
+		}
+		return columnNames;
+	}
+
+	@Override
+	public void alertColumn(Connection conn, String table, TableDesc tableDesc, List<FieldDesc> fields) {
+		StringBuilder sb = new StringBuilder();
+		List<String> fieldSql = new ArrayList<>();
+		for (FieldDesc field : fields)
+			fieldSql.add(buildSqlField(tableDesc, field));
+		sb.append("alert table ").append("\"").append(table).append("\"");
+		for (int i = 0, len = fieldSql.size(); i < len; i++) {
+			sb.append(" add column ").append(fieldSql.get(i));
+			if (i < len - 1) sb.append(",");
+		}
+		try (PreparedStatement ps = conn.prepareStatement(sb.toString())) {
+			ps.execute();
+			logger().debug("execute ``````" + sb.toString() + "`````` success");
+		} catch (SQLException e) {
+			logger().error("alert column failure", e);
+		}
+	}
+
+	@Override
+	public void deleteTable(Connection conn, String table) {
+		String sql = "delete from " + table;
+		try (PreparedStatement ps = conn.prepareStatement(sql)) {
+			ps.execute();
+			logger().debug("execute ``````" + sql + "`````` success");
+		} catch (SQLException e) {
+			logger().error("delete table failure", e);
+		}
 	}
 
 }

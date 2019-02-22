@@ -59,6 +59,18 @@ public class Dialect implements Loggable {
 		throw new NotImplementedException();
 	}
 
+	public List<String> getFieldNameList(Connection conn,String table){
+		throw new NotImplementedException();
+	}
+
+	public void alertColumn(Connection conn,String table,TableDesc tableDesc,List<FieldDesc> fields){
+		throw new NotImplementedException();
+	}
+
+	public void deleteTable(Connection conn,String table){
+		throw new NotImplementedException();
+	}
+
 	protected String buildSqlField(TableDesc tableDesc, FieldDesc field) {
 		throw new NotImplementedException();
 	}
