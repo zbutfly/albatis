@@ -27,6 +27,7 @@ public abstract class Desc<D extends Desc<D>> implements Serializable {
 	public static final String COL_PREFIX = "colprefix";
 	public static final String TABLE_KEY_ROW = "rowkey";
 	public static final String TABLE_KEY_COL = "colkey";
+	public static final String TABLE_QUERYPARAM = "queryparam";
 	// public static final String TABLE_KEYS = "keys";
 	// public static final String TABLE_CONSTRUCT = "construct";
 	// public static final String TABLE_DESTRUCT = "destruct";
