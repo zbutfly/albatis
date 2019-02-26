@@ -1,14 +1,12 @@
 package net.butfly.albacore.exception;
 
-public class ConfigException extends Exception {
+import java.io.IOException;
+
+public class ConfigException extends IOException {
 	private static final long serialVersionUID = -480995519946047535L;
 
 	public ConfigException() {
 		super();
-	}
-
-	public ConfigException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
-		super(message, cause, enableSuppression, writableStackTrace);
 	}
 
 	public ConfigException(String message, Throwable cause) {
