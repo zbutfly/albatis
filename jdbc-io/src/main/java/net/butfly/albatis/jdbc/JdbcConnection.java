@@ -66,16 +66,24 @@ public class JdbcConnection extends DataConnection<DataSource> {
 	}
 
 	@Override
-	public void construct(String dbName, String table, TableDesc tableDesc, List<FieldDesc> fields) {
+	public void construct(String table, TableDesc tableDesc, List<FieldDesc> fields) {
+		String[] tables = table.split("\\.");
+		String dbName, tableName;
+		if (tables.length == 1)
+			dbName = tableName = tables[0];
+		else if ((tables.length == 2)) {
+			dbName = tables[0];
+			tableName = tables[1];
+		} else throw new RuntimeException("Please type in corrent es table format: db.table !");
 		try (Connection conn = client.getConnection()) {
 			if (uri.getScheme().startsWith("jdbc:mysql"))
-				new MysqlDialect().tableConstruct(conn, table, tableDesc, fields);
+				new MysqlDialect().tableConstruct(conn, tableName, tableDesc, fields);
 			if (uri.getScheme().startsWith("jdbc:oracle:thin"))
-				new OracleDialect().tableConstruct(conn, table, tableDesc, fields);
+				new OracleDialect().tableConstruct(conn, tableName, tableDesc, fields);
 			if (uri.getScheme().startsWith("jdbc:postgresql:libra"))
-				new LibraDialect().tableConstruct(conn, table, tableDesc, fields);
+				new LibraDialect().tableConstruct(conn, tableName, tableDesc, fields);
 			if (uri.getScheme().startsWith("jdbc:postgresql") || uri.getScheme().startsWith("jdbc:kingbaseanalyticsdb"))
-				new PostgresqlDialect().tableConstruct(conn, table, tableDesc, fields);
+				new PostgresqlDialect().tableConstruct(conn, tableName, tableDesc, fields);
 		} catch (SQLException e) {
 			logger().error("construct table failure", e);
 		}
@@ -83,11 +91,20 @@ public class JdbcConnection extends DataConnection<DataSource> {
 	}
 
 	@Override
-	public boolean judge(String dbName, String table) {
+	public boolean judge(String table) {
+		String[] tables = table.split("\\.");
+		String dbName, tableName;
+		if (tables.length == 1)
+			dbName = tableName = tables[0];
+		else if ((tables.length == 2)) {
+			dbName = tables[0];
+			tableName = tables[1];
+		} else throw new RuntimeException("Please type in corrent es table format: db.table !");
 		try (Connection conn = client.getConnection()) {
 			if (uri.getScheme().startsWith("jdbc:mysql") || uri.getScheme().startsWith("jdbc:oracle:thin") || uri.getScheme().startsWith(
-					"jdbc:postgresql")) new MysqlDialect().tableExisted(conn, table);
-			if (uri.getScheme().startsWith("jdbc:kingbaseanalyticsdb")) new KingbaseDialect().tableExisted(conn, table);
+					"jdbc:postgresql")) new MysqlDialect().tableExisted(conn, tableName);
+			if (uri.getScheme().startsWith("jdbc:kingbaseanalyticsdb"))
+				new KingbaseDialect().tableExisted(conn, tableName);
 		} catch (SQLException e) {
 			logger().error("jdbc judge table isExists error", e);
 		}

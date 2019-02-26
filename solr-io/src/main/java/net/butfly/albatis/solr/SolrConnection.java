@@ -66,27 +66,27 @@ public class SolrConnection extends DataConnection<SolrClient> {
 		Class<? extends ResponseParser> parserClass = ResponseFormat.parse(uri);
 		ResponseParser p = PARSER_POOL.computeIfAbsent(parserClass, clz -> Reflections.construct(clz));
 		switch (uri.getScheme()) {
-		case "solr:http":
-		case "http":
-			logger.debug("Solr client create: " + uri);
-			Builder hb = new HttpSolrClient.Builder(uri.toString().replaceAll("/$", "")).allowCompression(true).withHttpClient(HTTP_CLIENT)//
-					.withResponseParser(p);
-			return hb.build();
-		case "solr":
-		case "solr:zk":
-		case "zookeeper":
-		case "zk":
-		case "zk:solr":
-			logger.debug("Solr client create by zookeeper: " + uri);
-			CloudSolrClient.Builder cb = new CloudSolrClient.Builder();
-			CloudSolrClient c = cb.withZkHost(Arrays.asList(uri.getHost().split(","))).withHttpClient(HTTP_CLIENT).build();
-			c.setZkClientTimeout(Integer.parseInt(System.getProperty("albatis.io.zkclient.timeout", "30000")));
-			c.setZkConnectTimeout(Integer.parseInt(System.getProperty("albatis.io.zkconnect.timeout", "30000")));
-			c.setParallelUpdates(true);
-			c.setParser(p);
-			return c;
-		default:
-			throw new RuntimeException("Solr open failure, invalid uri: " + uri);
+			case "solr:http":
+			case "http":
+				logger.debug("Solr client create: " + uri);
+				Builder hb = new HttpSolrClient.Builder(uri.toString().replaceAll("/$", "")).allowCompression(true).withHttpClient(HTTP_CLIENT)//
+						.withResponseParser(p);
+				return hb.build();
+			case "solr":
+			case "solr:zk":
+			case "zookeeper":
+			case "zk":
+			case "zk:solr":
+				logger.debug("Solr client create by zookeeper: " + uri);
+				CloudSolrClient.Builder cb = new CloudSolrClient.Builder();
+				CloudSolrClient c = cb.withZkHost(Arrays.asList(uri.getHost().split(","))).withHttpClient(HTTP_CLIENT).build();
+				c.setZkClientTimeout(Integer.parseInt(System.getProperty("albatis.io.zkclient.timeout", "30000")));
+				c.setZkConnectTimeout(Integer.parseInt(System.getProperty("albatis.io.zkconnect.timeout", "30000")));
+				c.setParallelUpdates(true);
+				c.setParser(p);
+				return c;
+			default:
+				throw new RuntimeException("Solr open failure, invalid uri: " + uri);
 		}
 	}
 
@@ -193,7 +193,8 @@ public class SolrConnection extends DataConnection<SolrClient> {
 			} catch (IOException e) {
 				if (null != uri.getFile()) try {
 					return parse0(new URISpec(uri.toString() + "/"), null);
-				} catch (IOException ee) {}
+				} catch (IOException ee) {
+				}
 				URISpec uri1 = uri.resolve("..").setFile(uri.getFile());
 				if (!uri1.equals(uri)) return parse(uri1);
 				throw new IOException("Solr uri base parsing failure: " + uri);
@@ -273,19 +274,27 @@ public class SolrConnection extends DataConnection<SolrClient> {
 
 	@SuppressWarnings("deprecation")
 	@Override
-	public void construct(String dbName, String aliasName,String table, TableDesc tableDesc, List<FieldDesc> fields) {
+	public void construct(String table, String aliasName, TableDesc tableDesc, List<FieldDesc> fields) {
+		String[] tables = table.split("\\.");
+		String dbName, tableName;
+		if (tables.length == 1)
+			dbName = tableName = tables[0];
+		else if ((tables.length == 2)) {
+			dbName = tables[0];
+			tableName = tables[1];
+		} else throw new RuntimeException("Please type in corrent es table format: db.table !");
 		String solrUrl = uri.getHost();
 		int numShards = Integer.parseInt(tableDesc.construct.get("number_of_shards").toString());
 		int numReplicas = Integer.parseInt(tableDesc.construct.get("number_of_replicas").toString());
 		try (CloudSolrClient client = new CloudSolrClient.Builder().withZkHost(solrUrl).sendUpdatesToAllReplicasInShard().withConnectionTimeout(600000).build()) {
-			CollectionAdminRequest.Create request = CollectionAdminRequest.createCollection(table, DEFAULT_CORE_NAME, numShards, numReplicas);
+			CollectionAdminRequest.Create request = CollectionAdminRequest.createCollection(tableName, DEFAULT_CORE_NAME, numShards, numReplicas);
 			request.process(client);
 			Map<String, DocCollection> collectionsMap = client.getZkStateReader().getClusterState().getCollectionsMap();
 			List<String> list = new ArrayList<>();
 			collectionsMap.forEach((k, v) -> list.add(v.getName()));
 			//judge alias and index are difference
-			if (list.contains(table) && !list.contains(aliasName)) {
-				CollectionAdminRequest.CreateAlias aliasRequest = CollectionAdminRequest.createAlias(aliasName, table);
+			if (list.contains(tableName) && !list.contains(aliasName)) {
+				CollectionAdminRequest.CreateAlias aliasRequest = CollectionAdminRequest.createAlias(aliasName, tableName);
 				aliasRequest.process(client);
 			} else {
 				logger().info("solr aliases also index duplicate names");
@@ -297,14 +306,22 @@ public class SolrConnection extends DataConnection<SolrClient> {
 
 	@SuppressWarnings("deprecation")
 	@Override
-	public boolean judge(String dbName, String table) {
+	public boolean judge(String table) {
 		boolean exists = false;
+		String[] tables = table.split("\\.");
+		String dbName, tableName;
+		if (tables.length == 1)
+			dbName = tableName = tables[0];
+		else if ((tables.length == 2)) {
+			dbName = tables[0];
+			tableName = tables[1];
+		} else throw new RuntimeException("Please type in corrent es table format: db.table !");
 		String solrUrl = uri.getHost();
 		try (CloudSolrClient client = new CloudSolrClient.Builder().withZkHost(solrUrl).build()) {
 			Map<String, DocCollection> collectionsMap = client.getZkStateReader().getClusterState().getCollectionsMap();
 			List<String> list = new ArrayList<>();
 			collectionsMap.forEach((k, v) -> list.add(v.getName()));
-			exists = list.contains(table);
+			exists = list.contains(tableName);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}

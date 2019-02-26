@@ -1,19 +1,5 @@
 package net.butfly.albatis.elastic;
 
-import static net.butfly.albacore.utils.collection.Colls.empty;
-
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-
-import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
-import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
-import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
-import org.elasticsearch.action.support.master.AcknowledgedResponse;
-import org.elasticsearch.client.transport.TransportClient;
-
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.serder.JsonSerder;
 import net.butfly.albacore.serder.json.Jsons;
@@ -21,6 +7,19 @@ import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albatis.DataConnection;
 import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.ddl.TableDesc;
+import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
+import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
+import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
+import org.elasticsearch.client.transport.TransportClient;
+
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
+import static net.butfly.albacore.utils.collection.Colls.empty;
 
 public class ElasticConnection extends DataConnection<TransportClient> implements ElasticConnect {
 	public ElasticConnection(URISpec uri, Map<String, String> props) throws IOException {
@@ -72,14 +71,20 @@ public class ElasticConnection extends DataConnection<TransportClient> implement
 		String alias = String.valueOf(indexConfig.get("alias"));
 		indexConfig.remove("alias");
 		assert null != alias;
-		String[] table = String.valueOf(indexConfig.remove("index/type")).split("/");
+		String table = String.valueOf(indexConfig.remove("index/type"));
+		String[] tables;
+		if (table.contains("."))
+			tables = table.split("\\.");
+		else if (table.contains("/"))
+			tables = table.split("/");
+		else throw new RuntimeException("es not support other split ways!");
 		String index, type;
-		if (table.length == 2) {
-			index = table[0];
-			type = table[1];
-		} else if (table.length == 1) {
-			type = index = table[0];
-		} else throw new RuntimeException("Please type in corrent es table format: index/type !");
+		if (tables.length == 1)
+			index = type = tables[0];
+		else if (tables.length == 2) {
+			index = tables[0];
+			type = tables[1];
+		} else throw new RuntimeException("Please type in corrent es table format: index/type or index.type !");
 		Map<String, Object> mapping = new MappingConstructor(indexConfig).construct(fields);
 		logger().debug(() -> "Mapping constructing: \n\t" + JsonSerder.JSON_MAPPER.ser(mapping));
 		if (client.admin().indices().prepareExists(index).execute().actionGet().isExists()) {
@@ -93,7 +98,8 @@ public class ElasticConnection extends DataConnection<TransportClient> implement
 		CreateIndexResponse r;
 		if (indexConfig.isEmpty()) r = client.admin().indices().prepareCreate(index).addMapping(type, mapping).get();
 		else r = client.admin().indices().prepareCreate(index).setSettings(indexConfig).addMapping(type, mapping).get();
-		if (!r.isAcknowledged()) logger().error("Mapping failed on index [" + index + "] type [" + type + "]" + r.toString());
+		if (!r.isAcknowledged())
+			logger().error("Mapping failed on index [" + index + "] type [" + type + "]" + r.toString());
 		else logger().info(() -> "Mapping on index [" + index + "] type [" + type + "] construct successfully: \n\t"
 				+ JsonSerder.JSON_MAPPER.ser(mapping));
 		IndicesExistsRequest indexExists = new IndicesExistsRequest(index);
@@ -107,13 +113,26 @@ public class ElasticConnection extends DataConnection<TransportClient> implement
 	}
 
 	@Override
-	public boolean judge(String index, String type) {
+	public boolean judge(String table) {
 		boolean exists = false;
+		String[] tables;
+		if (table.contains("."))
+			tables = table.split("\\.");
+		else if (table.contains("/"))
+			tables = table.split("/");
+		else throw new RuntimeException("es not support other split ways!");
+		String index, type;
+		if (tables.length == 1)
+			index = type = tables[0];
+		else if (tables.length == 2) {
+			index = tables[0];
+			type = tables[1];
+		} else throw new RuntimeException("Please type in corrent es table format: index/type or index.type !");
 		try (ElasticConnection elasticConnection = new ElasticConnection(new URISpec(uri.toString()))) {
 			IndicesExistsRequest existsRequest = new IndicesExistsRequest(index);
 			exists = elasticConnection.client.admin().indices().exists(existsRequest).actionGet().isExists();
 		} catch (IOException e) {
-			logger().error("es judge table isExists error",e);
+			logger().error("es judge table isExists error", e);
 		}
 		return exists;
 	}
@@ -164,18 +183,17 @@ public class ElasticConnection extends DataConnection<TransportClient> implement
 	}
 
 	/**
-	 * @param indexAndType
-	 *            format:
-	 *            <ul>
-	 *            <li><b>index</b>/<b>type</b></li>
-	 *            <li><b>index</b>/</li>&nbsp;(default type: <b>_doc</b>)</li>
-	 *            <li>/<b>type</b></li>
-	 *            <li><b>index</b>&nbsp;(default type: <b>_doc</b>)</li>
-	 *            <ul>
+	 * @param indexAndType format:
+	 *                     <ul>
+	 *                     <li><b>index</b>/<b>type</b></li>
+	 *                     <li><b>index</b>/</li>&nbsp;(default type: <b>_doc</b>)</li>
+	 *                     <li>/<b>type</b></li>
+	 *                     <li><b>index</b>&nbsp;(default type: <b>_doc</b>)</li>
+	 *                     <ul>
 	 */
 	public void construct(Map<String, Object> mapping, String indexAndType) {
 		String[] it = indexAndType.split("/", 2);
-		String[] its = 2 == it.length ? it : new String[] { it[0], null };
+		String[] its = 2 == it.length ? it : new String[]{it[0], null};
 		if (empty(its[0])) its[0] = getDefaultIndex();
 		if (empty(its[1])) its[1] = getDefaultType();
 		if (empty(its[1])) its[1] = "_doc";
