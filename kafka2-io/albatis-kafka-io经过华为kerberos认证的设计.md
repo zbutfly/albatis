@@ -2,54 +2,52 @@
 
 为了调用华为集群的kafka，需要通过华为的kerberos认证。
 
-## 调查准备
+## 参考资料
 
 根据华为提供的文档，请看
 [华为二次开发环境准备](https://forum.huawei.com/enterprise/zh/thread-471209.html)
 
-我们需要传递如下信息：
-
-- krb5.conf文件的路径（由集群部署方提供），需要加入到java系统参数中。
-- user.keytab文件的路径（由集群部署方提供）
-- kafka principal（由集群部署方提供），跟user.keytab文件路径一起通过一定处理后生成kafka\_server\_jaas.conf文件，并把该文件路径加入到java系统参数中。
-- zk principal（由集群部署方提供），需要加入到java系统参数中。
-- 额外的配置（由集群部署方提供），这是kafka认证的一些参数，需要加入到kafka的连接配置中去，分为consumer和producer。
-
 ## 设计
 
 ### 配置文件
-需要有五个配置文件存放以上信息，并将五个文件放入指定路径（将此指定路径配置入程序启动的classpath中）。
 
-1. krb5File.conf
+所有配置文件均保存在一个配置目录中，使用约定的文件名。
 
-		存放krb5.conf文件路径。
+应包含以下配置文件：
 
-2. principalsFile.conf
-	
-		存放kafka principal和zk principal，第一行为kafka principal，第二行为zk principal
+1. kerberos证书文件
 
-3. jaasFile.conf
+	1. jaas.conf
+
+		存放kafka_server_jaas.conf文件（常规kerberos需提供）
+
+	2. krb5.conf
+
+		存放krb5.conf。
+
+3. huawei.keytab
 		
-		存放user.keytab文件的路径
+		华为kerberos证书文件。
 
-4. consumerFile.conf
+2. kerberos.properties
+	
+	存放kafka principal和zk principal
+	- albatis.kafka.kerberos.kafka.principal=`kafka的principal值` // 必须提供，不可为空
+	- albatis.kafka.kerberos.zk.principal=`zk的principal值` // 必须提供，不可为空
+	- kerberos.domain.name=`kerberos.domain的值` // 必须提供，不可为空
+	- security.protocol=`SASL_PLAINTEXT` // 可不提供，默认值为SASL_PLAINTEXT
+	- sasl.kerberos.service.name=`kafka`  // 可不提供，默认值为kafka
 
-		存放consumer配置文件的路径
 
-5. producerFile.conf
+这些配置文件所在的文件夹路径可以由配置项配入
 
-		存放producer配置文件的路径
+	albatis.kafka.kerberos=配置文件夹路径  //常规kerberos的配置路径
 
-### 程序实现
-在kafka连接url中加入参数。
+如果不配置，则不走kerberos认证。
 
-1. kerberosHuawei=true 控制是否打开华为的kerberos认证，默认为false
-2. krb5File=krb5File.conf krb5File的文件名，系统会去classpath中找该文件，默认为null
-3. jaasFile=jaasFile.conf user.keytab的文件名，系统会去classpath中找该文件，默认为null
-4. principalsFile=principalsFile.conf kafka和zk的principals，系统会去classpath中找该文件，默认为null
-5. consumerFile=consumerFile.conf，consumerFile的文件名，系统会去classpath中找该文件，默认为null
-6. producerFile=producerFile.conf，producerFile的文件名，系统会去classpath中找该文件，默认为null
+如果配置目录中有huawei.keytab，则自动初始化华为Kerberos认证，否则为标准Kerberos配置。
 
-	- 1~4将在KafkaConfigBase中实现
-	- 5在Kafka2InputConfig中实现
-	- 6在Kafka2OutputConfig中实现
+### URI参数配置
+
+暂时不支持url参数配置，有待后续实现。
+
