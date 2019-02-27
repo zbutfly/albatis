@@ -63,7 +63,7 @@ public class Dialect implements Loggable {
 		throw new NotImplementedException();
 	}
 
-	public void alertColumn(Connection conn,String table,TableDesc tableDesc,List<FieldDesc> fields){
+	public void alterColumn(Connection conn,String table,TableDesc tableDesc,List<FieldDesc> fields){
 		throw new NotImplementedException();
 	}
 

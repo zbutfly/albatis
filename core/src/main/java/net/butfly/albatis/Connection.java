@@ -102,6 +102,10 @@ public interface Connection extends AutoCloseable, IOFactory {
 		logger().warn("Constructing invoked but not implemented, ignore.");
 	}
 
+	default void alterFields(String table, TableDesc tableDesc, List<FieldDesc> fields) {
+		logger().warn("Constructing invoked but not implemented, ignore.");
+	}
+
 	default void construct(String table, String aliasName, TableDesc tableDesc, List<FieldDesc> fields) {
 		logger().warn("Constructing invoked but not implemented, ignore.");
 	}

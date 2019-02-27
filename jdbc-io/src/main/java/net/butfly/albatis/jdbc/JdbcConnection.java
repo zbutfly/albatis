@@ -91,6 +91,18 @@ public class JdbcConnection extends DataConnection<DataSource> {
 	}
 
 	@Override
+	public void alterFields(String table, TableDesc tableDesc, List<FieldDesc> fields) {
+		try (Connection conn = client.getConnection()) {
+			if (uri.getScheme().startsWith("jdbc:postgresql:libra"))
+				new LibraDialect().alterColumn(conn, table, tableDesc, fields);
+			else
+				throw new UnsupportedOperationException("not support this schema operate");
+		} catch (SQLException e) {
+			logger().error("alert fields failure", e);
+		}
+	}
+
+	@Override
 	public boolean judge(String table) {
 		String[] tables = table.split("\\.");
 		String dbName, tableName;
@@ -102,9 +114,9 @@ public class JdbcConnection extends DataConnection<DataSource> {
 		} else throw new RuntimeException("Please type in corrent es table format: db.table !");
 		try (Connection conn = client.getConnection()) {
 			if (uri.getScheme().startsWith("jdbc:mysql") || uri.getScheme().startsWith("jdbc:oracle:thin") || uri.getScheme().startsWith(
-					"jdbc:postgresql")) new MysqlDialect().tableExisted(conn, tableName);
+					"jdbc:postgresql")) return new MysqlDialect().tableExisted(conn, tableName);
 			if (uri.getScheme().startsWith("jdbc:kingbaseanalyticsdb"))
-				new KingbaseDialect().tableExisted(conn, tableName);
+				return new KingbaseDialect().tableExisted(conn, tableName);
 		} catch (SQLException e) {
 			logger().error("jdbc judge table isExists error", e);
 		}

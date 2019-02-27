@@ -142,9 +142,6 @@ public class ConnectionTest {
 		FieldDesc f2 = new FieldDesc(tableDesc, "name", type2);
 		fields.add(f1);
 		fields.add(f2);
-		FieldDesc[] fieldDescs = new FieldDesc[fields.size()];
-		for (int i = 0; i < fields.size(); i++)
-			fieldDescs[i] = fields.get(i);
-		connection.construct("test_libra",fieldDescs);
+		connection.construct("test_libra",tableDesc,fields);
 	}
 }
