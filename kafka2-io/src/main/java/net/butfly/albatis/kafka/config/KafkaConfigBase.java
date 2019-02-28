@@ -1,5 +1,7 @@
 package net.butfly.albatis.kafka.config;
 
+import java.io.File;
+import java.io.IOException;
 import java.io.Serializable;
 import java.util.HashSet;
 import java.util.List;
@@ -12,14 +14,24 @@ import org.apache.kafka.common.serialization.ByteArraySerializer;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.Configs;
+import net.butfly.albacore.utils.IOs;
 import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.Texts;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.logger.Logger;
+import net.butfly.albatis.kafka.kerberos.huawei.LoginUtil;
 
 public abstract class KafkaConfigBase implements Serializable {
 	private static final long serialVersionUID = -4020530608706621876L;
 	public static final String PROP_PREFIX = "albatis.kafka.";
+
+	// kerberos configs
+	public static final String JAAS_CONF = "jaas.conf";
+	public static final String KRB5_CONF = "krb5.conf";
+	public static final String HUAWEI_KEYTAB = "huawei.keytab";
+	public static final String KERBEROS_PROP_PATH = "kerberos.properties";
+	public static Properties KERBEROS_PROPS;
+
 	private static final Logger logger = Logger.getLogger(KafkaConfigBase.class);
 
 	protected final String zookeeperConnect;
@@ -31,6 +43,7 @@ public abstract class KafkaConfigBase implements Serializable {
 	protected String valueSerializerClass;
 	protected String keyDeserializerClass;
 	protected String valueDeserializerClass;
+	protected String kerberosConfigPath;
 
 	private final Long poolSize;
 	protected final List<String> topics;
@@ -109,6 +122,8 @@ public abstract class KafkaConfigBase implements Serializable {
 
 		topics = props.containsKey("topics") ? Colls.list(new HashSet<>(Texts.split(props.get("topics") + "," + props.get("topic"), ",")))
 				: Colls.list();
+		kerberosConfigPath = Configs.get("albatis.kafka.kerberos");
+		kerberos();
 	}
 
 	public Properties props() {
@@ -130,5 +145,46 @@ public abstract class KafkaConfigBase implements Serializable {
 
 	public List<String> topics() {
 		return topics;
+	}
+
+	public void kerberos() {
+		if (null == kerberosConfigPath) return;
+		File kerberosConfigR = new File(kerberosConfigPath);
+		String[] files = kerberosConfigR.list();
+		List<String> fileList = Colls.list(files);
+		try {
+			KERBEROS_PROPS.load(IOs.openFile(kerberosConfigPath + KERBEROS_PROP_PATH));
+		} catch (IOException e) {
+			throw new RuntimeException("load KERBEROS_PROP error!", e);
+//			logger.error("load KERBEROS_PROP error!", e);
+		}
+		if (fileList.contains(HUAWEI_KEYTAB)) {
+			logger.info("Enable huawei kerberos!");
+			try {
+				LoginUtil.setJaasFile(KERBEROS_PROPS.getProperty("albatis.kafka.kerberos.kafka.principal"), kerberosConfigPath + HUAWEI_KEYTAB);
+				LoginUtil.setKrb5Config(kerberosConfigPath + KRB5_CONF);
+				LoginUtil.setZookeeperServerPrincipal(KERBEROS_PROPS.getProperty("albatis.kafka.kerberos.zk.principal"));
+			} catch (IOException e) {
+				throw new RuntimeException("Load kerberos config error!", e);
+			}
+		}
+		else {
+			logger.info("Enable normal kerberos!");
+			try {
+				LoginUtil.setKrb5Config(kerberosConfigPath + KRB5_CONF);
+				LoginUtil.setZookeeperServerPrincipal(KERBEROS_PROPS.getProperty("albatis.kafka.kerberos.zk.principal"));
+				System.setProperty("java.security.auth.login.config", kerberosConfigPath + JAAS_CONF);
+			} catch (IOException e) {
+				throw new RuntimeException("Load kerberos config error!", e);
+			}
+		}
+	}
+
+	public void kerberosConfig(Properties props) {
+		if (null != kerberosConfigPath) {
+			props.setProperty("kerberos.domain.name", KERBEROS_PROPS.getProperty("kerberos.domain.name"));
+			props.setProperty("security.protocol", KERBEROS_PROPS.getProperty("security.protocol"));
+			props.setProperty("sasl.kerberos.service.name", KERBEROS_PROPS.getProperty("sasl.kerberos.service.name"));
+		}
 	}
 }

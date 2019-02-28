@@ -72,7 +72,7 @@ public class Kafka2OutputConfig extends KafkaConfigBase {
 		// props.setProperty("metrics.num.samples", );
 		// props.setProperty("linger.ms", );
 		// props.setProperty("client.id", );
-
+		kerberosConfig(props);
 		return props;
 	}
 

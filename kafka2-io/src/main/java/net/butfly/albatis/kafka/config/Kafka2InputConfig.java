@@ -140,7 +140,7 @@ public class Kafka2InputConfig extends KafkaConfigBase {
 
 		props.setProperty("auto.offset.reset", autoOffsetReset);
 		props.setProperty("partition.assignment.strategy", partitionAssignmentStrategy);
-
+		kerberosConfig(props);
 		return props;
 	}
 
