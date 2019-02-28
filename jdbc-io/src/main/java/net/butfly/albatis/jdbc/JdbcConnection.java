@@ -11,6 +11,7 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import javax.sql.DataSource;
 
@@ -78,11 +79,11 @@ public class JdbcConnection extends DataConnection<DataSource> {
 		try (Connection conn = client.getConnection()) {
 			if (uri.getScheme().startsWith("jdbc:mysql"))
 				new MysqlDialect().tableConstruct(conn, tableName, tableDesc, fields);
-			if (uri.getScheme().startsWith("jdbc:oracle:thin"))
+			else if (uri.getScheme().startsWith("jdbc:oracle:thin"))
 				new OracleDialect().tableConstruct(conn, tableName, tableDesc, fields);
-			if (uri.getScheme().startsWith("jdbc:postgresql:libra"))
+			else if (uri.getScheme().startsWith("jdbc:postgresql:libra"))
 				new LibraDialect().tableConstruct(conn, tableName, tableDesc, fields);
-			if (uri.getScheme().startsWith("jdbc:postgresql") || uri.getScheme().startsWith("jdbc:kingbaseanalyticsdb"))
+			else if (uri.getScheme().startsWith("jdbc:postgresql") || uri.getScheme().startsWith("jdbc:kingbaseanalyticsdb"))
 				new PostgresqlDialect().tableConstruct(conn, tableName, tableDesc, fields);
 		} catch (SQLException e) {
 			logger().error("construct table failure", e);
@@ -99,6 +100,32 @@ public class JdbcConnection extends DataConnection<DataSource> {
 				throw new UnsupportedOperationException("not support this schema operate");
 		} catch (SQLException e) {
 			logger().error("alert fields failure", e);
+		}
+	}
+
+	@Override
+	public List<Map<String, Object>> getResultListByCondition(String table, Map<String, Object> condition) {
+		List<Map<String, Object>> results = new ArrayList<>();
+		try (Connection conn = client.getConnection()) {
+			if (uri.getScheme().startsWith("jdbc:postgresql:libra"))
+				results = new LibraDialect().getResultListByCondition(conn, table, condition);
+			else
+				throw new UnsupportedOperationException("not support this schema operate");
+		} catch (SQLException e) {
+			logger().error("Getting results by condition is failure", e);
+		}
+		return results;
+	}
+
+	@Override
+	public void deleteByCondition(String table, Map<String, Object> condition) {
+		try (Connection conn = client.getConnection()) {
+			if (uri.getScheme().startsWith("jdbc:postgresql:libra"))
+				new LibraDialect().deleteByCondition(conn, table, condition);
+			else
+				throw new UnsupportedOperationException("not support this schema operate");
+		} catch (SQLException e) {
+			logger().error("Deleting by condition is failure", e);
 		}
 	}
 

@@ -7,10 +7,7 @@ import net.butfly.albatis.io.Rmap;
 import net.butfly.albatis.io.utils.JsonUtils;
 
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
@@ -53,7 +50,7 @@ public class LibraDialect extends Dialect {
 	@Override
 	protected void doUpsert(Connection conn, String table, String keyField, List<Rmap> records, AtomicLong count) {
 		records.forEach(r -> {
-			String sql = "SELECT " + keyField + " FROM " + table + " where " + keyField + " = " + r.get(keyField);
+			String sql = "SELECT " + keyField + " FROM " + table + " where " + keyField + " = '"+r.get(keyField)+"'";
 			try (PreparedStatement ps = conn.prepareStatement(sql); ResultSet rs = ps.executeQuery();) {
 				if (rs.next()) doUpdate(conn, keyField, table, r);
 				else doInsert(conn, keyField, table, r);
@@ -167,7 +164,6 @@ public class LibraDialect extends Dialect {
 		return sb.toString();
 	}
 
-	@Override
 	public List<String> getFieldNameList(Connection conn, String table) {
 		List<String> columnNames = new ArrayList<>();
 		String sql = "select * from " + table;
@@ -185,7 +181,6 @@ public class LibraDialect extends Dialect {
 		return columnNames;
 	}
 
-	@Override
 	public void alterColumn(Connection conn, String table, TableDesc tableDesc, List<FieldDesc> fields) {
 		List<String> fieldNameList = getFieldNameList(conn, table);
 		StringBuilder sb = new StringBuilder();
@@ -195,7 +190,7 @@ public class LibraDialect extends Dialect {
 				fieldSql.add(buildSqlField(tableDesc, field));
 		}
 		sb.append("alter table ").append("\"").append(table).append("\"");
-		if(fieldSql.size() == 0) return;
+		if (fieldSql.size() == 0) return;
 		for (int i = 0, len = fieldSql.size(); i < len; i++) {
 			sb.append(" add column ").append(fieldSql.get(i));
 			if (i < len - 1) sb.append(",");
@@ -208,7 +203,81 @@ public class LibraDialect extends Dialect {
 		}
 	}
 
-	@Override
+	public List<Map<String, Object>> getResultListByCondition(Connection conn, String table, Map<String, Object> condition) {
+		List<Map<String, Object>> resultList = new ArrayList<>();
+		StringBuilder parameter = new StringBuilder();
+		String sql = "select * from " + table;
+		if (condition.size() != 0) {
+			for (String key : condition.keySet()) {
+				parameter.append(key).append("='").append(condition.get(key)).append("'and ");
+			}
+			String param = parameter.substring(0, parameter.length() - 4);
+			sql = "select * from " + table + " where " + param;
+		}
+		Statement stmt = null;
+		ResultSet rs = null;
+		int n = 0;
+		try {
+			//生成预处理语句。
+			stmt = conn.createStatement();
+			rs = stmt.executeQuery(sql);
+			ResultSetMetaData rsmd = rs.getMetaData();
+			while (rs.next()) {
+				//n = rs.getInt(1);
+				Map<String, Object> m = new HashMap<>();
+				for (int i = 0; i < rsmd.getColumnCount(); i++) {
+					String colName = rsmd.getColumnName(i + 1);
+					Object colValue = rs.getObject(colName);
+					if (colValue == null) {
+						colValue = "";
+					}
+					m.put(colName, colValue);
+				}
+				resultList.add(m);
+			}
+			return resultList;
+		} catch (SQLException e) {
+			logger().error("Get results are failure", e);
+		} finally {
+			if (stmt != null) {
+				try {
+					stmt.close();
+				} catch (SQLException e) {
+					logger().error("Close statement failure", e);
+				}
+			}
+		}
+		return null;
+	}
+
+
+	public void deleteByCondition(Connection conn, String table, Map<String, Object> condition) {
+		StringBuilder parameter = new StringBuilder();
+		String sql = "select * from " + table;
+		if (condition.size() != 0) {
+			for (String key : condition.keySet()) {
+				parameter.append(key).append("='").append(condition.get(key)).append("'and ");
+			}
+			String param = parameter.substring(0, parameter.length() - 4);
+			sql = "delete from " + table + " where " + param;
+		}
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = conn.prepareStatement(sql);
+			pstmt.execute();
+		} catch (SQLException e) {
+			logger().info("Delete key information quantity error", e);
+		} finally {
+			if (pstmt != null) {
+				try {
+					pstmt.close();
+				} catch (SQLException e) {
+					logger().error("Close statement failure", e);
+				}
+			}
+		}
+	}
+
 	public void deleteTable(Connection conn, String table) {
 		String sql = "delete from " + table;
 		try (PreparedStatement ps = conn.prepareStatement(sql)) {

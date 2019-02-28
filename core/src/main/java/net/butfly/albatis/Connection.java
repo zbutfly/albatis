@@ -1,11 +1,5 @@
 package net.butfly.albatis;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.Map;
-import java.util.ServiceLoader;
-
 import net.butfly.albacore.exception.NotImplementedException;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.io.lambda.Function;
@@ -17,6 +11,12 @@ import net.butfly.albatis.EnvironmentConnection.$env$;
 import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.io.IOFactory;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Map;
+import java.util.ServiceLoader;
 
 public interface Connection extends AutoCloseable, IOFactory {
 	static final Logger logger = Logger.getLogger(Connection.class);
@@ -102,10 +102,6 @@ public interface Connection extends AutoCloseable, IOFactory {
 		logger().warn("Constructing invoked but not implemented, ignore.");
 	}
 
-	default void alterFields(String table, TableDesc tableDesc, List<FieldDesc> fields) {
-		logger().warn("Constructing invoked but not implemented, ignore.");
-	}
-
 	default void construct(String table, String aliasName, TableDesc tableDesc, List<FieldDesc> fields) {
 		logger().warn("Constructing invoked but not implemented, ignore.");
 	}
@@ -116,6 +112,18 @@ public interface Connection extends AutoCloseable, IOFactory {
 
 	default void construct(Map<String, Object> tableConfig, FieldDesc... fields) {
 		logger().warn("Constructing invoked but not implemented, ignore.");
+	}
+
+	default void alterFields(String table, TableDesc tableDesc, List<FieldDesc> fields) {
+		logger().warn("Altering fields invoked but not implemented, ignore.");
+	}
+
+	default List<Map<String, Object>> getResultListByCondition(String table, Map<String, Object> condition){
+		throw new UnsupportedOperationException("Getting results by condition invoked but not implemented, ignore.");
+	}
+
+	default void deleteByCondition(String table, Map<String, Object> condition){
+		logger().warn("Deleting by condition invoked but not implemented, ignore.");
 	}
 
 	default boolean judge(String table) {
