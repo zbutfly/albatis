@@ -82,10 +82,18 @@ public class Kafka2Connection extends DataConnection<Connection> implements IOFa
 	}
 
 	@Override
-	public boolean judge(String dbName, String table) {
+	public boolean judge(String table) {
+		String[] tables = table.split("\\.");
+		String dbName, tableName;
+		if (tables.length == 1)
+			dbName = tableName = tables[0];
+		else if ((tables.length == 2)) {
+			dbName = tables[0];
+			tableName = tables[1];
+		} else throw new RuntimeException("Please type in corrent es table format: db.table !");
 		String kafkaUrl = uri.getHost() + "/kafka";
 		ZkUtils zkUtils = ZkUtils.apply(kafkaUrl, 30000, 30000, JaasUtils.isZkSecurityEnabled());
 		List<String> topics = JavaConversions.seqAsJavaList(zkUtils.getAllTopics());
-		return topics.contains(table);
+		return topics.contains(tableName);
 	}
 }
