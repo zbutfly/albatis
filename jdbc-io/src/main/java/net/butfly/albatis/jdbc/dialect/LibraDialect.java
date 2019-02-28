@@ -106,11 +106,12 @@ public class LibraDialect extends Dialect {
 			List<Map<String, Object>> indexes = tableDesc.indexes;
 			sb.append("create table ").append("\"").append(table).append("\"").append("(").append(String.join(",", fieldSql.toArray(
 					new String[0]))).append(")");
-			Object distributeColumns = tableDesc.construct.get("distribute_columns");
-			if (null == distributeColumns || "".equals(distributeColumns))
-				sb.append("with (oids=false) ").append("distribute by hash ( ").append(String.join(",", tableDesc.keys.get(0).toArray(new String[0]))).append(" )");
-			else
-				sb.append("with (oids=false) ").append("distribute by hash ( ").append(distributeColumns.toString()).append(" )");
+			// support libra distributed by column
+//			Object distributeColumns = tableDesc.construct.get("distribute_columns");
+//			if (null == distributeColumns || "".equals(distributeColumns))
+//				sb.append("with (oids=false) ").append("distribute by hash ( ").append(String.join(",", tableDesc.keys.get(0).toArray(new String[0]))).append(" )");
+//			else
+//				sb.append("with (oids=false) ").append("distribute by hash ( ").append(distributeColumns.toString()).append(" )");
 			statement.addBatch(sb.toString());
 			if (!indexes.isEmpty()) {
 				for (Map<String, Object> index : indexes) {
@@ -194,6 +195,7 @@ public class LibraDialect extends Dialect {
 				fieldSql.add(buildSqlField(tableDesc, field));
 		}
 		sb.append("alter table ").append("\"").append(table).append("\"");
+		if(fieldSql.size() == 0) return;
 		for (int i = 0, len = fieldSql.size(); i < len; i++) {
 			sb.append(" add column ").append(fieldSql.get(i));
 			if (i < len - 1) sb.append(",");
