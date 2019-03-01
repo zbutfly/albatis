@@ -22,7 +22,7 @@ public class EsConstructTest {
 		indexConfig.put("number_of_replicas", 1);
 		List<FieldDesc> fields = new ArrayList<>();
 		@SuppressWarnings("deprecation")
-		DBDesc dbDesc = new DBDesc("es_test", url);
+		DBDesc dbDesc = DBDesc.of("es_test", url);
 		TableDesc tableDesc = new TableDesc(dbDesc, "es_test");
 		ValType type = ValType.of("string");
 		FieldDesc f = new FieldDesc(tableDesc, "name", type);

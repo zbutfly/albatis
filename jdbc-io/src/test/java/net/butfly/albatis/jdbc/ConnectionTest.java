@@ -130,7 +130,7 @@ public class ConnectionTest {
 		String url = "jdbc:postgresql:libra://172.16.17.42:5432/cominfo?user=cominfo&password=cominfo";
 		JdbcConnection connection = new JdbcConnection(new URISpec(url));
 		List<FieldDesc> fields = new ArrayList();
-		DBDesc dbDesc = new DBDesc("cominfo", url);
+		DBDesc dbDesc = DBDesc.of("cominfo", url);
 		TableDesc tableDesc = new TableDesc(dbDesc, "test_libra");
 		List<List<String>> keys = new ArrayList<>();
 		List<String> key  = new ArrayList<>();

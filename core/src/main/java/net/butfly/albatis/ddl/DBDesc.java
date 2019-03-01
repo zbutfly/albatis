@@ -43,6 +43,10 @@ public final class DBDesc extends Desc<DBDesc> {
 		return models;
 	}
 
+	public static DBDesc of(String dbname, String dburi) {
+		return models.computeIfAbsent(dbname, dbn -> new DBDesc(dbn, dburi));
+	}
+
 	@SuppressWarnings("unchecked")
 	private DBDesc(String name, Map<String, Object> modelMap) {
 		super();
@@ -60,10 +64,9 @@ public final class DBDesc extends Desc<DBDesc> {
 	}
 
 	@Deprecated
-	public DBDesc(String name, String uri) {
+	private DBDesc(String name, String uri) {
 		this.name = name;
 		this.uri = new URISpec(uri);
-		reg(this);
 	}
 
 	@Deprecated
