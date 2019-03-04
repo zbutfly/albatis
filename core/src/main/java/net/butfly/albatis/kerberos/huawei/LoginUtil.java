@@ -1,4 +1,4 @@
-package net.butfly.albatis.kafka.kerberos.huawei;
+package net.butfly.albatis.kerberos.huawei;
 
 import java.io.File;
 import java.io.FileWriter;

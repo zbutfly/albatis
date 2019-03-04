@@ -19,7 +19,7 @@ import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.Texts;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.logger.Logger;
-import net.butfly.albatis.kafka.kerberos.huawei.LoginUtil;
+import net.butfly.albatis.kerberos.huawei.LoginUtil;
 
 public abstract class KafkaConfigBase implements Serializable {
 	private static final long serialVersionUID = -4020530608706621876L;
@@ -165,7 +165,7 @@ public abstract class KafkaConfigBase implements Serializable {
 				LoginUtil.setKrb5Config(kerberosConfigPath + KRB5_CONF);
 				LoginUtil.setZookeeperServerPrincipal(KERBEROS_PROPS.getProperty("albatis.kafka.kerberos.zk.principal"));
 			} catch (IOException e) {
-				throw new RuntimeException("Load kerberos config error!", e);
+				throw new RuntimeException("Load huawei kerberos config error!", e);
 			}
 		}
 		else {
@@ -175,7 +175,7 @@ public abstract class KafkaConfigBase implements Serializable {
 				LoginUtil.setZookeeperServerPrincipal(KERBEROS_PROPS.getProperty("albatis.kafka.kerberos.zk.principal"));
 				System.setProperty("java.security.auth.login.config", kerberosConfigPath + JAAS_CONF);
 			} catch (IOException e) {
-				throw new RuntimeException("Load kerberos config error!", e);
+				throw new RuntimeException("Load normal kerberos config error!", e);
 			}
 		}
 	}
