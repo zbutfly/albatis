@@ -1,10 +1,5 @@
 package net.butfly.albatis.jdbc;
 
-import static net.butfly.albatis.ddl.vals.ValType.Flags.DATE;
-import static net.butfly.albatis.ddl.vals.ValType.Flags.INT;
-import static net.butfly.albatis.ddl.vals.ValType.Flags.LONG;
-import static net.butfly.albatis.ddl.vals.ValType.Flags.STR;
-
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -24,7 +19,8 @@ import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.DataConnection;
 import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.ddl.TableDesc;
-import net.butfly.albatis.jdbc.dialect.*;
+import net.butfly.albatis.jdbc.dialect.Dialect;
+import net.butfly.albatis.jdbc.dialect.DialectFor;
 
 public class JdbcConnection extends DataConnection<DataSource> {
 	private static final Logger logger = Logger.getLogger(JdbcConnection.class);
@@ -48,43 +44,24 @@ public class JdbcConnection extends DataConnection<DataSource> {
 
 	@Override
 	public void construct(String table, FieldDesc... fields) {
-		try (Connection conn = client.getConnection()) {
-			if (uri.getScheme().startsWith("jdbc:oracle")) {
-				StringBuilder sql = new StringBuilder();
-				List<String> fieldSql = new ArrayList<>();
-				for (FieldDesc f : fields)
-					fieldSql.add(buildField(f));
-				sql.append("create table ").append(table).append("(").append(String.join(",", fieldSql.toArray(new String[0]))).append(")");
-				try (PreparedStatement ps = conn.prepareStatement(sql.toString());) {
-					ps.execute();
-					logger().info("Table constructed by:\n\t" + sql);
-				} catch (SQLException e) {
-					logger().error("Table construct failed", e);
-				}
-			} else throw new UnsupportedOperationException("Jdbc table create not supported for:" + uri.getScheme());
-		} catch (SQLException e1) {
+		String sql = dialect.buildCreateTableSql(table, fields);
+		logger().info("Table constructed with statment:\n\t" + sql);
+		try (Connection conn = client.getConnection(); PreparedStatement ps = conn.prepareStatement(sql.toString());) {
+			ps.execute();
+		} catch (SQLException e) {
+			logger().error("Table construct failed", e);
 		}
 	}
 
 	@Override
 	public void construct(String table, TableDesc tableDesc, List<FieldDesc> fields) {
 		String[] tables = table.split("\\.");
-		String dbName, tableName;
-		if (tables.length == 1)
-			dbName = tableName = tables[0];
-		else if ((tables.length == 2)) {
-			dbName = tables[0];
-			tableName = tables[1];
-		} else throw new RuntimeException("Please type in corrent es table format: db.table !");
+		String tableName;
+		if (tables.length == 1) tableName = tables[0];
+		else if ((tables.length == 2)) tableName = tables[1];
+		else throw new RuntimeException("Please type in corrent es table format: db.table !");
 		try (Connection conn = client.getConnection()) {
-			if (uri.getScheme().startsWith("jdbc:mysql"))
-				new MysqlDialect().tableConstruct(conn, tableName, tableDesc, fields);
-			else if (uri.getScheme().startsWith("jdbc:oracle:thin"))
-				new OracleDialect().tableConstruct(conn, tableName, tableDesc, fields);
-			else if (uri.getScheme().startsWith("jdbc:postgresql:libra"))
-				new LibraDialect().tableConstruct(conn, tableName, tableDesc, fields);
-			else if (uri.getScheme().startsWith("jdbc:postgresql") || uri.getScheme().startsWith("jdbc:kingbaseanalyticsdb"))
-				new PostgresqlDialect().tableConstruct(conn, tableName, tableDesc, fields);
+			dialect.tableConstruct(conn, tableName, tableDesc, fields);
 		} catch (SQLException e) {
 			logger().error("construct table failure", e);
 		}
@@ -94,10 +71,7 @@ public class JdbcConnection extends DataConnection<DataSource> {
 	@Override
 	public void alterFields(String table, TableDesc tableDesc, List<FieldDesc> fields) {
 		try (Connection conn = client.getConnection()) {
-			if (uri.getScheme().startsWith("jdbc:postgresql:libra"))
-				new LibraDialect().alterColumn(conn, table, tableDesc, fields);
-			else
-				throw new UnsupportedOperationException("not support this schema operate");
+			dialect.alterColumn(conn, table, tableDesc, fields);
 		} catch (SQLException e) {
 			logger().error("alert fields failure", e);
 		}
@@ -107,10 +81,7 @@ public class JdbcConnection extends DataConnection<DataSource> {
 	public List<Map<String, Object>> getResultListByCondition(String table, Map<String, Object> condition) {
 		List<Map<String, Object>> results = new ArrayList<>();
 		try (Connection conn = client.getConnection()) {
-			if (uri.getScheme().startsWith("jdbc:postgresql:libra"))
-				results = new LibraDialect().getResultListByCondition(conn, table, condition);
-			else
-				throw new UnsupportedOperationException("not support this schema operate");
+			dialect.getResultListByCondition(conn, table, condition);
 		} catch (SQLException e) {
 			logger().error("Getting results by condition is failure", e);
 		}
@@ -120,10 +91,7 @@ public class JdbcConnection extends DataConnection<DataSource> {
 	@Override
 	public void deleteByCondition(String table, Map<String, Object> condition) {
 		try (Connection conn = client.getConnection()) {
-			if (uri.getScheme().startsWith("jdbc:postgresql:libra"))
-				new LibraDialect().deleteByCondition(conn, table, condition);
-			else
-				throw new UnsupportedOperationException("not support this schema operate");
+			dialect.deleteByCondition(conn, table, condition);
 		} catch (SQLException e) {
 			logger().error("Deleting by condition is failure", e);
 		}
@@ -132,18 +100,12 @@ public class JdbcConnection extends DataConnection<DataSource> {
 	@Override
 	public boolean judge(String table) {
 		String[] tables = table.split("\\.");
-		String dbName, tableName;
-		if (tables.length == 1)
-			dbName = tableName = tables[0];
-		else if ((tables.length == 2)) {
-			dbName = tables[0];
-			tableName = tables[1];
-		} else throw new RuntimeException("Please type in corrent es table format: db.table !");
+		String tableName;
+		if (tables.length == 1) tableName = tables[0];
+		else if ((tables.length == 2)) tableName = tables[1];
+		else throw new RuntimeException("Please type in corrent es table format: db.table !");
 		try (Connection conn = client.getConnection()) {
-			if (uri.getScheme().startsWith("jdbc:mysql") || uri.getScheme().startsWith("jdbc:oracle:thin") || uri.getScheme().startsWith(
-					"jdbc:postgresql")) return new MysqlDialect().tableExisted(conn, tableName);
-			if (uri.getScheme().startsWith("jdbc:kingbaseanalyticsdb"))
-				return new KingbaseDialect().tableExisted(conn, tableName);
+			dialect.tableExisted(conn, tableName);
 		} catch (SQLException e) {
 			logger().error("jdbc judge table isExists error", e);
 		}
@@ -176,8 +138,7 @@ public class JdbcConnection extends DataConnection<DataSource> {
 		DataSource hds = client;
 		if (null != hds && hds instanceof AutoCloseable) try {
 			((AutoCloseable) hds).close();
-		} catch (Exception e) {
-		}
+		} catch (Exception e) {}
 	}
 
 	@SuppressWarnings("unchecked")
@@ -187,7 +148,7 @@ public class JdbcConnection extends DataConnection<DataSource> {
 		JdbcInput i;
 		try {
 			i = new JdbcInput("JdbcInput", this, sql[0].name);
-			i.query("select * from " + sql[0].name);
+			i.query("select * from " + sql[0].name); // XXX: ??why not in constructor?
 		} catch (SQLException e) {
 			throw new IOException(e);
 		}
@@ -214,27 +175,5 @@ public class JdbcConnection extends DataConnection<DataSource> {
 		public List<String> schemas() {
 			return Colls.list("jdbc");
 		}
-	}
-
-	private static String buildField(FieldDesc field) {
-		StringBuilder sb = new StringBuilder();
-		switch (field.type.flag) {
-			case INT:
-				sb.append(field.name).append(" number(32, 0)");
-				break;
-			case LONG:
-				sb.append(field.name).append(" number(64, 0)");
-				break;
-			case STR:
-				sb.append(field.name).append(" varchar2(100)");
-				break;
-			case DATE:
-				sb.append(field.name).append(" date");
-				break;
-			default:
-				break;
-		}
-		if (field.rowkey) sb.append(" not null primary key");
-		return sb.toString();
 	}
 }

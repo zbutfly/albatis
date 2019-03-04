@@ -1,17 +1,37 @@
 package net.butfly.albatis.jdbc.dialect;
 
+import static net.butfly.albatis.ddl.vals.ValType.Flags.BINARY;
+import static net.butfly.albatis.ddl.vals.ValType.Flags.BOOL;
+import static net.butfly.albatis.ddl.vals.ValType.Flags.BYTE;
+import static net.butfly.albatis.ddl.vals.ValType.Flags.CHAR;
+import static net.butfly.albatis.ddl.vals.ValType.Flags.DATE;
+import static net.butfly.albatis.ddl.vals.ValType.Flags.DOUBLE;
+import static net.butfly.albatis.ddl.vals.ValType.Flags.FLOAT;
+import static net.butfly.albatis.ddl.vals.ValType.Flags.INT;
+import static net.butfly.albatis.ddl.vals.ValType.Flags.LONG;
+import static net.butfly.albatis.ddl.vals.ValType.Flags.SHORT;
+import static net.butfly.albatis.ddl.vals.ValType.Flags.STR;
+import static net.butfly.albatis.ddl.vals.ValType.Flags.UNKNOWN;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
+
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.io.Rmap;
 import net.butfly.albatis.io.utils.JsonUtils;
-
-import java.sql.*;
-import java.util.*;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Collectors;
-
-import static net.butfly.albatis.ddl.vals.ValType.Flags.*;
 
 @DialectFor(subSchema = "postgresql:libra", jdbcClassname = "org.postgresql.Driver")
 public class LibraDialect extends Dialect {
@@ -50,7 +70,7 @@ public class LibraDialect extends Dialect {
 	@Override
 	protected void doUpsert(Connection conn, String table, String keyField, List<Rmap> records, AtomicLong count) {
 		records.forEach(r -> {
-			String sql = "SELECT " + keyField + " FROM " + table + " where " + keyField + " = '"+r.get(keyField)+"'";
+			String sql = "SELECT " + keyField + " FROM " + table + " where " + keyField + " = '" + r.get(keyField) + "'";
 			try (PreparedStatement ps = conn.prepareStatement(sql); ResultSet rs = ps.executeQuery();) {
 				if (rs.next()) doUpdate(conn, keyField, table, r);
 				else doInsert(conn, keyField, table, r);
@@ -104,11 +124,12 @@ public class LibraDialect extends Dialect {
 			sb.append("create table ").append("\"").append(table).append("\"").append("(").append(String.join(",", fieldSql.toArray(
 					new String[0]))).append(")");
 			// support libra distributed by column
-//			Object distributeColumns = tableDesc.construct.get("distribute_columns");
-//			if (null == distributeColumns || "".equals(distributeColumns))
-//				sb.append("with (oids=false) ").append("distribute by hash ( ").append(String.join(",", tableDesc.keys.get(0).toArray(new String[0]))).append(" )");
-//			else
-//				sb.append("with (oids=false) ").append("distribute by hash ( ").append(distributeColumns.toString()).append(" )");
+			// Object distributeColumns = tableDesc.construct.get("distribute_columns");
+			// if (null == distributeColumns || "".equals(distributeColumns))
+			// sb.append("with (oids=false) ").append("distribute by hash ( ").append(String.join(",", tableDesc.keys.get(0).toArray(new
+			// String[0]))).append(" )");
+			// else
+			// sb.append("with (oids=false) ").append("distribute by hash ( ").append(distributeColumns.toString()).append(" )");
 			statement.addBatch(sb.toString());
 			if (!indexes.isEmpty()) {
 				for (Map<String, Object> index : indexes) {
@@ -133,32 +154,32 @@ public class LibraDialect extends Dialect {
 	protected String buildSqlField(TableDesc tableDesc, FieldDesc field) {
 		StringBuilder sb = new StringBuilder();
 		switch (field.type.flag) {
-			case INT:
-			case SHORT:
-			case BINARY:
-				sb.append("\"").append(field.name).append("\"").append(" int4");
-				break;
-			case LONG:
-				sb.append("\"").append(field.name).append("\"").append(" int8");
-				break;
-			case FLOAT:
-			case DOUBLE:
-				sb.append("\"").append(field.name).append("\"").append(" numeric(10)");
-				break;
-			case BYTE:
-			case BOOL:
-				sb.append("\'").append(field.name).append("\'").append(" bool(1)");
-				break;
-			case STR:
-			case CHAR:
-			case UNKNOWN:
-				sb.append("\"").append(field.name).append("\"").append(" varchar(256)");
-				break;
-			case DATE:
-				sb.append("\"").append(field.name).append("\"").append(" date");
-				break;
-			default:
-				break;
+		case INT:
+		case SHORT:
+		case BINARY:
+			sb.append("\"").append(field.name).append("\"").append(" int4");
+			break;
+		case LONG:
+			sb.append("\"").append(field.name).append("\"").append(" int8");
+			break;
+		case FLOAT:
+		case DOUBLE:
+			sb.append("\"").append(field.name).append("\"").append(" numeric(10)");
+			break;
+		case BYTE:
+		case BOOL:
+			sb.append("\'").append(field.name).append("\'").append(" bool(1)");
+			break;
+		case STR:
+		case CHAR:
+		case UNKNOWN:
+			sb.append("\"").append(field.name).append("\"").append(" varchar(256)");
+			break;
+		case DATE:
+			sb.append("\"").append(field.name).append("\"").append(" date");
+			break;
+		default:
+			break;
 		}
 		if (tableDesc.keys.get(0).contains(field.name)) sb.append(" not null primary key");
 		return sb.toString();
@@ -168,9 +189,9 @@ public class LibraDialect extends Dialect {
 		List<String> columnNames = new ArrayList<>();
 		String sql = "select * from " + table;
 		try (PreparedStatement ps = conn.prepareStatement(sql)) {
-			//结果集元数据
+			// 结果集元数据
 			ResultSetMetaData rsmd = ps.getMetaData();
-			//表列数
+			// 表列数
 			int size = rsmd.getColumnCount();
 			for (int i = 0; i < size; i++) {
 				columnNames.add(rsmd.getColumnName(i + 1));
@@ -181,13 +202,13 @@ public class LibraDialect extends Dialect {
 		return columnNames;
 	}
 
+	@Override
 	public void alterColumn(Connection conn, String table, TableDesc tableDesc, List<FieldDesc> fields) {
 		List<String> fieldNameList = getFieldNameList(conn, table);
 		StringBuilder sb = new StringBuilder();
 		List<String> fieldSql = new ArrayList<>();
 		for (FieldDesc field : fields) {
-			if (!fieldNameList.contains(field.name))
-				fieldSql.add(buildSqlField(tableDesc, field));
+			if (!fieldNameList.contains(field.name)) fieldSql.add(buildSqlField(tableDesc, field));
 		}
 		sb.append("alter table ").append("\"").append(table).append("\"");
 		if (fieldSql.size() == 0) return;
@@ -203,6 +224,7 @@ public class LibraDialect extends Dialect {
 		}
 	}
 
+	@Override
 	public List<Map<String, Object>> getResultListByCondition(Connection conn, String table, Map<String, Object> condition) {
 		List<Map<String, Object>> resultList = new ArrayList<>();
 		StringBuilder parameter = new StringBuilder();
@@ -216,14 +238,13 @@ public class LibraDialect extends Dialect {
 		}
 		Statement stmt = null;
 		ResultSet rs = null;
-		int n = 0;
 		try {
-			//生成预处理语句。
+			// 生成预处理语句。
 			stmt = conn.createStatement();
 			rs = stmt.executeQuery(sql);
 			ResultSetMetaData rsmd = rs.getMetaData();
 			while (rs.next()) {
-				//n = rs.getInt(1);
+				// n = rs.getInt(1);
 				Map<String, Object> m = new HashMap<>();
 				for (int i = 0; i < rsmd.getColumnCount(); i++) {
 					String colName = rsmd.getColumnName(i + 1);
@@ -250,7 +271,7 @@ public class LibraDialect extends Dialect {
 		return null;
 	}
 
-
+	@Override
 	public void deleteByCondition(Connection conn, String table, Map<String, Object> condition) {
 		StringBuilder parameter = new StringBuilder();
 		String sql = "select * from " + table;

@@ -25,8 +25,7 @@ public interface Connection extends AutoCloseable, IOFactory {
 	static final int DEFAULT_BATCH_SIZE = 500;
 	static final Connection DUMMY = new Connection() {
 		@Override
-		public void close() throws IOException {
-		}
+		public void close() throws IOException {}
 
 		@Override
 		public String defaultSchema() {
@@ -118,14 +117,18 @@ public interface Connection extends AutoCloseable, IOFactory {
 		logger().warn("Altering fields invoked but not implemented, ignore.");
 	}
 
-	default List<Map<String, Object>> getResultListByCondition(String table, Map<String, Object> condition){
+	default List<Map<String, Object>> getResultListByCondition(String table, Map<String, Object> condition) {
 		throw new UnsupportedOperationException("Getting results by condition invoked but not implemented, ignore.");
 	}
 
-	default void deleteByCondition(String table, Map<String, Object> condition){
+	default void deleteByCondition(String table, Map<String, Object> condition) {
 		logger().warn("Deleting by condition invoked but not implemented, ignore.");
 	}
 
+	/**
+	 * @param table
+	 * @return whether the table existed or not
+	 */
 	default boolean judge(String table) {
 		throw new NotImplementedException();
 	}
@@ -143,13 +146,13 @@ public interface Connection extends AutoCloseable, IOFactory {
 	static Function<Map<String, Object>, byte[]> uriser(URISpec uri) {
 		String sd = null == uri ? "bson" : uri.getParameter("serder", "bson").toLowerCase();
 		switch (sd) {
-			case "bson":
-				return BsonSerder::map;
-			case "json":
-				return m -> JsonSerder.JSON_MAPPER.ser(m).getBytes(StandardCharsets.UTF_8);
-			default:
-				_Logger.logger.warn("Current only support \"serder=bson|json\", \"" + sd + "\" is not supported, use bson by failback.");
-				return BsonSerder::map;
+		case "bson":
+			return BsonSerder::map;
+		case "json":
+			return m -> JsonSerder.JSON_MAPPER.ser(m).getBytes(StandardCharsets.UTF_8);
+		default:
+			_Logger.logger.warn("Current only support \"serder=bson|json\", \"" + sd + "\" is not supported, use bson by failback.");
+			return BsonSerder::map;
 		}
 	}
 
@@ -157,13 +160,13 @@ public interface Connection extends AutoCloseable, IOFactory {
 	static Function<byte[], Map<String, Object>> urider(URISpec uri) {
 		String sd = null == uri ? "bson" : uri.getParameter("serder", "bson").toLowerCase();
 		switch (sd) {
-			case "bson":
-				return BsonSerder::map;
-			case "json":
-				return m -> JsonSerder.JSON_MAPPER.der(new String(m, StandardCharsets.UTF_8));
-			default:
-				_Logger.logger.warn("Current only support \"serder=bson|json\", \"" + sd + "\" is not supported, use bson by failback.");
-				return BsonSerder::map;
+		case "bson":
+			return BsonSerder::map;
+		case "json":
+			return m -> JsonSerder.JSON_MAPPER.der(new String(m, StandardCharsets.UTF_8));
+		default:
+			_Logger.logger.warn("Current only support \"serder=bson|json\", \"" + sd + "\" is not supported, use bson by failback.");
+			return BsonSerder::map;
 		}
 	}
 
@@ -171,13 +174,13 @@ public interface Connection extends AutoCloseable, IOFactory {
 	static Function<byte[], List<Map<String, Object>>> uriders(URISpec uri) {
 		String sd = null == uri ? "bson" : uri.getParameter("serder", "bson").toLowerCase();
 		switch (sd) {
-			case "bson":
-				return BsonSerder::maps;
-			case "json":
-				return m -> JsonSerder.JSON_MAPPER.ders(new String(m, StandardCharsets.UTF_8));
-			default:
-				_Logger.logger.warn("Current only support \"serder=bson|json\", \"" + sd + "\" is not supported, use bson by failback.");
-				return BsonSerder::maps;
+		case "bson":
+			return BsonSerder::maps;
+		case "json":
+			return m -> JsonSerder.JSON_MAPPER.ders(new String(m, StandardCharsets.UTF_8));
+		default:
+			_Logger.logger.warn("Current only support \"serder=bson|json\", \"" + sd + "\" is not supported, use bson by failback.");
+			return BsonSerder::maps;
 		}
 	}
 
@@ -185,11 +188,11 @@ public interface Connection extends AutoCloseable, IOFactory {
 	static Function<String, List<Map<String, Object>>> strUriders(URISpec uri) {
 		String sd = null == uri ? "bson" : uri.getParameter("serder", "bson").toLowerCase();
 		switch (sd) {
-			case "json":
-				return m -> JsonSerder.JSON_MAPPER.ders(m);
-			default:
-				_Logger.logger.warn("Current only support \"serder=bson|json\", \"" + sd + "\" is not supported, use bson by failback.");
-				return m -> JsonSerder.JSON_MAPPER.ders(m);
+		case "json":
+			return m -> JsonSerder.JSON_MAPPER.ders(m);
+		default:
+			_Logger.logger.warn("Current only support \"serder=bson|json\", \"" + sd + "\" is not supported, use bson by failback.");
+			return m -> JsonSerder.JSON_MAPPER.ders(m);
 		}
 	}
 

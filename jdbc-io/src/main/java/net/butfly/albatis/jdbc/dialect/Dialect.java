@@ -17,16 +17,15 @@ import net.butfly.albatis.io.Rmap;
 
 @DialectFor
 public class Dialect implements Loggable {
-
 	public static Dialect of(String schema) {
-		String s = schema;
+		String s = schema.substring(schema.indexOf(':') + 1);
 		Set<Class<? extends Dialect>> classes = Reflections.getSubClasses(Dialect.class, "net.butfly.albatis.jdbc.dialect");
-		while (s.indexOf(":") > 0) {
-			s = s.substring(s.indexOf(":") + 1);
+		int lastpos;
+		do {
 			for (Class<? extends Dialect> c : classes)
 				if (c.getAnnotation(DialectFor.class).subSchema().equals(s)) //
 					return Reflections.construct(c);
-		}
+		} while ((lastpos = s.lastIndexOf(':')) >= 0 && !(s = s.substring(0, lastpos)).isEmpty());
 		return new Dialect();
 	}
 
@@ -63,7 +62,24 @@ public class Dialect implements Loggable {
 		throw new NotImplementedException();
 	}
 
-	protected boolean tableExisted(Connection conn, String table) {
+	public boolean tableExisted(Connection conn, String table) {
 		throw new NotImplementedException();
+	}
+
+	public void alterColumn(Connection conn, String table, TableDesc tableDesc, List<FieldDesc> fields) {
+		throw new NotImplementedException();
+	}
+
+	public List<Map<String, Object>> getResultListByCondition(Connection conn, String table, Map<String, Object> condition) {
+		throw new NotImplementedException();
+	}
+
+	public void deleteByCondition(Connection conn, String table, Map<String, Object> condition) {
+		throw new NotImplementedException();
+	}
+
+	public String buildCreateTableSql(String table, FieldDesc... fields) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 }

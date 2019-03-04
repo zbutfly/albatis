@@ -175,4 +175,37 @@ public class OracleDialect extends Dialect {
 		if (tableDesc.keys.get(0).contains(field.name)) sb.append(" not null primary key");
 		return sb.toString();
 	}
+
+	@Override
+	public String buildCreateTableSql(String table, FieldDesc... fields) {
+		StringBuilder sql = new StringBuilder();
+		List<String> fieldSql = new ArrayList<>();
+		for (FieldDesc f : fields)
+			fieldSql.add(buildField(f));
+		sql.append("create table ").append(table).append("(").append(String.join(",", fieldSql.toArray(new String[0]))).append(")");
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	private static String buildField(FieldDesc field) {
+		StringBuilder sb = new StringBuilder();
+		switch (field.type.flag) {
+		case INT:
+			sb.append(field.name).append(" number(32, 0)");
+			break;
+		case LONG:
+			sb.append(field.name).append(" number(64, 0)");
+			break;
+		case STR:
+			sb.append(field.name).append(" varchar2(100)");
+			break;
+		case DATE:
+			sb.append(field.name).append(" date");
+			break;
+		default:
+			break;
+		}
+		if (field.rowkey) sb.append(" not null primary key");
+		return sb.toString();
+	}
 }
