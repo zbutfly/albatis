@@ -43,6 +43,7 @@ public abstract class KafkaConfigBase implements Serializable {
 	protected String valueSerializerClass;
 	protected String keyDeserializerClass;
 	protected String valueDeserializerClass;
+
 	protected String kerberosConfigPath;
 
 	private final Long poolSize;
@@ -90,14 +91,22 @@ public abstract class KafkaConfigBase implements Serializable {
 
 	public KafkaConfigBase(URISpec uri) {
 		super();
-		String sch = uri.getScheme();
-		if (sch.startsWith("kafka:")) sch = sch.substring(6);
-		else if (sch.startsWith("kafka2:")) sch = sch.substring(7);
-		switch (sch) {
-		case "kafka":
-		case "kafka2": // empty sub schema, default as zk
+		String[] schs = uri.getScheme().split(":");
+		String s = schs[0];
+		if (schs.length > 1) s = schs[1];
+		else switch (s) {
+		case "kafka":// kafka < 0.9, default zk
+			s = "zk";
+			break;
+		case "kafka2":// kafka 2, default bootstrap
+			s = "bootstrap";
+			break;
+		}
+		switch (s) {
 		case "zk":
 		case "zookeeper":
+			logger.warn("Zookeeper Conenct mode is not supported by kafka now... \n"
+					+ "\tUse bootstrap servers mode: kafka[2][:bootstrap]://host1[:port1][,host2[:port2][,...]]/");
 			Pair<String, String> bAndZk = bootstrapFromZk(uri);
 			bootstrapServers = bAndZk.v1();
 			zookeeperConnect = bAndZk.v2();
@@ -108,6 +117,7 @@ public abstract class KafkaConfigBase implements Serializable {
 			break;
 		default:
 			throw new ConfigException("Neither [zk] nor [bootstrap] found for uri [" + uri + "]");
+
 		}
 		Map<String, String> props = uri.getParameters();
 		zookeeperConnectionTimeoutMs = props.containsKey("zkconntimeout") ? Long.parseLong(props.get("zkconntimeout")) : null;
@@ -156,19 +166,19 @@ public abstract class KafkaConfigBase implements Serializable {
 			KERBEROS_PROPS.load(IOs.openFile(kerberosConfigPath + KERBEROS_PROP_PATH));
 		} catch (IOException e) {
 			throw new RuntimeException("load KERBEROS_PROP error!", e);
-//			logger.error("load KERBEROS_PROP error!", e);
+			// logger.error("load KERBEROS_PROP error!", e);
 		}
 		if (fileList.contains(HUAWEI_KEYTAB)) {
 			logger.info("Enable huawei kerberos!");
 			try {
-				LoginUtil.setJaasFile(KERBEROS_PROPS.getProperty("albatis.kafka.kerberos.kafka.principal"), kerberosConfigPath + HUAWEI_KEYTAB);
+				LoginUtil.setJaasFile(KERBEROS_PROPS.getProperty("albatis.kafka.kerberos.kafka.principal"), kerberosConfigPath
+						+ HUAWEI_KEYTAB);
 				LoginUtil.setKrb5Config(kerberosConfigPath + KRB5_CONF);
 				LoginUtil.setZookeeperServerPrincipal(KERBEROS_PROPS.getProperty("albatis.kafka.kerberos.zk.principal"));
 			} catch (IOException e) {
 				throw new RuntimeException("Load huawei kerberos config error!", e);
 			}
-		}
-		else {
+		} else {
 			logger.info("Enable normal kerberos!");
 			try {
 				LoginUtil.setKrb5Config(kerberosConfigPath + KRB5_CONF);

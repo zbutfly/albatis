@@ -10,7 +10,7 @@
 	<dependencies>
 		<dependency>
 			<groupId>net.butfly.albatis</groupId>
-			<artifactId>albatis-kafka2-io</artifactId>
+			<artifactId>albatis-kafka-io</artifactId>
 			<version>1.5.3-SNAPSHOT</version>
 		</dependency>
 	</dependencies>

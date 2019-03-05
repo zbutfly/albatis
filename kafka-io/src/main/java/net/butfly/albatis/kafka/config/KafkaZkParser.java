@@ -14,6 +14,7 @@ import com.google.common.base.Joiner;
 import kafka.api.PartitionOffsetRequestInfo;
 import kafka.common.TopicAndPartition;
 import kafka.javaapi.OffsetRequest;
+import kafka.javaapi.OffsetResponse;
 import kafka.javaapi.consumer.SimpleConsumer;
 import kafka.utils.ZkUtils;
 import net.butfly.albacore.io.URISpec;
@@ -69,15 +70,18 @@ public class KafkaZkParser extends ZkConnection {
 		if (null == c) return -1;
 		try {
 			return IntStream.of(getTopicPartitions(topic).get(topic)).mapToLong(p -> getLag(c, topic, group, p)).sum();
+		} catch (Throwable t) {
+			return -1;
 		} finally {
 			c.close();
 		}
 	}
 
 	private long getLag(SimpleConsumer consumer, String topic, String group, int part) {
-		long[] logsize = consumer.getOffsetsBefore(new OffsetRequest(Maps.of(new TopicAndPartition(topic, part),
-				new PartitionOffsetRequestInfo(kafka.api.OffsetRequest.LatestTime(), 1)), kafka.api.OffsetRequest.CurrentVersion(), group))
-				.offsets(topic, part);
+		OffsetRequest req = new OffsetRequest(Maps.of(new TopicAndPartition(topic, part), new PartitionOffsetRequestInfo(
+				kafka.api.OffsetRequest.LatestTime(), 1)), kafka.api.OffsetRequest.CurrentVersion(), group);
+		OffsetResponse resp = consumer.getOffsetsBefore(req);
+		long[] logsize = resp.offsets(topic, part);
 		return logsize.length == 0 ? 0 : logsize[0] - getOffset(topic, group, part);
 	}
 

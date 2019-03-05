@@ -62,10 +62,10 @@ public class Kafka2InputConfig extends KafkaConfigBase {
 		zookeeperSyncTimeMs = props.containsKey("zksynctime") ? Long.parseLong(props.get("zksynctime")) : null;
 		autoCommitIntervalMs = props.containsKey("autocommit") ? Long.parseLong(props.get("autocommit")) : null;
 		autoCommitEnable = null != autoCommitIntervalMs && autoCommitIntervalMs > 0;
-		autoOffsetReset = props.containsKey("autoreset") ? props.get("autoreset") : "smallest";
+		autoOffsetReset = props.get("autoreset");
 		sessionTimeoutMs = props.containsKey("sessiontimeout") ? Long.parseLong(props.get("sessiontimeout")) : null;
 		fetchWaitTimeoutMs = props.containsKey("fetchtimeout") ? Long.parseLong(props.get("fetchtimeout")) : null;
-		partitionAssignmentStrategy = props.containsKey("strategy") ? props.get("strategy") : "range";
+		partitionAssignmentStrategy = props.get("strategy");
 		fetchMessageMaxBytes = props.containsKey("fetchmax") ? Long.parseLong(props.get("fetchmax")) : null;
 		rebalanceRetries = props.containsKey("rebalanceretries") ? Integer.parseInt(props.get("rebalanceretries")) : null;
 		zookeeperSessionTimeoutMs = props.containsKey("zksessiontimeout") ? Long.parseLong(props.get("zksessiontimeout")) : null;
@@ -129,7 +129,10 @@ public class Kafka2InputConfig extends KafkaConfigBase {
 			props.setProperty("fetch.wait.max.ms", Long.toString(fetchWaitTimeoutMs));
 			props.setProperty("consumer.timeout.ms", Long.toString(fetchWaitTimeoutMs));
 		}
-		if (null != backoffMs) props.setProperty("rebalance.backoff.ms", Long.toString(backoffMs));
+		if (null != backoffMs) {
+			props.setProperty("rebalance.backoff.ms", Long.toString(backoffMs));
+			props.setProperty("reconnect.backoff.ms", Long.toString(backoffMs));
+		}
 		if (null != rebalanceRetries) props.setProperty("rebalance.max.retries", Integer.toString(rebalanceRetries));
 		if (null != autoCommitIntervalMs) props.setProperty("auto.commit.interval.ms", Long.toString(autoCommitIntervalMs));
 
@@ -138,8 +141,8 @@ public class Kafka2InputConfig extends KafkaConfigBase {
 		if (null != transferBufferBytes) props.setProperty("socket.receive.buffer.bytes", Long.toString(transferBufferBytes));
 		if (null != fetchMessageMaxBytes) props.setProperty("fetch.message.max.bytes", Long.toString(fetchMessageMaxBytes));
 
-		props.setProperty("auto.offset.reset", autoOffsetReset);
-		props.setProperty("partition.assignment.strategy", partitionAssignmentStrategy);
+		if (null != autoOffsetReset) props.setProperty("auto.offset.reset", autoOffsetReset);
+		if (null != partitionAssignmentStrategy) props.setProperty("partition.assignment.strategy", partitionAssignmentStrategy);
 		kerberosConfig(props);
 		return props;
 	}

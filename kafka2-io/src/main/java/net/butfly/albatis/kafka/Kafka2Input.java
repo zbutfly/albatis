@@ -1,13 +1,12 @@
 package net.butfly.albatis.kafka;
 
+import static net.butfly.albacore.utils.collection.Colls.list;
 import static net.butfly.albatis.ddl.TableDesc.dummy;
 import static net.butfly.albatis.io.IOProps.propI;
 
 import java.io.IOException;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
-import java.util.List;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.kafka.clients.consumer.Consumer;
@@ -19,20 +18,20 @@ import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.exception.ConfigException;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.paral.Exeter;
+import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.Texts;
 import net.butfly.albacore.utils.collection.Colls;
-import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Statistic;
 import net.butfly.albatis.ddl.TableDesc;
+import net.butfly.albatis.io.Input;
 import net.butfly.albatis.io.Rmap;
 import net.butfly.albatis.kafka.config.Kafka2InputConfig;
 
-public class Kafka2Input extends Namedly implements KafkaIn {
+public class Kafka2Input extends Namedly implements Input<Rmap> {
 	private static final long serialVersionUID = 998704625489437241L;
 
 	private final Kafka2InputConfig config;
-	private final Map<String, Integer> allTopics = Maps.of();
 	private final Consumer<byte[], byte[]> connect;
 
 	// for debug
@@ -64,7 +63,7 @@ public class Kafka2Input extends Namedly implements KafkaIn {
 		if (topics == null || topics.length == 0) topics = dummy(config.topics()).toArray(new TableDesc[0]);
 
 		connect = new KafkaConsumer<>(config.props());
-		connect.subscribe(Colls.list(allTopics.keySet()));
+		connect.subscribe(list(t -> t.name, topics));
 		closing(this::closeKafka);
 	}
 
@@ -78,25 +77,23 @@ public class Kafka2Input extends Namedly implements KafkaIn {
 			ChronoUnit.MILLIS);
 
 	@Override
-	public Rmap dequeue() {
+	public void dequeue(net.butfly.albacore.io.lambda.Consumer<Sdream<Rmap>> using) {
 		ConsumerRecords<byte[], byte[]> it;
-		while (opened())
-			if (!Colls.empty(it = connect.poll(TIMEOUT.toMillis()))) {
-				try {
-					List<Rmap> rs = Colls.list();
-					for (ConsumerRecord<byte[], byte[]> km : it) {
-						km = s().stats(km);
-						String k = null == km.key() || km.key().length == 0 ? null : new String(km.key());
-						rs.add(new Rmap(km.topic(), k, null == k ? "km" : k, (Object) km.value()));
-
-					}
-				} catch (Exception ex) {
-					logger().warn("Unprocessed kafka error [" + ex.getClass().toString() + ": " + ex.getMessage()
-							+ "], ignore and continue.", ex);
-					return null;
-				}
+		while (opened()) {
+			try {
+				it = connect.poll(TIMEOUT);
+			} catch (IllegalStateException e) {
+				logger().error("", e);
+				it = null;
 			}
-		return null;
+			if (Colls.empty(it)) continue;
+			using.accept(Sdream.of(list(it, km -> {
+				km = s().stats(km);
+				String k = null == km.key() || km.key().length == 0 ? null : new String(km.key());
+				return new Rmap(km.topic(), k, null == k ? "km" : k, (Object) km.value());
+			})));
+			return;
+		}
 	}
 
 	private void closeKafka() {

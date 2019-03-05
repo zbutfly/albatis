@@ -60,10 +60,12 @@ public class Kafka2OutputConfig extends KafkaConfigBase {
 		// props.setProperty("metadata.max.age.ms", );
 		if (null != batchSize) props.setProperty("batch.size", Long.toString(batchSize));
 		if (null != batchBlock) props.setProperty("batch.block", Boolean.toString(batchBlock));
-		// props.setProperty("reconnect.backoff.ms", );
 
-		// props.setProperty("receive.buffer.bytes", );
-		// props.setProperty("retry.backoff.ms", );
+//		props.setProperty("receive.buffer.bytes", Long.toString(backoffMs));
+		if (null != backoffMs) {
+			props.setProperty("retry.backoff.ms", Long.toString(backoffMs));
+			props.setProperty("reconnect.backoff.ms", Long.toString(backoffMs));
+		}
 
 		// props.setProperty("max.request.size", );
 		// props.setProperty("block.on.buffer.full", );

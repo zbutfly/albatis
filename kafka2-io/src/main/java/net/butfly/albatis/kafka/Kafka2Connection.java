@@ -16,7 +16,10 @@ import net.butfly.albatis.Connection;
 import net.butfly.albatis.DataConnection;
 import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.io.IOFactory;
+import net.butfly.albatis.io.Input;
+import net.butfly.albatis.io.Rmap;
 import net.butfly.alserdes.SerDes;
+import net.butfly.alserdes.format.ConstFormat;
 import net.butfly.alserdes.format.Format;
 import scala.collection.JavaConversions;
 
@@ -36,13 +39,13 @@ public class Kafka2Connection extends DataConnection<Connection> implements IOFa
 		List<Format> fmts = super.formats();
 		if (null != fmts && fmts.size() == 1 && fmts.get(0).equals(of("bson"))) {
 			Format def = of(Configs.gets("albatis.format.biz.default", "etl"));
-			return null == def ? fmts : Colls.list(fmts.get(0), def);
+			return null == def || def instanceof ConstFormat ? fmts : Colls.list(fmts.get(0), def);
 		} else return fmts;
 	}
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public KafkaIn inputRaw(TableDesc... topic) throws IOException {
+	public Input<Rmap> inputRaw(TableDesc... topic) throws IOException {
 		try {
 			return new Kafka2Input("Kafka2Input", uri, topic);
 		} catch (ConfigException e) {
@@ -84,13 +87,10 @@ public class Kafka2Connection extends DataConnection<Connection> implements IOFa
 	@Override
 	public boolean judge(String table) {
 		String[] tables = table.split("\\.");
-		String dbName, tableName;
-		if (tables.length == 1)
-			dbName = tableName = tables[0];
-		else if ((tables.length == 2)) {
-			dbName = tables[0];
-			tableName = tables[1];
-		} else throw new RuntimeException("Please type in corrent es table format: db.table !");
+		String tableName;
+		if (tables.length == 1) tableName = tables[0];
+		else if ((tables.length == 2)) tableName = tables[1];
+		else throw new RuntimeException("Please type in corrent es table format: db.table !");
 		String kafkaUrl = uri.getHost() + "/kafka";
 		ZkUtils zkUtils = ZkUtils.apply(kafkaUrl, 30000, 30000, JaasUtils.isZkSecurityEnabled());
 		List<String> topics = JavaConversions.seqAsJavaList(zkUtils.getAllTopics());
