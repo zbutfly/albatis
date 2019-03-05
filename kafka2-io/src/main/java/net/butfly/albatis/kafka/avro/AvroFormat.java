@@ -15,6 +15,7 @@ import static net.butfly.albatis.ddl.vals.ValType.Flags.STR;
 import static net.butfly.albatis.ddl.vals.ValType.Flags.STRL;
 import static net.butfly.albatis.ddl.vals.ValType.Flags.UNKNOWN;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -123,29 +124,29 @@ public class AvroFormat extends RmapFormat {
 				return null;
 			}
 			switch (t) {
-			case STRING:
-				return new FieldDesc(table, f.name(), ValType.STR);
-			case BYTES:
-				return new FieldDesc(table, f.name(), ValType.BIN);
-			case INT:
-				return new FieldDesc(table, f.name(), ValType.INT);
-			case LONG:
-				return new FieldDesc(table, f.name(), ValType.LONG);
-			case FLOAT:
-				return new FieldDesc(table, f.name(), ValType.FLOAT);
-			case DOUBLE:
-				return new FieldDesc(table, f.name(), ValType.DOUBLE);
-			case BOOLEAN:
-				return new FieldDesc(table, f.name(), ValType.BOOL);
-			case NULL:
-				return new FieldDesc(table, f.name(), ValType.VOID);
-			case RECORD:
-			case ARRAY:
-			case MAP:
-			case UNION:
-			case ENUM:
-			case FIXED:
-				return null;
+				case STRING:
+					return new FieldDesc(table, f.name(), ValType.STR);
+				case BYTES:
+					return new FieldDesc(table, f.name(), ValType.BIN);
+				case INT:
+					return new FieldDesc(table, f.name(), ValType.INT);
+				case LONG:
+					return new FieldDesc(table, f.name(), ValType.LONG);
+				case FLOAT:
+					return new FieldDesc(table, f.name(), ValType.FLOAT);
+				case DOUBLE:
+					return new FieldDesc(table, f.name(), ValType.DOUBLE);
+				case BOOLEAN:
+					return new FieldDesc(table, f.name(), ValType.BOOL);
+				case NULL:
+					return new FieldDesc(table, f.name(), ValType.VOID);
+				case RECORD:
+				case ARRAY:
+				case MAP:
+				case UNION:
+				case ENUM:
+				case FIXED:
+					return null;
 			}
 			return null;
 		}
@@ -153,44 +154,44 @@ public class AvroFormat extends RmapFormat {
 		public static Schema.Type restrictType(Schema.Field f) {
 			Schema.Type t = f.schema().getType();
 			switch (t) {
-			case RECORD:
-			case ARRAY:
-			case ENUM:
-			case MAP:
-			case FIXED:
-			case NULL:
-				throw new IllegalArgumentException(t.toString());
-			case STRING:
-			case BYTES:
-			case INT:
-			case LONG:
-			case FLOAT:
-			case DOUBLE:
-			case BOOLEAN:
-				return t;
-			case UNION:
-				for (Schema ts : f.schema().getTypes()) {
-					switch (ts.getType()) {
-					case RECORD:
-					case ARRAY:
-					case ENUM:
-					case MAP:
-					case FIXED:
-					case UNION:
-						throw new IllegalArgumentException(ts.getType().toString());
-					case NULL:
-						continue;
-					case STRING:
-					case BYTES:
-					case INT:
-					case LONG:
-					case FLOAT:
-					case DOUBLE:
-					case BOOLEAN:
-						return ts.getType();
+				case RECORD:
+				case ARRAY:
+				case ENUM:
+				case MAP:
+				case FIXED:
+				case NULL:
+					throw new IllegalArgumentException(t.toString());
+				case STRING:
+				case BYTES:
+				case INT:
+				case LONG:
+				case FLOAT:
+				case DOUBLE:
+				case BOOLEAN:
+					return t;
+				case UNION:
+					for (Schema ts : f.schema().getTypes()) {
+						switch (ts.getType()) {
+							case RECORD:
+							case ARRAY:
+							case ENUM:
+							case MAP:
+							case FIXED:
+							case UNION:
+								throw new IllegalArgumentException(ts.getType().toString());
+							case NULL:
+								continue;
+							case STRING:
+							case BYTES:
+							case INT:
+							case LONG:
+							case FLOAT:
+							case DOUBLE:
+							case BOOLEAN:
+								return ts.getType();
+						}
 					}
-				}
-				break;
+					break;
 			}
 			throw new IllegalArgumentException(f.toString());
 		}
@@ -198,28 +199,32 @@ public class AvroFormat extends RmapFormat {
 		public static Schema.Field field(FieldDesc f) {
 			if (null == f) return null;
 			switch (f.type.flag) {
-			case BINARY:
-				return new Schema.Field(f.name, Schema.create(Schema.Type.BYTES), null, new byte[0]);
-			case INT:
-				return new Schema.Field(f.name, Schema.create(Schema.Type.INT), null, 0);
-			case DATE:
-			case LONG:
-				return new Schema.Field(f.name, Schema.create(Schema.Type.LONG), null, 0);
-			case FLOAT:
-				return new Schema.Field(f.name, Schema.create(Schema.Type.FLOAT), null, 0.0);
-			case DOUBLE:
-				return new Schema.Field(f.name, Schema.create(Schema.Type.DOUBLE), null, 0.0);
-			case BOOL:
-				return new Schema.Field(f.name, Schema.create(Schema.Type.BOOLEAN), null, false);
-			case CHAR:
-			case STR:
-			case STRL:
-			case GEO:
-			case JSON_STR:
-			case UNKNOWN:
-				return new Schema.Field(f.name, Schema.create(Schema.Type.STRING), null, "");
+				case BINARY:
+					return new Schema.Field(f.name, createOptional(Schema.create(Schema.Type.BYTES)), null, new byte[0]);
+				case DATE:
+				case INT:
+					return new Schema.Field(f.name, createOptional(Schema.create(Schema.Type.INT)), null, 0);
+				case LONG:
+					return new Schema.Field(f.name, createOptional(Schema.create(Schema.Type.LONG)), null, 0);
+				case FLOAT:
+					return new Schema.Field(f.name, createOptional(Schema.create(Schema.Type.FLOAT)), null, 0.0);
+				case DOUBLE:
+					return new Schema.Field(f.name, createOptional(Schema.create(Schema.Type.DOUBLE)), null, 0.0);
+				case BOOL:
+					return new Schema.Field(f.name, createOptional(Schema.create(Schema.Type.BOOLEAN)), null, false);
+				case CHAR:
+				case STR:
+				case STRL:
+				case GEO:
+				case JSON_STR:
+				case UNKNOWN:
+					return new Schema.Field(f.name, createOptional(Schema.create(Schema.Type.STRING)), null, "");
 			}
 			return null;
+		}
+
+		private static Schema createOptional(Schema schema) {
+			return Schema.createUnion(Arrays.asList(schema, Schema.create(Schema.Type.NULL)));
 		}
 	}
 }
