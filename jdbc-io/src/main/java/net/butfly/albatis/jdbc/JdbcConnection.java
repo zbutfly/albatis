@@ -1,12 +1,14 @@
 package net.butfly.albatis.jdbc;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 import javax.sql.DataSource;
 
@@ -130,6 +132,19 @@ public class JdbcConnection extends DataConnection<DataSource> {
 		config.setUsername(uriSpec.getParameter("user"));
 		config.setPassword(uriSpec.getParameter("password"));
 		uriSpec.getParameters().forEach(config::addDataSourceProperty);
+		try {
+			InputStream in = JdbcConnection.class.getClassLoader().getResourceAsStream("ssl.properties");
+			if (null != in){
+				logger.info("Connect to jdbc with ssl model");
+				Properties props = new Properties();
+				props.load(in);
+				for (String key : props.stringPropertyNames()){
+					System.setProperty(key, props.getProperty(key));
+				}
+			}
+		} catch (IOException e) {
+			logger.error("load ssl.properties error", e);
+		}
 		return config;
 	}
 
