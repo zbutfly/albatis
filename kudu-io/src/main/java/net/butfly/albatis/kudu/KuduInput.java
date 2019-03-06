@@ -123,7 +123,7 @@ public class KuduInput extends Namedly implements Input<Rmap> {
 					try {
 						rs = s.scanner.nextRows().join();
 					} catch (Exception e) {
-						logger().error("Kudu fail", e);
+//						logger().error("Kudu fail", e);
 						return;
 					}
 					if (null == rs) {
