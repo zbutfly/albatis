@@ -1,5 +1,52 @@
 package net.butfly.albatis.hbase;
 
+import static net.butfly.albacore.paral.Sdream.of;
+import static net.butfly.albacore.utils.collection.Colls.empty;
+import static net.butfly.albacore.utils.collection.Colls.list;
+import static net.butfly.albatis.ddl.FieldDesc.SPLIT_ZWNJ;
+import static net.butfly.albatis.io.IOProps.propI;
+import static net.butfly.albatis.io.IOProps.propL;
+
+import java.io.BufferedWriter;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.net.InetSocketAddress;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.LinkedBlockingQueue;
+
+import org.apache.hadoop.hbase.HColumnDescriptor;
+import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.HTableDescriptor;
+import org.apache.hadoop.hbase.KeepDeletedCells;
+import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.client.Admin;
+import org.apache.hadoop.hbase.client.Append;
+import org.apache.hadoop.hbase.client.Connection;
+import org.apache.hadoop.hbase.client.Delete;
+import org.apache.hadoop.hbase.client.Get;
+import org.apache.hadoop.hbase.client.Increment;
+import org.apache.hadoop.hbase.client.Mutation;
+import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.ResultScanner;
+import org.apache.hadoop.hbase.client.Row;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.client.Table;
+import org.apache.hadoop.hbase.filter.Filter;
+import org.apache.hadoop.hbase.io.compress.Compression;
+import org.apache.hadoop.hbase.io.encoding.DataBlockEncoding;
+import org.apache.hadoop.hbase.ipc.RemoteWithExtrasException;
+import org.apache.hadoop.hbase.regionserver.BloomType;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.util.ClassSize;
+
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.io.lambda.Function;
 import net.butfly.albacore.paral.Exeter;
@@ -18,32 +65,6 @@ import net.butfly.albatis.io.IOStats;
 import net.butfly.albatis.io.Rmap;
 import net.butfly.albatis.io.utils.JsonUtils;
 import net.butfly.alserdes.SerDes;
-import org.apache.hadoop.hbase.*;
-import org.apache.hadoop.hbase.client.*;
-import org.apache.hadoop.hbase.filter.Filter;
-import org.apache.hadoop.hbase.io.compress.Compression;
-import org.apache.hadoop.hbase.io.encoding.DataBlockEncoding;
-import org.apache.hadoop.hbase.ipc.RemoteWithExtrasException;
-import org.apache.hadoop.hbase.regionserver.BloomType;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.hbase.util.ClassSize;
-
-import java.io.*;
-import java.net.InetSocketAddress;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.LinkedBlockingQueue;
-
-import static net.butfly.albacore.paral.Sdream.of;
-import static net.butfly.albacore.utils.collection.Colls.empty;
-import static net.butfly.albacore.utils.collection.Colls.list;
-import static net.butfly.albatis.ddl.FieldDesc.SPLIT_ZWNJ;
-import static net.butfly.albatis.io.IOProps.propI;
-import static net.butfly.albatis.io.IOProps.propL;
 
 @SerDes.As("hbase")
 public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.client.Connection> implements IOFactory, IOStats {
@@ -336,7 +357,8 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 				List<byte[]> rows = list(Bytes::toBytes, fqs);
 				rows.remove(0);
 				input.table(fqs[0], table.name, rows.toArray(new byte[rows.size()][]));
-			} else input.tableWithFamilAndPrefix(fqs[0], pfxs, cfs.toArray(new String[0]));
+			} else // input.table(fqs[0]); // debug
+			input.tableWithFamilAndPrefix(fqs[0], pfxs, cfs.toArray(new String[0]));
 		}
 		return input;
 	}
@@ -351,13 +373,10 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 	public void construct(String table, TableDesc tableDesc, List<FieldDesc> fields) {
 		try {
 			String[] tables = table.split("\\.");
-			String dbName, tableName;
-			if (tables.length == 1)
-				dbName = tableName = tables[0];
-			else if((tables.length == 2)) {
-				dbName = tables[0];
-				tableName = tables[1];
-			}else throw new RuntimeException("Please type in corrent es table format: db.table !");
+			String tableName;
+			if (tables.length == 1) tableName = tables[0];
+			else if ((tables.length == 2)) tableName = tables[1];
+			else throw new RuntimeException("Please type in corrent es table format: db.table !");
 			Object families = tableDesc.construct.get("columnFamilies");
 			Object startKey = tableDesc.construct.get("start_key");
 			Object endKey = tableDesc.construct.get("end_key");
@@ -476,13 +495,10 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 	public boolean judge(String table) {
 		boolean exists = false;
 		String[] tables = table.split("\\.");
-		String dbName, tableName;
-		if (tables.length == 1)
-			dbName = tableName = tables[0];
-		else if((tables.length == 2)) {
-			dbName = tables[0];
-			tableName = tables[1];
-		}else throw new RuntimeException("Please type in corrent es table format: db.table !");
+		String tableName;
+		if (tables.length == 1) tableName = tables[0];
+		else if ((tables.length == 2)) tableName = tables[1];
+		else throw new RuntimeException("Please type in corrent es table format: db.table !");
 		try (Admin admin = client.getAdmin()) {
 			exists = admin.tableExists(TableName.valueOf(tableName));
 		} catch (IOException e) {

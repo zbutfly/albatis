@@ -22,6 +22,7 @@ import org.apache.hadoop.hbase.filter.CompareFilter.CompareOp;
 import org.apache.hadoop.hbase.filter.FamilyFilter;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterList;
+import org.apache.hadoop.hbase.filter.FilterList.Operator;
 import org.apache.hadoop.hbase.filter.MultipleColumnPrefixFilter;
 import org.apache.hadoop.hbase.util.Bytes;
 
@@ -38,7 +39,7 @@ import net.butfly.albatis.io.Rmap;
 public class HbaseInput extends Namedly implements Input<Rmap> {
 	private static final long serialVersionUID = 6225222417568739808L;
 	private final long SCAN_BYTES = propL(HbaseInput.class, "scan.bytes", 3145728); // 3M
-	private final int SCAN_ROWS = propI(HbaseInput.class, "scan.rows", 100);
+	private final int SCAN_ROWS = propI(HbaseInput.class, "scan.rows", 1);
 	private final HbaseConnection hconn;
 	private final BlockingQueue<TableScaner> scans = new LinkedBlockingQueue<>();
 	private final Map<String, TableScaner> scansMap = Maps.of();
@@ -171,21 +172,23 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 	}
 
 	public void tableWithFamily(String table, String... cf) {
-		List<Filter> fs = filterFamily(cf);
-		if (fs.isEmpty()) table(table);
-		else table(table, cf.length > 0 ? table : (table + SPLIT_CF + cf[0]), fs.toArray(new Filter[0]));
+		Filter fs = filterFamily(cf);
+		if (null == fs) table(table);
+		else table(table, cf.length > 0 ? table : (table + SPLIT_CF + cf[0]), fs);
 	}
 
-	private List<Filter> filterFamily(String... cf) {
-		return null == cf || 0 == cf.length ? Colls.list()
-				: Colls.list(c -> new FamilyFilter(CompareOp.EQUAL, new BinaryComparator(Bytes.toBytes(c))), cf);
+	private Filter filterFamily(String... cf) {
+		if (null == cf || 0 == cf.length) return null;
+		if (cf.length == 1) return new FamilyFilter(CompareOp.EQUAL, new BinaryComparator(Bytes.toBytes(cf[0])));
+		return new FilterList(Operator.MUST_PASS_ONE, //
+				Colls.list(c -> new FamilyFilter(CompareOp.EQUAL, new BinaryComparator(Bytes.toBytes(c))), cf));
 	}
 
 	private Filter filterPrefix(List<String> prefixes) {
 		if (Colls.empty(prefixes)) return null;
-		if (1 == prefixes.size()) return null == prefixes.get(0) ? null : new ColumnPrefixFilter(Bytes.toBytes(prefixes.get(0)));
-		byte[][] ps = prefixes.stream().filter(p -> null != p).map(Bytes::toBytes).filter(b -> null != b && b.length > 0).toArray(
-				i -> new byte[i][]);
+		if (1 == prefixes.size()) return null == prefixes.get(0) ? null
+				: new ColumnPrefixFilter(Bytes.toBytes(prefixes.get(0) + SPLIT_PREFIX));
+		byte[][] ps = Colls.list(prefixes, p -> Bytes.toBytes(p + SPLIT_PREFIX)).toArray(new byte[0][]);
 		if (null == ps || ps.length == 0) return null;
 		if (ps.length == 1) return new ColumnPrefixFilter(ps[0]);
 		else return new MultipleColumnPrefixFilter(ps);
@@ -199,21 +202,24 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 
 	public void tableWithFamilAndPrefix(String table, List<String> prefixes, String... cf) {
 		Filter prefixFilter = filterPrefix(prefixes);
-		List<Filter> filters = filterFamily(cf);
-		if (null != prefixFilter) filters.add(prefixFilter);
+		Filter cfFilter = filterFamily(cf);
+		Filter f;
+		if (null == prefixFilter) f = cfFilter;
+		else if (null == cfFilter) f = prefixFilter;
+		else f = new FilterList(Operator.MUST_PASS_ALL, cfFilter, prefixFilter);
 
 		String logicalTable = table;
 		if (cf.length > 0) {
-			if (cf.length > 1) throw new RuntimeException("Now only supports one cf");
+			// if (cf.length > 1) throw new RuntimeException("Now only supports one cf");
 			logicalTable += SPLIT_CF + cf[0];
 		}
 		if (prefixes.size() > 0) {
-			if (prefixes.size() > 1) throw new RuntimeException("Now only supports one prefix");
+			// if (prefixes.size() > 1) throw new RuntimeException("Now only supports one prefix");
 			logicalTable += SPLIT_PREFIX + prefixes.get(0);
 		}
 
-		if (filters.isEmpty()) table(table);
-		else table(table, logicalTable, filters.toArray(new Filter[(filters.size())]));
+		if (null == f) table(table);
+		else table(table, logicalTable, f);
 	}
 
 	@Override
