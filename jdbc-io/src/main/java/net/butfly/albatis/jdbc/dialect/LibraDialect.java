@@ -13,12 +13,7 @@ import static net.butfly.albatis.ddl.vals.ValType.Flags.SHORT;
 import static net.butfly.albatis.ddl.vals.ValType.Flags.STR;
 import static net.butfly.albatis.ddl.vals.ValType.Flags.UNKNOWN;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -296,6 +291,21 @@ public class LibraDialect extends Dialect {
 					logger().error("Close statement failure", e);
 				}
 			}
+		}
+	}
+
+	@Override
+	public boolean tableExisted(Connection conn, String table) {
+		DatabaseMetaData dbm = null;
+		try {
+			dbm = conn.getMetaData();
+		} catch (SQLException e) {
+			logger().error("Getting metadata is failure",e);
+		}
+		try (ResultSet rs = dbm.getTables(null, null, table, null)) {
+			return rs.next();
+		} catch (SQLException e) {
+			throw new RuntimeException(e);
 		}
 	}
 

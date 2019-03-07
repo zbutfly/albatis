@@ -83,7 +83,7 @@ public class JdbcConnection extends DataConnection<DataSource> {
 	public List<Map<String, Object>> getResultListByCondition(String table, Map<String, Object> condition) {
 		List<Map<String, Object>> results = new ArrayList<>();
 		try (Connection conn = client.getConnection()) {
-			dialect.getResultListByCondition(conn, table, condition);
+			results = dialect.getResultListByCondition(conn, table, condition);
 		} catch (SQLException e) {
 			logger().error("Getting results by condition is failure", e);
 		}
@@ -107,7 +107,7 @@ public class JdbcConnection extends DataConnection<DataSource> {
 		else if ((tables.length == 2)) tableName = tables[1];
 		else throw new RuntimeException("Please type in corrent es table format: db.table !");
 		try (Connection conn = client.getConnection()) {
-			dialect.tableExisted(conn, tableName);
+			return dialect.tableExisted(conn, tableName);
 		} catch (SQLException e) {
 			logger().error("jdbc judge table isExists error", e);
 		}

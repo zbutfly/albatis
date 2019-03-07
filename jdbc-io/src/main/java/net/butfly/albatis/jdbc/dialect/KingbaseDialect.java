@@ -93,7 +93,7 @@ public class KingbaseDialect extends Dialect {
                 return true;
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger().error("Judging whether table is exists that is failure",e);
         }
         return false;
     }

@@ -150,7 +150,7 @@ public class MysqlDialect extends Dialect {
 		try {
 			dbm = conn.getMetaData();
 		} catch (SQLException e) {
-			e.printStackTrace();
+			logger().error("Getting metadata is failure",e);
 		}
 		try (ResultSet rs = dbm.getTables(null, null, table, null)) {
 			return rs.next();
