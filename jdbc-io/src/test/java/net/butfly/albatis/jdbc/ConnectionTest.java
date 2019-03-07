@@ -128,12 +128,11 @@ public class ConnectionTest {
 	@Test
 	public void testLibra() throws IOException {
 		String url = "jdbc:postgresql:libra://172.16.17.42:5432/cominfo?user=cominfo&password=cominfo";
-		JdbcConnection connection = new JdbcConnection(new URISpec(url));
-		List<FieldDesc> fields = new ArrayList();
+		List<FieldDesc> fields = new ArrayList<>();
 		DBDesc dbDesc = DBDesc.of("cominfo", url);
-		TableDesc tableDesc = new TableDesc(dbDesc, "test_libra");
-		List<List<String>> keys = new ArrayList<>();
-		List<String> key  = new ArrayList<>();
+		TableDesc tableDesc = dbDesc.table("test_libra");
+//		List<List<String>> keys = new ArrayList<>();
+		List<String> key = new ArrayList<>();
 		key.add("id");
 		tableDesc.keys.add(key);
 		ValType type1 = ValType.of("int");
@@ -142,6 +141,8 @@ public class ConnectionTest {
 		FieldDesc f2 = new FieldDesc(tableDesc, "name", type2);
 		fields.add(f1);
 		fields.add(f2);
-		connection.construct("test_libra",tableDesc,fields);
+		try (JdbcConnection connection = new JdbcConnection(new URISpec(url));) {
+			connection.construct("test_libra", tableDesc, fields);
+		}
 	}
 }

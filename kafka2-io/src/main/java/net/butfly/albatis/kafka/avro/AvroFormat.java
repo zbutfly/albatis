@@ -102,7 +102,7 @@ public class AvroFormat extends RmapFormat {
 
 	public static class Builder {
 		public static TableDesc schema(String table, Schema schema) {
-			TableDesc t = new TableDesc(null, table);
+			TableDesc t = TableDesc.dummy(table);
 			for (Schema.Field f : schema.getFields())
 				t.field(field(t, f));
 			return t;

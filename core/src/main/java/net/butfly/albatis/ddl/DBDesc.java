@@ -75,7 +75,7 @@ public final class DBDesc extends Desc<DBDesc> {
 	}
 
 	public TableDesc table(String name) {
-		return tables.get(name);
+		return tables.computeIfAbsent(name, n -> new TableDesc(this, n));
 	}
 
 	@Override
@@ -93,10 +93,5 @@ public final class DBDesc extends Desc<DBDesc> {
 		}
 		return b.toString();
 
-	}
-
-	public TableDesc reg(TableDesc tbl) {
-		if (null != tbl) tables.putIfAbsent(tbl.name, tbl);
-		return tbl;
 	}
 }

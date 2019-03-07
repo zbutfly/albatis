@@ -59,7 +59,7 @@ public class TableDesc extends Desc<TableDesc> {
 		return t;
 	}
 
-	public TableDesc(DBDesc db, String fullname) {
+	TableDesc(DBDesc db, String fullname) {
 		this(db, fullname, false);
 	}
 
@@ -68,7 +68,7 @@ public class TableDesc extends Desc<TableDesc> {
 		this.name = fullname;
 		this.destruct = destruct;
 		this.dbname = parse(fullname);
-		if (null != db) db.tables.put(name, this);
+		// if (null != db) db.tables.put(name, this);
 	}
 
 	@SuppressWarnings("unchecked")

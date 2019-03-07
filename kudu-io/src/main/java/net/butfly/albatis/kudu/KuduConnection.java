@@ -84,8 +84,7 @@ public class KuduConnection extends KuduConnectionBase<KuduConnection, KuduClien
 		Class<? extends KuduException> cc = null;
 		try {
 			cc = (Class<? extends KuduException>) Class.forName("org.apache.kudu.client.NonRecoverableException");
-		} catch (ClassNotFoundException e) {
-		} finally {
+		} catch (ClassNotFoundException e) {} finally {
 			c = cc;
 		}
 	}
@@ -148,9 +147,8 @@ public class KuduConnection extends KuduConnectionBase<KuduConnection, KuduClien
 		String v = Configs.get(KuduProps.TABLE_REPLICAS);
 		int replicas = null == v ? -1 : Integer.parseInt(v);
 		String info = "with bucket [" + buckets + "], can be defined by [-D" + KuduProps.TABLE_BUCKETS + "=8(default value)]";
-		if (replicas > 0)
-			info = info + ", with replicas [" + replicas + "], can be defined by [-D" + KuduProps.TABLE_REPLICAS
-					+ "=xx(no default value)]";
+		if (replicas > 0) info = info + ", with replicas [" + replicas + "], can be defined by [-D" + KuduProps.TABLE_REPLICAS
+				+ "=xx(no default value)]";
 		logger.info("Kudu table [" + table + "] will be created with keys: [" + Joiner.on(',').join(keys) + "], " + info);
 		CreateTableOptions opts = new CreateTableOptions().addHashPartitions(keys, buckets);
 		if (replicas > 0) opts = opts.setNumReplicas(replicas);
@@ -165,13 +163,10 @@ public class KuduConnection extends KuduConnectionBase<KuduConnection, KuduClien
 	@Override
 	public void construct(String table, TableDesc tableDesc, List<FieldDesc> fields) {
 		String[] tables = table.split("\\.");
-		String dbName, tableName;
-		if (tables.length == 1)
-			dbName = tableName = tables[0];
-		else if ((tables.length == 2)) {
-			dbName = tables[0];
-			tableName = tables[1];
-		} else throw new RuntimeException("Please type in corrent es table format: db.table !");
+		String tableName;
+		if (tables.length == 1) tableName = tables[0];
+		else if ((tables.length == 2)) tableName = tables[1];
+		else throw new RuntimeException("Please type in corrent es table format: db.table !");
 		List<ColumnSchema> columns = Colls.list();
 		List<ColumnSchema> columns2 = Colls.list();
 		List<String> keys = new ArrayList<>();
@@ -182,14 +177,14 @@ public class KuduConnection extends KuduConnectionBase<KuduConnection, KuduClien
 				Type type = buildKuduFieldType(field);
 				ColumnSchema.ColumnSchemaBuilder keyBuilder = new ColumnSchema.ColumnSchemaBuilder(field.name, type).encoding(type.equals(
 						Type.STRING) ? ColumnSchema.Encoding.DICT_ENCODING : ColumnSchema.Encoding.BIT_SHUFFLE).compressionAlgorithm(
-						ColumnSchema.CompressionAlgorithm.LZ4).nullable(false).key(true);
+								ColumnSchema.CompressionAlgorithm.LZ4).nullable(false).key(true);
 				columns2.add(keyBuilder.build());
 				keys.add(field.name);
 			} else {
 				Type type = buildKuduFieldType(field);
 				ColumnSchema.ColumnSchemaBuilder builder = new ColumnSchema.ColumnSchemaBuilder(field.name, type).encoding(type.equals(
 						Type.STRING) ? ColumnSchema.Encoding.DICT_ENCODING : ColumnSchema.Encoding.BIT_SHUFFLE).compressionAlgorithm(
-						ColumnSchema.CompressionAlgorithm.LZ4).nullable(true).key(false);
+								ColumnSchema.CompressionAlgorithm.LZ4).nullable(true).key(false);
 				columns.add(builder.build());
 			}
 		}
@@ -211,8 +206,8 @@ public class KuduConnection extends KuduConnectionBase<KuduConnection, KuduClien
 				// 用列做为分区的参照
 				tableOptions.setRangePartitionColumns(keys);
 			else
-				// 添加key的hash分区
-				tableOptions.addHashPartitions(keys, Integer.parseInt(bucket.toString()));
+			// 添加key的hash分区
+			tableOptions.addHashPartitions(keys, Integer.parseInt(bucket.toString()));
 			// 创建table,并设置partition
 			try {
 				client.createTable(tableName, schema, tableOptions);
@@ -224,30 +219,30 @@ public class KuduConnection extends KuduConnectionBase<KuduConnection, KuduClien
 
 	private Type buildKuduFieldType(FieldDesc field) {
 		switch (field.type.flag) {
-			case BYTE:
-				return Type.INT8;
-			case SHORT:
-				return Type.INT16;
-			case INT:
-				return Type.INT32;
-			case LONG:
-				return Type.INT64;
-			case BINARY:
-				return Type.BINARY;
-			case STR:
-			case CHAR:
-			case UNKNOWN:
-				return Type.STRING;
-			case BOOL:
-				return Type.BOOL;
-			case FLOAT:
-				return Type.FLOAT;
-			case DOUBLE:
-				return Type.DOUBLE;
-			case DATE:
-				return Type.UNIXTIME_MICROS;
-			default:
-				return Type.STRING;
+		case BYTE:
+			return Type.INT8;
+		case SHORT:
+			return Type.INT16;
+		case INT:
+			return Type.INT32;
+		case LONG:
+			return Type.INT64;
+		case BINARY:
+			return Type.BINARY;
+		case STR:
+		case CHAR:
+		case UNKNOWN:
+			return Type.STRING;
+		case BOOL:
+			return Type.BOOL;
+		case FLOAT:
+			return Type.FLOAT;
+		case DOUBLE:
+			return Type.DOUBLE;
+		case DATE:
+			return Type.UNIXTIME_MICROS;
+		default:
+			return Type.STRING;
 		}
 	}
 
@@ -255,13 +250,10 @@ public class KuduConnection extends KuduConnectionBase<KuduConnection, KuduClien
 	public boolean judge(String table) {
 		boolean exists = false;
 		String[] tables = table.split("\\.");
-		String dbName, tableName;
-		if (tables.length == 1)
-			dbName = tableName = tables[0];
-		else if ((tables.length == 2)) {
-			dbName = tables[0];
-			tableName = tables[1];
-		} else throw new RuntimeException("Please type in corrent es table format: db.table !");
+		String tableName;
+		if (tables.length == 1) tableName = tables[0];
+		else if ((tables.length == 2)) tableName = tables[1];
+		else throw new RuntimeException("Please type in corrent es table format: db.table !");
 		try {
 			exists = client.tableExists(tableName);
 		} catch (KuduException e) {

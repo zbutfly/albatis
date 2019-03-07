@@ -226,13 +226,10 @@ public class MongoConnection extends DataConnection<MongoClient> {
 	@Override
 	public void construct(String table, TableDesc tableDesc, List<FieldDesc> fields) {
 		String[] tables = table.split("\\.");
-		String dbName, tableName;
-		if (tables.length == 1)
-			dbName = tableName = tables[0];
-		else if((tables.length == 2)) {
-			dbName = tables[0];
-			tableName = tables[1];
-		}else throw new RuntimeException("Please type in corrent es table format: db.table !");
+		String dbName;
+		if (tables.length == 1) dbName = tables[0];
+		else if ((tables.length == 2)) dbName = tables[0];
+		else throw new RuntimeException("Please type in corrent es table format: db.table !");
 		DB db = client.getDB(dbName);
 		DBObject object = new BasicDBObject();
 		Object cappedSize = tableDesc.construct.get("size");
@@ -247,12 +244,11 @@ public class MongoConnection extends DataConnection<MongoClient> {
 	public boolean judge(String table) {
 		String[] tables = table.split("\\.");
 		String dbName, tableName;
-		if (tables.length == 1)
-			dbName = tableName = tables[0];
-		else if((tables.length == 2)) {
+		if (tables.length == 1) dbName = tableName = tables[0];
+		else if ((tables.length == 2)) {
 			dbName = tables[0];
 			tableName = tables[1];
-		}else throw new RuntimeException("Please type in corrent es table format: db.table !");
+		} else throw new RuntimeException("Please type in corrent es table format: db.table !");
 		DB db = client.getDB(dbName);
 		return db.getCollectionNames().contains(tableName);
 	}

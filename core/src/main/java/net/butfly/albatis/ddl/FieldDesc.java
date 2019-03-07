@@ -8,7 +8,8 @@ public final class FieldDesc extends Desc<FieldDesc> {
 	public static final String SPLIT_CF = ":";
 	public static final char SPLIT_PREFIX_CH = '#';
 	public static final String SPLIT_PREFIX = "#";
-	public static final String SPLIT_ZWNJ = Character.toString((char) 0x200C);
+	public static final char SPLIT_ZWNJ_CH = (char) 0x200C;
+	public static final String SPLIT_ZWNJ = Character.toString(SPLIT_ZWNJ_CH);
 	public final String name;
 	/**
 	 * cf:prefix#name

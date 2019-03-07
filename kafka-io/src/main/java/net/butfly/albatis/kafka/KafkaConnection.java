@@ -13,7 +13,6 @@ public class KafkaConnection extends Kafka2Connection {
 		super(uri, "kafka");
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public KafkaIn inputRaw(TableDesc... topic) throws IOException {
 		try {
