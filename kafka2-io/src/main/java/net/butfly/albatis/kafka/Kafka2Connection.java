@@ -4,7 +4,11 @@ import static net.butfly.alserdes.format.Format.of;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Properties;
 
+import kafka.admin.AdminUtils;
+import kafka.admin.RackAwareMode;
+import net.butfly.albatis.ddl.FieldDesc;
 import org.apache.kafka.common.security.JaasUtils;
 
 import kafka.utils.ZkUtils;
@@ -85,12 +89,32 @@ public class Kafka2Connection extends DataConnection<Connection> implements IOFa
 	}
 
 	@Override
-	public boolean judge(String table) {
-		String[] tables = table.split("\\.");
+	public void construct(String table, TableDesc tableDesc, List<FieldDesc> fields) {
 		String tableName;
+		String kafkaUrl;
+		String[] tables = table.split("\\.");
 		if (tables.length == 1) tableName = tables[0];
-		else if ((tables.length == 2)) tableName = tables[1];
-		else throw new RuntimeException("Please type in corrent es table format: db.table !");
+		else if (tables.length == 2) tableName = tables[1];
+		else throw new RuntimeException("Please type in correct kafka table format: db.table !");
+		if (!uri.toString().contains("?"))
+			kafkaUrl = uri.toString().substring(uri.toString().indexOf("//") + 2);
+		else
+			kafkaUrl = uri.toString().substring(uri.toString().indexOf("//") + 2, uri.toString().indexOf("?"));
+		ZkUtils zkUtils = ZkUtils.apply(kafkaUrl, 30000, 30000, JaasUtils.isZkSecurityEnabled());
+		int partition = Integer.parseInt(tableDesc.construct.get("number_of_shards").toString());
+		int replication = Integer.parseInt(tableDesc.construct.get("number_of_replicas").toString());
+		AdminUtils.createTopic(zkUtils, tableName, partition, replication, new Properties(), new RackAwareMode.Enforced$());
+		logger().info("create kafka topic successful");
+		zkUtils.close();
+	}
+
+	@Override
+	public boolean judge(String table) {
+		String tableName;
+		String[] tables = table.split("\\.");
+		if (tables.length == 1) tableName = tables[0];
+		else if (tables.length == 2) tableName = tables[1];
+		else throw new RuntimeException("Please type in correct kafka table format: db.table !");
 		String kafkaUrl = uri.getHost() + "/kafka";
 		ZkUtils zkUtils = ZkUtils.apply(kafkaUrl, 30000, 30000, JaasUtils.isZkSecurityEnabled());
 		List<String> topics = JavaConversions.seqAsJavaList(zkUtils.getAllTopics());

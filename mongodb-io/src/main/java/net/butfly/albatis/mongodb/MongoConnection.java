@@ -163,7 +163,8 @@ public class MongoConnection extends DataConnection<MongoClient> {
 
 	public DBCursor cursor(String table, DBObject... filter) {
 		DBCursor cursor;
-		if (!collectionExists(table)) throw new IllegalArgumentException("Collection [" + table + "] not existed for input");
+		if (!collectionExists(table))
+			throw new IllegalArgumentException("Collection [" + table + "] not existed for input");
 		DBCollection col = collection(table);
 		long now;
 		if (null == filter || filter.length == 0) {
@@ -228,15 +229,19 @@ public class MongoConnection extends DataConnection<MongoClient> {
 		String[] tables = table.split("\\.");
 		String dbName;
 		if (tables.length == 1) dbName = tables[0];
-		else if ((tables.length == 2)) dbName = tables[0];
-		else throw new RuntimeException("Please type in corrent es table format: db.table !");
+		else if (tables.length == 2) dbName = tables[0];
+		else throw new RuntimeException("Please type in correct mongodb table format: db.table !");
 		DB db = client.getDB(dbName);
 		DBObject object = new BasicDBObject();
 		Object cappedSize = tableDesc.construct.get("size");
 		Object cappedMax = tableDesc.construct.get("max");
-		object.put("capped", true);
-		object.put("size", cappedSize);
-		object.put("max", cappedMax);
+		if (null == cappedMax || null == cappedSize)
+			object.put("capped", false);
+		else {
+			object.put("capped", true);
+			object.put("size", cappedSize);
+			object.put("max", cappedMax);
+		}
 		db.createCollection(table, object);
 	}
 
@@ -245,10 +250,10 @@ public class MongoConnection extends DataConnection<MongoClient> {
 		String[] tables = table.split("\\.");
 		String dbName, tableName;
 		if (tables.length == 1) dbName = tableName = tables[0];
-		else if ((tables.length == 2)) {
+		else if (tables.length == 2) {
 			dbName = tables[0];
 			tableName = tables[1];
-		} else throw new RuntimeException("Please type in corrent es table format: db.table !");
+		} else throw new RuntimeException("Please type in correct mongodb table format: db.table !");
 		DB db = client.getDB(dbName);
 		return db.getCollectionNames().contains(tableName);
 	}

@@ -372,11 +372,11 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 	@Override
 	public void construct(String table, TableDesc tableDesc, List<FieldDesc> fields) {
 		try {
-			String[] tables = table.split("\\.");
 			String tableName;
+			String[] tables = table.split("\\.");
 			if (tables.length == 1) tableName = tables[0];
-			else if ((tables.length == 2)) tableName = tables[1];
-			else throw new RuntimeException("Please type in corrent es table format: db.table !");
+			else if (tables.length == 2) tableName = tables[1];
+			else throw new RuntimeException("Please type in correct hbase table format: db.table !");
 			Object families = tableDesc.construct.get("columnFamilies");
 			Object startKey = tableDesc.construct.get("start_key");
 			Object endKey = tableDesc.construct.get("end_key");
@@ -493,12 +493,12 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 
 	@Override
 	public boolean judge(String table) {
+		String tableName;
 		boolean exists = false;
 		String[] tables = table.split("\\.");
-		String tableName;
 		if (tables.length == 1) tableName = tables[0];
-		else if ((tables.length == 2)) tableName = tables[1];
-		else throw new RuntimeException("Please type in corrent es table format: db.table !");
+		else if (tables.length == 2) tableName = tables[1];
+		else throw new RuntimeException("Please type in correct hbase table format: db.table !");
 		try (Admin admin = client.getAdmin()) {
 			exists = admin.tableExists(TableName.valueOf(tableName));
 		} catch (IOException e) {

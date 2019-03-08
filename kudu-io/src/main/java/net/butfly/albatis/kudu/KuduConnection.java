@@ -162,11 +162,11 @@ public class KuduConnection extends KuduConnectionBase<KuduConnection, KuduClien
 
 	@Override
 	public void construct(String table, TableDesc tableDesc, List<FieldDesc> fields) {
-		String[] tables = table.split("\\.");
 		String tableName;
+		String[] tables = table.split("\\.");
 		if (tables.length == 1) tableName = tables[0];
-		else if ((tables.length == 2)) tableName = tables[1];
-		else throw new RuntimeException("Please type in corrent es table format: db.table !");
+		else if (tables.length == 2) tableName = tables[1];
+		else throw new RuntimeException("Please type in correct kudu table format: db.table !");
 		List<ColumnSchema> columns = Colls.list();
 		List<ColumnSchema> columns2 = Colls.list();
 		List<String> keys = new ArrayList<>();
@@ -248,12 +248,12 @@ public class KuduConnection extends KuduConnectionBase<KuduConnection, KuduClien
 
 	@Override
 	public boolean judge(String table) {
+		String tableName;
 		boolean exists = false;
 		String[] tables = table.split("\\.");
-		String tableName;
 		if (tables.length == 1) tableName = tables[0];
 		else if ((tables.length == 2)) tableName = tables[1];
-		else throw new RuntimeException("Please type in corrent es table format: db.table !");
+		else throw new RuntimeException("Please type in correct kudu table format: db.table !");
 		try {
 			exists = client.tableExists(tableName);
 		} catch (KuduException e) {

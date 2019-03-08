@@ -282,8 +282,8 @@ public class SolrConnection extends DataConnection<SolrClient> {
 		String[] tables = table.split("\\.");
 		String tableName;
 		if (tables.length == 1) tableName = tables[0];
-		else if ((tables.length == 2)) tableName = tables[1];
-		else throw new RuntimeException("Please type in corrent es table format: db.table !");
+		else if (tables.length == 2) tableName = tables[1];
+		else throw new RuntimeException("Please type in correct solr table format: db.table !");
 		String solrUrl = uri.getHost();
 		int numShards = Integer.parseInt(tableDesc.construct.get("number_of_shards").toString());
 		int numReplicas = Integer.parseInt(tableDesc.construct.get("number_of_replicas").toString());
@@ -310,12 +310,12 @@ public class SolrConnection extends DataConnection<SolrClient> {
 	@SuppressWarnings("deprecation")
 	@Override
 	public boolean judge(String table) {
+		String tableName;
 		boolean exists = false;
 		String[] tables = table.split("\\.");
-		String tableName;
 		if (tables.length == 1) tableName = tables[0];
-		else if ((tables.length == 2)) tableName = tables[1];
-		else throw new RuntimeException("Please type in corrent es table format: db.table !");
+		else if (tables.length == 2) tableName = tables[1];
+		else throw new RuntimeException("Please type in correct solr table format: db.table !");
 		String solrUrl = uri.getHost();
 		try (CloudSolrClient client = new CloudSolrClient.Builder().withZkHost(solrUrl).build()) {
 			Map<String, DocCollection> collectionsMap = client.getZkStateReader().getClusterState().getCollectionsMap();

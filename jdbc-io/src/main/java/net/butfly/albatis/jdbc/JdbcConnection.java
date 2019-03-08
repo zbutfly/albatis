@@ -57,11 +57,11 @@ public class JdbcConnection extends DataConnection<DataSource> {
 
 	@Override
 	public void construct(String table, TableDesc tableDesc, List<FieldDesc> fields) {
-		String[] tables = table.split("\\.");
 		String tableName;
+		String[] tables = table.split("\\.");
 		if (tables.length == 1) tableName = tables[0];
-		else if ((tables.length == 2)) tableName = tables[1];
-		else throw new RuntimeException("Please type in corrent es table format: db.table !");
+		else if (tables.length == 2) tableName = tables[1];
+		else throw new RuntimeException("Please type in correct jdbc table format: db.table !");
 		try (Connection conn = client.getConnection()) {
 			dialect.tableConstruct(conn, tableName, tableDesc, fields);
 		} catch (SQLException e) {
@@ -101,11 +101,11 @@ public class JdbcConnection extends DataConnection<DataSource> {
 
 	@Override
 	public boolean judge(String table) {
-		String[] tables = table.split("\\.");
 		String tableName;
+		String[] tables = table.split("\\.");
 		if (tables.length == 1) tableName = tables[0];
-		else if ((tables.length == 2)) tableName = tables[1];
-		else throw new RuntimeException("Please type in corrent es table format: db.table !");
+		else if (tables.length == 2) tableName = tables[1];
+		else throw new RuntimeException("Please type in correct jdbc table format: db.table !");
 		try (Connection conn = client.getConnection()) {
 			return dialect.tableExisted(conn, tableName);
 		} catch (SQLException e) {

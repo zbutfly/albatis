@@ -81,7 +81,7 @@ public class ElasticConnection extends DataConnection<TransportClient> implement
 		else if (tables.length == 2) {
 			index = tables[0];
 			type = tables[1];
-		} else throw new RuntimeException("Please type in corrent es table format: index/type or index.type !");
+		} else throw new RuntimeException("Please type in correct es table format: index/type or index.type !");
 		Map<String, Object> mapping = new MappingConstructor(indexConfig).construct(fields);
 		logger().debug(() -> "Mapping constructing: \n\t" + JsonSerder.JSON_MAPPER.ser(mapping));
 		if (client.admin().indices().prepareExists(index).execute().actionGet().isExists()) {
@@ -118,7 +118,7 @@ public class ElasticConnection extends DataConnection<TransportClient> implement
 		String index;
 		if (tables.length == 1) index = tables[0];
 		else if (tables.length == 2) index = tables[0];
-		else throw new RuntimeException("Please type in corrent es table format: index/type or index.type !");
+		else throw new RuntimeException("Please type in correct es table format: index/type or index.type !");
 		try (ElasticConnection elasticConnection = new ElasticConnection(new URISpec(uri.toString()))) {
 			IndicesExistsRequest existsRequest = new IndicesExistsRequest(index);
 			exists = elasticConnection.client.admin().indices().exists(existsRequest).actionGet().isExists();
