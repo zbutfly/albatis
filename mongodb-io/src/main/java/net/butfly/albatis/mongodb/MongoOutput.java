@@ -1,7 +1,9 @@
 package net.butfly.albatis.mongodb;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
@@ -54,9 +56,12 @@ public class MongoOutput extends OutputBase<Rmap> {
 	@Override
 	protected void enqsafe(Sdream<Rmap> msgs) {
 		AtomicLong n = new AtomicLong();
-		if (upsert) n.set(msgs.map(m -> conn.collection(m.table()).save(MongoConnection.dbobj(m)).getN()).reduce(Lambdas.sumInt()));
-		else Exeter.of().join(e -> n.addAndGet(conn.collection(e.getKey())//
-				.insert(Sdream.of(e.getValue()).map(MongoConnection::dbobj).list().toArray(new BasicDBObject[0]))//
+		if (upsert) n.set(
+				msgs.list().stream().map(
+						m -> conn.collection(m.table()).findAndModify(new BasicDBObject(m.key().toString(),m.get(m.key().toString())),null,new BasicDBObject(m.key().toString(),1),false,MongoConnection.dbobj(m),false,true))
+						.collect(Collectors.toList()).size());
+		else Exeter.of().join(e -> n.addAndGet(conn.collection(e.getKey())
+				.insert(Sdream.of(e.getValue()).map(MongoConnection::dbobj).list().toArray(new BasicDBObject[0]))
 				.getN()), Maps.of(msgs, m -> m.table()).entrySet());
 		succeeded(n.get());
 	}
