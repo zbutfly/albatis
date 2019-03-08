@@ -1,6 +1,7 @@
 package net.butfly.albatis.hbase;
 
 import static net.butfly.albacore.paral.Sdream.of;
+import static net.butfly.albacore.paral.Sdream.of1;
 import static net.butfly.albatis.ddl.FieldDesc.SPLIT_CF;
 import static net.butfly.albatis.ddl.FieldDesc.SPLIT_PREFIX;
 import static net.butfly.albatis.io.IOProps.propI;
@@ -232,6 +233,8 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 		return scansMap.isEmpty();
 	}
 
+	private Map<String, Rmap> lastRmaps = Maps.of();
+
 	@Override
 	public void dequeue(Consumer<Sdream<Rmap>> using) {
 		TableScaner s;
@@ -239,19 +242,37 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 			if (null != (s = scans.poll())) {
 				try {
 					Result[] results = s.next(batchSize());
-					if (null != results) {
-						if (results.length > 0) {
-							List<Rmap> ms = Colls.list();
-							for (Result r : results)
-								if (null != r) ms.add(Hbases.Results.result(s.logicalName, r));
-							if (!ms.isEmpty()) {
-								using.accept(of(ms));
+					boolean end = null == results || results.length == 0;
+					if (!end) {
+						Map<String, Rmap> ms = Maps.of();
+						Rmap m = lastRmaps.remove(s.name);
+						if (null != m) ms.put((String) m.key(), m);
+						for (Result r : results)
+							if (null != r) {
+								Rmap mm = Hbases.Results.result(s.logicalName, r);
+								ms.compute((String) mm.key(), (rowkey, existed) -> {
+									if (null == existed) return mm;
+									existed.putAll(mm);
+									return existed;
+								});
+							}
+						Rmap last;
+						while (null != (results = s.next(1)) && results.length > 0) {
+							m = Hbases.Results.result(s.logicalName, results[0]);
+							if (null != (last = ms.get(m.key()))) last.putAll(m);
+							else {
+								lastRmaps.put(s.name, m);
+								using.accept(of(ms.values()));
 								return;
 							}
-						} else {// end
-							s.close();
-							s = null;
 						}
+						end = true;
+					}
+					if (end) {// end
+						Rmap m = lastRmaps.remove(s.name);
+						s.close();
+						s = null;
+						if (null != m) using.accept(of1(m));
 					}
 				} finally {
 					if (null != s) scans.offer(s);
