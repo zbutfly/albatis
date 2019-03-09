@@ -1,7 +1,6 @@
 package net.butfly.albatis.hbase;
 
 import static net.butfly.albacore.paral.Sdream.of;
-import static net.butfly.albacore.paral.Sdream.of1;
 import static net.butfly.albatis.ddl.FieldDesc.SPLIT_CF;
 import static net.butfly.albatis.ddl.FieldDesc.SPLIT_PREFIX;
 import static net.butfly.albatis.io.IOProps.propI;
@@ -180,9 +179,10 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 
 	private Filter filterFamily(String... cf) {
 		if (null == cf || 0 == cf.length) return null;
-		if (cf.length == 1) return new FamilyFilter(CompareOp.EQUAL, new BinaryComparator(Bytes.toBytes(cf[0])));
-		return new FilterList(Operator.MUST_PASS_ONE, //
-				Colls.list(c -> new FamilyFilter(CompareOp.EQUAL, new BinaryComparator(Bytes.toBytes(c))), cf));
+		List<Filter> fl = Colls.list();
+		for (String c : cf)
+			fl.add(new FamilyFilter(CompareOp.EQUAL, new BinaryComparator(Bytes.toBytes(c))));
+		return fl.size() == 1 ? fl.get(0) : new FilterList(Operator.MUST_PASS_ONE, fl);
 	}
 
 	private Filter filterPrefix(List<String> prefixes) {
@@ -242,24 +242,17 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 			if (null != (s = scans.poll())) {
 				try {
 					Result[] results = s.next(batchSize());
-					boolean end = null == results || results.length == 0;
+					boolean end = Colls.empty(results);
+					Map<String, Rmap> ms = Maps.of();
 					if (!end) {
-						Map<String, Rmap> ms = Maps.of();
 						Rmap m = lastRmaps.remove(s.name);
 						if (null != m) ms.put((String) m.key(), m);
 						for (Result r : results)
-							if (null != r) {
-								Rmap mm = Hbases.Results.result(s.logicalName, r);
-								ms.compute((String) mm.key(), (rowkey, existed) -> {
-									if (null == existed) return mm;
-									existed.putAll(mm);
-									return existed;
-								});
-							}
+							if (null != r) compute(ms, Hbases.Results.result(s.logicalName, r));
 						Rmap last;
-						while (null != (results = s.next(1)) && results.length > 0) {
+						while (!Colls.empty(results = s.next(1))) {
 							m = Hbases.Results.result(s.logicalName, results[0]);
-							if (null != (last = ms.get(m.key()))) last.putAll(m);
+							if (null != (last = ms.get(m.key()))) last.putAll(m); // same record
 							else {
 								lastRmaps.put(s.name, m);
 								using.accept(of(ms.values()));
@@ -269,14 +262,25 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 						end = true;
 					}
 					if (end) {// end
-						Rmap m = lastRmaps.remove(s.name);
+						String tn = s.name;
 						s.close();
 						s = null;
-						if (null != m) using.accept(of1(m));
+						compute(ms, lastRmaps.remove(tn));
+						if (!ms.isEmpty()) using.accept(of(ms.values()));
 					}
 				} finally {
 					if (null != s) scans.offer(s);
 				}
 			}
+	}
+
+	private void compute(Map<String, Rmap> ms, Rmap m) {
+		if (null != m && !m.isEmpty()) {
+			ms.compute((String) m.key(), (rowkey, existed) -> {
+				if (null == existed) return m;
+				existed.putAll(m);
+				return existed;
+			});
+		}
 	}
 }
