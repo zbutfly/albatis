@@ -3,9 +3,11 @@ package net.butfly.albatis.ddl;
 import static net.butfly.albatis.ddl.FieldDesc.SPLIT_CF;
 import static net.butfly.albatis.ddl.FieldDesc.SPLIT_PREFIX;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import net.butfly.albacore.io.lambda.Consumer;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
@@ -34,8 +36,7 @@ public class TableDesc extends Desc<TableDesc> {
 
 	/**
 	 * @param parent
-	 * @param sub
-	 *            cf:prefix#
+	 * @param sub    cf:prefix#
 	 */
 	public static TableDesc of(DBDesc db, TableDesc parent, String sub) {
 		if (Colls.empty(sub)) return parent;
@@ -117,8 +118,10 @@ public class TableDesc extends Desc<TableDesc> {
 		Object v;
 		for (String fieldName : fieldMap.keySet()) {
 			v = fieldMap.get(fieldName);
-			if (fieldName.startsWith(".")) logger.warn("Model [" + name + "] config map invalid option [" + fieldName + "]: " + v);
-			else if (fieldName.startsWith("//")) logger.debug("Model [" + name + "] config map comment [" + fieldName + "]: " + v);
+			if (fieldName.startsWith("."))
+				logger.warn("Model [" + name + "] config map invalid option [" + fieldName + "]: " + v);
+			else if (fieldName.startsWith("//"))
+				logger.debug("Model [" + name + "] config map comment [" + fieldName + "]: " + v);
 			else if (v instanceof CharSequence) fields.put(fieldName, Builder.field(this, fieldName, v.toString()));
 			else if (v instanceof Map) fields.put(fieldName, Builder.field(this, fieldName, name));
 			else logger.error("Model [" + name + "] config map invalid value [" + fieldName + "]: " + v);
@@ -126,7 +129,7 @@ public class TableDesc extends Desc<TableDesc> {
 		return this;
 	}
 
-	@SuppressWarnings({ "rawtypes", "unchecked" })
+	@SuppressWarnings({"rawtypes", "unchecked"})
 	private List<Map<String, Object>> parseIndexes(Object v) {
 		List<Map<String, Object>> indexes = Colls.list();
 		if (null == v) return indexes;
@@ -134,13 +137,22 @@ public class TableDesc extends Desc<TableDesc> {
 			if (k instanceof Map) {
 				Map<String, Object> index = (Map<String, Object>) k;
 				indexes.add(index);
+			} else if (k instanceof CharSequence) {
+				ObjectMapper mapper = new ObjectMapper();
+				Map<String, Object> index = Maps.of();
+				try {
+					index = mapper.readValue(k.toString(), mapper.getTypeFactory().constructMapType(Map.class, String.class, Object.class));
+				} catch (IOException e) {
+					logger.error("Parse Exception,Invalid indexes definition: " + k);
+				}
+				indexes.add(index);
 			} else logger.error("Invalid index definition: " + k);
 		}
 		else logger.error("Invalid indexes definition: " + v);
 		return indexes;
 	}
 
-	@SuppressWarnings({ "rawtypes", "unchecked" })
+	@SuppressWarnings({"rawtypes", "unchecked"})
 	public static List<List<String>> parseKeys(Object v) {
 		List<List<String>> keys = Colls.list();
 		if (null == v) return keys;
