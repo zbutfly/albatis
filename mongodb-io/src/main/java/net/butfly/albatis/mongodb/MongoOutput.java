@@ -9,6 +9,7 @@ import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 
+import com.mongodb.WriteResult;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.paral.Exeter;
 import net.butfly.albacore.paral.Sdream;
@@ -58,8 +59,15 @@ public class MongoOutput extends OutputBase<Rmap> {
 		AtomicLong n = new AtomicLong();
 		if (upsert) n.set(
 				msgs.list().stream().map(
-						m -> conn.collection(m.table()).findAndModify(new BasicDBObject(m.key().toString(),m.get(m.key().toString())),null,new BasicDBObject(m.key().toString(),1),false,MongoConnection.dbobj(m),false,true))
-						.collect(Collectors.toList()).size());
+						m -> {
+							if (null != m.key()){
+								String keyField = m.key().toString();
+								DBObject dbObject = conn.collection(m.table()).findAndModify(new BasicDBObject(keyField,m.get(keyField)),null,new BasicDBObject(keyField,1),false,MongoConnection.dbobj(m),false,true);
+								return dbObject;
+							}
+							WriteResult writeResult = conn.collection(m.table()).save(MongoConnection.dbobj(m));
+							return writeResult;
+						}).collect(Collectors.toList()).size());
 		else Exeter.of().join(e -> n.addAndGet(conn.collection(e.getKey())
 				.insert(Sdream.of(e.getValue()).map(MongoConnection::dbobj).list().toArray(new BasicDBObject[0]))
 				.getN()), Maps.of(msgs, m -> m.table()).entrySet());
