@@ -3,12 +3,11 @@ package net.butfly.albatis.kafka;
 import static net.butfly.alserdes.format.Format.of;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Properties;
 
-import kafka.admin.AdminUtils;
-import kafka.admin.RackAwareMode;
-import net.butfly.albatis.ddl.FieldDesc;
 import org.apache.kafka.common.security.JaasUtils;
 
 import kafka.utils.ZkUtils;
@@ -18,6 +17,7 @@ import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albatis.Connection;
 import net.butfly.albatis.DataConnection;
+import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.io.IOFactory;
 import net.butfly.albatis.io.Input;
@@ -88,6 +88,19 @@ public class Kafka2Connection extends DataConnection<Connection> implements IOFa
 		return null;
 	}
 
+	private static Object RACK_AWARE_MODE;
+	private static Method CREATE_TOPIC;
+	static {
+		try {
+			RACK_AWARE_MODE = Class.forName("kafka.admin.RackAwareMode.Enforced$").newInstance();
+			CREATE_TOPIC = Class.forName("kafka.admin.AdminUtils").getMethod("createTopic", ZkUtils.class, String.class, int.class,
+					int.class, Properties.class, RACK_AWARE_MODE.getClass());
+		} catch (ClassNotFoundException | NoSuchMethodException | SecurityException | InstantiationException | IllegalAccessException e) {
+			RACK_AWARE_MODE = null;
+			CREATE_TOPIC = null;
+		}
+	}
+
 	@Override
 	public void construct(String table, TableDesc tableDesc, List<FieldDesc> fields) {
 		String tableName;
@@ -96,14 +109,17 @@ public class Kafka2Connection extends DataConnection<Connection> implements IOFa
 		if (tables.length == 1) tableName = tables[0];
 		else if (tables.length == 2) tableName = tables[1];
 		else throw new RuntimeException("Please type in correct kafka table format: db.table !");
-		if (!uri.toString().contains("?"))
-			kafkaUrl = uri.toString().substring(uri.toString().indexOf("//") + 2);
-		else
-			kafkaUrl = uri.toString().substring(uri.toString().indexOf("//") + 2, uri.toString().indexOf("?"));
+		if (!uri.toString().contains("?")) kafkaUrl = uri.toString().substring(uri.toString().indexOf("//") + 2);
+		else kafkaUrl = uri.toString().substring(uri.toString().indexOf("//") + 2, uri.toString().indexOf("?"));
 		ZkUtils zkUtils = ZkUtils.apply(kafkaUrl, 30000, 30000, JaasUtils.isZkSecurityEnabled());
 		int partition = Integer.parseInt(tableDesc.construct.get("number_of_shards").toString());
 		int replication = Integer.parseInt(tableDesc.construct.get("number_of_replicas").toString());
-		AdminUtils.createTopic(zkUtils, tableName, partition, replication, new Properties(), new RackAwareMode.Enforced$());
+
+		try {
+			CREATE_TOPIC.invoke(null, zkUtils, tableName, partition, replication, new Properties(), RACK_AWARE_MODE);
+		} catch (IllegalAccessException | InvocationTargetException e) {
+			throw new IllegalArgumentException(e);
+		}
 		logger().info("create kafka topic successful");
 		zkUtils.close();
 	}

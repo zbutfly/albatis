@@ -6,6 +6,7 @@ import java.util.List;
 import net.butfly.albacore.exception.ConfigException;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.collection.Colls;
+import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.ddl.TableDesc;
 
 public class KafkaConnection extends Kafka2Connection {
@@ -30,6 +31,11 @@ public class KafkaConnection extends Kafka2Connection {
 		} catch (ConfigException e) {
 			throw new IOException(e);
 		}
+	}
+
+	@Override
+	public void construct(String table, TableDesc tableDesc, List<FieldDesc> fields) {
+		throw new UnsupportedOperationException();
 	}
 
 	public static class Driver implements net.butfly.albatis.Connection.Driver<KafkaConnection> {
