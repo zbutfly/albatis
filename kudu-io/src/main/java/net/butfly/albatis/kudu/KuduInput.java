@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import net.butfly.albacore.utils.Configs;
 import org.apache.kudu.ColumnSchema;
 import org.apache.kudu.Type;
 import org.apache.kudu.client.AsyncKuduScanner;
@@ -32,6 +33,7 @@ public class KuduInput extends Namedly implements Input<Rmap> {
 	private final BlockingQueue<TableScanner> scanners = new LinkedBlockingQueue<>();
 	private final Map<String, TableScanner> scannerMap = Maps.of();
 	private Map<String, Type> schema = Maps.of();
+	private static int BATCH_SIZE = Integer.parseInt(Configs.gets("albatis.kudu.batch.size","1500"));
 
 	public KuduInput(String name, KuduConnectionBase<?, ?, ?> conn) {
 		super(name);
@@ -77,7 +79,7 @@ public class KuduInput extends Namedly implements Input<Rmap> {
 				filterField.add(field.name);
 			}
 			columns.stream().filter(t -> filterField.contains(t.getName())).forEach(c -> schema.put(c.getName(), c.getType()));
-			scanner = kuduTable.getAsyncClient().newScannerBuilder(kuduTable).setProjectedColumnNames(Colls.list(schema.keySet())).build();
+			scanner = kuduTable.getAsyncClient().newScannerBuilder(kuduTable).batchSizeBytes(BATCH_SIZE).cacheBlocks(true).setProjectedColumnNames(Colls.list(schema.keySet())).build();
 		}
 
 		public void close() {
@@ -124,7 +126,7 @@ public class KuduInput extends Namedly implements Input<Rmap> {
 						rs = s.scanner.nextRows().join();
 					} catch (Exception e) {
 //						logger().error("Kudu fail", e);
-						s.scanner = kuduTable.getAsyncClient().newScannerBuilder(kuduTable).setProjectedColumnNames(Colls.list(schema.keySet())).build();
+						s.scanner = kuduTable.getAsyncClient().newScannerBuilder(kuduTable).batchSizeBytes(BATCH_SIZE).cacheBlocks(true).setProjectedColumnNames(Colls.list(schema.keySet())).build();
 						return;
 					}
 					if (null == rs) {
