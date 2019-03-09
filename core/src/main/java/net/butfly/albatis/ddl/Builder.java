@@ -48,7 +48,7 @@ public abstract class Builder {
 	public static String[] parseTableAndField(String tsub, String fq) {
 		String[] tqs = parseTableName(tsub);
 		String[] fqs = parseFieldName(fq);
-		return new String[] { tqs[0], one(fqs[0], tqs[1]), one(fqs[1], tqs[2]), fqs[2] };
+		return new String[] { tqs[0], one(tqs[1], fqs[0]), one(tqs[2], fqs[1]), fqs[2] };
 	}
 
 	private static String one(String s1, String s2) {
