@@ -71,11 +71,11 @@ public interface Connection extends AutoCloseable, IOFactory {
 				Class<?> c;
 				try {
 					c = driver.getClass().getEnclosingClass();
+					_Logger.logger.debug("Connection driver [" + c.toString() + "] loaded as schema " + driver.schemas());
 				} catch (NoClassDefFoundError e) {
-					c = null;
+					_Logger.logger.warn("Connection driver [" + driver.getClass().toString() + "] found but driver invalid, schema "
+							+ driver.schemas() + " should not be used, cause: " + e.getMessage());
 				}
-				if (null == c) c = driver.getClass();
-				_Logger.logger.debug("Connection driver loaded: " + c.toString() + " as schema " + driver.schemas());
 			}
 		}
 
