@@ -8,19 +8,22 @@ import static net.butfly.albatis.io.IOProps.propI;
 import static net.butfly.albatis.io.IOProps.propL;
 
 import java.io.BufferedWriter;
+import java.io.ByteArrayInputStream;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.PrintWriter;
 import java.net.InetSocketAddress;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import org.apache.commons.vfs2.FileObject;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HTableDescriptor;
@@ -51,6 +54,7 @@ import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.io.lambda.Function;
 import net.butfly.albacore.paral.Exeter;
 import net.butfly.albacore.paral.Sdream;
+import net.butfly.albacore.utils.IOs;
 import net.butfly.albacore.utils.Texts;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
@@ -64,6 +68,7 @@ import net.butfly.albatis.io.IOFactory;
 import net.butfly.albatis.io.IOStats;
 import net.butfly.albatis.io.Rmap;
 import net.butfly.albatis.io.utils.JsonUtils;
+import net.butfly.albatis.io.vfs.VfsConnection;
 import net.butfly.alserdes.SerDes;
 
 @SerDes.As("hbase")
@@ -103,51 +108,73 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 		} catch (Exception e) {
 			logger.error("Initialize hbase connection fail on close origin, maybe leak!", e);
 		}
-		Map<String, String> params = null;
-		if (null != uri) {
-			boolean configed = false;
-			params = new ConcurrentHashMap<>(uri.getParameters());
-			// params.remove("df");
-			switch (uri.getScheme()) {
-			case "hbase:master":
-				if (uri.getInetAddrs().length == 1) {
-					logger.warn("Deprecate master connect to hbase: " + uri.getHost());
-					params.put("hbase.master", "*" + uri.getHost() + "*");
-					configed = true;
-					break;
-				}
-			case "hbase":
-			case "zk":
-			case "zookeeper":
-			case "hbase:zk":
-			case "hbase:zookeeper":
-				if (uri.getInetAddrs().length > 0) {
-					for (InetSocketAddress a : uri.getInetAddrs()) {
-						params.put(HConstants.ZOOKEEPER_QUORUM, a.getHostName());
-						params.put(HConstants.ZOOKEEPER_CLIENT_PORT, Integer.toString(a.getPort()));
-					}
-					if (!"/".equals(uri.getPath())) params.put(HConstants.ZOOKEEPER_ZNODE_PARENT, uri.getPath());
-					configed = true;
-					break;
-				}
-			}
-			if (!configed) configurateByFile(params, uri.getPath());
-		}
-		try {
+
+		Map<String, String> params = params();
+		params.putAll(uri.getParameters());
+		String confuri = params.remove(Hbases.VFS_CONF_URI);
+		if (null == confuri) try {
 			return Hbases.connect(params);
+		} catch (IOException e) {
+			logger.error("Connect failed", e);
+			return null;
+		}
+		else try {
+			return Hbases.connect(params, read(confuri));
 		} catch (IOException e) {
 			logger.error("Connect failed", e);
 			return null;
 		}
 	}
 
-	private void configurateByFile(Map<String, String> params, String path) {
-		if (!path.endsWith("/")) throw new IllegalArgumentException("Hbase configuration should be a directory, but a file [" + path
-				+ "] is found.");
-		if ("/".equals(path)) return;// empty, classpath configuration files.
-		char prefix = path.charAt(1);
-		if (prefix == '.' || prefix == '~') path = path.substring(1);// relative path
-		params.put("albatis.hbase.config.path", path);
+	private InputStream[] read(String vfs) throws IOException {
+		List<InputStream> fs = Colls.list();
+		try (FileObject conf = VfsConnection.vfs(vfs);) {
+			if (!conf.exists()) throw new IllegalArgumentException("Hbase configuration [" + vfs + "] not existed.");
+			if (!conf.isFolder()) throw new IllegalArgumentException("Hbase configuration [" + vfs + "] is not folder.");
+			for (FileObject f : conf.getChildren())
+				if (f.isFile() && "xml".equals(f.getName().getExtension())) {//
+					logger.debug("Hbase configuration resource adding: " + f.getName());
+					fs.add(new ByteArrayInputStream(IOs.readAll(f.getContent().getInputStream())));
+				}
+			return fs.toArray(new InputStream[0]);
+		}
+	}
+
+	private Map<String, String> params() {
+		if (null != uri) {
+			// params.remove("df");
+			String[] s = uri.getSchemas();
+			int i = 0;
+			if ("hbase".equals(s[0]) && s.length > 1) i = 1;
+			switch (s[i]) {
+			case "master": // deprecated single master mode
+				if (uri.getInetAddrs().length == 1) {
+					logger.warn("Deprecate master connect to hbase: " + uri.getHost());
+					return Maps.of("hbase.master", "*" + uri.getHost() + "*");
+				} else throw new IllegalArgumentException("Hbase master mode need host and port.");
+			case "hbase":
+			case "zk":
+			case "zookeeper": // default zookeeper mode
+				if (uri.getInetAddrs().length > 0) {
+					StringBuilder zq = new StringBuilder();
+					int port = -1;
+					for (InetSocketAddress a : uri.getInetAddrs()) {
+						zq.append(a.getHostName()).append(",");
+						if (port > 0 && port != a.getPort()) //
+							throw new IllegalArgumentException("Hbase zookeeper port conflicted " + port + " and " + a.getPort());
+						port = a.getPort();
+					}
+					Map<String, String> params = Maps.of(HConstants.ZOOKEEPER_QUORUM, zq.toString());
+					if (port > 0) params.put(HConstants.ZOOKEEPER_CLIENT_PORT, Integer.toString(port));
+					if (!"/".equals(uri.getPath())) params.put(HConstants.ZOOKEEPER_ZNODE_PARENT, uri.getPath());
+					return params;
+				}
+			default: // other, try to load by vfs
+				URISpec vfs = uri.schema(Arrays.copyOfRange(s, i, s.length));
+				return Maps.of(Hbases.VFS_CONF_URI, vfs.toString());
+			}
+		}
+		throw new IllegalArgumentException("Hbase uri not supported.");
 	}
 
 	@Override
@@ -507,4 +534,9 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 		return exists;
 	}
 
+	public List<String> ls() throws IOException {
+		try (Admin admin = client.getAdmin()) {
+			return list(tn -> tn.getNameAsString(), admin.listTableNames());
+		}
+	}
 }

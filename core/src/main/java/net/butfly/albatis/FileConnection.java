@@ -15,7 +15,7 @@ public class FileConnection extends DataConnection<Connection> {
 
 	public FileConnection(URISpec uri) throws IOException {
 		super(uri, "file", "file:json");
-		String[] schemas = uri.getScheme().split(":");
+		String[] schemas = uri.getSchemas();
 		if (schemas.length > 1) format = schemas[1];
 		else format = "json";
 		root = FileConnection.path(uri);

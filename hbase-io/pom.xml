@@ -153,6 +153,11 @@
 	<dependencyManagement>
 		<dependencies>
 			<dependency>
+				<artifactId>guava</artifactId>
+				<groupId>com.google.guava</groupId>
+				<version>19.0</version>
+			</dependency>
+			<dependency>
 				<groupId>org.apache.zookeeper</groupId>
 				<artifactId>zookeeper</artifactId>
 				<version>3.4.13</version>

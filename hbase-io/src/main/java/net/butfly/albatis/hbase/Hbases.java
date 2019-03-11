@@ -1,5 +1,45 @@
 package net.butfly.albatis.hbase;
 
+import static net.butfly.albatis.ddl.FieldDesc.SPLIT_CF;
+import static net.butfly.albatis.ddl.FieldDesc.SPLIT_PREFIX;
+import static net.butfly.albatis.io.Rmap.Op.INCREASE;
+import static net.butfly.albatis.io.Rmap.Op.INSERT;
+import static net.butfly.albatis.io.Rmap.Op.UPSERT;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Properties;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.CellUtil;
+import org.apache.hadoop.hbase.HBaseConfiguration;
+import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.KeyValue.Type;
+import org.apache.hadoop.hbase.client.Connection;
+import org.apache.hadoop.hbase.client.ConnectionFactory;
+import org.apache.hadoop.hbase.client.Increment;
+import org.apache.hadoop.hbase.client.Mutation;
+import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.security.User;
+import org.apache.hadoop.hbase.util.Bytes;
+
 import net.butfly.albacore.io.lambda.Function;
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.Configs;
@@ -11,25 +51,6 @@ import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albacore.utils.parallel.Lambdas;
 import net.butfly.albatis.hbase.kerberos.huawei.KerberosUtil;
 import net.butfly.albatis.io.Rmap;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.*;
-import org.apache.hadoop.hbase.KeyValue.Type;
-import org.apache.hadoop.hbase.client.*;
-import org.apache.hadoop.hbase.security.User;
-import org.apache.hadoop.hbase.util.Bytes;
-
-import java.io.*;
-import java.lang.reflect.Method;
-import java.util.*;
-import java.util.Map.Entry;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import static net.butfly.albatis.ddl.FieldDesc.SPLIT_CF;
-import static net.butfly.albatis.ddl.FieldDesc.SPLIT_PREFIX;
-import static net.butfly.albatis.io.Rmap.Op.*;
 
 public final class Hbases extends Utils {
 	protected static final Logger logger = Logger.getLogger(Hbases.class);
@@ -49,23 +70,14 @@ public final class Hbases extends Utils {
 		return connect(null);
 	}
 
-	public static Connection connect(Map<String, String> conf) throws IOException {
+	static final String VFS_CONF_URI = "albatis.hbase.config.path";
+
+	public static Connection connect(Map<String, String> conf, InputStream... res) throws IOException {
 		Configuration hconf = HBaseConfiguration.create();
 		for (Entry<String, String> c : props().entrySet())
 			hconf.set(c.getKey(), c.getValue());
-		String confPath = conf.remove("albatis.hbase.config.path");
-		if (null != conf && !conf.isEmpty()) for (Entry<String, String> c : conf.entrySet())
-			hconf.set(c.getKey(), c.getValue());
-		if (null != confPath) {
-			File path = new File(confPath);
-			if (!path.exists() || !path.isDirectory())
-				throw new IllegalArgumentException("Config path not found or not directory: " + path
-						.toString());
-			for (File xml : path.listFiles(f -> f.isFile() && f.getName().endsWith(".xml"))) {
-				logger.debug("Hbase config file append: " + xml.toString());
-				hconf.addResource(new org.apache.hadoop.fs.Path(xml.toURI()));
-			}
-		}
+		if (!Colls.empty(res)) for (InputStream r : res)
+			hconf.addResource(r);
 		//hbase.security.authentication = kerberos/normal
 		if (User.isHBaseSecurityEnabled(hconf)) {
 			kerberosAuth(hconf);

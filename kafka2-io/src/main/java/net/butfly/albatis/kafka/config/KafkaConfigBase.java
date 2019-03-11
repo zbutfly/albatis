@@ -91,7 +91,7 @@ public abstract class KafkaConfigBase implements Serializable {
 
 	public KafkaConfigBase(URISpec uri) {
 		super();
-		String[] schs = uri.getScheme().split(":");
+		String[] schs = uri.getSchemas();
 		String s = schs[0];
 		if (schs.length > 1) s = schs[1];
 		else switch (s) {

@@ -3,6 +3,7 @@ package net.butfly.albatis.io.vfs;
 import static net.butfly.albacore.utils.collection.Colls.empty;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 
 import org.apache.commons.vfs2.FileObject;
@@ -32,15 +33,10 @@ public class VfsConnection extends DataConnection<Connection> {
 
 	public VfsConnection(URISpec uri) throws IOException {
 		super(uri, SCHEMAS);
-		List<String> schemas = Colls.list(uri.getScheme().split(":"));
-		switch (schemas.get(0)) {
-		case "file":
-		case "vfs":
-			schemas.remove(0);
-		}
-
-		if (schemas.isEmpty()) schemas.add(0, "file");
-		vfsUri = uri.schema(schemas.get(0));
+		String[] schemas = uri.getSchemas();
+		if ("file".equals(schemas[0]) || "vfs".equals(schemas[0])) schemas = Arrays.copyOfRange(schemas, 1, schemas.length);
+		if (0 == schemas.length) schemas = new String[] { "file" };
+		vfsUri = uri.schema(schemas[0]);
 		if (null == FS_MANAGER) FS_MANAGER = init();
 		prefix = vfsUri.fetchParameter("px");
 		String s = vfsUri.fetchParameter("sx");
@@ -54,7 +50,7 @@ public class VfsConnection extends DataConnection<Connection> {
 		// if (!dirobj.exists()) dirobj.createFolder();
 		s = full.substring(pos + 1);
 
-		if (schemas.size() > 1) ext = schemas.get(1);
+		if (schemas.length > 1) ext = schemas[1];
 		else if (empty(s)) ext = "json";
 		else ext = (pos = s.lastIndexOf('.')) < 0 ? "json" : empty(s = s.substring(pos + 1)) ? "json" : s;
 		// filename = empty(s) ? null : s;
@@ -142,4 +138,8 @@ public class VfsConnection extends DataConnection<Connection> {
 		return VFS.getManager();
 	}
 
+	public static FileObject vfs(String vfs) throws FileSystemException {
+		if (null == FS_MANAGER) FS_MANAGER = init();
+		return FS_MANAGER.resolveFile(vfs);
+	}
 }
