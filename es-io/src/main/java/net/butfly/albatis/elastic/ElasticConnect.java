@@ -1,13 +1,14 @@
 package net.butfly.albatis.elastic;
 
-import static net.butfly.albacore.paral.Sdream.of;
-
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.InetSocketAddress;
-import java.util.Arrays;
-import java.util.Map;
-
+import net.butfly.albacore.io.URISpec;
+import net.butfly.albacore.serder.JsonSerder;
+import net.butfly.albacore.utils.Pair;
+import net.butfly.albacore.utils.Utils;
+import net.butfly.albacore.utils.collection.Maps;
+import net.butfly.albacore.utils.logger.Logger;
+import net.butfly.albatis.Connection;
+import net.butfly.albatis.ddl.vals.GeoPointVal;
+import net.butfly.albatis.io.Rmap;
 import org.apache.http.HttpHost;
 import org.elasticsearch.client.Response;
 import org.elasticsearch.client.RestClient;
@@ -16,14 +17,15 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.transport.client.PreBuiltTransportClient;
 
-import net.butfly.albacore.io.URISpec;
-import net.butfly.albacore.serder.JsonSerder;
-import net.butfly.albacore.utils.Pair;
-import net.butfly.albacore.utils.Utils;
-import net.butfly.albacore.utils.logger.Logger;
-import net.butfly.albatis.Connection;
-import net.butfly.albatis.ddl.vals.GeoPointVal;
-import net.butfly.albatis.io.Rmap;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.InetSocketAddress;
+import java.util.Arrays;
+import java.util.Map;
+import java.util.Properties;
+
+import static net.butfly.albacore.paral.Sdream.of;
 
 public interface ElasticConnect extends Connection {
 	static final Logger _logger = Logger.getLogger(ElasticConnection.class);
@@ -115,6 +117,7 @@ public interface ElasticConnect extends Connection {
 		private Builder() {}
 
 		static TransportClient buildTransportClient(URISpec uri, Map<String, String> props) {
+			kerberosAuth();
 			String rest = uri.fetchParameter("rest");
 			Settings.Builder settings = Settings.builder();
 			uri.getParameters("script", "batch").forEach(settings::put);
@@ -140,6 +143,21 @@ public interface ElasticConnect extends Connection {
 
 			tc.addTransportAddresses(addrs);
 			return tc;
+		}
+
+		private static void kerberosAuth() {
+			Properties p = new Properties();
+			try {
+				InputStream is = ElasticConnect.class.getResourceAsStream("/albatis-es.properties");
+				if (null != is) p.load(is);
+				else return;
+			} catch (IOException e) {
+				logger.error("Loading property file is failure", e);
+			}
+			logger.info("start normal kerberos setting!");
+			Map<String, String> props = Maps.of(p);
+			for (Map.Entry<String, String> c : props.entrySet())
+				System.setProperty(c.getKey(), c.getValue());
 		}
 
 		private static InetSocketAddress[] parseRestAddrs(String rest, InetSocketAddress... inetSocketAddresses) {

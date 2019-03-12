@@ -1,58 +1,47 @@
 package net.butfly.albatis.hbase;
 
-import static net.butfly.albatis.ddl.FieldDesc.SPLIT_CF;
-import static net.butfly.albatis.ddl.FieldDesc.SPLIT_PREFIX;
-import static net.butfly.albatis.io.Rmap.Op.INCREASE;
-import static net.butfly.albatis.io.Rmap.Op.INSERT;
-import static net.butfly.albatis.io.Rmap.Op.UPSERT;
-
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Properties;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.Cell;
-import org.apache.hadoop.hbase.CellUtil;
-import org.apache.hadoop.hbase.HBaseConfiguration;
-import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.KeyValue.Type;
-import org.apache.hadoop.hbase.client.Connection;
-import org.apache.hadoop.hbase.client.ConnectionFactory;
-import org.apache.hadoop.hbase.client.Increment;
-import org.apache.hadoop.hbase.client.Mutation;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.util.Bytes;
-
 import net.butfly.albacore.io.lambda.Function;
 import net.butfly.albacore.paral.Sdream;
+import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.IOs;
 import net.butfly.albacore.utils.Utils;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albacore.utils.parallel.Lambdas;
+import net.butfly.albatis.hbase.kerberos.huawei.KerberosUtil;
 import net.butfly.albatis.io.Rmap;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.*;
+import org.apache.hadoop.hbase.KeyValue.Type;
+import org.apache.hadoop.hbase.client.*;
+import org.apache.hadoop.hbase.security.User;
+import org.apache.hadoop.hbase.util.Bytes;
+
+import java.io.*;
+import java.lang.reflect.Method;
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import static net.butfly.albatis.ddl.FieldDesc.SPLIT_CF;
+import static net.butfly.albatis.ddl.FieldDesc.SPLIT_PREFIX;
+import static net.butfly.albatis.io.Rmap.Op.*;
 
 public final class Hbases extends Utils {
 	protected static final Logger logger = Logger.getLogger(Hbases.class);
 	public static final String DEFAULT_COL_FAMILY_NAME = "cf1";
 	public static final byte[] DEFAULT_COL_FAMILY_VALUE = Bytes.toBytes(DEFAULT_COL_FAMILY_NAME);
+
+	// kerberos configs
+	public static final String JAAS_CONF = "jaas.conf";
+	public static final String KRB5_CONF = "krb5.conf";
+	public static final String HUAWEI_KEYTAB = "user.keytab";
+	public static final String KERBEROS_PROP_PATH = "albatis-habse-kerberos.properties";
+	public static Properties KERBEROS_PROPS;
 
 	final static ExecutorService ex = Executors.newCachedThreadPool();
 
@@ -69,12 +58,17 @@ public final class Hbases extends Utils {
 			hconf.set(c.getKey(), c.getValue());
 		if (null != confPath) {
 			File path = new File(confPath);
-			if (!path.exists() || !path.isDirectory()) throw new IllegalArgumentException("Config path not found or not directory: " + path
-					.toString());
+			if (!path.exists() || !path.isDirectory())
+				throw new IllegalArgumentException("Config path not found or not directory: " + path
+						.toString());
 			for (File xml : path.listFiles(f -> f.isFile() && f.getName().endsWith(".xml"))) {
 				logger.debug("Hbase config file append: " + xml.toString());
 				hconf.addResource(new org.apache.hadoop.fs.Path(xml.toURI()));
 			}
+		}
+		//hbase.security.authentication = kerberos/normal
+		if (User.isHBaseSecurityEnabled(hconf)) {
+			kerberosAuth(hconf);
 		}
 		while (true)
 			try {
@@ -84,6 +78,42 @@ public final class Hbases extends Utils {
 			} catch (Throwable t) {// org.apache.zookeeper.KeeperException.ConnectionLossException
 				throw new IOException(t);
 			}
+	}
+
+	private static void kerberosAuth(Configuration conf) {
+		String kerberosConfigPath = Configs.get("albatis.hbase.kerberos.path");
+		if (null == kerberosConfigPath) return;
+		File kerberosConfigR = new File(kerberosConfigPath);
+		String[] files = kerberosConfigR.list();
+		List<String> fileList = Colls.list(files);
+		try {
+			KERBEROS_PROPS.load(IOs.openFile(kerberosConfigPath + KERBEROS_PROP_PATH));
+		} catch (IOException e) {
+			throw new RuntimeException("load KERBEROS_PROP error!", e);
+		}
+		String jaasFile = kerberosConfigPath + JAAS_CONF;
+		String krb5ConfPath = kerberosConfigPath + KRB5_CONF;
+		String keytabPath = kerberosConfigPath + HUAWEI_KEYTAB;
+		String userPrincipal = KERBEROS_PROPS.getProperty("albatis.hbase.kerberos.hbase.principal");//user
+		String zkServerPrincipal = KERBEROS_PROPS.getProperty("albatis.hbase.kerberos.zk.principal");
+		if (fileList.contains(HUAWEI_KEYTAB)) {
+			try {
+				KerberosUtil.setJaasFile(userPrincipal, keytabPath);
+				KerberosUtil.setZookeeperServerPrincipal(zkServerPrincipal);
+				KerberosUtil.login(userPrincipal, keytabPath, krb5ConfPath, conf);
+			} catch (IOException e) {
+				logger.error("Loading huawei kerberos properties is failure", e);
+			}
+		} else {
+			logger.info("Enable normal kerberos!");
+			try {
+				KerberosUtil.setKrb5Config(krb5ConfPath);
+				KerberosUtil.setZookeeperServerPrincipal(zkServerPrincipal);
+				System.setProperty("java.security.auth.login.config", jaasFile);
+			} catch (IOException e) {
+				logger.error("Loading common kerberos properties is failure", e);
+			}
+		}
 	}
 
 	public static void disconnect(Connection conn) throws IOException {
@@ -105,7 +135,8 @@ public final class Hbases extends Utils {
 			if (!result.isEmpty()) result.listCells().forEach(c -> {
 				try {
 					IOs.writeBytes(baos, cellToBytes(c));
-				} catch (Exception e) {}
+				} catch (Exception e) {
+				}
 			});
 			return baos.toByteArray();
 		}
@@ -157,7 +188,7 @@ public final class Hbases extends Utils {
 				f = Bytes.toBytes(fq[0]);
 				q = Bytes.toBytes(fq[1]);
 			}
-			return new byte[][] { f, q };
+			return new byte[][]{f, q};
 		}
 
 		static Rmap result(String table, String row, Stream<Cell> cells) {
@@ -199,41 +230,41 @@ public final class Hbases extends Utils {
 			byte[] rowk = Bytes.toBytes(row);
 			int fc = 0;
 			switch (m.op()) {
-			case INSERT:
-			case UPSERT:
-				Put put = new Put(rowk);
-				for (Entry<String, Object> e : m.entrySet()) {
-					byte[] val = null;
-					Object v = e.getValue();
-					if (v instanceof byte[]) val = (byte[]) v;
-					else if (v instanceof CharSequence) {
-						String s = ((CharSequence) v).toString();
-						if (s.length() > 0) val = Bytes.toBytes(s);
-					} else if (v instanceof Map) val = conv.apply((Map<String, Object>) v);
-					if (null == val || val.length == 0) return null;
-					byte[][] fqs = Results.parseFQ(e.getKey());
-					Cell c = CellUtil.createCell(rowk, fqs[0], fqs[1], HConstants.LATEST_TIMESTAMP, Type.Put.getCode(), (byte[]) val);
-					if (null != c) try {
-						put.add(c);
-						fc++;
-					} catch (Exception ee) {
-						logger.warn("Hbase cell converting failure, ignored and continued, row: " + row + ", cell: " + Bytes.toString(
-								CellUtil.cloneFamily(c)) + SPLIT_CF + Bytes.toString(CellUtil.cloneQualifier(c)), ee);
+				case INSERT:
+				case UPSERT:
+					Put put = new Put(rowk);
+					for (Entry<String, Object> e : m.entrySet()) {
+						byte[] val = null;
+						Object v = e.getValue();
+						if (v instanceof byte[]) val = (byte[]) v;
+						else if (v instanceof CharSequence) {
+							String s = ((CharSequence) v).toString();
+							if (s.length() > 0) val = Bytes.toBytes(s);
+						} else if (v instanceof Map) val = conv.apply((Map<String, Object>) v);
+						if (null == val || val.length == 0) return null;
+						byte[][] fqs = Results.parseFQ(e.getKey());
+						Cell c = CellUtil.createCell(rowk, fqs[0], fqs[1], HConstants.LATEST_TIMESTAMP, Type.Put.getCode(), (byte[]) val);
+						if (null != c) try {
+							put.add(c);
+							fc++;
+						} catch (Exception ee) {
+							logger.warn("Hbase cell converting failure, ignored and continued, row: " + row + ", cell: " + Bytes.toString(
+									CellUtil.cloneFamily(c)) + SPLIT_CF + Bytes.toString(CellUtil.cloneQualifier(c)), ee);
+						}
 					}
-				}
-				return fc == 0 ? null : put;
-			case INCREASE:
-				Increment inc = new Increment(rowk);
-				for (Entry<String, Object> e : m.entrySet()) {
-					byte[][] fq = Results.parseFQ(e.getKey());
-					Object v = e.getValue();
-					inc.addColumn(fq[0], fq[1], null == v ? 1 : ((Long) v).longValue());
-					fc++;
-				}
-				return inc;
-			default:
-				logger.warn("Op not support: " + m.toString());
-				return null;
+					return fc == 0 ? null : put;
+				case INCREASE:
+					Increment inc = new Increment(rowk);
+					for (Entry<String, Object> e : m.entrySet()) {
+						byte[][] fq = Results.parseFQ(e.getKey());
+						Object v = e.getValue();
+						inc.addColumn(fq[0], fq[1], null == v ? 1 : ((Long) v).longValue());
+						fc++;
+					}
+					return inc;
+				default:
+					logger.warn("Op not support: " + m.toString());
+					return null;
 			}
 		}
 
@@ -246,45 +277,45 @@ public final class Hbases extends Utils {
 			byte[] rowk = Bytes.toBytes(row);
 			int fc = 0;
 			switch (m.op()) {
-			case INSERT:
-			case UPSERT:
-				Put put = new Put(rowk);
-				for (Entry<String, Object> e : m.entrySet()) {
-					byte[] val = null;
-					Object v = e.getValue();
-					if (v instanceof byte[]) val = (byte[]) v;
-					else if (v instanceof CharSequence) {
-						String s = ((CharSequence) v).toString();
-						if (s.length() > 0) val = Bytes.toBytes(s);
-					} else if (v instanceof Map) {
-						logger.warn("Map field [" + e.getKey() + "] not supported, add ?df=format to conv, value lost: \n\t" + v
-								.toString());
-						return null;
+				case INSERT:
+				case UPSERT:
+					Put put = new Put(rowk);
+					for (Entry<String, Object> e : m.entrySet()) {
+						byte[] val = null;
+						Object v = e.getValue();
+						if (v instanceof byte[]) val = (byte[]) v;
+						else if (v instanceof CharSequence) {
+							String s = ((CharSequence) v).toString();
+							if (s.length() > 0) val = Bytes.toBytes(s);
+						} else if (v instanceof Map) {
+							logger.warn("Map field [" + e.getKey() + "] not supported, add ?df=format to conv, value lost: \n\t" + v
+									.toString());
+							return null;
+						}
+						if (null == val || val.length == 0) return null;
+						byte[][] fqs = Results.parseFQ(e.getKey());
+						Cell c = CellUtil.createCell(rowk, fqs[0], fqs[1], HConstants.LATEST_TIMESTAMP, Type.Put.getCode(), (byte[]) val);
+						if (null != c) try {
+							put.add(c);
+							fc++;
+						} catch (Exception ee) {
+							logger.warn("Hbase cell converting failure, ignored and continued, row: " + row + ", cell: " + Bytes.toString(
+									CellUtil.cloneFamily(c)) + SPLIT_CF + Bytes.toString(CellUtil.cloneQualifier(c)), ee);
+						}
 					}
-					if (null == val || val.length == 0) return null;
-					byte[][] fqs = Results.parseFQ(e.getKey());
-					Cell c = CellUtil.createCell(rowk, fqs[0], fqs[1], HConstants.LATEST_TIMESTAMP, Type.Put.getCode(), (byte[]) val);
-					if (null != c) try {
-						put.add(c);
+					return fc == 0 ? null : put;
+				case INCREASE:
+					Increment inc = new Increment(rowk);
+					for (Entry<String, Object> e : m.entrySet()) {
+						byte[][] fq = Results.parseFQ(e.getKey());
+						Object v = e.getValue();
+						inc.addColumn(fq[0], fq[1], null == v ? 1 : ((Long) v).longValue());
 						fc++;
-					} catch (Exception ee) {
-						logger.warn("Hbase cell converting failure, ignored and continued, row: " + row + ", cell: " + Bytes.toString(
-								CellUtil.cloneFamily(c)) + SPLIT_CF + Bytes.toString(CellUtil.cloneQualifier(c)), ee);
 					}
-				}
-				return fc == 0 ? null : put;
-			case INCREASE:
-				Increment inc = new Increment(rowk);
-				for (Entry<String, Object> e : m.entrySet()) {
-					byte[][] fq = Results.parseFQ(e.getKey());
-					Object v = e.getValue();
-					inc.addColumn(fq[0], fq[1], null == v ? 1 : ((Long) v).longValue());
-					fc++;
-				}
-				return inc;
-			default:
-				logger.warn("Op not support: " + m.toString());
-				return null;
+					return inc;
+				default:
+					logger.warn("Op not support: " + m.toString());
+					return null;
 			}
 		}
 	}
@@ -294,13 +325,15 @@ public final class Hbases extends Utils {
 		try {
 			InputStream is = HbaseConnection.class.getResourceAsStream("/albatis-hbase.properties");
 			if (null != is) p.load(is);
-		} catch (IOException e) {}
+		} catch (IOException e) {
+		}
 		return Maps.of(p);
 	}
 
 	private static final Method SET_CHACHING;
 	private static final Method SET_BATCH;
 	private static final Method SET_MAX_RESULT_SIZE;
+
 	static {
 		try {
 			SET_CHACHING = Scan.class.getMethod("setCaching", int.class);
