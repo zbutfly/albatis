@@ -32,7 +32,6 @@ public class KuduInput extends Namedly implements Input<Rmap> {
 	private static KuduTable kuduTable;
 	private final BlockingQueue<TableScanner> scanners = new LinkedBlockingQueue<>();
 	private final Map<String, TableScanner> scannerMap = Maps.of();
-	private Map<String, Type> schema = Maps.of();
 	private static int BATCH_SIZE = Integer.parseInt(Configs.gets("albatis.kudu.batch.size","1500"));
 
 	public KuduInput(String name, KuduConnectionBase<?, ?, ?> conn) {
@@ -69,6 +68,7 @@ public class KuduInput extends Namedly implements Input<Rmap> {
 		final TableDesc table;
 		AsyncKuduScanner scanner;
 		List<String> filterField = Colls.list();
+		private Map<String, Type> schema = Maps.of();
 
 		public TableScanner(TableDesc table) {
 			super();
@@ -126,7 +126,7 @@ public class KuduInput extends Namedly implements Input<Rmap> {
 						rs = s.scanner.nextRows().join();
 					} catch (Exception e) {
 //						logger().error("Kudu fail", e);
-						s.scanner = kuduTable.getAsyncClient().newScannerBuilder(kuduTable).batchSizeBytes(BATCH_SIZE).cacheBlocks(true).setProjectedColumnNames(Colls.list(schema.keySet())).build();
+						s.scanner = kuduTable.getAsyncClient().newScannerBuilder(kuduTable).batchSizeBytes(BATCH_SIZE).cacheBlocks(true).setProjectedColumnNames(Colls.list(s.schema.keySet())).build();
 						return;
 					}
 					if (null == rs) {
@@ -138,7 +138,7 @@ public class KuduInput extends Namedly implements Input<Rmap> {
 					while (rs.hasNext()) {
 						RowResult row = rs.next();
 						Rmap r = new Rmap(s.table.name);
-						schema.forEach((f, t) -> {
+						s.schema.forEach((f, t) -> {
 							Object v = KuduCommon.getValue(row, f, t);
 							if (null != v) r.put(f, v);
 						});
