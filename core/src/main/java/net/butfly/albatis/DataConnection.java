@@ -33,8 +33,8 @@ public abstract class DataConnection<C> implements Connection, Loggable {
 		supportedSchemas = null != supportedSchema ? supportedSchema : new String[0];
 		this.uri = uri;
 		if (this.uri.getDefaultPort() < 0) this.uri.setDefaultPort(defaultPort);
-		String schema = supportedSchema(uri.getScheme());
-		if (null == schema) throw new ProtocolException(uri.getScheme() + " is not supported, "//
+		String schema = supportedSchema(uri.getSchema());
+		if (null == schema) throw new ProtocolException(uri.getSchema() + " is not supported, "//
 				+ "supported list: [" + Joiner.on(',').join(supportedSchemas) + "]");
 		this.client = initialize(uri);// client.apply(uri);
 

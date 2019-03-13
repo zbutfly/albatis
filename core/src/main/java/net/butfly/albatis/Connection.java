@@ -1,5 +1,11 @@
 package net.butfly.albatis;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Map;
+import java.util.ServiceLoader;
+
 import net.butfly.albacore.exception.NotImplementedException;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.io.lambda.Function;
@@ -7,16 +13,9 @@ import net.butfly.albacore.serder.BsonSerder;
 import net.butfly.albacore.serder.JsonSerder;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
-import net.butfly.albatis.EnvironmentConnection.$env$;
 import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.io.IOFactory;
-
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.Map;
-import java.util.ServiceLoader;
 
 public interface Connection extends AutoCloseable, IOFactory {
 	static final Logger logger = Logger.getLogger(Connection.class);
@@ -47,16 +46,14 @@ public interface Connection extends AutoCloseable, IOFactory {
 	void close() throws IOException;
 
 	@SuppressWarnings("unchecked")
-	static <T extends Connection> T connect(URISpec uriSpec) throws IOException {
-		return null == $env$.env() ? DriverManager.connect(uriSpec) : (T) $env$.connect(uriSpec);
+	static <T extends Connection> T connect(URISpec uri) throws IOException {
+		return (T) Environment.connect(uri);
 	}
 
 	interface Driver<C extends Connection> {
 		List<String> schemas();
 
 		C connect(URISpec uriSpec) throws IOException;
-
-		// Class<C> connectClass();
 	}
 
 	@SuppressWarnings("rawtypes")
@@ -87,7 +84,7 @@ public interface Connection extends AutoCloseable, IOFactory {
 
 		@SuppressWarnings("unchecked")
 		public static <T extends Connection> T connect(URISpec uriSpec) throws IOException {
-			String s = uriSpec.getScheme();
+			String s = uriSpec.getSchema();
 			Driver d;
 			while (!s.isEmpty()) {
 				if (null != (d = DRIVERS.get(s))) return (T) d.connect(uriSpec);
@@ -97,7 +94,7 @@ public interface Connection extends AutoCloseable, IOFactory {
 					else break;
 				}
 			}
-			throw new RuntimeException("No matched connection for schema [" + uriSpec.getScheme() + "]");
+			throw new RuntimeException("No matched connection for schema [" + uriSpec.getSchema() + "]");
 		}
 	}
 

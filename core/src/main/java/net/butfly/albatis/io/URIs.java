@@ -21,14 +21,14 @@ public class URIs {
 	public static URISpec parse(String uriString, Schema... accept) {
 		URISpec uri = new URISpec(uriString);
 		if (accept == null || accept.length == 0) return uri;
-		Schema schema = uri.getScheme() == null ? Schema.FILE : Schema.valueOf(uri.getScheme().toUpperCase());
+		Schema schema = uri.getSchema() == null ? Schema.FILE : Schema.valueOf(uri.getSchema().toUpperCase());
 		for (Schema s : accept)
 			if (s.equals(schema)) return uri;
 		throw new IllegalArgumentException("Not acceptable schema: " + schema);
 	}
 
 	public static Schema schema(URISpec uri) {
-		return uri.getScheme() == null ? Schema.FILE : Schema.valueOf(uri.getScheme().toUpperCase());
+		return uri.getSchema() == null ? Schema.FILE : Schema.valueOf(uri.getSchema().toUpperCase());
 	}
 
 	public static Properties params(URISpec uri) {
