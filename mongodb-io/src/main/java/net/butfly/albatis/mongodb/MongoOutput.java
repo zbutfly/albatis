@@ -1,20 +1,18 @@
 package net.butfly.albatis.mongodb;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
-
 import com.mongodb.WriteResult;
+
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.paral.Exeter;
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.collection.Maps;
-import net.butfly.albacore.utils.parallel.Lambdas;
 import net.butfly.albatis.io.OutputBase;
 import net.butfly.albatis.io.Rmap;
 
@@ -62,7 +60,7 @@ public class MongoOutput extends OutputBase<Rmap> {
 						m -> {
 							if (null != m.key()){
 								String keyField = m.key().toString();
-								DBObject dbObject = conn.collection(m.table()).findAndModify(new BasicDBObject(keyField,m.get(keyField)),null,new BasicDBObject(keyField,1),false,MongoConnection.dbobj(m),false,true);
+								DBObject dbObject = conn.collection(m.table()).findAndModify(new BasicDBObject(keyField,m.get(keyField)),null,null,false,MongoConnection.dbobj(m),false,true);
 								return dbObject;
 							}
 							WriteResult writeResult = conn.collection(m.table()).save(MongoConnection.dbobj(m));
