@@ -62,9 +62,10 @@ public class MongoOutput extends OutputBase<Rmap> {
 								String keyField = m.key().toString();
 								DBObject dbObject = conn.collection(m.table()).findAndModify(new BasicDBObject(keyField,m.get(keyField)),null,null,false,MongoConnection.dbobj(m),false,true);
 								return dbObject;
+							} else {
+								WriteResult writeResult = conn.collection(m.table()).save(MongoConnection.dbobj(m));
+								return writeResult;
 							}
-							WriteResult writeResult = conn.collection(m.table()).save(MongoConnection.dbobj(m));
-							return writeResult;
 						}).collect(Collectors.toList()).size());
 		else Exeter.of().join(e -> n.addAndGet(conn.collection(e.getKey())
 				.insert(Sdream.of(e.getValue()).map(MongoConnection::dbobj).list().toArray(new BasicDBObject[0]))
