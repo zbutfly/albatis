@@ -20,20 +20,24 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.Callable;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import org.apache.commons.vfs2.FileObject;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.KeepDeletedCells;
+import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.Append;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
+import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Increment;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
@@ -538,6 +542,22 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 	public List<String> ls() throws IOException {
 		try (Admin admin = client.getAdmin()) {
 			return list(tn -> tn.getNameAsString(), admin.listTableNames());
+		}
+	}
+
+	@SuppressWarnings("deprecation")
+	public List<byte[][]> regions(String table) {
+		Table t = table(table);
+		try (HTable ht = new HTable(t.getName(), client);) {
+			List<byte[][]> ranges = Colls.list();
+			for (Entry<HRegionInfo, ServerName> r : ht.getRegionLocations().entrySet()) {
+				HRegionInfo region = r.getKey();
+				ranges.add(new byte[][] { region.getStartKey(), region.getEndKey() });
+			}
+			return ranges;
+		} catch (IOException e) {
+			logger.warn("Rengions analyze for table [" + table + "] fail: " + e.getMessage());
+			return null;
 		}
 	}
 }

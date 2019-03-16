@@ -3,6 +3,9 @@ package net.butfly.albatis.hbase;
 import static net.butfly.albacore.paral.Sdream.of;
 import static net.butfly.albatis.ddl.FieldDesc.SPLIT_CF;
 import static net.butfly.albatis.ddl.FieldDesc.SPLIT_PREFIX;
+import static net.butfly.albatis.hbase.HbaseFilters.filterFamily;
+import static net.butfly.albatis.hbase.HbaseFilters.filterPrefix;
+import static net.butfly.albatis.hbase.HbaseFilters.or;
 import static net.butfly.albatis.io.IOProps.propI;
 import static net.butfly.albatis.io.IOProps.propL;
 
@@ -16,14 +19,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.filter.BinaryComparator;
-import org.apache.hadoop.hbase.filter.ColumnPrefixFilter;
-import org.apache.hadoop.hbase.filter.CompareFilter.CompareOp;
-import org.apache.hadoop.hbase.filter.FamilyFilter;
 import org.apache.hadoop.hbase.filter.Filter;
-import org.apache.hadoop.hbase.filter.FilterList;
-import org.apache.hadoop.hbase.filter.FilterList.Operator;
-import org.apache.hadoop.hbase.filter.MultipleColumnPrefixFilter;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import net.butfly.albacore.base.Namedly;
@@ -38,9 +34,9 @@ import net.butfly.albatis.io.Rmap;
 
 public class HbaseInput extends Namedly implements Input<Rmap> {
 	private static final long serialVersionUID = 6225222417568739808L;
-	private final long SCAN_BYTES = propL(HbaseInput.class, "scan.bytes", 3145728); // 3M
-	private final int SCAN_ROWS = propI(HbaseInput.class, "scan.rows", 1);
-	private final int MAX_CELLS_PER_ROW = propI(HbaseInput.class, "max.cells.per.row", 10000);
+	private static final long SCAN_BYTES = propL(HbaseInput.class, "scan.bytes", 3145728); // 3M
+	private static final int SCAN_ROWS = propI(HbaseInput.class, "scan.rows", 1);
+	static final int MAX_CELLS_PER_ROW = propI(HbaseInput.class, "max.cells.per.row", 10000);
 	private final HbaseConnection hconn;
 	private final BlockingQueue<TableScaner> scans = new LinkedBlockingQueue<>();
 	private final Map<String, TableScaner> scansMap = Maps.of();
@@ -74,18 +70,6 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 		final String logicalName;
 		final ResultScanner scaner;
 
-		public TableScaner(String table, String logicalTable) {
-			super();
-			name = table;
-			this.logicalName = logicalTable;
-			Scan sc = new Scan();
-			try {
-				scaner = hconn.table(table).getScanner(Hbases.optimize(sc, batchSize(), SCAN_ROWS, SCAN_BYTES));
-			} catch (IOException e) {
-				throw new RuntimeException(e);
-			}
-		}
-
 		public TableScaner(String table, String logicalTable, byte[]... startAndEndRow) {
 			super();
 			name = table;
@@ -110,14 +94,14 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 			}
 		}
 
-		public TableScaner(String table, String logicalTable, Filter[] filters) {
+		public TableScaner(String table, String logicalTable, Filter f) {
 			name = table;
 			this.logicalName = logicalTable;
 			Scan sc = new Scan();
-			if (null != filters && filters.length > 0) {
-				Filter filter = filters.length == 1 ? filters[0] : new FilterList(filters);
-				logger().debug(name() + " filtered: " + filter.toString());
-				sc = sc.setFilter(filter);
+
+			if (null != f) {
+				logger().debug(name() + " filtered: " + f.toString());
+				sc = sc.setFilter(f);
 			}
 			try {
 				scaner = hconn.table(name).getScanner(Hbases.optimize(sc, batchSize(), SCAN_ROWS, SCAN_BYTES));
@@ -168,7 +152,7 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 		});
 	}
 
-	public void table(String table, String logicalTable, Filter... filter) {
+	private void table(String table, String logicalTable, Filter filter) {
 		table(table, logicalTable, () -> new TableScaner(table, logicalTable, filter));
 	}
 
@@ -181,27 +165,9 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 	}
 
 	public void tableWithFamily(String table, String... cf) {
-		Filter fs = filterFamily(cf);
-		if (null == fs) table(table);
-		else table(table, cf.length > 0 ? table : (table + SPLIT_CF + cf[0]), fs);
-	}
-
-	private Filter filterFamily(String... cf) {
-		if (null == cf || 0 == cf.length) return null;
-		List<Filter> fl = Colls.list();
-		for (String c : cf)
-			fl.add(new FamilyFilter(CompareOp.EQUAL, new BinaryComparator(Bytes.toBytes(c))));
-		return fl.size() == 1 ? fl.get(0) : new FilterList(Operator.MUST_PASS_ONE, fl);
-	}
-
-	private Filter filterPrefix(List<String> prefixes) {
-		if (Colls.empty(prefixes)) return null;
-		if (1 == prefixes.size()) return null == prefixes.get(0) ? null
-				: new ColumnPrefixFilter(Bytes.toBytes(prefixes.get(0) + SPLIT_PREFIX));
-		byte[][] ps = Colls.list(prefixes, p -> Bytes.toBytes(p + SPLIT_PREFIX)).toArray(new byte[0][]);
-		if (null == ps || ps.length == 0) return null;
-		if (ps.length == 1) return new ColumnPrefixFilter(ps[0]);
-		else return new MultipleColumnPrefixFilter(ps);
+		Filter f = filterFamily(cf);
+		if (null == f) table(table);
+		else table(table, cf.length > 0 ? table : (table + SPLIT_CF + cf[0]), f);
 	}
 
 	public void tableWithPrefix(String table, String... prefix) {
@@ -211,12 +177,7 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 	}
 
 	public void tableWithFamilAndPrefix(String table, List<String> prefixes, String... cf) {
-		Filter prefixFilter = filterPrefix(prefixes);
-		Filter cfFilter = filterFamily(cf);
-		Filter f;
-		if (null == prefixFilter) f = cfFilter;
-		else if (null == cfFilter) f = prefixFilter;
-		else f = new FilterList(Operator.MUST_PASS_ALL, cfFilter, prefixFilter);
+		Filter f = or(filterPrefix(prefixes), filterFamily(cf));
 
 		String logicalTable = table;
 		if (cf.length > 0) {
@@ -287,11 +248,12 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 			if (null == (last = ms.remove(m.key()))) lastRmaps.put(s.name, m); // 1st cell of a diff record
 			else {
 				last.putAll(m); // same record
-				if (last.size() > MAX_CELLS_PER_ROW && null == rowkey) {
-					rowkey = m.key();
-					logger().warn("Too many (>" + MAX_CELLS_PER_ROW + ") cells in row [" + rowkey + "]" + last.size());
-					ms.put((String) last.key(), last);
-				} else lastRmaps.put(s.name, last);
+				// if (last.size() > MAX_CELLS_PER_ROW && null == rowkey) {
+				// rowkey = m.key();
+				// logger().warn("Too many (>" + MAX_CELLS_PER_ROW + ") cells in row [" + rowkey + "]" + last.size());
+				// ms.put((String) last.key(), last);
+				// } else //
+				lastRmaps.put(s.name, last);
 			}
 			return false;
 		} finally {
