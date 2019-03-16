@@ -12,7 +12,6 @@ import static net.butfly.albatis.io.IOProps.propL;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
@@ -26,6 +25,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 
 import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.io.lambda.Consumer;
+import net.butfly.albacore.io.lambda.Function;
 import net.butfly.albacore.io.lambda.Supplier;
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.collection.Colls;
@@ -34,7 +34,7 @@ import net.butfly.albacore.utils.logger.Statistic;
 import net.butfly.albatis.io.Input;
 import net.butfly.albatis.io.Rmap;
 
-public class HbaseInput extends Namedly implements Input<Rmap> {
+public class HbaseInput2 extends Namedly implements Input<Rmap> {
 	private static final long serialVersionUID = 6225222417568739808L;
 	static final long SCAN_BYTES = propL(HbaseInput.class, "scan.bytes", 3145728, "Hbase Scan.setMaxResultSize(bytes)."); // 3M
 	static final int SCAN_COLS = propI(HbaseInput.class, "scan.cols.per.row", 1, "Hbase Scan.setBatch(cols per rpc).");
@@ -43,8 +43,9 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 			"Hbase max cells per row (more will be ignore).");
 	private final HbaseConnection hconn;
 	private final BlockingQueue<TableScaner> scans = new LinkedBlockingQueue<>();
+	private final Map<String, BlockingQueue<TableScaner>> scansMap = Maps.of();
 
-	public HbaseInput(String name, HbaseConnection conn) {
+	public HbaseInput2(String name, HbaseConnection conn) {
 		super(name);
 		hconn = conn;
 		closing(this::closeHbase);
@@ -52,7 +53,7 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 
 	@Override
 	public void open() {
-		if (scans.isEmpty()) {
+		if (scansMap.isEmpty()) {
 			if (null != hconn.uri().getFile()) table(hconn.uri().getFile());
 			// else throw new RuntimeException("No table defined for input.");
 		}
@@ -61,8 +62,8 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 
 	private void closeHbase() {
 		TableScaner s;
-		while (null != (s = scans.poll()))
-			s.close();
+		while (!scansMap.isEmpty())
+			if (null != (s = scans.poll())) s.close();
 		try {
 			hconn.close();
 		} catch (Exception e) {}
@@ -72,7 +73,6 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 		final String name;
 		final String logicalName;
 		final ResultScanner scaner;
-		final Iterator<Result> it;
 
 		public TableScaner(String table, String logicalTable, Filter f, byte[]... startAndEndRow) {
 			super();
@@ -93,25 +93,31 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}
-			it = scaner.iterator();
 		}
 
 		public void close() {
 			try {
 				scaner.close();
-			} catch (Exception e) {}
+			} catch (Exception e) {} finally {
+				scansMap.remove(name);
+			}
+		}
+
+		public Result[] next(int batchSize) {
+			try {
+				return scaner.next(batchSize);
+			} catch (IOException e) {
+				return null;
+			}
 		}
 
 		public Result next() {
-			return it.next();
+			try {
+				return scaner.next();
+			} catch (IOException e) {
+				return null;
+			}
 		}
-	}
-
-	private List<TableScaner> regions(String table, String logicalTable, Filter f, byte[]... startAndEndRow) {
-		if (null == startAndEndRow || 0 == startAndEndRow.length) // split into regions
-			return Colls.list(hconn.regions(table), range -> new TableScaner(table, logicalTable, f, range[0], range[1]));
-		else if (1 == startAndEndRow.length) return Colls.list(new TableScaner(table, logicalTable, f, startAndEndRow[0]));
-		else return Colls.list(new TableScaner(table, logicalTable, f, startAndEndRow[0], startAndEndRow[1]));
 	}
 
 	public void table(String... table) {
@@ -119,23 +125,46 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 			table(t, t);
 	}
 
-	private void table(String table, String logicalTable, Supplier<List<TableScaner>> constr) {
-		for (TableScaner ts : scans) {
-			if (table.equals(ts.name)) logger().error("Table [" + table + "] input existed and conflicted, ignore new scan request.");
-			else scans.addAll(constr.get());
-		}
+	private void open(String table, String logicalTable, Function<byte[][], TableScaner> constr) {
+		scansMap.compute(table, (t, existed) -> {
+			if (null != existed) {
+				logger().error("Table [" + table + "] input existed and conflicted, ignore new scan request.");
+				return existed;
+			}
+			existed = new LinkedBlockingQueue<>();
+			for (byte[][] range : hconn.regions(table)) {
+				TableScaner s = constr.apply(range);
+				scans.offer(s);
+				existed.offer(s);
+			}
+			return existed;
+		});
+	}
+
+	private void open1(String table, String logicalTable, Supplier<TableScaner> constr) {
+		scansMap.compute(table, (t, existed) -> {
+			if (null != existed) {
+				logger().error("Table [" + table + "] input existed and conflicted, ignore new scan request.");
+				return existed;
+			}
+			existed = new LinkedBlockingQueue<>();
+			TableScaner s = constr.get();
+			scans.offer(s);
+			existed.offer(s);
+			return existed;
+		});
 	}
 
 	private void table(String table, String logicalTable, Filter filter) {
-		table(table, logicalTable, () -> regions(table, logicalTable, filter));
+		open(table, logicalTable, range -> new TableScaner(table, logicalTable, filter, range));
 	}
 
 	public void table(String table, String logicalTable, byte[]... startAndEndRow) {
-		table(table, logicalTable, () -> regions(table, logicalTable, null, startAndEndRow));
+		open1(table, logicalTable, () -> new TableScaner(table, logicalTable, null, startAndEndRow));
 	}
 
 	public void table(String table, String logicalTable) {
-		table(table, logicalTable, () -> regions(table, logicalTable, null));
+		open(table, logicalTable, range -> new TableScaner(table, logicalTable, null, range));
 	}
 
 	public void tableWithFamily(String table, String... cf) {
@@ -174,7 +203,7 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 
 	@Override
 	public boolean empty() {
-		return scans.isEmpty();
+		return scansMap.isEmpty();
 	}
 
 	private Map<String, Rmap> lastRmaps = Maps.of();
@@ -182,32 +211,33 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 	@Override
 	public void dequeue(Consumer<Sdream<Rmap>> using) {
 		TableScaner s;
-		Map<String, Rmap> ms = Maps.of();
-		Result r;
-		boolean end = false;
 		while (opened() && !empty())
 			if (null != (s = scans.poll())) {
 				try {
-					while (!end && ms.size() < batchSize() && !(end = (null == (r = s.next())))) {
+					Result[] results = s.next(batchSize());
+					Map<String, Rmap> ms = Maps.of();
+					boolean end = Colls.empty(results);
+					if (!end) {
 						Rmap last = lastRmaps.remove(s.name);
 						if (null != last) {
 							Rmap m = ms.get(last.key());
 							if (null != m) m.putAll(last);
 							else ms.put((String) last.key(), last);
 						}
-						compute(ms, Hbases.Results.result(s.logicalName, r));
+						for (Result r : results)
+							if (null != r) compute(ms, Hbases.Results.result(s.logicalName, r));
 						end = scanLast(s, ms);
-					}
-					if (end) {
-						String tn = s.name;
-						s.close();
-						s = null;
-						compute(ms, lastRmaps.remove(tn));
+						if (end) {
+							String tn = s.name;
+							s.close();
+							s = null;
+							compute(ms, lastRmaps.remove(tn));
+						}
+						if (!ms.isEmpty()) using.accept(of(ms.values()));
 					}
 				} finally {
 					if (null != s) scans.offer(s);
 				}
-				if (!ms.isEmpty()) using.accept(of(ms.values()));
 			}
 	}
 
@@ -241,11 +271,5 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 			existed.putAll(m);
 			return existed;
 		});
-	}
-
-	public static void main(String[] args) throws InterruptedException {
-		System.err.println(HbaseInput.SCAN_MAX_CELLS_PER_ROW);
-//		while (true)
-//			Thread.sleep(10000);
 	}
 }
