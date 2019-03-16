@@ -155,6 +155,7 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 			case "hbase":
 			case "zk":
 			case "zookeeper": // default zookeeper mode
+				Map<String, String> params = Maps.of();
 				if (uri.getInetAddrs().length > 0) {
 					StringBuilder zq = new StringBuilder();
 					int port = -1;
@@ -164,11 +165,11 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 							throw new IllegalArgumentException("Hbase zookeeper port conflicted " + port + " and " + a.getPort());
 						port = a.getPort();
 					}
-					Map<String, String> params = Maps.of(HConstants.ZOOKEEPER_QUORUM, zq.toString());
+					params.put(HConstants.ZOOKEEPER_QUORUM, zq.toString());
 					if (port > 0) params.put(HConstants.ZOOKEEPER_CLIENT_PORT, Integer.toString(port));
 					if (!"/".equals(uri.getPath())) params.put(HConstants.ZOOKEEPER_ZNODE_PARENT, uri.getPath());
-					return params;
 				}
+				return params;
 			default: // other, try to load by vfs
 				URISpec vfs = uri.schema(Arrays.copyOfRange(s, i, s.length));
 				return Maps.of(Hbases.VFS_CONF_URI, vfs.toString());

@@ -40,6 +40,7 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 	private static final long serialVersionUID = 6225222417568739808L;
 	private final long SCAN_BYTES = propL(HbaseInput.class, "scan.bytes", 3145728); // 3M
 	private final int SCAN_ROWS = propI(HbaseInput.class, "scan.rows", 1);
+	private final int MAX_CELLS_PER_ROW = propI(HbaseInput.class, "max.cells.per.row", 10000);
 	private final HbaseConnection hconn;
 	private final BlockingQueue<TableScaner> scans = new LinkedBlockingQueue<>();
 	private final Map<String, TableScaner> scansMap = Maps.of();
@@ -136,6 +137,14 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 		public Result[] next(int batchSize) {
 			try {
 				return scaner.next(batchSize);
+			} catch (IOException e) {
+				return null;
+			}
+		}
+
+		public Result next() {
+			try {
+				return scaner.next();
 			} catch (IOException e) {
 				return null;
 			}
@@ -242,30 +251,24 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 			if (null != (s = scans.poll())) {
 				try {
 					Result[] results = s.next(batchSize());
-					boolean end = Colls.empty(results);
 					Map<String, Rmap> ms = Maps.of();
+					boolean end = Colls.empty(results);
 					if (!end) {
-						Rmap m = lastRmaps.remove(s.name);
-						if (null != m) ms.put((String) m.key(), m);
+						Rmap last = lastRmaps.remove(s.name);
+						if (null != last) {
+							Rmap m = ms.get(last.key());
+							if (null != m) m.putAll(last);
+							else ms.put((String) last.key(), last);
+						}
 						for (Result r : results)
 							if (null != r) compute(ms, Hbases.Results.result(s.logicalName, r));
-						Rmap last;
-						while (!Colls.empty(results = s.next(1))) {
-							m = Hbases.Results.result(s.logicalName, results[0]);
-							if (null != (last = ms.get(m.key()))) last.putAll(m); // same record
-							else {
-								lastRmaps.put(s.name, m);
-								using.accept(of(ms.values()));
-								return;
-							}
+						end = scanLast(s, ms);
+						if (end) {
+							String tn = s.name;
+							s.close();
+							s = null;
+							compute(ms, lastRmaps.remove(tn));
 						}
-						end = true;
-					}
-					if (end) {// end
-						String tn = s.name;
-						s.close();
-						s = null;
-						compute(ms, lastRmaps.remove(tn));
 						if (!ms.isEmpty()) using.accept(of(ms.values()));
 					}
 				} finally {
@@ -274,13 +277,34 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 			}
 	}
 
-	private void compute(Map<String, Rmap> ms, Rmap m) {
-		if (null != m && !m.isEmpty()) {
-			ms.compute((String) m.key(), (rowkey, existed) -> {
-				if (null == existed) return m;
-				existed.putAll(m);
-				return existed;
-			});
+	private boolean scanLast(TableScaner s, Map<String, Rmap> ms) {
+		Rmap last = null;
+		Object rowkey = null;
+		Result r;
+		try {
+			if (null == (r = s.next())) return true;
+			Rmap m = Hbases.Results.result(s.logicalName, r);
+			if (null == (last = ms.remove(m.key()))) lastRmaps.put(s.name, m); // 1st cell of a diff record
+			else {
+				last.putAll(m); // same record
+				if (last.size() > MAX_CELLS_PER_ROW && null == rowkey) {
+					rowkey = m.key();
+					logger().warn("Too many (>" + MAX_CELLS_PER_ROW + ") cells in row [" + rowkey + "]" + last.size());
+					ms.put((String) last.key(), last);
+				} else lastRmaps.put(s.name, last);
+			}
+			return false;
+		} finally {
+			if (null != last && null != rowkey) //
+				logger().warn("Too many cells in row [" + rowkey + "] and finished, [" + last.size() + "] cells found.");
 		}
+	}
+
+	private void compute(Map<String, Rmap> ms, Rmap m) {
+		if (!Colls.empty(m)) ms.compute((String) m.key(), (rowkey, existed) -> {
+			if (null == existed) return m;
+			existed.putAll(m);
+			return existed;
+		});
 	}
 }
