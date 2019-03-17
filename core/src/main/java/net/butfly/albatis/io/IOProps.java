@@ -1,9 +1,12 @@
 package net.butfly.albatis.io;
 
+import static net.butfly.albacore.utils.Configs.getss;
+import static net.butfly.albacore.utils.Configs.has;
+import static net.butfly.albacore.utils.Configs.logger;
+
 import java.util.Map;
 
 import net.butfly.albacore.utils.CaseFormat;
-import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.collection.Maps;
 
 public interface IOProps {
@@ -11,15 +14,15 @@ public interface IOProps {
 	static final String STATS_STEP = "stats.step";
 	static Map<Object, Map<String, Object>> PROPS = Maps.of();
 
-	static String propName(Object io, String suffix) {
-		if (null == io) return null;
-		else return "albatis." + CaseFormat.UPPER_CAMEL.to(CaseFormat.LOWER_DOT, io.getClass().getSimpleName()) + "." + suffix;
+	static String propName(Class<?> c, String suffix) {
+		if (null == c) return null;
+		else return "albatis." + CaseFormat.UPPER_CAMEL.to(CaseFormat.LOWER_DOT, c.getSimpleName()) + "." + suffix;
 	}
 
 	class _Priv {
-		private static String defaultPropName(Object io, String suffix) {
-			if (null == io) return null;
-			String name = CaseFormat.UPPER_CAMEL.to(CaseFormat.LOWER_DOT, io.getClass().getSimpleName());
+		private static String defaultPropName(Class<?> c, String suffix) {
+			if (null == c) return null;
+			String name = CaseFormat.UPPER_CAMEL.to(CaseFormat.LOWER_DOT, c.getSimpleName());
 			if (name.endsWith(".input")) name = "*.input";
 			else if (name.endsWith(".output")) name = "*.output";
 			else if (name.endsWith(".queue")) name = "*.queue";
@@ -27,41 +30,41 @@ public interface IOProps {
 			return "albatis." + name + "." + suffix;
 		}
 
-		private static Object unwrap(Object io) {
+		private static Class<?> unwrap(Object io) {
 			if (null == io) return null;
-			else return io instanceof IO ? Wrapper.bases((IO) io).getClass() : io.getClass();
-
+			if (io instanceof Class) return (Class<?>) io;
+			Class<?> c = io.getClass();
+			return IO.class.isAssignableFrom(c) ? Wrapper.bases((IO) io).getClass() : c;
 		}
 
 		private static Map<String, Object> props(Object io) {
 			return PROPS.computeIfAbsent(io, obj -> Maps.of());
 		}
 
-		private static String prop(Object io, String suffix, String def) {
-			Object obj = _Priv.unwrap(io);
-			String k = propName(obj, suffix);
-			String v = Configs.gets(k);
-			return null == v ? Configs.gets(_Priv.defaultPropName(obj, suffix), def) : v;
+		private static String prop(Object io, String suffix, String def, String... comments) {
+			Class<?> c = _Priv.unwrap(io);
+			String k = propName(c, suffix);
+			return getss(new String[] { k, _Priv.defaultPropName(c, suffix) }, def, comments);
 		}
 	}
 
-	static String prop(Object io, String suffix, long def) {
+	static String prop(Object io, String suffix, long def, String... comments) {
 		return ((CharSequence) _Priv.props(io).computeIfAbsent(suffix, //
-				k -> Long.parseLong(_Priv.prop(io, suffix, Long.toString(def))))).toString();
+				k -> Long.parseLong(_Priv.prop(io, suffix, Long.toString(def), comments)))).toString();
 	}
 
-	static long propL(Object io, String suffix, long def) {
+	static long propL(Object io, String suffix, long def, String... comments) {
 		return ((Number) _Priv.props(io).computeIfAbsent(suffix, //
-				k -> Long.parseLong(_Priv.prop(io, suffix, Long.toString(def))))).longValue();
+				k -> Long.parseLong(_Priv.prop(io, suffix, Long.toString(def), comments)))).longValue();
 	}
 
-	static int propI(Object io, String suffix, int def) {
+	static int propI(Object io, String suffix, int def, String... comments) {
 		return ((Number) _Priv.props(io).computeIfAbsent(suffix, //
-				k -> Integer.parseInt(_Priv.prop(io, suffix, Integer.toString(def))))).intValue();
+				k -> Integer.parseInt(_Priv.prop(io, suffix, Integer.toString(def), comments)))).intValue();
 	}
 
-	static boolean propB(Object io, String suffix, boolean def) {
+	static boolean propB(Object io, String suffix, boolean def, String... comments) {
 		return ((Boolean) _Priv.props(io).computeIfAbsent(suffix, //
-				k -> Boolean.parseBoolean(_Priv.prop(io, suffix, Boolean.toString(def))))).booleanValue();
+				k -> Boolean.parseBoolean(_Priv.prop(io, suffix, Boolean.toString(def), comments)))).booleanValue();
 	}
 }
