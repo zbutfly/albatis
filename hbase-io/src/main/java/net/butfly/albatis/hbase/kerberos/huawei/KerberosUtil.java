@@ -576,7 +576,8 @@ public class KerberosUtil
             KEYTAB_KERBEROS_OPTIONS.put("principal", principal);
         }
 
-        public AppConfigurationEntry[] getAppConfigurationEntry(String appName)
+        @Override
+		public AppConfigurationEntry[] getAppConfigurationEntry(String appName)
         {
             if (loginContextName.equals(appName))
             {

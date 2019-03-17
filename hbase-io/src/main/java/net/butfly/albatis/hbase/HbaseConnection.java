@@ -88,10 +88,8 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 				+ ClassSize.TREEMAP);
 	}
 
-	private final int GET_SCAN_OBJS = propI(this, "get.scaner.queue", 500);
+	private final int GET_SCAN_OBJS = propI(this, "get.scaner.object.queue.size", 500);
 	private final int GET_MAX_RETRIES = propI(this, "get.retry", 2);
-	private final int GET_SCAN_BYTES = propI(this, "get.result.bytes", 3145728); // 3M
-	private final int GET_SCAN_LIMIT = propI(this, "get.result.limit", 1);
 	protected final long GET_DUMP_MIN_SIZE = propL(this, "get.dump.min.bytes", 2097152); // 2M
 	private final Map<String, Table> tables;
 	private final LinkedBlockingQueue<Scan> scans = new LinkedBlockingQueue<>(GET_SCAN_OBJS);
@@ -347,7 +345,7 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 	}
 
 	private Scan scanOpen(byte[] row, Filter filter, byte[]... families) {
-		Scan s = Hbases.optimize(new Scan(), GET_SCAN_LIMIT, GET_SCAN_LIMIT, GET_SCAN_BYTES);
+		Scan s = Hbases.optimize(new Scan(), 1, -1);
 		s = s.setStartRow(row).setStopRow(row);
 		s.getFamilyMap().clear();
 		for (byte[] cf : families)

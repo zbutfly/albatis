@@ -24,14 +24,14 @@ public interface HbaseFilters {
 			if (null != f) l.add(f);
 		if (l.isEmpty()) return null;
 		Filter f = l.size() == 1 ? l.get(0) : new FilterList(Operator.MUST_PASS_ONE, l);
-		return HbaseInput.MAX_CELLS_PER_ROW > 0 ? and(f, new ColumnCountGetFilter(HbaseInput.MAX_CELLS_PER_ROW)) : f;
+		return HbaseInput.SCAN_MAX_CELLS_PER_ROW > 0 ? and(f, new ColumnCountGetFilter(HbaseInput.SCAN_MAX_CELLS_PER_ROW)) : f;
 	}
 
 	static Filter and(Filter... fl) {
 		List<Filter> l = Colls.list();
 		for (Filter f : fl)
 			if (null != f) l.add(f);
-		if (HbaseInput.MAX_CELLS_PER_ROW > 0) l.add(new ColumnCountGetFilter(HbaseInput.MAX_CELLS_PER_ROW));
+		if (HbaseInput.SCAN_MAX_CELLS_PER_ROW > 0) l.add(new ColumnCountGetFilter(HbaseInput.SCAN_MAX_CELLS_PER_ROW));
 		if (l.isEmpty()) return null;
 		return l.size() == 1 ? l.get(0) : new FilterList(l);
 	}

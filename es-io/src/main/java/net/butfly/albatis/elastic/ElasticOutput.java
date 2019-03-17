@@ -44,8 +44,8 @@ public class ElasticOutput extends OutputBase<Rmap> {
 	@Override
 	public Statistic trace() {
 		return new Statistic(this).sizing(BulkRequest::estimatedSizeInBytes)//
-				.<BulkRequest> batchSizeCalcing(r -> (long) r.requests().size())//
-				.<BulkRequest> sampling(r -> r.requests().isEmpty() ? null : r.requests().get(0).toString());
+				.<BulkRequest>batchSizeCalcing(r -> (long) r.requests().size())//
+				.<BulkRequest>sampling(r -> r.requests().isEmpty() ? null : r.requests().get(0).toString());
 	}
 
 	@Override

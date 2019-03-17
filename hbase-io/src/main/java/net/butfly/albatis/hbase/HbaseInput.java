@@ -6,6 +6,7 @@ import static net.butfly.albatis.ddl.FieldDesc.SPLIT_PREFIX;
 import static net.butfly.albatis.hbase.HbaseFilters.filterFamily;
 import static net.butfly.albatis.hbase.HbaseFilters.filterPrefix;
 import static net.butfly.albatis.hbase.HbaseFilters.or;
+import static net.butfly.albatis.io.IOProps.propB;
 import static net.butfly.albatis.io.IOProps.propI;
 import static net.butfly.albatis.io.IOProps.propL;
 
@@ -34,9 +35,11 @@ import net.butfly.albatis.io.Rmap;
 
 public class HbaseInput extends Namedly implements Input<Rmap> {
 	private static final long serialVersionUID = 6225222417568739808L;
-	private static final long SCAN_BYTES = propL(HbaseInput.class, "scan.bytes", 3145728); // 3M
-	private static final int SCAN_ROWS = propI(HbaseInput.class, "scan.rows", 1);
-	static final int MAX_CELLS_PER_ROW = propI(HbaseInput.class, "max.cells.per.row", 10000);
+	static final long SCAN_BYTES = propL(HbaseInput.class, "scan.bytes", 3145728, "Hbase Scan.setMaxResultSize(bytes)."); // 3M
+	static final int SCAN_COLS = propI(HbaseInput.class, "scan.cols.per.row", 1, "Hbase Scan.setBatch(cols per rpc).");
+	static final boolean SCAN_CACHE_BLOCKS = propB(HbaseInput.class, "scan.cache.blocks", false, "Hbase Scan.setCacheBlocks(false).");
+	static final int SCAN_MAX_CELLS_PER_ROW = propI(HbaseInput.class, "scan.max.cells.per.row", 10000,
+			"Hbase max cells per row (more will be ignore).");
 	private final HbaseConnection hconn;
 	private final BlockingQueue<TableScaner> scans = new LinkedBlockingQueue<>();
 	private final Map<String, TableScaner> scansMap = Maps.of();
@@ -88,7 +91,7 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 				break;
 			}
 			try {
-				scaner = hconn.table(name).getScanner(Hbases.optimize(sc, batchSize(), SCAN_ROWS, SCAN_BYTES));
+				scaner = hconn.table(name).getScanner(Hbases.optimize(sc, batchSize(), SCAN_COLS));
 			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}
@@ -104,7 +107,7 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 				sc = sc.setFilter(f);
 			}
 			try {
-				scaner = hconn.table(name).getScanner(Hbases.optimize(sc, batchSize(), SCAN_ROWS, SCAN_BYTES));
+				scaner = hconn.table(name).getScanner(Hbases.optimize(sc, batchSize(), SCAN_COLS));
 			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}
@@ -195,7 +198,7 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 
 	@Override
 	public Statistic trace() {
-		return new Statistic(this).sizing(Result::getTotalSizeOfCells).<Result> sampling(r -> Bytes.toString(r.getRow()));
+		return new Statistic(this).sizing(Result::getTotalSizeOfCells).<Result>sampling(r -> Bytes.toString(r.getRow()));
 	}
 
 	@Override
@@ -268,5 +271,9 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 			existed.putAll(m);
 			return existed;
 		});
+	}
+
+	public static void main(String[] args) {
+		System.err.println(HbaseInput.SCAN_MAX_CELLS_PER_ROW);
 	}
 }

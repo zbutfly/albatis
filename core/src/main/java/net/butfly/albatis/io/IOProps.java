@@ -1,8 +1,6 @@
 package net.butfly.albatis.io;
 
 import static net.butfly.albacore.utils.Configs.getss;
-import static net.butfly.albacore.utils.Configs.has;
-import static net.butfly.albacore.utils.Configs.logger;
 
 import java.util.Map;
 
@@ -44,7 +42,7 @@ public interface IOProps {
 		private static String prop(Object io, String suffix, String def, String... comments) {
 			Class<?> c = _Priv.unwrap(io);
 			String k = propName(c, suffix);
-			return getss(new String[] { k, _Priv.defaultPropName(c, suffix) }, def, comments);
+			return getss(comments.length == 0 ? null : comments[0], def, k, _Priv.defaultPropName(c, suffix));
 		}
 	}
 

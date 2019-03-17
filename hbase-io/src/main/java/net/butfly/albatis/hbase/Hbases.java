@@ -1,5 +1,6 @@
 package net.butfly.albatis.hbase;
 
+import static net.butfly.albatis.hbase.HbaseInput.*;
 import static net.butfly.albatis.ddl.FieldDesc.SPLIT_CF;
 import static net.butfly.albatis.ddl.FieldDesc.SPLIT_PREFIX;
 import static net.butfly.albatis.io.Rmap.Op.INCREASE;
@@ -78,7 +79,7 @@ public final class Hbases extends Utils {
 			hconf.set(c.getKey(), c.getValue());
 		if (!Colls.empty(res)) for (InputStream r : res)
 			hconf.addResource(r);
-		//hbase.security.authentication = kerberos/normal
+		// hbase.security.authentication = kerberos/normal
 		if (User.isHBaseSecurityEnabled(hconf)) {
 			kerberosAuth(hconf);
 		}
@@ -106,7 +107,7 @@ public final class Hbases extends Utils {
 		String jaasFile = kerberosConfigPath + JAAS_CONF;
 		String krb5ConfPath = kerberosConfigPath + KRB5_CONF;
 		String keytabPath = kerberosConfigPath + HUAWEI_KEYTAB;
-		String userPrincipal = KERBEROS_PROPS.getProperty("albatis.hbase.kerberos.hbase.principal");//user
+		String userPrincipal = KERBEROS_PROPS.getProperty("albatis.hbase.kerberos.hbase.principal");// user
 		String zkServerPrincipal = KERBEROS_PROPS.getProperty("albatis.hbase.kerberos.zk.principal");
 		if (fileList.contains(HUAWEI_KEYTAB)) {
 			try {
@@ -147,8 +148,7 @@ public final class Hbases extends Utils {
 			if (!result.isEmpty()) result.listCells().forEach(c -> {
 				try {
 					IOs.writeBytes(baos, cellToBytes(c));
-				} catch (Exception e) {
-				}
+				} catch (Exception e) {}
 			});
 			return baos.toByteArray();
 		}
@@ -200,7 +200,7 @@ public final class Hbases extends Utils {
 				f = Bytes.toBytes(fq[0]);
 				q = Bytes.toBytes(fq[1]);
 			}
-			return new byte[][]{f, q};
+			return new byte[][] { f, q };
 		}
 
 		static Rmap result(String table, String row, Stream<Cell> cells) {
@@ -242,41 +242,41 @@ public final class Hbases extends Utils {
 			byte[] rowk = Bytes.toBytes(row);
 			int fc = 0;
 			switch (m.op()) {
-				case INSERT:
-				case UPSERT:
-					Put put = new Put(rowk);
-					for (Entry<String, Object> e : m.entrySet()) {
-						byte[] val = null;
-						Object v = e.getValue();
-						if (v instanceof byte[]) val = (byte[]) v;
-						else if (v instanceof CharSequence) {
-							String s = ((CharSequence) v).toString();
-							if (s.length() > 0) val = Bytes.toBytes(s);
-						} else if (v instanceof Map) val = conv.apply((Map<String, Object>) v);
-						if (null == val || val.length == 0) return null;
-						byte[][] fqs = Results.parseFQ(e.getKey());
-						Cell c = CellUtil.createCell(rowk, fqs[0], fqs[1], HConstants.LATEST_TIMESTAMP, Type.Put.getCode(), (byte[]) val);
-						if (null != c) try {
-							put.add(c);
-							fc++;
-						} catch (Exception ee) {
-							logger.warn("Hbase cell converting failure, ignored and continued, row: " + row + ", cell: " + Bytes.toString(
-									CellUtil.cloneFamily(c)) + SPLIT_CF + Bytes.toString(CellUtil.cloneQualifier(c)), ee);
-						}
-					}
-					return fc == 0 ? null : put;
-				case INCREASE:
-					Increment inc = new Increment(rowk);
-					for (Entry<String, Object> e : m.entrySet()) {
-						byte[][] fq = Results.parseFQ(e.getKey());
-						Object v = e.getValue();
-						inc.addColumn(fq[0], fq[1], null == v ? 1 : ((Long) v).longValue());
+			case INSERT:
+			case UPSERT:
+				Put put = new Put(rowk);
+				for (Entry<String, Object> e : m.entrySet()) {
+					byte[] val = null;
+					Object v = e.getValue();
+					if (v instanceof byte[]) val = (byte[]) v;
+					else if (v instanceof CharSequence) {
+						String s = ((CharSequence) v).toString();
+						if (s.length() > 0) val = Bytes.toBytes(s);
+					} else if (v instanceof Map) val = conv.apply((Map<String, Object>) v);
+					if (null == val || val.length == 0) return null;
+					byte[][] fqs = Results.parseFQ(e.getKey());
+					Cell c = CellUtil.createCell(rowk, fqs[0], fqs[1], HConstants.LATEST_TIMESTAMP, Type.Put.getCode(), (byte[]) val);
+					if (null != c) try {
+						put.add(c);
 						fc++;
+					} catch (Exception ee) {
+						logger.warn("Hbase cell converting failure, ignored and continued, row: " + row + ", cell: " + Bytes.toString(
+								CellUtil.cloneFamily(c)) + SPLIT_CF + Bytes.toString(CellUtil.cloneQualifier(c)), ee);
 					}
-					return inc;
-				default:
-					logger.warn("Op not support: " + m.toString());
-					return null;
+				}
+				return fc == 0 ? null : put;
+			case INCREASE:
+				Increment inc = new Increment(rowk);
+				for (Entry<String, Object> e : m.entrySet()) {
+					byte[][] fq = Results.parseFQ(e.getKey());
+					Object v = e.getValue();
+					inc.addColumn(fq[0], fq[1], null == v ? 1 : ((Long) v).longValue());
+					fc++;
+				}
+				return inc;
+			default:
+				logger.warn("Op not support: " + m.toString());
+				return null;
 			}
 		}
 
@@ -289,45 +289,45 @@ public final class Hbases extends Utils {
 			byte[] rowk = Bytes.toBytes(row);
 			int fc = 0;
 			switch (m.op()) {
-				case INSERT:
-				case UPSERT:
-					Put put = new Put(rowk);
-					for (Entry<String, Object> e : m.entrySet()) {
-						byte[] val = null;
-						Object v = e.getValue();
-						if (v instanceof byte[]) val = (byte[]) v;
-						else if (v instanceof CharSequence) {
-							String s = ((CharSequence) v).toString();
-							if (s.length() > 0) val = Bytes.toBytes(s);
-						} else if (v instanceof Map) {
-							logger.warn("Map field [" + e.getKey() + "] not supported, add ?df=format to conv, value lost: \n\t" + v
-									.toString());
-							return null;
-						}
-						if (null == val || val.length == 0) return null;
-						byte[][] fqs = Results.parseFQ(e.getKey());
-						Cell c = CellUtil.createCell(rowk, fqs[0], fqs[1], HConstants.LATEST_TIMESTAMP, Type.Put.getCode(), (byte[]) val);
-						if (null != c) try {
-							put.add(c);
-							fc++;
-						} catch (Exception ee) {
-							logger.warn("Hbase cell converting failure, ignored and continued, row: " + row + ", cell: " + Bytes.toString(
-									CellUtil.cloneFamily(c)) + SPLIT_CF + Bytes.toString(CellUtil.cloneQualifier(c)), ee);
-						}
+			case INSERT:
+			case UPSERT:
+				Put put = new Put(rowk);
+				for (Entry<String, Object> e : m.entrySet()) {
+					byte[] val = null;
+					Object v = e.getValue();
+					if (v instanceof byte[]) val = (byte[]) v;
+					else if (v instanceof CharSequence) {
+						String s = ((CharSequence) v).toString();
+						if (s.length() > 0) val = Bytes.toBytes(s);
+					} else if (v instanceof Map) {
+						logger.warn("Map field [" + e.getKey() + "] not supported, add ?df=format to conv, value lost: \n\t" + v
+								.toString());
+						return null;
 					}
-					return fc == 0 ? null : put;
-				case INCREASE:
-					Increment inc = new Increment(rowk);
-					for (Entry<String, Object> e : m.entrySet()) {
-						byte[][] fq = Results.parseFQ(e.getKey());
-						Object v = e.getValue();
-						inc.addColumn(fq[0], fq[1], null == v ? 1 : ((Long) v).longValue());
+					if (null == val || val.length == 0) return null;
+					byte[][] fqs = Results.parseFQ(e.getKey());
+					Cell c = CellUtil.createCell(rowk, fqs[0], fqs[1], HConstants.LATEST_TIMESTAMP, Type.Put.getCode(), (byte[]) val);
+					if (null != c) try {
+						put.add(c);
 						fc++;
+					} catch (Exception ee) {
+						logger.warn("Hbase cell converting failure, ignored and continued, row: " + row + ", cell: " + Bytes.toString(
+								CellUtil.cloneFamily(c)) + SPLIT_CF + Bytes.toString(CellUtil.cloneQualifier(c)), ee);
 					}
-					return inc;
-				default:
-					logger.warn("Op not support: " + m.toString());
-					return null;
+				}
+				return fc == 0 ? null : put;
+			case INCREASE:
+				Increment inc = new Increment(rowk);
+				for (Entry<String, Object> e : m.entrySet()) {
+					byte[][] fq = Results.parseFQ(e.getKey());
+					Object v = e.getValue();
+					inc.addColumn(fq[0], fq[1], null == v ? 1 : ((Long) v).longValue());
+					fc++;
+				}
+				return inc;
+			default:
+				logger.warn("Op not support: " + m.toString());
+				return null;
 			}
 		}
 	}
@@ -337,29 +337,27 @@ public final class Hbases extends Utils {
 		try {
 			InputStream is = HbaseConnection.class.getResourceAsStream("/albatis-hbase.properties");
 			if (null != is) p.load(is);
-		} catch (IOException e) {
-		}
+		} catch (IOException e) {}
 		return Maps.of(p);
 	}
 
-	private static final Method SET_CHACHING;
-	private static final Method SET_BATCH;
-	private static final Method SET_MAX_RESULT_SIZE;
+	private static final Method SET_CHACHING, SET_BATCH, SET_MAX_RESULT_SIZE, SET_CACHE_BLOCKS;
 
 	static {
 		try {
 			SET_CHACHING = Scan.class.getMethod("setCaching", int.class);
 			SET_BATCH = Scan.class.getMethod("setBatch", int.class);
 			SET_MAX_RESULT_SIZE = Scan.class.getMethod("setMaxResultSize", long.class);
+			SET_CACHE_BLOCKS = Scan.class.getMethod("setCacheBlocks", boolean.class);
 		} catch (NoSuchMethodException | SecurityException e) {
 			throw new RuntimeException(e);
 		}
 	}
 
-	public static Scan optimize(Scan s, int rowsPerRpc, int colsPerRpc, long maxBytes) {
+	public static Scan optimize(Scan s, int rowsPerRpc, int colsPerRpc) {
 		// optimize scan for performance, but hbase throw strang exception...
-		try {
-			s.setCaching((int) rowsPerRpc);// rows per rpc
+		if (rowsPerRpc > 0) try {
+			s.setCaching(rowsPerRpc);// rows per rpc
 		} catch (Throwable t) {
 			try {
 				SET_CHACHING.invoke(s, rowsPerRpc);
@@ -367,7 +365,7 @@ public final class Hbases extends Utils {
 				logger.warn("Optimize scan Caching fail", tt);
 			}
 		}
-		try {
+		if (colsPerRpc > 0) try {
 			s.setBatch(colsPerRpc);// cols per rpc
 		} catch (Throwable t) {
 			try {
@@ -376,11 +374,20 @@ public final class Hbases extends Utils {
 				logger.warn("Optimize scan Batch fail", tt);
 			}
 		}
-		try {
-			SET_MAX_RESULT_SIZE.invoke(s, maxBytes);
+		if (SCAN_BYTES > 0) try {
+			s.setMaxResultSize(SCAN_BYTES);
 		} catch (Throwable t) {
 			try {
-				SET_MAX_RESULT_SIZE.invoke(s, maxBytes);
+				SET_MAX_RESULT_SIZE.invoke(s, SCAN_BYTES);
+			} catch (Throwable tt) {
+				logger.warn("Optimize scan MaxResultSize fail", tt);
+			}
+		}
+		try {
+			s.setCacheBlocks(SCAN_CACHE_BLOCKS);
+		} catch (Throwable t) {
+			try {
+				SET_CACHE_BLOCKS.invoke(s, SCAN_CACHE_BLOCKS);
 			} catch (Throwable tt) {
 				logger.warn("Optimize scan MaxResultSize fail", tt);
 			}
