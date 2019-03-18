@@ -1,10 +1,11 @@
 package net.butfly.albatis.mongodb;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Collectors;
 
 import com.mongodb.BasicDBObject;
+import com.mongodb.CommandFailureException;
 import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 import com.mongodb.WriteResult;
@@ -12,6 +13,7 @@ import com.mongodb.WriteResult;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.paral.Exeter;
 import net.butfly.albacore.paral.Sdream;
+import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albatis.io.OutputBase;
 import net.butfly.albatis.io.Rmap;
@@ -48,28 +50,46 @@ public class MongoOutput extends OutputBase<Rmap> {
 	}
 
 	protected boolean enqueue(DBObject dbo) {
-		if (null == dbo) return false;
+		if (null == dbo)
+			return false;
 		return 1 == (upsert ? collection.save(dbo).getN() : collection.insert(dbo).getN());
 	}
 
 	@Override
 	protected void enqsafe(Sdream<Rmap> msgs) {
 		AtomicLong n = new AtomicLong();
-		if (upsert) n.set(
-				msgs.list().stream().map(
-						m -> {
-							if (null != m.key()){
-								String keyField = m.key().toString();
-								DBObject dbObject = conn.collection(m.table()).findAndModify(new BasicDBObject(keyField,m.get(keyField)),null,null,false,MongoConnection.dbobj(m),false,true);
-								return dbObject;
-							} else {
-								WriteResult writeResult = conn.collection(m.table()).save(MongoConnection.dbobj(m));
-								return writeResult;
-							}
-						}).collect(Collectors.toList()).size());
-		else Exeter.of().join(e -> n.addAndGet(conn.collection(e.getKey())
-				.insert(Sdream.of(e.getValue()).map(MongoConnection::dbobj).list().toArray(new BasicDBObject[0]))
-				.getN()), Maps.of(msgs, m -> m.table()).entrySet());
+		List<Rmap> retries = Colls.list();
+		if (upsert)
+			n.set(msgs.list().stream().map(m -> {
+				if (null != m.key()) {
+					String keyField = m.key().toString();
+					DBObject dbObject = null;
+					try {
+						dbObject = conn.collection(m.table()).findAndModify(
+								new BasicDBObject(keyField, m.get(keyField)), null, null, false,
+								MongoConnection.dbobj(m), false, true);
+					} catch (CommandFailureException e) {
+						if (11000 == e.getErrorCode()) {
+							retries.add(m);
+						} else {
+							logger().error("upsert mongo error!", e);
+						}
+					}
+					return dbObject;
+				} else {
+					WriteResult writeResult = conn.collection(m.table()).save(MongoConnection.dbobj(m));
+					return writeResult;
+				}
+			}).count());
+		else
+			Exeter.of().join(
+					e -> n.addAndGet(
+							conn.collection(e.getKey())
+									.insert(Sdream.of(e.getValue()).map(MongoConnection::dbobj).list()
+											.toArray(new BasicDBObject[0]))
+									.getN()),
+					Maps.of(msgs, m -> m.table()).entrySet());
 		succeeded(n.get());
+		if (!retries.isEmpty()) failed(Sdream.of(retries));
 	}
 }
