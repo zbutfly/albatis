@@ -13,7 +13,7 @@ import net.butfly.albacore.utils.logger.Statistic;
 
 public class AqlVertexMessage extends AqlNestedMessage {
 	private static final long serialVersionUID = -7016058550224590870L;
-	protected static final Format AQL_UPSERT = new MessageFormat("upsert '{'_key: @_key} insert {1} update {1} in {0} return NEW"); //
+	protected static final Format AQL_UPSERT = new MessageFormat("upsert '{'_key: @_key} insert {1} update {1} in {0} OPTIONS '{' exclusive: true '}' return NEW"); //
 
 	public AqlVertexMessage(String tbl, Object key, Map<String, Object> vertex) {
 		super(tbl, key, vertex);

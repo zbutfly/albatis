@@ -16,6 +16,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import com.arangodb.ArangoCursorAsync;
 import com.arangodb.ArangoDBAsync;
 import com.arangodb.ArangoDBAsync.Builder;
+import com.arangodb.ArangoDBException;
 import com.arangodb.ArangoDatabaseAsync;
 import com.arangodb.entity.BaseDocument;
 import com.arangodb.entity.LoadBalancingStrategy;
@@ -32,7 +33,8 @@ import net.butfly.albatis.ddl.TableDesc;
 
 public class ArangoConnection extends DataConnection<ArangoDBAsync> {
 	private static final Logger logger = Logger.getLogger(ArangoConnection.class);
-	private static final int MAX_CONNECTIONS = Integer.parseInt(Configs.gets("albatis.arango.connection.max.conn", "0"));
+	private static final int MAX_CONNECTIONS = Integer
+			.parseInt(Configs.gets("albatis.arango.connection.max.conn", "0"));
 	private static final int TIMEOUT_SECS = Integer.parseInt(Configs.gets("albatis.arango.connection.timeout", "0"));
 	private static final int CHUNK_SIZE = Integer.parseInt(Configs.gets("albatis.arango.connection.chunk.size", //
 			Integer.toString(5 * 1024 * 1024)));
@@ -44,8 +46,9 @@ public class ArangoConnection extends DataConnection<ArangoDBAsync> {
 		super(uri, 8529, "arango", "arangodb");
 		if (uri.getPaths().length > 0) {
 			this.db = client.db(uri.getPaths()[0]);
-			this.tables = null != uri.getFile() ? Arrays.stream(uri.getFile().split(",")).filter(t -> !t.isEmpty()).toArray(
-					i -> new String[i]) : new String[0];
+			this.tables = null != uri.getFile()
+					? Arrays.stream(uri.getFile().split(",")).filter(t -> !t.isEmpty()).toArray(i -> new String[i])
+					: new String[0];
 		} else if (null != uri.getFile()) {
 			this.db = client.db(uri.getFile());
 			this.tables = new String[0];
@@ -60,11 +63,16 @@ public class ArangoConnection extends DataConnection<ArangoDBAsync> {
 		Builder b = new ArangoDBAsync.Builder();
 		for (InetSocketAddress h : uri.getInetAddrs())
 			b.host(h.getHostName(), h.getPort());
-		if (null != uri.getUsername()) b.user(uri.getUsername());
-		if (null != uri.getPassword()) b.password(uri.getPassword());
-		if (MAX_CONNECTIONS > 0) b.maxConnections(MAX_CONNECTIONS);
-		else if (uri.getInetAddrs().length > 1) b.maxConnections(uri.getInetAddrs().length);
-		else b.maxConnections(8);
+		if (null != uri.getUsername())
+			b.user(uri.getUsername());
+		if (null != uri.getPassword())
+			b.password(uri.getPassword());
+		if (MAX_CONNECTIONS > 0)
+			b.maxConnections(MAX_CONNECTIONS);
+		else if (uri.getInetAddrs().length > 1)
+			b.maxConnections(uri.getInetAddrs().length);
+		else
+			b.maxConnections(8);
 		if (uri.getInetAddrs().length > 1) {
 			b.loadBalancingStrategy(LoadBalancingStrategy.ROUND_ROBIN);
 			b.acquireHostList(true);
@@ -128,17 +136,23 @@ public class ArangoConnection extends DataConnection<ArangoDBAsync> {
 	}
 
 	public static <T> T get(CompletableFuture<T> f) {
-		if (null == f) return null;
+		if (null == f)
+			return null;
 		try {
 			return TIMEOUT_SECS > 0 ? f.get(TIMEOUT_SECS, TimeUnit.SECONDS) : f.get();
 		} catch (InterruptedException e) {
 			throw new RuntimeException(e);
 		} catch (ExecutionException e) {
 			Throwable ee = e.getCause();
+			if (ee instanceof ArangoDBException)
+//				ArangoDBException ae = (ArangoDBException) ee;
+//				if (503 == ae.getResponseCode() && 21003 == ae.getErrorNum())
+//					logger.error("fail: " + ae.getMessage());
+				return null;
 			logger.error("fail", ee);
 			throw ee instanceof RuntimeException ? (RuntimeException) ee : new RuntimeException(ee);
 		} catch (TimeoutException e) {
-			logger.error("aql timeout for " + TIMEOUT_SECS + " seconds");
+//			logger.error("aql timeout for " + TIMEOUT_SECS + " seconds");
 			return null;
 		}
 	}
@@ -147,12 +161,14 @@ public class ArangoConnection extends DataConnection<ArangoDBAsync> {
 	public static List<BaseDocument> merge(List<BaseDocument>... c) {
 		List<BaseDocument> ll = Colls.list();
 		for (List<BaseDocument> l : c)
-			if (null != l && !l.isEmpty()) ll.addAll(l);
+			if (null != l && !l.isEmpty())
+				ll.addAll(l);
 		return ll.isEmpty() ? null : ll;
 	}
 
 	public static CompletableFuture<List<BaseDocument>> merge(List<CompletableFuture<List<BaseDocument>>> fs) {
-		if (Colls.empty(fs)) return empty();
+		if (Colls.empty(fs))
+			return empty();
 		CompletableFuture<List<BaseDocument>> f = fs.get(0);
 		for (int i = 1; i < fs.size(); i++)
 			f = f.thenCombineAsync(fs.get(i), ArangoConnection::merge, Exeter.of());
@@ -164,8 +180,10 @@ public class ArangoConnection extends DataConnection<ArangoDBAsync> {
 	}
 
 	public static BinaryOperator<CompletableFuture<List<BaseDocument>>> REDUCING = (f1, f2) -> {
-		if (null == f1) return f2;
-		if (null == f2) return f1;
+		if (null == f1)
+			return f2;
+		if (null == f2)
+			return f1;
 		return f1.thenCombineAsync(f2, ArangoConnection::merge, Exeter.of());
 	};
 

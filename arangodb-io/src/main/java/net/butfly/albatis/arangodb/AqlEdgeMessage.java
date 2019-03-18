@@ -21,13 +21,25 @@ public class AqlEdgeMessage extends AqlVertexMessage {
 
 	@Override
 	public CompletableFuture<List<BaseDocument>> exec(ArangoConnection conn, Statistic s) {
-		return start.exec(conn, s)//
-				.thenCombineAsync(end.exec(conn, s), ArangoConnection::merge, Exeter.of())//
-				.thenComposeAsync(l -> super.exec(conn, s), Exeter.of());
+		if (null == start && null == end) {
+			return super.exec(conn, s);
+		}else {
+			return start.exec(conn, s)//
+					.thenCombineAsync(end.exec(conn, s), ArangoConnection::merge, Exeter.of())//
+					.thenComposeAsync(l -> super.exec(conn, s), Exeter.of());
+		}
 	}
 
 	@Override
 	public String toString() {
-		return super.toString() + ", start: " + start.toString() + ", end: " + end.toString();
+		StringBuffer rs = new StringBuffer();
+		rs.append(super.toString());
+		if(null!=start ) {
+			rs.append(", start: " + start.toString());
+		} 
+		if(null!=end) {
+			rs.append(", end: " + end.toString());
+		}
+		return rs.toString();
 	}
 }

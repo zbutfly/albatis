@@ -23,7 +23,6 @@ public abstract class AqlNestedMessage extends Rmap {
 
 	protected AqlNestedMessage(String tbl, Object key, Map<String, Object> vertex) {
 		super(tbl, key, vertex);
-		vertex.put("_key", key);
 	}
 
 	public CompletableFuture<List<BaseDocument>> exec(ArangoConnection conn, Statistic s) {
@@ -40,7 +39,7 @@ public abstract class AqlNestedMessage extends Rmap {
 	}
 
 	protected final void nestedResults(List<BaseDocument> docs) {
-		if (null != nestedResults) throw new IllegalStateException("Parent of nested aql has been executed more than once.");
+//		if (null != nestedResults) throw new IllegalStateException("Parent of nested aql has been executed more than once.");
 		nestedResults = docs;
 	}
 
