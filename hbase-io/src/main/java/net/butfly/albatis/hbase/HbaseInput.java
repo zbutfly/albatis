@@ -198,7 +198,7 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 
 	@Override
 	public Statistic trace() {
-		return new Statistic(this).sizing(Result::getTotalSizeOfCells).<Result>sampling(r -> Bytes.toString(r.getRow()));
+		return new Statistic(this).sizing(Result::getTotalSizeOfCells).<Result> sampling(r -> Bytes.toString(r.getRow()));
 	}
 
 	@Override
@@ -273,7 +273,9 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 		});
 	}
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws InterruptedException {
 		System.err.println(HbaseInput.SCAN_MAX_CELLS_PER_ROW);
+//		while (true)
+//			Thread.sleep(10000);
 	}
 }
