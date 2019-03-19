@@ -67,13 +67,12 @@ public class ArangoInput extends net.butfly.albacore.base.Namedly implements Odd
 			if (null != (c = cursors.poll())) try {
 				if (c.cursor.hasNext()) {
 					try {
-						//documentHandle=gazhk_PERSON/220282196104240011, documentKey=220282196104240011,
 						BaseDocument bd = c.cursor.next();
 						m = bd.getProperties();
 						m.put("_id", bd.getId());
 						m.put("_key", bd.getKey());
 					} catch (ArangoDBException ex) {
-						logger.warn("Mongo fail fetch, ignore and continue retry...");
+						logger.warn("ArangoDB fail fetch, ignore and continue retry: " + ex.getMessage());
 						continue;
 					} catch (IllegalStateException ex) {
 						continue;

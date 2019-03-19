@@ -13,7 +13,8 @@ public class AqlEdgeMessage extends AqlVertexMessage {
 	private static final long serialVersionUID = -7016058550224590870L;
 	public final AqlVertexMessage start, end;
 
-	public AqlEdgeMessage(String tbl, Object key, Map<String, Object> vertex, AqlVertexMessage start, AqlVertexMessage end) {
+	public AqlEdgeMessage(String tbl, Object key, Map<String, Object> vertex, AqlVertexMessage start,
+			AqlVertexMessage end) {
 		super(tbl, key, vertex);
 		this.start = start;
 		this.end = end;
@@ -21,18 +22,22 @@ public class AqlEdgeMessage extends AqlVertexMessage {
 
 	@Override
 	public CompletableFuture<List<BaseDocument>> exec(ArangoConnection conn, Statistic s) {
-		if (null == start && null == end) return super.exec(conn, s);
-		else return start.exec(conn, s)//
-				.thenCombineAsync(end.exec(conn, s), ArangoConnection::merge, Exeter.of())//
-				.thenComposeAsync(l -> super.exec(conn, s), Exeter.of());
+		if (null == start && null == end)
+			return super.exec(conn, s);
+		else
+			return start.exec(conn, s)//
+					.thenCombineAsync(end.exec(conn, s), ArangoConnection::merge, Exeter.of())//
+					.thenComposeAsync(l -> super.exec(conn, s), Exeter.of());
 
 	}
 
 	@Override
 	public String toString() {
 		StringBuilder rs = new StringBuilder(super.toString());
-		if (null != start) rs.append(", start: ").append(start.toString());
-		if (null != end) rs.append(", end: ").append(end.toString());
+		if (null != start)
+			rs.append(", start: ").append(start.toString());
+		if (null != end)
+			rs.append(", end: ").append(end.toString());
 		return rs.toString();
 	}
 }
