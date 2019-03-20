@@ -13,6 +13,8 @@ import java.util.stream.Collectors;
 @DialectFor(subSchema = "kingbaseanalyticsdb", jdbcClassname = "com.kingbase.kingbaseanalyticsdb.Driver")
 public class KingbaseDialect extends Dialect {
     private static final String UPSERT_SQL_TEMPLATE = "INSERT INTO %s (%s) VALUES (%s)";
+    private static final String QUERY_SQL_TEMPLATE = "SELECT %s FROM %s WHERE %s = ?";
+    private static final String UPDTE_SQL_TEMPLATE = "UPDATE %s SET %s WHERE %s = ?";
 
     @Override
     protected void doInsertOnUpsert(Connection conn, String table, List<Rmap> records, AtomicLong count) {
@@ -46,42 +48,57 @@ public class KingbaseDialect extends Dialect {
     @Override
     protected void doUpsert(Connection conn, String table, String keyField, List<Rmap> records, AtomicLong count) {
         records.forEach(r -> {
-            String sql = "SELECT " + keyField + " FROM " + table + " where " + keyField + " = " + r.get(keyField);
-            try (PreparedStatement ps = conn.prepareStatement(sql); ResultSet rs = ps.executeQuery();) {
+            String sql = String.format(QUERY_SQL_TEMPLATE, keyField, table, keyField);
+            ResultSet rs = null;
+            PreparedStatement ps = null;
+            try {
+                ps = conn.prepareStatement(sql);
+                Dialects.setObject(ps, 1, r.get(keyField));
+                rs = ps.executeQuery();
                 if (rs.next()) doUpdate(conn, keyField, table, r);
                 else doInsert(conn, keyField, table, r);
             } catch (SQLException e) {
                 logger().error("do upsert fail", e);
+            } finally {
+                try {
+                    if (null != rs) rs.close();
+                    if (null != ps) ps.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
             }
         });
     }
 
     private void doUpdate(Connection conn, String k, String t, Rmap m) {
-        StringBuilder sb = new StringBuilder("update ").append(t).append(" set ");
-        for (Map.Entry<String, Object> entry : m.entrySet())
-            if (!k.equals(entry.getKey())) //
-                sb.append(entry.getKey()).append(" = ").append("'").append(entry.getValue()).append("'").append(",");
-        sb.deleteCharAt(sb.length() - 1).append(" where ").append(k).append(" = ").append("'").append(m.get(k)).append("'");
-        try (Statement ps = conn.createStatement();) {
-            ps.executeUpdate(sb.toString());
+        List<String> allFields = new ArrayList<>(m.keySet());
+        List<String> nonKeyFields = allFields.stream() .filter(f -> !f.equals(k)) .collect(Collectors.toList());
+        String updates = nonKeyFields.stream().map(f -> f + " = ?").collect(Collectors.joining(", "));
+        String sql = String.format(UPDTE_SQL_TEMPLATE, t, updates, k);
+        PreparedStatement ps = null;
+        try {
+            ps = conn.prepareStatement(sql);
+            for (int i = 0; i < nonKeyFields.size(); i++) {
+                Object value = m.get(nonKeyFields.get(i));
+                Dialects.setObject(ps, i + 1, value);
+            }
+            Dialects.setObject(ps, allFields.size(), m.get(k));
+            ps.execute();
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger().error("do upsert fail", e);
+        } finally {
+            try {
+                if (null != ps) ps.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
         }
     }
 
     private void doInsert(Connection conn, String k, String t, Rmap m) {
-        StringBuilder sbu = new StringBuilder("values (");
-        StringBuilder sb = new StringBuilder("insert into ").append(t).append("( ");
-        for (Map.Entry<String, Object> entry : m.entrySet()) {
-            sb.append(entry.getKey()).append(" ,");
-            sbu.append("'").append(entry.getValue()).append("'").append(",");
-        }
-        try (Statement ps = conn.createStatement();) {
-            ps.executeUpdate(sb.deleteCharAt(sb.length() - 1).append(")").toString() //
-                    + sbu.deleteCharAt(sbu.length() - 1).append(")").toString());
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+        List<Rmap> list = new ArrayList();
+        list.add(m);
+        doInsertOnUpsert(conn, t, list, new AtomicLong());
     }
 
     @Override

@@ -33,10 +33,36 @@ import net.butfly.albatis.io.utils.JsonUtils;
 @DialectFor(subSchema = "mysql", jdbcClassname = "com.mysql.cj.jdbc.Driver")
 public class MysqlDialect extends Dialect {
 	private static final String UPSERT_SQL_TEMPLATE = "INSERT INTO %s (%s) VALUES (%s) ON DUPLICATE KEY UPDATE %s";
+	private static final String QUERY_SQL_TEMPLATE = "SELECT %s FROM %s WHERE %s = ?";
+	private static final String UPDTE_SQL_TEMPLATE = "UPDATE %s SET %s WHERE %s = ?";
 
 	@Override
 	protected void doUpsert(Connection conn, String table, String keyField, List<Rmap> records, AtomicLong count){
-		doInsertOnUpsert(conn, table, records, count);
+		if(null == keyField || "".equals(keyField)){
+			doInsertOnUpsert(conn, table, records, count);
+		}else {
+			records.forEach(r -> {
+				String sql = String.format(QUERY_SQL_TEMPLATE, keyField, table, keyField);
+				ResultSet rs = null;
+				PreparedStatement ps = null;
+				try {
+					ps = conn.prepareStatement(sql);
+					Dialects.setObject(ps, 1, r.get(keyField));
+					rs = ps.executeQuery();
+					if (rs.next()) doUpdate(conn, keyField, table, r);
+					else doInsert(conn, keyField, table, r);
+				} catch (SQLException e) {
+					logger().error("do upsert fail", e);
+				} finally {
+					try {
+						if (null != rs) rs.close();
+						if (null != ps) ps.close();
+					} catch (SQLException e) {
+						e.printStackTrace();
+					}
+				}
+			});
+		}
 	}
 
 	@Override
@@ -72,6 +98,39 @@ public class MysqlDialect extends Dialect {
 			}
 		});
 	}
+
+	private void doUpdate(Connection conn, String k, String t, Rmap m) {
+		List<String> allFields = new ArrayList<>(m.keySet());
+		List<String> nonKeyFields = allFields.stream() .filter(f -> !f.equals(k)) .collect(Collectors.toList());
+		String updates = nonKeyFields.stream().map(f -> f + " = ?").collect(Collectors.joining(", "));
+		String sql = String.format(UPDTE_SQL_TEMPLATE, t, updates, k);
+		PreparedStatement ps = null;
+		try {
+			ps = conn.prepareStatement(sql);
+			for (int i = 0; i < nonKeyFields.size(); i++) {
+				Object value = m.get(nonKeyFields.get(i));
+				Dialects.setObject(ps, i + 1, value);
+			}
+			Dialects.setObject(ps, allFields.size(), m.get(k));
+			ps.execute();
+		} catch (SQLException e) {
+			logger().error("do upsert fail", e);
+		} finally {
+			try {
+				if (null != ps) ps.close();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+
+	private void doInsert(Connection conn, String k, String t, Rmap m) {
+		List<Rmap> list = new ArrayList();
+		list.add(m);
+		doInsertOnUpsert(conn, t, list, new AtomicLong());
+	}
+
+
 
 	protected String quota(String f) {
 		return '`' == f.charAt(0) && '`' == f.charAt(f.length() - 1) ? f : "`" + f + "`";
@@ -111,34 +170,34 @@ public class MysqlDialect extends Dialect {
 	protected String buildSqlField(TableDesc tableDesc, FieldDesc field) {
 		StringBuilder sb = new StringBuilder();
 		switch (field.type.flag) {
-		case BOOL:
-		case BYTE:
-			sb.append(field.name).append(" tinyint(1)");
-			break;
-		case SHORT:
-		case BINARY:
-			sb.append(field.name).append(" int(8)");
-			break;
-		case INT:
-			sb.append(field.name).append(" int(16)");
-			break;
-		case LONG:
-			sb.append(field.name).append(" int(64)");
-			break;
-		case FLOAT:
-		case DOUBLE:
-			sb.append(field.name).append(" double(16,2)");
-			break;
-		case STR:
-		case CHAR:
-		case UNKNOWN:
-			sb.append(field.name).append(" varchar(50)");
-			break;
-		case DATE:
-			sb.append(field.name).append(" datetime");
-			break;
-		default:
-			break;
+			case BOOL:
+			case BYTE:
+				sb.append(field.name).append(" tinyint(1)");
+				break;
+			case SHORT:
+			case BINARY:
+				sb.append(field.name).append(" int(8)");
+				break;
+			case INT:
+				sb.append(field.name).append(" int(16)");
+				break;
+			case LONG:
+				sb.append(field.name).append(" int(64)");
+				break;
+			case FLOAT:
+			case DOUBLE:
+				sb.append(field.name).append(" double(16,2)");
+				break;
+			case STR:
+			case CHAR:
+			case UNKNOWN:
+				sb.append(field.name).append(" varchar(50)");
+				break;
+			case DATE:
+				sb.append(field.name).append(" datetime");
+				break;
+			default:
+				break;
 		}
 		if (tableDesc.keys.get(0).contains(field.name)) sb.append(" not null primary key");
 		return sb.toString();
