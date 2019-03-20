@@ -1,5 +1,6 @@
 package net.butfly.albatis.hbase;
 
+import static net.butfly.albatis.ddl.Builder.Qualifier.parse;
 import static net.butfly.albatis.ddl.vals.ValType.Flags.BINARY;
 import static net.butfly.albatis.ddl.vals.ValType.Flags.BOOL;
 import static net.butfly.albatis.ddl.vals.ValType.Flags.CHAR;
@@ -19,7 +20,6 @@ import java.util.Date;
 
 import org.apache.hadoop.hbase.util.Bytes;
 
-import net.butfly.albatis.ddl.Builder;
 import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.ddl.vals.ValType;
 import net.butfly.albatis.io.Rmap;
@@ -45,7 +45,7 @@ public class HbaseFormat extends RmapFormat {
 		Rmap r = src.skeleton();
 		byte[] b;
 		for (FieldDesc f : fields)
-			if (null != (b = assemble(src.get(f.name), f.type)) && b.length > 0) r.put(f.name, b);
+			if (null != (b = assemble(src.get(f.qualifier.column), f.type)) && b.length > 0) r.put(f.qualifier.column, b);
 		return r;
 	}
 
@@ -59,8 +59,8 @@ public class HbaseFormat extends RmapFormat {
 		Object v;
 		for (FieldDesc f : fields) {
 			for (String k : dst.keySet()) {
-				String fn = Builder.parseTableAndField(dst.table(), k)[3];
-				if (f.name.equals(fn)) {
+				String fn = parse(dst.table(), k).column;
+				if (f.qualifier.column.equals(fn)) {
 					v = dst.get(k);
 					if (v instanceof byte[]) {
 						v = disassemble((byte[]) v, f.type);
@@ -88,10 +88,14 @@ public class HbaseFormat extends RmapFormat {
 			return null == ms || ms.longValue() <= 0 ? null : new Date(ms.longValue());
 		case INT:
 			switch (b.length) {
-			case 1 : return b[0];
-			case 2 : return Bytes.toShort(b);
-			case 4 : return Bytes.toInt(b);
-			case 8 : return Bytes.toLong(b);
+			case 1:
+				return b[0];
+			case 2:
+				return Bytes.toShort(b);
+			case 4:
+				return Bytes.toInt(b);
+			case 8:
+				return Bytes.toLong(b);
 			}
 			return Bytes.toInt(b);
 		case LONG:

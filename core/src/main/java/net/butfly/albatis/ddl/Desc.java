@@ -3,6 +3,7 @@ package net.butfly.albatis.ddl;
 import java.io.Serializable;
 import java.util.Map;
 
+import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 
 @SuppressWarnings("unchecked")
@@ -23,8 +24,8 @@ public abstract class Desc<D extends Desc<D>> implements Serializable {
 	public static final String AGGR_SUB_GROUPBY = "aggr.sub.groupby";
 
 	// table desc
-	public static final String COL_FAMILY = "colfamily";
-	public static final String COL_PREFIX = "colprefix";
+	// public static final String COL_FAMILY = "colfamily";
+	// public static final String COL_PREFIX = "colprefix";
 	public static final String TABLE_KEY_ROW = "rowkey";
 	public static final String TABLE_KEY_COL = "colkey";
 	public static final String TABLE_QUERYPARAM = "queryparam";
@@ -60,7 +61,7 @@ public abstract class Desc<D extends Desc<D>> implements Serializable {
 	}
 
 	public D attw(Map<String, ?> attrs) {
-		this.attrs.putAll(attrs);
+		if (!Colls.empty(attrs)) this.attrs.putAll(attrs);
 		return (D) this;
 	}
 

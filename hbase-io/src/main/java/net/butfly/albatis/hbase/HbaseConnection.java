@@ -65,7 +65,6 @@ import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albacore.utils.logger.Statistic;
 import net.butfly.albatis.DataConnection;
-import net.butfly.albatis.ddl.Builder;
 import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.io.IOFactory;
@@ -379,16 +378,15 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 	public HbaseInput inputRaw(TableDesc... tables) throws IOException {
 		HbaseInput input = new HbaseInput("HbaseInput", this);
 		for (TableDesc table : tables) {
-			String[] fqs = Builder.parseTableAndField(table.name, null);
-			List<String> pfxs = null == fqs[2] ? list() : list(p -> "".equals(p) ? null : p, fqs[2].split(SPLIT_ZWNJ));
-			List<String> cfs = null == fqs[1] ? list() : list(p -> "".equals(p) ? null : p, fqs[1].split(SPLIT_ZWNJ));
-			fqs = fqs[0].split(SPLIT_ZWNJ);
-			if (fqs.length > 1) {// row key mode
-				List<byte[]> rows = list(Bytes::toBytes, fqs);
+			List<String> pfxs = null == table.qualifier.prefix ? list() : list(p -> "".equals(p) ? null : p, table.qualifier.prefix.split(SPLIT_ZWNJ));
+			List<String> cfs = null == table.qualifier.family ? list() : list(p -> "".equals(p) ? null : p, table.qualifier.family.split(SPLIT_ZWNJ));
+			String[] tbls = table.qualifier.table.split(SPLIT_ZWNJ);
+			if (tbls.length > 1) {// row key mode
+				List<byte[]> rows = list(Bytes::toBytes, tbls);
 				rows.remove(0);
-				input.table(fqs[0], table.name, rows.toArray(new byte[rows.size()][]));
+				input.table(tbls[0], table.qualifier.table, rows.toArray(new byte[rows.size()][]));
 			} else // input.table(fqs[0]); // debug
-			input.tableWithFamilAndPrefix(fqs[0], pfxs, cfs.toArray(new String[0]));
+			input.tableWithFamilAndPrefix(tbls[0], pfxs, cfs.toArray(new String[0]));
 		}
 		return input;
 	}
@@ -418,6 +416,7 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 		}
 	}
 
+	@SuppressWarnings("deprecation")
 	public static void createHbaseTable(Connection client, String tableName, Object startKey, Object endKey, Object splitKey,
 			Object numRegions, Object families) throws IOException {
 		byte[] startKeys = null;

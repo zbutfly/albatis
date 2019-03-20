@@ -1,30 +1,30 @@
 package net.butfly.albatis.ddl;
 
-import static net.butfly.albatis.ddl.FieldDesc.SPLIT_CF;
-import static net.butfly.albatis.ddl.FieldDesc.SPLIT_PREFIX;
+import static net.butfly.albatis.ddl.Builder.Qualifier.parse;
+import static net.butfly.albatis.ddl.DBDesc.logger;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import net.butfly.albacore.io.lambda.Consumer;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
-import net.butfly.albacore.utils.logger.Logger;
+import net.butfly.albatis.ddl.Builder.Qualifier;
 
 /**
  * Desc of some fields of one table.
  */
 public class TableDesc extends Desc<TableDesc> {
 	private static final long serialVersionUID = -5720312308026671887L;
-	private static final Logger logger = Logger.getLogger(TableDesc.class);
 	/**
 	 * dbname.cf:prefix#
 	 */
-	public final String name;
-	public final String dbname;
-	private final Map<String, FieldDesc> fields = Maps.of();
+	public final Qualifier qualifier;
+	// public final String name;
+	private final Map<Qualifier, FieldDesc> fields = Maps.of();
 	// options
 	public final List<List<String>> keys = Colls.list();
 	public final List<Map<String, Object>> indexes = Colls.list();
@@ -34,52 +34,25 @@ public class TableDesc extends Desc<TableDesc> {
 	@Deprecated
 	private String referTable;
 
-	/**
-	 * @param parent
-	 * @param sub    cf:prefix#
-	 */
-	public static TableDesc of(DBDesc db, TableDesc parent, String sub) {
-		if (Colls.empty(sub)) return parent;
-		TableDesc t = new TableDesc(null, parent.name + "." + sub, parent.destruct).attw(parent.attrs);
-		if (null != parent.construct) {
-			t.construct = Maps.of();
-			t.construct.putAll(parent.construct);
-		}
-		t.referTable = parent.referTable;
-		t.parse(t.name);
-		String prefix = t.attr(Desc.COL_PREFIX);
-		if (null != prefix) for (String fieldName : parent.fields.keySet())
-			if (fieldName.startsWith(prefix)) t.fields.put(fieldName, parent.fields.get(fieldName));
-		for (List<String> ks : parent.keys) {
-			List<String> kk = Colls.list();
-			for (String k : ks)
-				if (t.fields.containsKey(k)) kk.add(k);
-			if (!kk.isEmpty()) t.keys.add(kk);
-		}
-		if (!parent.indexes.isEmpty()) t.indexes.addAll(parent.indexes);
-		return t;
+	// @SuppressWarnings("unchecked")
+	// public TableDesc of(Map<String, Object> config) {
+	// return new TableDesc((String) config.remove(".name")).options((Map<String, Object>) config.remove(".options")).fields(config);
+	// }
+
+	// @SuppressWarnings("unchecked")
+	// public static TableDesc of(String name, Map<String, Object> config) {
+	// return new TableDesc(name).options((Map<String, Object>) config.remove(".options")).fields(config);
+	// }
+
+	TableDesc(Qualifier qualifier) {
+		this(qualifier, false);
 	}
 
-	TableDesc(DBDesc db, String fullname) {
-		this(db, fullname, false);
-	}
-
-	private TableDesc(DBDesc db, String fullname, boolean destruct) {
+	private TableDesc(Qualifier qualifier, boolean destruct) {
 		super();
-		this.name = fullname;
 		this.destruct = destruct;
-		this.dbname = parse(fullname);
-		// if (null != db) db.tables.put(name, this);
-	}
-
-	@SuppressWarnings("unchecked")
-	public TableDesc of(Map<String, Object> config) {
-		return new TableDesc(null, (String) config.remove(".name")).options((Map<String, Object>) config.remove(".options")).fields(config);
-	}
-
-	@SuppressWarnings("unchecked")
-	public static TableDesc of(String name, Map<String, Object> config) {
-		return new TableDesc(null, name).options((Map<String, Object>) config.remove(".options")).fields(config);
+		this.qualifier = qualifier;
+		// this.name = this.qualifier.table;
 	}
 
 	@SuppressWarnings("unchecked")
@@ -103,10 +76,10 @@ public class TableDesc extends Desc<TableDesc> {
 	}
 
 	public void field(FieldDesc f) {
-		fields.putIfAbsent(f.name, f);
+		fields.putIfAbsent(f.qualifier, f);
 		if (f.rowkey) {
-			if (keys.isEmpty()) keys.add(Colls.list(f.name));
-			else keys.get(0).add(f.name);
+			if (keys.isEmpty()) keys.add(Colls.list(f.qualifier.column));
+			else keys.get(0).add(f.qualifier.column);
 		}
 	}
 
@@ -114,22 +87,20 @@ public class TableDesc extends Desc<TableDesc> {
 		fields.values().forEach(using);
 	}
 
-	public TableDesc fields(Map<String, Object> fieldMap) {
-		Object v;
-		for (String fieldName : fieldMap.keySet()) {
-			v = fieldMap.get(fieldName);
-			if (fieldName.startsWith("."))
-				logger.warn("Model [" + name + "] config map invalid option [" + fieldName + "]: " + v);
-			else if (fieldName.startsWith("//"))
-				logger.debug("Model [" + name + "] config map comment [" + fieldName + "]: " + v);
-			else if (v instanceof CharSequence) fields.put(fieldName, Builder.field(this, fieldName, v.toString()));
-			else if (v instanceof Map) fields.put(fieldName, Builder.field(this, fieldName, name));
-			else logger.error("Model [" + name + "] config map invalid value [" + fieldName + "]: " + v);
-		}
-		return this;
-	}
+	// public TableDesc fields(Map<String, Object> fieldMap) {
+	// Object v;
+	// for (String fieldName : fieldMap.keySet()) {
+	// v = fieldMap.get(fieldName);
+	// if (fieldName.startsWith(".")) logger.warn("Model [" + name + "] config map invalid option [" + fieldName + "]: " + v);
+	// else if (fieldName.startsWith("//")) logger.debug("Model [" + name + "] config map comment [" + fieldName + "]: " + v);
+	// else if (v instanceof CharSequence) fields.put(fieldName, Builder.field(this, fieldName, v.toString()));
+	// else if (v instanceof Map) fields.put(fieldName, Builder.field(this, fieldName, name));
+	// else logger.error("Model [" + name + "] config map invalid value [" + fieldName + "]: " + v);
+	// }
+	// return this;
+	// }
 
-	@SuppressWarnings({"rawtypes", "unchecked"})
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	private List<Map<String, Object>> parseIndexes(Object v) {
 		List<Map<String, Object>> indexes = Colls.list();
 		if (null == v) return indexes;
@@ -152,7 +123,7 @@ public class TableDesc extends Desc<TableDesc> {
 		return indexes;
 	}
 
-	@SuppressWarnings({"rawtypes", "unchecked"})
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	public static List<List<String>> parseKeys(Object v) {
 		List<List<String>> keys = Colls.list();
 		if (null == v) return keys;
@@ -182,41 +153,29 @@ public class TableDesc extends Desc<TableDesc> {
 		return ck;
 	}
 
-	public FieldDesc field(String fieldName) {
-		return fields.get(fieldName);
+	public FieldDesc field(String qualifier) {
+		return fields.get(parse(null, qualifier));
+	}
+
+	public FieldDesc field(Qualifier qualifier) {
+		return fields.get(qualifier);
 	}
 
 	public FieldDesc[] fields() {
 		return fields.values().toArray(new FieldDesc[fields.size()]);
 	}
 
-	private String parse(String fullname) {
-		String n, cf = null, prefix = null;
-		String[] s = fullname.split("\\.", 2);
-		n = s[0];
-		if (s.length > 1) {
-			s = s[1].split(SPLIT_CF, 2);
-			cf = s[0];
-			if (s.length > 1) {
-				prefix = s[1];
-				if (prefix.endsWith(SPLIT_PREFIX)) prefix = prefix.substring(0, prefix.length() - 1);
-			}
-		}
-		attw(Desc.COL_FAMILY, cf).attw(Desc.COL_PREFIX, prefix);
-		return n;
-	}
-
 	@Override
 	public String toString() {
-		return "DPC Table [" + name + "] with [" + fields.size() + "] fields" + super.toString();
+		return "Table[" + qualifier + "](" + fields.size() + " fields)" + super.toString();
 	}
 
-	public static TableDesc dummy(String fullname) {
-		return new TableDesc(null, fullname);
+	public static TableDesc dummy(String qualifier) {
+		return new TableDesc(parse(qualifier, null));
 	}
 
-	public TableDesc clone(String fullname) {
-		TableDesc t = new TableDesc(null, fullname, destruct);
+	public TableDesc clone(String qualifier) {
+		TableDesc t = new TableDesc(parse(qualifier, null), destruct);
 		t.fields.putAll(fields);
 		t.keys.addAll(keys);
 		t.construct = construct;

@@ -59,7 +59,7 @@ public abstract class RmapFormat extends Format<Rmap, TableDesc> {
 
 	private static TableDesc match(String excepted, TableDesc... tables) {
 		if (tables.length != 1 && null != excepted) for (TableDesc t : tables)
-			if (excepted.equals(t.name)) return t;
+			if (excepted.equals(t.qualifier.table)) return t;
 		return tables[0];
 	}
 

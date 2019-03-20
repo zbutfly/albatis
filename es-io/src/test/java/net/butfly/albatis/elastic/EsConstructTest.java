@@ -1,16 +1,18 @@
 package net.butfly.albatis.elastic;
 
-import net.butfly.albacore.io.URISpec;
-import net.butfly.albatis.ddl.DBDesc;
-import net.butfly.albatis.ddl.FieldDesc;
-import net.butfly.albatis.ddl.TableDesc;
-import net.butfly.albatis.ddl.vals.ValType;
+import static net.butfly.albatis.ddl.Builder.Qualifier.parse;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import net.butfly.albacore.io.URISpec;
+import net.butfly.albatis.ddl.DBDesc;
+import net.butfly.albatis.ddl.FieldDesc;
+import net.butfly.albatis.ddl.TableDesc;
+import net.butfly.albatis.ddl.vals.ValType;
 
 public class EsConstructTest {
 	public static void main(String[] args) throws IOException {
@@ -22,7 +24,7 @@ public class EsConstructTest {
 		indexConfig.put("number_of_replicas", 1);
 		List<FieldDesc> fields = new ArrayList<>();
 		DBDesc dbDesc = DBDesc.of("es_test", url);
-		TableDesc tableDesc = dbDesc.table("es_test");
+		TableDesc tableDesc = dbDesc.table(parse("es_test", null));
 		ValType type = ValType.of("string");
 		FieldDesc f = new FieldDesc(tableDesc, "name", type);
 		fields.add(f);
