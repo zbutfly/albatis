@@ -1,5 +1,6 @@
 package net.butfly.albatis.redis;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -15,13 +16,16 @@ import net.butfly.albatis.io.Rmap;
 public class RedisOutput<T> extends OutputBase<Rmap> {
 	private static final long serialVersionUID = -4110089452435157612L;
 	private final static String KEY_PREFIX = Configs.get("albatis.redis.key.prefix", "DPC:CODEMAP:");
+	private final static String KEY_EXPIRE_FIELD = Configs.get("albatis.redis.key.expire.field");
 
 	private final RedisConnection<T> conn;
 	private final Map<String, TableDesc> descs = Maps.of();
+	private final boolean key_expire;
 
 	public RedisOutput(RedisConnection<T> conn, TableDesc... prefix) {
 		super("RedisOutput");
 		this.conn = conn;
+		key_expire = KEY_EXPIRE_FIELD != null;
 		if (!Colls.empty(prefix)) for (TableDesc t : prefix)
 			descs.put(t.name, t);
 	}
@@ -63,8 +67,20 @@ public class RedisOutput<T> extends OutputBase<Rmap> {
 	private Pair<String, T> send(T rk, String fieldname, T fieldvalue, Rmap m) {
 		if (null == rk) return null;
 		logger().trace("Redis send: " + rk + " => " + fieldvalue);
-		String r = conn.sync.set(rk, fieldvalue);
+		String r;
+		long expireSec = -1;
+		if (key_expire && (expireSec = getExpireSecond(m.get(KEY_EXPIRE_FIELD))) > 0) 
+			r = conn.sync.setex(rk, expireSec, fieldvalue);
+		else r = conn.sync.set(rk, fieldvalue);
 		if (null != r && "OK".equals(r)) return null;
 		else return new Pair<>(fieldname, fieldvalue);
+	}
+
+	private static long getExpireSecond(Object keyExpireField) {
+		if (Number.class.isAssignableFrom(keyExpireField.getClass())) {
+			return ((Number) keyExpireField).longValue();
+		} else if (Date.class.isAssignableFrom(keyExpireField.getClass())) {
+			return (((Date) keyExpireField).getTime() - new Date().getTime()) / 1000;
+		} else return -1;
 	}
 }
