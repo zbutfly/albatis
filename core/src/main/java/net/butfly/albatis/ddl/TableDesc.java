@@ -167,7 +167,7 @@ public class TableDesc extends Desc<TableDesc> {
 
 	@Override
 	public String toString() {
-		return "Table[" + qualifier + "](" + fields.size() + " fields)" + super.toString();
+		return "[table:" + qualifier + "[fields:" + fields.size() + "]]" + super.toString();
 	}
 
 	public static TableDesc dummy(String qualifier) {

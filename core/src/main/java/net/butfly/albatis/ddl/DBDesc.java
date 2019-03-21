@@ -85,7 +85,7 @@ public final class DBDesc extends Desc<DBDesc> {
 
 	@Override
 	public String toString() {
-		return "DPC DB Desc [" + name + "]: [" + uri.toString() + "] with [" + tables.size() + "] tables." + super.toString();
+		return "[db:" + name + "[" + uri.toString() + "][tables:" + tables.size() + "]]" + super.toString();
 	}
 
 	public static String summary() {

@@ -30,7 +30,6 @@ public final class FieldDesc extends Desc<FieldDesc> {
 		this.unique = unique;
 		this.nullable = rowkey ? false : nullable;
 		if (null != table) table.field(this);
-		logger.debug("Field [" + qualifier + "] create in table [" + table.qualifier + "] as: " + this.toString());
 	}
 
 

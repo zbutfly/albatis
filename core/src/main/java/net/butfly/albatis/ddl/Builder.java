@@ -47,7 +47,7 @@ public interface Builder {
 		public final String prefix;
 		public final String column;
 
-		public final String qualifierTable;
+		public final String tableQualifier;
 		public final String columnQualifier;
 
 		/**
@@ -64,7 +64,7 @@ public interface Builder {
 			return new Qualifier(table, family, prefix, column);
 		}
 
-		private String qualiferTable() {
+		private String qfTable() {
 			if (null == table) return null;
 			StringBuilder s = new StringBuilder(table);
 			if (null != family) s.append(SPLIT_CF_CH + family);
@@ -72,7 +72,7 @@ public interface Builder {
 			return s.toString();
 		}
 
-		private String qualiferColumn() {
+		private String qfColumn() {
 			if (null == column) return null;
 			StringBuilder s = new StringBuilder();
 			if (null != family) s.append(family + SPLIT_CF_CH);
@@ -83,9 +83,9 @@ public interface Builder {
 
 		@Override
 		public String toString() {
-			if (null == table) return qualiferColumn();
-			else if (null == column) return qualiferTable();
-			else return qualiferTable() + "." + qualiferColumn();
+			if (null == table && null == column) return family + SPLIT_CF_CH + prefix + SPLIT_PREFIX_CH;
+			else if (null == column) return tableQualifier;
+			else return columnQualifier;
 		}
 
 		protected Qualifier() {
@@ -93,7 +93,7 @@ public interface Builder {
 			family = null;
 			prefix = null;
 			column = null;
-			qualifierTable = null;
+			tableQualifier = null;
 			columnQualifier = null;
 		}
 
@@ -104,8 +104,8 @@ public interface Builder {
 			family = one(tqs[1], fqs[0]);
 			prefix = one(tqs[2], fqs[1]);
 			column = fqs[2];
-			qualifierTable = qualiferTable();
-			columnQualifier = qualiferColumn();
+			tableQualifier = qfTable();
+			columnQualifier = qfColumn();
 		}
 
 		public Qualifier(String table, String family, String prefix, String column) {
@@ -113,8 +113,8 @@ public interface Builder {
 			this.family = family;
 			this.prefix = prefix;
 			this.column = column;
-			qualifierTable = qualiferTable();
-			columnQualifier = qualiferColumn();
+			tableQualifier = qfTable();
+			columnQualifier = qfColumn();
 		}
 
 		private static String one(String t, String f) {
