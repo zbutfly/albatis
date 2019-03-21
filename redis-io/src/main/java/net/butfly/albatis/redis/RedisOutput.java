@@ -27,7 +27,7 @@ public class RedisOutput<T> extends OutputBase<Rmap> {
 		this.conn = conn;
 		key_expire = KEY_EXPIRE_FIELD != null;
 		if (!Colls.empty(prefix)) for (TableDesc t : prefix)
-			descs.put(t.qualifier.table, t);
+			descs.put(t.qualifier.name, t);
 	}
 
 	@Override
@@ -45,7 +45,7 @@ public class RedisOutput<T> extends OutputBase<Rmap> {
 			if (Colls.empty(m)) return;
 			List<Pair<String, T>> fails = Colls.list();
 			m.forEach((fieldname, fieldvalue) -> {
-				Pair<String, T> r = send(key(m.table().table, fieldname), fieldname, (T) fieldvalue, m);
+				Pair<String, T> r = send(key(m.table().name, fieldname), fieldname, (T) fieldvalue, m);
 				if (null == r) c.incrementAndGet();
 				else fails.add(r);
 			});

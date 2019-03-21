@@ -30,12 +30,12 @@ public class JdbcConnection extends DataConnection<DataSource> {
 
 	public JdbcConnection(URISpec uri) throws IOException {
 		super(uri, "jdbc");
-		dialect = Dialect.of(uri.getScheme());
+		dialect = Dialect.of(uri.getSchema());
 	}
 
 	@Override
 	protected DataSource initialize(URISpec uri) {
-		Dialect dialect = Dialect.of(uri.getScheme());
+		Dialect dialect = Dialect.of(uri.getSchema());
 		try {
 			return new HikariDataSource(toConfig(dialect, uri));
 		} catch (Throwable t) {
@@ -134,11 +134,11 @@ public class JdbcConnection extends DataConnection<DataSource> {
 		uriSpec.getParameters().forEach(config::addDataSourceProperty);
 		try {
 			InputStream in = JdbcConnection.class.getClassLoader().getResourceAsStream("ssl.properties");
-			if (null != in){
+			if (null != in) {
 				logger.info("Connect to jdbc with ssl model");
 				Properties props = new Properties();
 				props.load(in);
-				for (String key : props.stringPropertyNames()){
+				for (String key : props.stringPropertyNames()) {
 					System.setProperty(key, props.getProperty(key));
 				}
 			}
@@ -162,8 +162,8 @@ public class JdbcConnection extends DataConnection<DataSource> {
 		if (sql.length > 1) throw new UnsupportedOperationException("Multiple sql input");
 		JdbcInput i;
 		try {
-			i = new JdbcInput("JdbcInput", this, sql[0].qualifier.table);
-			i.query("select * from " + sql[0].qualifier.table); // XXX: ??why not in constructor?
+			i = new JdbcInput("JdbcInput", this, sql[0].qualifier.name);
+			i.query("select * from " + sql[0].qualifier.name); // XXX: ??why not in constructor?
 		} catch (SQLException e) {
 			throw new IOException(e);
 		}

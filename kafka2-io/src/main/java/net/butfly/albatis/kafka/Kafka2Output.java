@@ -48,7 +48,7 @@ public class Kafka2Output extends KafkaOut {
 	protected void enqsafe(Sdream<Rmap> messages) {
 		List<Rmap> msgs = messages.list();
 		Map<ProducerRecord<byte[], byte[]>, Rmap> ms = Maps.of();
-		of(msgs).eachs(r -> r.forEach((k, body) -> ms.put(new ProducerRecord<>(r.table().table, k.getBytes(), (byte[]) body), r)));
+		of(msgs).eachs(r -> r.forEach((k, body) -> ms.put(new ProducerRecord<>(r.table().name, k.getBytes(), (byte[]) body), r)));
 		if (!ms.isEmpty()) ms.forEach(this::send);
 	}
 

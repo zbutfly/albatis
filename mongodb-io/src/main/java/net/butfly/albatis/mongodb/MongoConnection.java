@@ -213,7 +213,7 @@ public class MongoConnection extends DataConnection<MongoClient> {
 	@Override
 	public MongoInput inputRaw(TableDesc... table) throws IOException {
 		MongoInput i = new MongoInput("MongoInput", this);
-		List<String> l = Colls.list(t -> t.qualifier.table, table);
+		List<String> l = Colls.list(t -> t.qualifier.name, table);
 		i.table(l.toArray(new String[l.size()]));
 		return i;
 	}

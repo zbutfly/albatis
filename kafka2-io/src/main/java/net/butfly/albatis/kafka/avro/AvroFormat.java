@@ -52,7 +52,7 @@ public class AvroFormat extends RmapFormat {
 	}
 
 	protected Rmap ser(Rmap m, Schema schema) {
-		byte[] b = reg.ser(m.table().table, m.map(), schema);
+		byte[] b = reg.ser(m.table().name, m.map(), schema);
 		if (null == b || b.length == 0) return null;
 		Rmap r = m.skeleton();
 		r.put(UUID.randomUUID().toString(), b);
@@ -70,7 +70,7 @@ public class AvroFormat extends RmapFormat {
 	protected Rmap deser(Rmap m, Schema schema) {
 		byte[] v = (byte[]) m.entrySet().iterator().next().getValue();
 		if (null == v || v.length == 0) return null;
-		Map<String, Object> rm = reg.deser(m.table().table, v, schema);
+		Map<String, Object> rm = reg.deser(m.table().name, v, schema);
 		if (empty(rm)) return null;
 		Rmap r = m.skeleton();
 		r.putAll(rm);
@@ -110,7 +110,7 @@ public class AvroFormat extends RmapFormat {
 		}
 
 		public static Schema schema(TableDesc t) {
-			Schema s = Schema.createRecord(t.qualifier.table, null, null, false);
+			Schema s = Schema.createRecord(t.qualifier.name, null, null, false);
 			s.setFields(Colls.list(Builder::field, t.fields()));
 			logger.info("Schema build from field list: \n\t" + s.toString());
 			return s;

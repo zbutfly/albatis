@@ -20,7 +20,7 @@ public class VfsOutput extends OutputBase<Rmap> {
 
 	@Override
 	protected void enqsafe(Sdream<Rmap> items) {
-		items.partition((t, s) -> s.eachs(writers.computeIfAbsent(t, tt -> new VfsWriter(conn, tt))::write), t -> t.table().table, -1);
+		items.partition((t, s) -> s.eachs(writers.computeIfAbsent(t, tt -> new VfsWriter(conn, tt))::write), t -> t.table().name, -1);
 	}
 
 	@Override

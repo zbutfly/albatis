@@ -42,8 +42,8 @@ public class JdbcOutput extends OutputBase<Rmap> {
 		AtomicLong n = new AtomicLong(0);
 		Map<String, List<Rmap>> mml = items.list().stream().filter(item -> {
 			Qualifier table = item.table();
-			return null != table && null != table.table && !table.table.isEmpty();
-		}).collect(Collectors.groupingBy(r -> r.table().table));
+			return null != table && null != table.name && !table.name.isEmpty();
+		}).collect(Collectors.groupingBy(r -> r.table().name));
 		if (mml.isEmpty()) {
 			succeeded(0);
 			return;

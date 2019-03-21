@@ -74,7 +74,7 @@ public class KafkaInput extends Namedly implements KafkaIn {
 		if (configTopicParallinism > 0) //
 			logger().debug("[" + name() + "] default topic parallelism [" + configTopicParallinism + "]");
 		if (topics == null || topics.length == 0) topics = dummy(config.topics()).toArray(new TableDesc[0]);
-		Set<String> ts = new HashSet<>(Colls.list(t -> t.qualifier.table, topics));
+		Set<String> ts = new HashSet<>(Colls.list(t -> t.qualifier.name, topics));
 		Map<String, Integer> topicPartitions = config.getTopicPartitions(ts.toArray(new String[ts.size()]));
 
 		for (String t : ts) {

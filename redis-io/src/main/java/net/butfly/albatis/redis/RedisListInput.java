@@ -23,7 +23,7 @@ public class RedisListInput<T> extends net.butfly.albacore.base.Namedly implemen
 		super("RedisListInput");
 		this.conn = conn;
 		if (!Colls.empty(table)) for (TableDesc t : table) {
-			T k = conn.keying(t.qualifier.table);
+			T k = conn.keying(t.qualifier.name);
 			keys.add(RedisKey.setKey(k));
 			descs.put(k, t);
 		}
@@ -46,7 +46,7 @@ public class RedisListInput<T> extends net.butfly.albacore.base.Namedly implemen
 				T k = (T) rk.getKey();
 				T v = conn.sync.lpop(k);
 				if (null == v) return null;
-				return new Rmap(descs.get(k).qualifier.table, Maps.of(UUID.randomUUID().toString(), v));
+				return new Rmap(descs.get(k).qualifier.name, Maps.of(UUID.randomUUID().toString(), v));
 			} finally {
 				if (null != rk)
 					while (!keys.add(rk));

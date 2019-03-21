@@ -51,7 +51,7 @@ public class KuduInput extends Namedly implements Input<Rmap> {
 	}
 
 	void table(TableDesc table) {
-		scannerMap.compute(table.qualifier.table, (t, existed) -> {
+		scannerMap.compute(table.qualifier.name, (t, existed) -> {
 			if (null != existed) {
 				logger().error("Table [" + table + "] input existed and conflicted, ignore new scan request.");
 				return existed;
@@ -71,7 +71,7 @@ public class KuduInput extends Namedly implements Input<Rmap> {
 		public TableScanner(TableDesc table) {
 			super();
 			this.table = table;
-			kuduTable = conn.table(table.qualifier.table);
+			kuduTable = conn.table(table.qualifier.name);
 			List<ColumnSchema> columns = kuduTable.getSchema().getColumns();
 			for (FieldDesc field : table.fields()) {
 				filterField.add(field.name);
@@ -86,7 +86,7 @@ public class KuduInput extends Namedly implements Input<Rmap> {
 			} catch (Exception e) {
 				logger().error("close kudu client exception", e);
 			} finally {
-				scannerMap.remove(table.qualifier.table);
+				scannerMap.remove(table.qualifier.name);
 			}
 		}
 	}
@@ -136,7 +136,7 @@ public class KuduInput extends Namedly implements Input<Rmap> {
 					List<Rmap> rl = Colls.list();
 					while (rs.hasNext()) {
 						RowResult row = rs.next();
-						Rmap r = new Rmap(s.table.qualifier.table);
+						Rmap r = new Rmap(s.table.qualifier.name);
 						s.schema.forEach((f, t) -> {
 							Object v = KuduCommon.getValue(row, f, t);
 							if (null != v) r.put(f, v);

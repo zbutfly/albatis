@@ -33,11 +33,11 @@ public class ElasticMessage extends Rmap {
 	}
 
 	public String index() {
-		return Elastics.dessemble(table.table).v1();
+		return Elastics.dessemble(table.name).v1();
 	}
 
 	public String type() {
-		return Elastics.dessemble(table.table).v2();
+		return Elastics.dessemble(table.name).v2();
 	}
 
 	@Override

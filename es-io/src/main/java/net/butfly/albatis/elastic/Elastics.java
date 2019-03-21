@@ -16,7 +16,7 @@ import net.butfly.albatis.io.Rmap;
 
 public class Elastics {
 	public static DocWriteRequest<?> forWrite(Rmap m) {
-		Pair<String, String> it = dessemble(m.table().table);
+		Pair<String, String> it = dessemble(m.table().name);
 		if (null == m.key()) return null;
 		switch (m.op()) {
 		case UPDATE:
@@ -38,7 +38,7 @@ public class Elastics {
 
 	public static DocWriteRequest<?> forScriptWrite(ElasticMessage m) {
 		if (m.script == null) return forWrite((Rmap) m);
-		Pair<String, String> it = dessemble(m.table().table);
+		Pair<String, String> it = dessemble(m.table().name);
 		if (null == m.key()) return null;
 		switch (m.op()) {
 		case UPDATE:

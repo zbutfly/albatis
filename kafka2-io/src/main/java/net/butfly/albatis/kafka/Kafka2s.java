@@ -14,7 +14,7 @@ import net.butfly.albatis.io.Rmap;
 
 public interface Kafka2s {
 	static Rmap message(ConsumerRecord<byte[], byte[]> km, Function<byte[], Map<String, Object>> der) {
-		return new Rmap(km.topic(), new String(km.key()), der.apply(km.value()));
+		return new Rmap(qf(km.topic()), new String(km.key()), der.apply(km.value()));
 	}
 
 	static List<Rmap> messages(ConsumerRecord<byte[], byte[]> km, Function<byte[], List<Map<String, Object>>> der) {
@@ -22,11 +22,11 @@ public interface Kafka2s {
 	}
 
 	static ProducerRecord<byte[], byte[]> toProducer(Rmap m, Function<Map<String, Object>, byte[]> ser) {
-		return null == m.key() ? null : new ProducerRecord<byte[], byte[]>(m.table().table, m.keyBytes(), ser.apply(m.map()));
+		return null == m.key() ? null : new ProducerRecord<byte[], byte[]>(m.table().name, m.keyBytes(), ser.apply(m.map()));
 	}
 
 	static ProducerRecord<byte[], byte[]> toKeyedMessage(Rmap m, Function<Map<String, Object>, byte[]> ser) {
-		return null == m.key() ? null : new ProducerRecord<>(m.table().table, m.keyBytes(), ser.apply(m.map()));
+		return null == m.key() ? null : new ProducerRecord<>(m.table().name, m.keyBytes(), ser.apply(m.map()));
 	}
 
 	static List<Rmap> strMessages(ConsumerRecord<String, String> km, Function<String, List<Map<String, Object>>> der) {

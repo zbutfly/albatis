@@ -11,24 +11,24 @@ import net.butfly.albacore.utils.Pair;
 
 public class Qualifier implements Serializable {
 	private static final long serialVersionUID = 501714117033564122L;
-	public final String table;
+	public final String name;
 	public final String family;
 	public final String prefix;
 
-	public final String tableQualifier;
+	public final String qualifier;
 
 	protected Qualifier() {
-		table = null;
+		name = null;
 		family = null;
 		prefix = null;
-		tableQualifier = null;
+		qualifier = null;
 	}
 
-	public Qualifier(String table, String family, String prefix) {
-		this.table = table;
+	public Qualifier(String name, String family, String prefix) {
+		this.name = name;
 		this.family = family;
 		this.prefix = prefix;
-		tableQualifier = qualify();
+		qualifier = qualify();
 	}
 
 	/**
@@ -42,8 +42,8 @@ public class Qualifier implements Serializable {
 		return new Qualifier(tqs[0], tqs[1], tqs[2]);
 	}
 
-	public static Qualifier qf(String table, String family, String prefix) {
-		return new Qualifier(table, family, prefix);
+	public static Qualifier qf(String name, String family, String prefix) {
+		return new Qualifier(name, family, prefix);
 	}
 
 	/**
@@ -54,12 +54,12 @@ public class Qualifier implements Serializable {
 	 */
 	public Pair<Qualifier, String> colkey(String fqf) {
 		String[] fqs = parseFieldName(fqf);
-		return new Pair<>(new Qualifier(table, one(family, fqs[0]), one(prefix, fqs[1])), fqs[2]);
+		return new Pair<>(new Qualifier(name, one(family, fqs[0]), one(prefix, fqs[1])), fqs[2]);
 	}
 
 	private String qualify() {
-		if (null == table) return null;
-		StringBuilder s = new StringBuilder(table);
+		if (null == name) return null;
+		StringBuilder s = new StringBuilder(name);
 		if (null != family) s.append(SPLIT_CF_CH + family);
 		if (null != prefix) s.append(SPLIT_PREFIX_CH + prefix);
 		return s.toString();
@@ -114,8 +114,8 @@ public class Qualifier implements Serializable {
 
 	@Override
 	public String toString() {
-		if (null == table) return "[" + family + SPLIT_CF_CH + prefix + SPLIT_PREFIX_CH + "]";
-		else return tableQualifier;
+		if (null == name) return "[" + family + SPLIT_CF_CH + prefix + SPLIT_PREFIX_CH + "]";
+		else return qualifier;
 	}
 
 	@Override
@@ -123,6 +123,6 @@ public class Qualifier implements Serializable {
 		if (obj == this) return true;
 		if (null == obj || !(obj instanceof Qualifier)) return false;
 		Qualifier q = (Qualifier) obj;
-		return eq(prefix, q.prefix) && eq(family, q.family) && eq(table, q.table);
+		return eq(prefix, q.prefix) && eq(family, q.family) && eq(name, q.name);
 	}
 }

@@ -71,7 +71,7 @@ public class HbaseOutput extends OutputBase<Rmap> {
 	protected void enq1(Qualifier table, Mutation op, Rmap origin) {
 		s().statsOut(op, o -> {
 			try {
-				conn.put(table.table, op);
+				conn.put(table.name, op);
 				succeeded(1);
 			} catch (IOException e) {
 				failed(Sdream.of1(origin));
@@ -85,7 +85,7 @@ public class HbaseOutput extends OutputBase<Rmap> {
 		incs(table, msgs, origins, puts);
 
 		if (1 == puts.size()) enq1(origins.get(0).table(), puts.get(0), origins.get(0));
-		else enqs(table.table, origins, puts);
+		else enqs(table.name, origins, puts);
 	}
 
 	protected void enqs(String table, List<Rmap> origins, List<Mutation> enqs) {

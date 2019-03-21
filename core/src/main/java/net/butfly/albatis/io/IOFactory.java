@@ -69,7 +69,7 @@ public interface IOFactory extends Formatable {
 		// key field filfulling
 		Map<String, String> keys = Maps.of();
 		for (TableDesc t : tables)
-			if (null != t.rowkey()) keys.put(t.qualifier.table, t.rowkey());
+			if (null != t.rowkey()) keys.put(t.qualifier.name, t.rowkey());
 		if (!keys.isEmpty()) {
 			logger().info("Key fields found, Input will fill the key field value: \n\t" + keys.toString());
 			i = i.then(r -> {

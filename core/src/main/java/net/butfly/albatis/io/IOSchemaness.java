@@ -40,7 +40,7 @@ public interface IOSchemaness extends Loggable {
 				: "Schema registered: \n\t" + String.join("\n\t", Colls.list(TableDesc::toString, table));
 		logger().info(s);
 		for (TableDesc td : table)
-			schemaAll().put(td.qualifier.table, td);
+			schemaAll().put(td.qualifier.name, td);
 		return (T) this;
 	}
 

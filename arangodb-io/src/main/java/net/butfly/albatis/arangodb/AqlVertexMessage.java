@@ -30,7 +30,7 @@ public class AqlVertexMessage extends AqlNestedMessage {
 
 	@Override
 	public CompletableFuture<List<BaseDocument>> exec(ArangoConnection conn, Statistic s) {
-		String aql = AQL_UPSERT.format(new String[] { table().table, parseAqlAsBindParams(this) });
+		String aql = AQL_UPSERT.format(new String[] { table().name, parseAqlAsBindParams(this) });
 		return conn.exec(aql, this, s).thenComposeAsync(l -> {
 			nestedResults(l);
 			return super.exec(conn, s);

@@ -62,7 +62,7 @@ public class MongoOutput extends OutputBase<Rmap> {
 				String keyField = m.key().toString();
 				DBObject dbo = null;
 				try {
-					dbo = conn.collection(m.table().table).findAndModify(//
+					dbo = conn.collection(m.table().name).findAndModify(//
 							new BasicDBObject(keyField, m.get(keyField)), null, null, false, MongoConnection.dbobj(m), false, true);
 				} catch (MongoCommandException e) {
 					if (11000 == e.getErrorCode()) retries.add(m);
@@ -70,11 +70,11 @@ public class MongoOutput extends OutputBase<Rmap> {
 				}
 				return dbo;
 			} else {
-				return conn.collection(m.table().table).save(MongoConnection.dbobj(m));
+				return conn.collection(m.table().name).save(MongoConnection.dbobj(m));
 			}
 		}).count());
 		else Exeter.of().join(e -> n.addAndGet(//
-				conn.collection(e.getKey().table).insert(//
+				conn.collection(e.getKey().name).insert(//
 						Sdream.of(e.getValue()).map(MongoConnection::dbobj).list().toArray(new BasicDBObject[0])//
 				).getN()), Maps.of(msgs, m -> m.table()).entrySet());
 		succeeded(n.get());

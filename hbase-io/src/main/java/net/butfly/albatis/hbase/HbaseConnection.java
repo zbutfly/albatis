@@ -380,11 +380,11 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 		for (TableDesc table : tables) {
 			List<String> pfxs = null == table.qualifier.prefix ? list() : list(p -> "".equals(p) ? null : p, table.qualifier.prefix.split(SPLIT_ZWNJ));
 			List<String> cfs = null == table.qualifier.family ? list() : list(p -> "".equals(p) ? null : p, table.qualifier.family.split(SPLIT_ZWNJ));
-			String[] tbls = table.qualifier.table.split(SPLIT_ZWNJ);
+			String[] tbls = table.qualifier.name.split(SPLIT_ZWNJ);
 			if (tbls.length > 1) {// row key mode
 				List<byte[]> rows = list(Bytes::toBytes, tbls);
 				rows.remove(0);
-				input.table(tbls[0], table.qualifier.table, rows.toArray(new byte[rows.size()][]));
+				input.table(tbls[0], table.qualifier.name, rows.toArray(new byte[rows.size()][]));
 			} else // input.table(fqs[0]); // debug
 			input.tableWithFamilAndPrefix(tbls[0], pfxs, cfs.toArray(new String[0]));
 		}

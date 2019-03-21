@@ -129,7 +129,7 @@ public class Rmap extends ConcurrentHashMap<String, Object> {
 	}
 
 	protected void write(OutputStream os, Function<Map<String, Object>, byte[]> conv) throws IOException {
-		IOs.writeBytes(os, null == table ? null : table.tableQualifier.getBytes(), keyBytes(), null == keyField ? null
+		IOs.writeBytes(os, null == table ? null : table.qualifier.getBytes(), keyBytes(), null == keyField ? null
 				: keyField.getBytes(), //
 				conv.apply(this), new byte[] { (byte) op });
 	}

@@ -37,7 +37,7 @@ public interface ElasticConnect extends Connection {
 	String getDefaultType();
 
 	public default Rmap fixTable(Rmap m) {
-		Pair<String, String> p = Elastics.dessemble(m.table().table);
+		Pair<String, String> p = Elastics.dessemble(m.table().name);
 		if (null == p.v1()) p.v1(getDefaultIndex());
 		if (null == p.v2()) p.v2(getDefaultType());
 		m.table(qf(Elastics.assembly(p.v1(), p.v2())));
