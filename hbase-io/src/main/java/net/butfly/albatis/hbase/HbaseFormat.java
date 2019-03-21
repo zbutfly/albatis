@@ -1,6 +1,6 @@
 package net.butfly.albatis.hbase;
 
-import static net.butfly.albatis.ddl.Builder.Qualifier.parse;
+import static net.butfly.albatis.ddl.Qualifier.parse;
 import static net.butfly.albatis.ddl.vals.ValType.Flags.BINARY;
 import static net.butfly.albatis.ddl.vals.ValType.Flags.BOOL;
 import static net.butfly.albatis.ddl.vals.ValType.Flags.CHAR;

@@ -2,7 +2,7 @@ package net.butfly.albatis.ddl;
 
 import static net.butfly.albatis.ddl.DBDesc.logger;
 
-import net.butfly.albatis.ddl.Builder.Qualifier;
+import net.butfly.albatis.ddl.Qualifier;
 import net.butfly.albatis.ddl.vals.ValType;
 
 public final class FieldDesc extends Desc<FieldDesc> {

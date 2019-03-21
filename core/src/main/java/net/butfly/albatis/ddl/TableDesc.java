@@ -1,6 +1,6 @@
 package net.butfly.albatis.ddl;
 
-import static net.butfly.albatis.ddl.Builder.Qualifier.parse;
+import static net.butfly.albatis.ddl.Qualifier.parse;
 import static net.butfly.albatis.ddl.DBDesc.logger;
 
 import java.io.IOException;
@@ -12,7 +12,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import net.butfly.albacore.io.lambda.Consumer;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
-import net.butfly.albatis.ddl.Builder.Qualifier;
+import net.butfly.albatis.ddl.Qualifier;
 
 /**
  * Desc of some fields of one table.

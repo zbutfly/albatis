@@ -1,6 +1,6 @@
 package net.butfly.albatis.elastic;
 
-import static net.butfly.albatis.ddl.Builder.Qualifier.parse;
+import static net.butfly.albatis.ddl.Qualifier.parse;
 
 import java.io.IOException;
 import java.util.ArrayList;

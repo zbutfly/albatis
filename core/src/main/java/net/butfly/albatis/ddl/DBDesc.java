@@ -1,6 +1,6 @@
 package net.butfly.albatis.ddl;
 
-import static net.butfly.albatis.ddl.Builder.Qualifier.parse;
+import static net.butfly.albatis.ddl.Qualifier.parse;
 
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -8,7 +8,7 @@ import java.util.stream.Collectors;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
-import net.butfly.albatis.ddl.Builder.Qualifier;
+import net.butfly.albatis.ddl.Qualifier;
 
 /**
  * Desc of some models of one datasource (database).
