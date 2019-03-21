@@ -11,6 +11,7 @@ import java.util.Map;
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
+import net.butfly.albatis.ddl.Qualifier;
 import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.alserdes.format.Format;
 import net.butfly.alserdes.format.Formatable;
@@ -55,7 +56,7 @@ public interface IOFactory extends Formatable {
 
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	default <M extends Rmap> Input<M> input(List<TableDesc> tables, List<? extends Format> formats) throws IOException {
-		Map<String, TableDesc> tbls = Maps.distinct(tables, t -> t.qualifier.table);
+		Map<Qualifier, TableDesc> tbls = Maps.distinct(tables, t -> t.qualifier);
 		Input i = inputRaw(tables.toArray(new TableDesc[0]));
 		// deserializing
 		if (!empty(formats)) {
@@ -85,7 +86,7 @@ public interface IOFactory extends Formatable {
 
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	default <M extends Rmap> Output<M> output(List<TableDesc> tables, List<? extends Format> fotmats) throws IOException {
-		Map<String, TableDesc> tbls = Maps.distinct(tables, t -> t.qualifier.table);
+		Map<Qualifier, TableDesc> tbls = Maps.distinct(tables, t -> t.qualifier);
 		Output o = outputRaw(tables.toArray(new TableDesc[0]));
 		// serializing
 		if (null != fotmats) for (Format f : fotmats)

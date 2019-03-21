@@ -1,21 +1,7 @@
 package net.butfly.albatis.elastic;
 
-import net.butfly.albacore.io.URISpec;
-import net.butfly.albacore.serder.JsonSerder;
-import net.butfly.albacore.utils.Pair;
-import net.butfly.albacore.utils.Utils;
-import net.butfly.albacore.utils.collection.Maps;
-import net.butfly.albacore.utils.logger.Logger;
-import net.butfly.albatis.Connection;
-import net.butfly.albatis.ddl.vals.GeoPointVal;
-import net.butfly.albatis.io.Rmap;
-import org.apache.http.HttpHost;
-import org.elasticsearch.client.Response;
-import org.elasticsearch.client.RestClient;
-import org.elasticsearch.client.transport.TransportClient;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.TransportAddress;
-import org.elasticsearch.transport.client.PreBuiltTransportClient;
+import static net.butfly.albacore.paral.Sdream.of;
+import static net.butfly.albatis.ddl.Qualifier.qf;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -25,7 +11,23 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.Properties;
 
-import static net.butfly.albacore.paral.Sdream.of;
+import org.apache.http.HttpHost;
+import org.elasticsearch.client.Response;
+import org.elasticsearch.client.RestClient;
+import org.elasticsearch.client.transport.TransportClient;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.transport.TransportAddress;
+import org.elasticsearch.transport.client.PreBuiltTransportClient;
+
+import net.butfly.albacore.io.URISpec;
+import net.butfly.albacore.serder.JsonSerder;
+import net.butfly.albacore.utils.Pair;
+import net.butfly.albacore.utils.Utils;
+import net.butfly.albacore.utils.collection.Maps;
+import net.butfly.albacore.utils.logger.Logger;
+import net.butfly.albatis.Connection;
+import net.butfly.albatis.ddl.vals.GeoPointVal;
+import net.butfly.albatis.io.Rmap;
 
 public interface ElasticConnect extends Connection {
 	static final Logger _logger = Logger.getLogger(ElasticConnection.class);
@@ -35,10 +37,10 @@ public interface ElasticConnect extends Connection {
 	String getDefaultType();
 
 	public default Rmap fixTable(Rmap m) {
-		Pair<String, String> p = Elastics.dessemble(m.table());
+		Pair<String, String> p = Elastics.dessemble(m.table().table);
 		if (null == p.v1()) p.v1(getDefaultIndex());
 		if (null == p.v2()) p.v2(getDefaultType());
-		m.table(Elastics.assembly(p.v1(), p.v2()));
+		m.table(qf(Elastics.assembly(p.v1(), p.v2())));
 		Object v;
 		for (String k : m.keySet()) // process value type not supported by es
 			if ((v = m.get(k)) instanceof GeoPointVal) m.put(k, v.toString());
@@ -47,7 +49,7 @@ public interface ElasticConnect extends Connection {
 
 	@SuppressWarnings("unchecked")
 	static <C extends ElasticConnect> C connect(URISpec uri) throws IOException {
-		switch (uri.getScheme().toLowerCase()) {
+		switch (uri.getSchema().toLowerCase()) {
 		case "es":
 		case "elasticsearch":
 		case "es:transport":
@@ -59,7 +61,7 @@ public interface ElasticConnect extends Connection {
 		case "elasticsearch:https":
 			return (C) new ElasticRestConnection(uri);
 		default:
-			throw new IllegalArgumentException("schema not supported: " + uri.getScheme());
+			throw new IllegalArgumentException("schema not supported: " + uri.getSchema());
 		}
 	}
 

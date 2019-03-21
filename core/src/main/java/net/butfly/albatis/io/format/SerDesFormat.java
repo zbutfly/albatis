@@ -10,6 +10,7 @@ import java.util.UUID;
 import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
+import net.butfly.albatis.ddl.Qualifier;
 import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.io.Rmap;
 import net.butfly.alserdes.SerDes;
@@ -21,6 +22,7 @@ public class SerDesFormat extends RmapFormat {
 	private final boolean map;
 
 	final boolean addKey = Boolean.parseBoolean(Configs.gets("dataggr.migrate.serdes.addKey", "true"));
+
 	public SerDesFormat(SerDes sd) {
 		super();
 		this.sd = sd;
@@ -49,7 +51,7 @@ public class SerDesFormat extends RmapFormat {
 	@Override
 	public Rmap sers(List<Rmap> l) {
 		if (empty(l)) return null;
-		String table = l.get(0).table();
+		Qualifier table = l.get(0).table();
 		if (map) {
 			Object rv = ((MapSerDes) sd).sers(l);
 			return null == rv ? null : new Rmap(table, null, Maps.of(UUID.randomUUID().toString(), rv));

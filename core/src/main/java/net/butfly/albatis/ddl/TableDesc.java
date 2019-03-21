@@ -166,11 +166,11 @@ public class TableDesc extends Desc<TableDesc> {
 	}
 
 	public static TableDesc dummy(String qualifier) {
-		return new TableDesc(qf(qualifier, null));
+		return new TableDesc(qf(qualifier));
 	}
 
 	public TableDesc clone(String qualifier) {
-		TableDesc t = new TableDesc(qf(qualifier, null), destruct);
+		TableDesc t = new TableDesc(qf(qualifier), destruct);
 		t.fields.putAll(fields);
 		t.keys.addAll(keys);
 		t.construct = construct;

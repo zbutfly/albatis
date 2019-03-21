@@ -76,7 +76,7 @@ public final class DBDesc extends Desc<DBDesc> {
 	}
 
 	public TableDesc table(String qualifier) {
-		return tables.computeIfAbsent(qf(qualifier, null), q -> new TableDesc(q));
+		return tables.computeIfAbsent(qf(qualifier), q -> new TableDesc(q));
 	}
 
 	public TableDesc table(Qualifier qualifier) {

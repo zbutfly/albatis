@@ -18,6 +18,7 @@ import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Statistic;
 import net.butfly.albatis.Connection;
+import net.butfly.albatis.ddl.Qualifier;
 import net.butfly.albatis.io.OutputBase;
 import net.butfly.albatis.io.Rmap;
 import net.butfly.albatis.io.Rmap.Op;
@@ -58,7 +59,7 @@ public class HbaseOutput extends OutputBase<Rmap> {
 
 	@Override
 	protected void enqsafe(Sdream<Rmap> msgs) {
-		Map<String, List<Rmap>> map = Maps.of();
+		Map<Qualifier, List<Rmap>> map = Maps.of();
 		msgs.eachs(m -> map.computeIfAbsent(m.table(), t -> Colls.list()).add(m));
 		map.forEach((t, l) -> {
 			if (l.isEmpty()) return;
@@ -67,10 +68,10 @@ public class HbaseOutput extends OutputBase<Rmap> {
 		});
 	}
 
-	protected void enq1(String table, Mutation op, Rmap origin) {
+	protected void enq1(Qualifier table, Mutation op, Rmap origin) {
 		s().statsOut(op, o -> {
 			try {
-				conn.put(table, op);
+				conn.put(table.table, op);
 				succeeded(1);
 			} catch (IOException e) {
 				failed(Sdream.of1(origin));
@@ -78,13 +79,13 @@ public class HbaseOutput extends OutputBase<Rmap> {
 		});
 	}
 
-	protected void enq(String table, List<Rmap> msgs) {
+	protected void enq(Qualifier table, List<Rmap> msgs) {
 		List<Rmap> origins = Colls.list();
 		List<Mutation> puts = Colls.list();
 		incs(table, msgs, origins, puts);
 
 		if (1 == puts.size()) enq1(origins.get(0).table(), puts.get(0), origins.get(0));
-		else enqs(table, origins, puts);
+		else enqs(table.table, origins, puts);
 	}
 
 	protected void enqs(String table, List<Rmap> origins, List<Mutation> enqs) {
@@ -115,7 +116,7 @@ public class HbaseOutput extends OutputBase<Rmap> {
 		}
 	}
 
-	protected void incs(String table, List<Rmap> msgs, List<Rmap> origins, List<Mutation> puts) {
+	protected void incs(Qualifier table, List<Rmap> msgs, List<Rmap> origins, List<Mutation> puts) {
 		Map<Object, List<Rmap>> incByKeys = Maps.of();
 		for (Rmap m : msgs)
 			switch (m.op()) {

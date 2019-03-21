@@ -52,7 +52,7 @@ public class AvroFormat extends RmapFormat {
 	}
 
 	protected Rmap ser(Rmap m, Schema schema) {
-		byte[] b = reg.ser(m.table(), m.map(), schema);
+		byte[] b = reg.ser(m.table().table, m.map(), schema);
 		if (null == b || b.length == 0) return null;
 		Rmap r = m.skeleton();
 		r.put(UUID.randomUUID().toString(), b);
@@ -70,7 +70,7 @@ public class AvroFormat extends RmapFormat {
 	protected Rmap deser(Rmap m, Schema schema) {
 		byte[] v = (byte[]) m.entrySet().iterator().next().getValue();
 		if (null == v || v.length == 0) return null;
-		Map<String, Object> rm = reg.deser(m.table(), v, schema);
+		Map<String, Object> rm = reg.deser(m.table().table, v, schema);
 		if (empty(rm)) return null;
 		Rmap r = m.skeleton();
 		r.putAll(rm);

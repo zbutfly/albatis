@@ -1,5 +1,7 @@
 package net.butfly.albatis.elastic;
 
+import static net.butfly.albatis.ddl.Qualifier.qf;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -12,6 +14,7 @@ import org.elasticsearch.script.ScriptType;
 import net.butfly.albacore.io.lambda.Function;
 import net.butfly.albacore.serder.BsonSerder;
 import net.butfly.albacore.utils.IOs;
+import net.butfly.albatis.ddl.Qualifier;
 import net.butfly.albatis.io.Rmap;
 
 public class ElasticMessage extends Rmap {
@@ -19,8 +22,8 @@ public class ElasticMessage extends Rmap {
 	transient Script script;
 
 	public ElasticMessage(String index, String type, String id, Script script, Map<String, Object> upsertDoc) {
-		super(null, id, upsertDoc);
-		table(index + "/" + type);
+		super((Qualifier) null, id, upsertDoc);
+		table(qf(index + "/" + type));
 		op(null == upsertDoc ? Op.UPDATE : Op.UPSERT);
 		this.script = script;
 	}
@@ -30,11 +33,11 @@ public class ElasticMessage extends Rmap {
 	}
 
 	public String index() {
-		return Elastics.dessemble(table).v1();
+		return Elastics.dessemble(table.table).v1();
 	}
 
 	public String type() {
-		return Elastics.dessemble(table).v2();
+		return Elastics.dessemble(table.table).v2();
 	}
 
 	@Override

@@ -35,7 +35,7 @@ public class KafkaOutput extends KafkaOut {
 		List<Rmap> msgs = messages.list();
 		List<KeyedMessage<byte[], byte[]>> ms = of(msgs).mapFlat(m -> {
 			List<KeyedMessage<byte[], byte[]>> l = Colls.list();
-			m.forEach((k, body) -> l.add(new KeyedMessage<>(m.table(), k.getBytes(), (byte[]) body)));
+			m.forEach((k, body) -> l.add(new KeyedMessage<>(m.table().table, k.getBytes(), (byte[]) body)));
 			return of(l);
 		}).nonNull().list();
 		if (!ms.isEmpty()) try {

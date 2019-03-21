@@ -45,7 +45,7 @@ public class RedisOutput<T> extends OutputBase<Rmap> {
 			if (Colls.empty(m)) return;
 			List<Pair<String, T>> fails = Colls.list();
 			m.forEach((fieldname, fieldvalue) -> {
-				Pair<String, T> r = send(key(m.table(), fieldname), fieldname, (T) fieldvalue, m);
+				Pair<String, T> r = send(key(m.table().table, fieldname), fieldname, (T) fieldvalue, m);
 				if (null == r) c.incrementAndGet();
 				else fails.add(r);
 			});
@@ -69,8 +69,7 @@ public class RedisOutput<T> extends OutputBase<Rmap> {
 		logger().trace("Redis send: " + rk + " => " + fieldvalue);
 		String r;
 		long expireSec = -1;
-		if (key_expire && (expireSec = getExpireSecond(m.get(KEY_EXPIRE_FIELD))) > 0) 
-			r = conn.sync.setex(rk, expireSec, fieldvalue);
+		if (key_expire && (expireSec = getExpireSecond(m.get(KEY_EXPIRE_FIELD))) > 0) r = conn.sync.setex(rk, expireSec, fieldvalue);
 		else r = conn.sync.set(rk, fieldvalue);
 		if (null != r && "OK".equals(r)) return null;
 		else return new Pair<>(fieldname, fieldvalue);

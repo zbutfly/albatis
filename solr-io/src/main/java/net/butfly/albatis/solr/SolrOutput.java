@@ -57,7 +57,7 @@ public final class SolrOutput extends OutputBase<Rmap> {
 	@Override
 	protected void enqsafe(Sdream<Rmap> msgs) {
 		Map<String, Map<Integer, List<Rmap>>> map = Maps.of();
-		msgs.eachs(m -> map.compute(m.table(), (coll, colls) -> {
+		msgs.eachs(m -> map.compute(m.table().table, (coll, colls) -> {
 			if (null == colls) colls = Maps.of();
 			colls.compute(m.op(), (op, ops) -> {
 				if (null == ops) ops = Colls.list();

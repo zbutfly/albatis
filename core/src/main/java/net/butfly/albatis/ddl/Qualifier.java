@@ -7,6 +7,8 @@ import static net.butfly.albatis.ddl.FieldDesc.SPLIT_PREFIX_CH;
 
 import java.io.Serializable;
 
+import net.butfly.albacore.utils.Pair;
+
 public class Qualifier implements Serializable {
 	private static final long serialVersionUID = 501714117033564122L;
 	public final String table;
@@ -14,50 +16,6 @@ public class Qualifier implements Serializable {
 	public final String prefix;
 
 	public final String tableQualifier;
-	@SuppressWarnings("unused")
-	@Deprecated
-	private String column;
-
-	public static class FieldQualifier extends Qualifier {
-		private static final long serialVersionUID = 2047804571133689394L;
-		public final String colkey;
-
-		private FieldQualifier(String table, String family, String prefix, String colkey) {
-			super(table, family, prefix);
-			this.colkey = colkey;
-		}
-	}
-
-	public static FieldQualifier qf(String tqf, String fqf) {
-		String[] tqs = parseTableName(tqf);
-		String[] fqs = parseFieldName(fqf);
-		return new FieldQualifier(tqs[0], one(tqs[1], fqs[0]), one(tqs[2], fqs[1]), fqs[2]);
-	}
-
-	/**
-	 * @param q
-	 *            table:cf#prefix, cf:prefix#col<br>
-	 * @return [table_name, col_family, col_prefix, col_name]
-	 * @return
-	 */
-
-	public static Qualifier qf(String table, String family, String prefix) {
-		return new Qualifier(table, family, prefix);
-	}
-
-	private String qfTable() {
-		if (null == table) return null;
-		StringBuilder s = new StringBuilder(table);
-		if (null != family) s.append(SPLIT_CF_CH + family);
-		if (null != prefix) s.append(SPLIT_PREFIX_CH + prefix);
-		return s.toString();
-	}
-
-	@Override
-	public String toString() {
-		if (null == table) return "[" + family + SPLIT_CF_CH + prefix + SPLIT_PREFIX_CH + "]";
-		else return tableQualifier;
-	}
 
 	protected Qualifier() {
 		table = null;
@@ -70,7 +28,41 @@ public class Qualifier implements Serializable {
 		this.table = table;
 		this.family = family;
 		this.prefix = prefix;
-		tableQualifier = qfTable();
+		tableQualifier = qualify();
+	}
+
+	/**
+	 * @param q
+	 *            table:cf#prefix
+	 * @return (table_name, col_family, col_prefix)
+	 * @return
+	 */
+	public static Qualifier qf(String tqf) {
+		String[] tqs = parseTableName(tqf);
+		return new Qualifier(tqs[0], tqs[1], tqs[2]);
+	}
+
+	public static Qualifier qf(String table, String family, String prefix) {
+		return new Qualifier(table, family, prefix);
+	}
+
+	/**
+	 * @param q
+	 *            cf:prefix#col
+	 * @return [(table_name, col_family, col_prefix), col_name]
+	 * @return
+	 */
+	public Pair<Qualifier, String> colkey(String fqf) {
+		String[] fqs = parseFieldName(fqf);
+		return new Pair<>(new Qualifier(table, one(family, fqs[0]), one(prefix, fqs[1])), fqs[2]);
+	}
+
+	private String qualify() {
+		if (null == table) return null;
+		StringBuilder s = new StringBuilder(table);
+		if (null != family) s.append(SPLIT_CF_CH + family);
+		if (null != prefix) s.append(SPLIT_PREFIX_CH + prefix);
+		return s.toString();
 	}
 
 	private static String one(String t, String f) {
@@ -116,15 +108,21 @@ public class Qualifier implements Serializable {
 		return fqs;
 	}
 
+	public Qualifier table(String table) {
+		return new Qualifier(table, family, prefix);
+	}
+
+	@Override
+	public String toString() {
+		if (null == table) return "[" + family + SPLIT_CF_CH + prefix + SPLIT_PREFIX_CH + "]";
+		else return tableQualifier;
+	}
+
 	@Override
 	public boolean equals(Object obj) {
 		if (obj == this) return true;
 		if (null == obj || !(obj instanceof Qualifier)) return false;
 		Qualifier q = (Qualifier) obj;
 		return eq(prefix, q.prefix) && eq(family, q.family) && eq(table, q.table);
-	}
-
-	public Qualifier retable(String table) {
-		return new Qualifier(table, family, prefix);
 	}
 }

@@ -1,5 +1,7 @@
 package net.butfly.albatis.io;
 
+import static net.butfly.albatis.ddl.Qualifier.qf;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -12,6 +14,7 @@ import net.butfly.albacore.io.lambda.Function;
 import net.butfly.albacore.utils.IOs;
 import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.collection.Maps;
+import net.butfly.albatis.ddl.Qualifier;
 
 public class Rmap extends ConcurrentHashMap<String, Object> {
 	private static final long serialVersionUID = 2316795812336748252L;
@@ -19,7 +22,7 @@ public class Rmap extends ConcurrentHashMap<String, Object> {
 
 	protected Object key;
 	protected String keyField;
-	protected String table;
+	protected Qualifier table;
 	private String tableExpr;
 	protected @Op int op;
 
@@ -32,35 +35,22 @@ public class Rmap extends ConcurrentHashMap<String, Object> {
 		static final @Op int DEFAULT = Op.UPSERT;
 	}
 
-	public static String opname(@Op int op) {
-		switch (op) {
-		case Op.UPSERT:
-			return "UPSERT";
-		case Op.INSERT:
-			return "INSERT";
-		case Op.UPDATE:
-			return "UPDATE";
-		case Op.DELETE:
-			return "DELETE";
-		case Op.INCREASE:
-			return "INCREASE";
-		}
-		return null;
-	}
-
 	public Rmap() {
-		this((String) null);
+		this((Qualifier) null);
 	}
 
-	public Rmap(String table) {
-		this(table, (String) null);
+	public Rmap(byte[] data, Function<byte[], Map<String, ?>> conv) throws IOException {
+		this(new ByteArrayInputStream(data), conv);
 	}
 
-	public Rmap(String table, Object key) {
+	public Rmap(InputStream is, Function<byte[], Map<String, ?>> conv) throws IOException {
 		super();
-		this.table = table;
-		this.key = key;
-		op = Op.DEFAULT;
+		byte[][] attrs = IOs.readBytesList(is);
+		table = null != attrs[0] ? null : qf(new String(attrs[0]));
+		key = null != attrs[1] ? null : new String(attrs[1]);
+		keyField = null != attrs[2] ? null : new String(attrs[2]);
+		if (null == attrs[3]) putAll(conv.apply(attrs[3]));
+		op = attrs[4][0];
 	}
 
 	public Rmap(Map<? extends String, ? extends Object> values) {
@@ -68,23 +58,38 @@ public class Rmap extends ConcurrentHashMap<String, Object> {
 		op = Op.DEFAULT;
 	}
 
-	public Rmap(String table, Map<? extends String, ? extends Object> values) {
+	public Rmap(Qualifier table) {
+		this(table, (String) null);
+	}
+
+	public Rmap(Qualifier table, Object key) {
+		super();
+		this.table = table;
+		this.key = key;
+		op = Op.DEFAULT;
+	}
+
+	public Rmap(Qualifier table, Map<? extends String, ? extends Object> values) {
 		this(values);
 		this.table = table;
 	}
 
-	public Rmap(String table, Object key, Map<? extends String, ? extends Object> values) {
+	public Rmap(Qualifier table, Object key, Map<? extends String, ? extends Object> values) {
 		this(table, values);
 		this.key = key;
 		op = Op.DEFAULT;
 	}
 
-	public Rmap(String table, Pair<String, Map<String, Object>> keyAndValues) {
+	public Rmap(Qualifier table, Pair<String, Map<String, Object>> keyAndValues) {
 		this(table, keyAndValues.v1(), keyAndValues.v2());
 	}
 
-	public Rmap(String table, Object key, String firstFieldName, Object... firstFieldValueAndOthers) {
+	public Rmap(Qualifier table, Object key, String firstFieldName, Object... firstFieldValueAndOthers) {
 		this(table, key, Maps.of(firstFieldName, firstFieldValueAndOthers));
+	}
+
+	public Qualifier table() {
+		return table;
 	}
 
 	public Object key() {
@@ -103,60 +108,8 @@ public class Rmap extends ConcurrentHashMap<String, Object> {
 		return keyField;
 	}
 
-	public Rmap keyField(String keyField) {
-		this.keyField = keyField;
-		if (null == keyField) return this;
-		Object k = this.get(keyField);
-		if (null != k) key(k);
-		return this;
-	}
-
-	public @Op int op() {
-		return op;
-	}
-
-	public Rmap op(@Op int op) {
-		this.op = op;
-		return this;
-	}
-
-	public String table() {
-		return table;
-	}
-
 	public String tableExpr() {
 		return tableExpr;
-	}
-
-	public Rmap table(String table) {
-		this.table = table;
-		return this;
-	}
-
-	public Rmap table(String table, String expr) {
-		this.table = table;
-		this.tableExpr = expr;
-		return this;
-	}
-
-	public Rmap(byte[] data, Function<byte[], Map<String, ?>> conv) throws IOException {
-		this(new ByteArrayInputStream(data), conv);
-	}
-
-	public Rmap(InputStream is, Function<byte[], Map<String, ?>> conv) throws IOException {
-		super();
-		byte[][] attrs = IOs.readBytesList(is);
-		table = null != attrs[0] ? null : new String(attrs[0]);
-		key = null != attrs[1] ? null : new String(attrs[1]);
-		keyField = null != attrs[2] ? null : new String(attrs[2]);
-		if (null == attrs[3]) putAll(conv.apply(attrs[3]));
-		op = attrs[4][0];
-	}
-
-	@Override
-	public String toString() {
-		return "[Table: " + table + ", Key: " + (null == keyField ? "" : (keyField + " => ")) + key + ", Op: " + opname(op) + "] => \n\t"
-				+ super.toString();
 	}
 
 	public final byte[] toBytes(Function<Map<String, Object>, byte[]> conv) {
@@ -176,7 +129,8 @@ public class Rmap extends ConcurrentHashMap<String, Object> {
 	}
 
 	protected void write(OutputStream os, Function<Map<String, Object>, byte[]> conv) throws IOException {
-		IOs.writeBytes(os, null == table ? null : table.getBytes(), keyBytes(), null == keyField ? null : keyField.getBytes(), //
+		IOs.writeBytes(os, null == table ? null : table.tableQualifier.getBytes(), keyBytes(), null == keyField ? null
+				: keyField.getBytes(), //
 				conv.apply(this), new byte[] { (byte) op });
 	}
 
@@ -192,9 +146,101 @@ public class Rmap extends ConcurrentHashMap<String, Object> {
 		return this;
 	}
 
+	@Override
+	public String toString() {
+		return "[Table: " + table + ", Key: " + (null == keyField ? "" : (keyField + " => ")) + key + ", Op: " + opname(op) + "] => \n\t"
+				+ super.toString();
+	}
+
+	// Transfer
 	public Rmap skeleton() {
 		Rmap r = new Rmap(table(), key).op(op);
 		if (null != keyField) r.keyField(keyField);
 		return r;
+	}
+
+	public Rmap table(Qualifier table) {
+		this.table = table;
+		return this;
+	}
+
+	public Rmap table(Qualifier table, String expr) {
+		this.table = table;
+		this.tableExpr = expr;
+		return this;
+	}
+
+	public Rmap op(@Op int op) {
+		this.op = op;
+		return this;
+	}
+
+	public Rmap keyField(String keyField) {
+		this.keyField = keyField;
+		if (null == keyField) return this;
+		Object k = get(keyField);
+		if (null != k) key(k);
+		return this;
+	}
+
+	public @Op int op() {
+		return op;
+	}
+
+	public static String opname(@Op int op) {
+		switch (op) {
+		case Op.UPSERT:
+			return "UPSERT";
+		case Op.INSERT:
+			return "INSERT";
+		case Op.UPDATE:
+			return "UPDATE";
+		case Op.DELETE:
+			return "DELETE";
+		case Op.INCREASE:
+			return "INCREASE";
+		}
+		return null;
+	}
+
+	// old format rmap constructor
+	@Deprecated
+	public Rmap(String table, Map<? extends String, ? extends Object> values) {
+		this(qf(table), values);
+	}
+
+	@Deprecated
+	public Rmap(String table, Object key, Map<? extends String, ? extends Object> values) {
+		this(qf(table), key, values);
+	}
+
+	@Deprecated
+	public Rmap(String table, Object key, String firstFieldName, Object... firstFieldValueAndOthers) {
+		this(qf(table), key, firstFieldName, firstFieldValueAndOthers);
+	}
+
+	@Deprecated
+	public Rmap(String table, Object key) {
+		this(qf(table), key);
+	}
+
+	@Deprecated
+	public Rmap(String table, Pair<String, Map<String, Object>> keyAndValues) {
+		this(qf(table), keyAndValues);
+	}
+
+	@Deprecated
+	public Rmap(String table) {
+		this(qf(table));
+	}
+
+	@Deprecated
+	public Rmap table(String table) {
+		return table(qf(table));
+	}
+
+	@Deprecated
+	public Rmap table(String table, String expr) {
+		return table(qf(table), expr);
 	}
 }

@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.paral.Sdream;
+import net.butfly.albatis.ddl.Qualifier;
 import net.butfly.albatis.io.OutputBase;
 import net.butfly.albatis.io.Rmap;
 
@@ -40,9 +41,9 @@ public class JdbcOutput extends OutputBase<Rmap> {
 	protected void enqsafe(Sdream<Rmap> items) {
 		AtomicLong n = new AtomicLong(0);
 		Map<String, List<Rmap>> mml = items.list().stream().filter(item -> {
-			String table = item.table();
-			return null != table && !table.isEmpty();
-		}).collect(Collectors.groupingBy(Rmap::table));
+			Qualifier table = item.table();
+			return null != table && null != table.table && !table.table.isEmpty();
+		}).collect(Collectors.groupingBy(r -> r.table().table));
 		if (mml.isEmpty()) {
 			succeeded(0);
 			return;

@@ -1,5 +1,7 @@
 package net.butfly.albatis.kafka;
 
+import static net.butfly.albatis.ddl.Qualifier.qf;
+
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -16,18 +18,18 @@ public interface Kafka2s {
 	}
 
 	static List<Rmap> messages(ConsumerRecord<byte[], byte[]> km, Function<byte[], List<Map<String, Object>>> der) {
-		return der.apply(km.value()).stream().map(m -> new Rmap(km.topic(), km.key(), m)).collect(Collectors.toList());
+		return der.apply(km.value()).stream().map(m -> new Rmap(qf(km.topic()), km.key(), m)).collect(Collectors.toList());
 	}
 
 	static ProducerRecord<byte[], byte[]> toProducer(Rmap m, Function<Map<String, Object>, byte[]> ser) {
-		return null == m.key() ? null : new ProducerRecord<byte[], byte[]>(m.table(), m.keyBytes(), ser.apply(m.map()));
+		return null == m.key() ? null : new ProducerRecord<byte[], byte[]>(m.table().table, m.keyBytes(), ser.apply(m.map()));
 	}
 
 	static ProducerRecord<byte[], byte[]> toKeyedMessage(Rmap m, Function<Map<String, Object>, byte[]> ser) {
-		return null == m.key() ? null : new ProducerRecord<>(m.table(), m.keyBytes(), ser.apply(m.map()));
+		return null == m.key() ? null : new ProducerRecord<>(m.table().table, m.keyBytes(), ser.apply(m.map()));
 	}
 
 	static List<Rmap> strMessages(ConsumerRecord<String, String> km, Function<String, List<Map<String, Object>>> der) {
-		return der.apply(km.value()).stream().map(m -> new Rmap(km.topic(), km.key(), m)).collect(Collectors.toList());
+		return der.apply(km.value()).stream().map(m -> new Rmap(qf(km.topic()), km.key(), m)).collect(Collectors.toList());
 	}
 }

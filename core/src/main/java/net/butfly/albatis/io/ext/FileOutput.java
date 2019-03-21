@@ -35,7 +35,7 @@ public class FileOutput extends OutputBase<Rmap> {
 				items.eachs(r -> w.println(JsonSerder.JSON_MAPPER.ser(r)));
 			} catch (IOException e) {}
 		}, r -> {
-			String t = r.table();
+			String t = r.table().table;
 			if (!t.endsWith(fc.ext)) t += fc.ext;
 			return t;
 		}, -1);

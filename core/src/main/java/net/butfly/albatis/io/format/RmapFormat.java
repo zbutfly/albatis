@@ -6,6 +6,7 @@ import java.util.List;
 
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albatis.ddl.FieldDesc;
+import net.butfly.albatis.ddl.Qualifier;
 import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.io.Rmap;
 import net.butfly.alserdes.SerDes;
@@ -57,9 +58,9 @@ public abstract class RmapFormat extends Format<Rmap, TableDesc> {
 		return Rmap.class;
 	}
 
-	private static TableDesc match(String excepted, TableDesc... tables) {
+	private static TableDesc match(Qualifier excepted, TableDesc... tables) {
 		if (tables.length != 1 && null != excepted) for (TableDesc t : tables)
-			if (excepted.equals(t.qualifier.table)) return t;
+			if (excepted.equals(t.qualifier)) return t;
 		return tables[0];
 	}
 

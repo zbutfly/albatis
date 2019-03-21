@@ -13,6 +13,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import net.butfly.albacore.exception.ConfigException;
 import net.butfly.albacore.serder.BsonSerder;
+import net.butfly.albatis.ddl.Qualifier;
 import net.butfly.albatis.kafka.Kafka2Input;
 
 public class KafkaTest {
@@ -20,7 +21,7 @@ public class KafkaTest {
 		if (args.length != 2) throw new RuntimeException("KafkaTest <uri> <batchSize> , topics in url");
 		// int batchSize = Integer.parseInt(args[1]);
 
-		Map<String, Integer> counts = new HashMap<>();
+		Map<Qualifier, Integer> counts = new HashMap<>();
 		NumberFormat nf = new DecimalFormat("0.00");
 		DateFormat df = new SimpleDateFormat("MM-dd hh:mm:ss ");
 		double total = 0;
