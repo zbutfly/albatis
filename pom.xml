@@ -8,7 +8,7 @@
 	</parent>
 	<groupId>net.butfly.albatis</groupId>
 	<artifactId>albatis</artifactId>
-	<version>1.5.3-SNAPSHOT</version>
+	<version>1.6.0-SNAPSHOT</version>
 	<packaging>pom</packaging>
 	<properties>
 		<maven.compiler.source>8</maven.compiler.source>
@@ -46,6 +46,7 @@
 		<module>es-io</module>
 		<module>hbase-io</module>
 		<module>kudu-io</module>
+		<module>kafka2-io</module>
 		<module>kafka-io</module>
 		<module>arangodb-io</module>
 		<module>redis-io</module>
