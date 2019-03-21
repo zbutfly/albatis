@@ -63,7 +63,7 @@ public class Kafka2Input extends Namedly implements Input<Rmap> {
 		if (topics == null || topics.length == 0) topics = dummy(config.topics()).toArray(new TableDesc[0]);
 
 		connect = new KafkaConsumer<>(config.props());
-		connect.subscribe(list(t -> t.name, topics));
+		connect.subscribe(list(t -> t.qualifier.table, topics));
 		closing(this::closeKafka);
 	}
 

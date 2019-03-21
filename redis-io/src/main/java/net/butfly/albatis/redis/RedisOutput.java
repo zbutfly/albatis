@@ -27,7 +27,7 @@ public class RedisOutput<T> extends OutputBase<Rmap> {
 		this.conn = conn;
 		key_expire = KEY_EXPIRE_FIELD != null;
 		if (!Colls.empty(prefix)) for (TableDesc t : prefix)
-			descs.put(t.name, t);
+			descs.put(t.qualifier.table, t);
 	}
 
 	@Override

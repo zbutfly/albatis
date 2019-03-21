@@ -162,8 +162,8 @@ public class JdbcConnection extends DataConnection<DataSource> {
 		if (sql.length > 1) throw new UnsupportedOperationException("Multiple sql input");
 		JdbcInput i;
 		try {
-			i = new JdbcInput("JdbcInput", this, sql[0].name);
-			i.query("select * from " + sql[0].name); // XXX: ??why not in constructor?
+			i = new JdbcInput("JdbcInput", this, sql[0].qualifier.table);
+			i.query("select * from " + sql[0].qualifier.table); // XXX: ??why not in constructor?
 		} catch (SQLException e) {
 			throw new IOException(e);
 		}

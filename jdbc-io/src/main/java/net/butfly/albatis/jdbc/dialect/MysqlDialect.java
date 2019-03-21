@@ -125,7 +125,7 @@ public class MysqlDialect extends Dialect {
 	}
 
 	private void doInsert(Connection conn, String k, String t, Rmap m) {
-		List<Rmap> list = new ArrayList();
+		List<Rmap> list = new ArrayList<>();
 		list.add(m);
 		doInsertOnUpsert(conn, t, list, new AtomicLong());
 	}

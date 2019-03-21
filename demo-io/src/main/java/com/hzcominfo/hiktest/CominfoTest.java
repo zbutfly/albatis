@@ -25,7 +25,7 @@ public class CominfoTest {
 		TableDesc dst = AvroFormat.Builder.schema(KafkaDemo.TOPIC, KafkaDemo.USER_SCHEMA);
 		try (Connection c = Connection.connect(new URISpec("kafka2:bootstrap://" + KafkaDemo.BOOTSTRAP + "?df=avro"));
 				Output<Rmap> o = c.output(dst);) {
-			o.enqueue(Sdream.of(data(dst.name, 10)));
+			o.enqueue(Sdream.of(data(dst.qualifier.table, 10)));
 		}
 	}
 

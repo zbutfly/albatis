@@ -5,7 +5,6 @@ import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
-import net.butfly.albacore.utils.Configs;
 import org.apache.kudu.ColumnSchema;
 import org.apache.kudu.Type;
 import org.apache.kudu.client.AsyncKuduScanner;
@@ -52,7 +51,7 @@ public class KuduInput extends Namedly implements Input<Rmap> {
 	}
 
 	void table(TableDesc table) {
-		scannerMap.compute(table.name, (t, existed) -> {
+		scannerMap.compute(table.qualifier.table, (t, existed) -> {
 			if (null != existed) {
 				logger().error("Table [" + table + "] input existed and conflicted, ignore new scan request.");
 				return existed;
@@ -72,7 +71,7 @@ public class KuduInput extends Namedly implements Input<Rmap> {
 		public TableScanner(TableDesc table) {
 			super();
 			this.table = table;
-			kuduTable = conn.table(table.name);
+			kuduTable = conn.table(table.qualifier.table);
 			List<ColumnSchema> columns = kuduTable.getSchema().getColumns();
 			for (FieldDesc field : table.fields()) {
 				filterField.add(field.name);
@@ -87,7 +86,7 @@ public class KuduInput extends Namedly implements Input<Rmap> {
 			} catch (Exception e) {
 				logger().error("close kudu client exception", e);
 			} finally {
-				scannerMap.remove(table.name);
+				scannerMap.remove(table.qualifier.table);
 			}
 		}
 	}
@@ -124,8 +123,9 @@ public class KuduInput extends Namedly implements Input<Rmap> {
 					try {
 						rs = s.scanner.nextRows().join();
 					} catch (Exception e) {
-//						logger().error("Kudu fail", e);
-						s.scanner = kuduTable.getAsyncClient().newScannerBuilder(kuduTable).setProjectedColumnNames(Colls.list(s.schema.keySet())).build();
+						// logger().error("Kudu fail", e);
+						s.scanner = kuduTable.getAsyncClient().newScannerBuilder(kuduTable).setProjectedColumnNames(Colls.list(s.schema
+								.keySet())).build();
 						return;
 					}
 					if (null == rs) {
@@ -136,7 +136,7 @@ public class KuduInput extends Namedly implements Input<Rmap> {
 					List<Rmap> rl = Colls.list();
 					while (rs.hasNext()) {
 						RowResult row = rs.next();
-						Rmap r = new Rmap(s.table.name);
+						Rmap r = new Rmap(s.table.qualifier.table);
 						s.schema.forEach((f, t) -> {
 							Object v = KuduCommon.getValue(row, f, t);
 							if (null != v) r.put(f, v);

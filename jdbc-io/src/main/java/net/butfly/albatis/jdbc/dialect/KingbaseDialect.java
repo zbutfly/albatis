@@ -1,14 +1,16 @@
 package net.butfly.albatis.jdbc.dialect;
 
-import net.butfly.albatis.io.Rmap;
-
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
+
+import net.butfly.albatis.io.Rmap;
 
 @DialectFor(subSchema = "kingbaseanalyticsdb", jdbcClassname = "com.kingbase.kingbaseanalyticsdb.Driver")
 public class KingbaseDialect extends Dialect {
@@ -96,7 +98,7 @@ public class KingbaseDialect extends Dialect {
     }
 
     private void doInsert(Connection conn, String k, String t, Rmap m) {
-        List<Rmap> list = new ArrayList();
+        List<Rmap> list = new ArrayList<>();
         list.add(m);
         doInsertOnUpsert(conn, t, list, new AtomicLong());
     }
