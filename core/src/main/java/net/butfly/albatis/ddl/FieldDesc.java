@@ -1,8 +1,5 @@
 package net.butfly.albatis.ddl;
 
-import static net.butfly.albatis.ddl.DBDesc.logger;
-
-import net.butfly.albatis.ddl.Qualifier;
 import net.butfly.albatis.ddl.vals.ValType;
 
 public final class FieldDesc extends Desc<FieldDesc> {
@@ -16,22 +13,22 @@ public final class FieldDesc extends Desc<FieldDesc> {
 	/**
 	 * cf:prefix#name
 	 */
-	public final Qualifier qualifier;
+	// public final Qualifier qualifier;
+	public final String name;
 	public final ValType type;
 	public final boolean rowkey;
 	public final boolean unique;
 	public final boolean nullable;
 
-	public FieldDesc(TableDesc table, String qualifier, ValType type, boolean rowkey, boolean unique, boolean nullable) {
+	public FieldDesc(TableDesc table, String name, ValType type, boolean rowkey, boolean unique, boolean nullable) {
 		super();
-		this.qualifier = table.qualifier.refield(qualifier);
+		this.name = name;
 		this.type = type;
 		this.rowkey = rowkey;
 		this.unique = unique;
 		this.nullable = rowkey ? false : nullable;
 		if (null != table) table.field(this);
 	}
-
 
 	public FieldDesc(TableDesc table, String qualifier, ValType type, boolean rowkey) {
 		this(table, qualifier, type, rowkey, false, rowkey);
@@ -43,6 +40,6 @@ public final class FieldDesc extends Desc<FieldDesc> {
 
 	@Override
 	public String toString() {
-		return "Field[" + qualifier + "](" + type.toString() + (rowkey ? ",KEY" : "") + ")" + super.toString();
+		return "Field[" + name + "](" + type.toString() + (rowkey ? ",KEY" : "") + ")" + super.toString();
 	}
 }

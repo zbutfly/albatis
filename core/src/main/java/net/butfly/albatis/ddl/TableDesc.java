@@ -1,7 +1,7 @@
 package net.butfly.albatis.ddl;
 
-import static net.butfly.albatis.ddl.Qualifier.parse;
 import static net.butfly.albatis.ddl.DBDesc.logger;
+import static net.butfly.albatis.ddl.Qualifier.qf;
 
 import java.io.IOException;
 import java.util.List;
@@ -12,7 +12,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import net.butfly.albacore.io.lambda.Consumer;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
-import net.butfly.albatis.ddl.Qualifier;
 
 /**
  * Desc of some fields of one table.
@@ -24,7 +23,7 @@ public class TableDesc extends Desc<TableDesc> {
 	 */
 	public final Qualifier qualifier;
 	// public final String name;
-	private final Map<Qualifier, FieldDesc> fields = Maps.of();
+	private final Map<String, FieldDesc> fields = Maps.of();
 	// options
 	public final List<List<String>> keys = Colls.list();
 	public final List<Map<String, Object>> indexes = Colls.list();
@@ -76,10 +75,10 @@ public class TableDesc extends Desc<TableDesc> {
 	}
 
 	public void field(FieldDesc f) {
-		fields.putIfAbsent(f.qualifier, f);
+		fields.putIfAbsent(f.name, f);
 		if (f.rowkey) {
-			if (keys.isEmpty()) keys.add(Colls.list(f.qualifier.column));
-			else keys.get(0).add(f.qualifier.column);
+			if (keys.isEmpty()) keys.add(Colls.list(f.name));
+			else keys.get(0).add(f.name);
 		}
 	}
 
@@ -153,12 +152,8 @@ public class TableDesc extends Desc<TableDesc> {
 		return ck;
 	}
 
-	public FieldDesc field(String qualifier) {
-		return fields.get(parse(null, qualifier));
-	}
-
-	public FieldDesc field(Qualifier qualifier) {
-		return fields.get(qualifier);
+	public FieldDesc field(String name) {
+		return fields.get(name);
 	}
 
 	public FieldDesc[] fields() {
@@ -171,11 +166,11 @@ public class TableDesc extends Desc<TableDesc> {
 	}
 
 	public static TableDesc dummy(String qualifier) {
-		return new TableDesc(parse(qualifier, null));
+		return new TableDesc(qf(qualifier, null));
 	}
 
 	public TableDesc clone(String qualifier) {
-		TableDesc t = new TableDesc(parse(qualifier, null), destruct);
+		TableDesc t = new TableDesc(qf(qualifier, null), destruct);
 		t.fields.putAll(fields);
 		t.keys.addAll(keys);
 		t.construct = construct;

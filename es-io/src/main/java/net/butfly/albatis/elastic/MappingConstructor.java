@@ -76,7 +76,7 @@ public class MappingConstructor {
 				String[] c2s = c2.split(",");
 				if (c2s != null && c2s.length != 0) fm.put("copy_to", c2s.length == 1 ? c2s[0] : c2s);
 			}
-			props.put(f.qualifier.column, fm);
+			props.put(f.name, fm);
 		}
 		Map<String, Object> all = of("include_in_all", includeAll, "dynamic", String.valueOf(dynamic), "properties", props);
 		if (dynamic) all.put("dynamic_templates", templates());

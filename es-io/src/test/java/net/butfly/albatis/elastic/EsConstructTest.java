@@ -1,7 +1,5 @@
 package net.butfly.albatis.elastic;
 
-import static net.butfly.albatis.ddl.Qualifier.parse;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -24,7 +22,7 @@ public class EsConstructTest {
 		indexConfig.put("number_of_replicas", 1);
 		List<FieldDesc> fields = new ArrayList<>();
 		DBDesc dbDesc = DBDesc.of("es_test", url);
-		TableDesc tableDesc = dbDesc.table(parse("es_test", null));
+		TableDesc tableDesc = dbDesc.table("es_test");
 		ValType type = ValType.of("string");
 		FieldDesc f = new FieldDesc(tableDesc, "name", type);
 		fields.add(f);

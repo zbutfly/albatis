@@ -1,6 +1,6 @@
 package net.butfly.albatis.ddl;
 
-import static net.butfly.albatis.ddl.Qualifier.parse;
+import static net.butfly.albatis.ddl.Qualifier.qf;
 
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -76,7 +76,7 @@ public final class DBDesc extends Desc<DBDesc> {
 	}
 
 	public TableDesc table(String qualifier) {
-		return tables.computeIfAbsent(parse(qualifier, null), q -> new TableDesc(q));
+		return tables.computeIfAbsent(qf(qualifier, null), q -> new TableDesc(q));
 	}
 
 	public TableDesc table(Qualifier qualifier) {

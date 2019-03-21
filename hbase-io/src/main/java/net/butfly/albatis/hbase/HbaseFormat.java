@@ -1,6 +1,5 @@
 package net.butfly.albatis.hbase;
 
-import static net.butfly.albatis.ddl.Qualifier.parse;
 import static net.butfly.albatis.ddl.vals.ValType.Flags.BINARY;
 import static net.butfly.albatis.ddl.vals.ValType.Flags.BOOL;
 import static net.butfly.albatis.ddl.vals.ValType.Flags.CHAR;
@@ -45,7 +44,7 @@ public class HbaseFormat extends RmapFormat {
 		Rmap r = src.skeleton();
 		byte[] b;
 		for (FieldDesc f : fields)
-			if (null != (b = assemble(src.get(f.qualifier.column), f.type)) && b.length > 0) r.put(f.qualifier.column, b);
+			if (null != (b = assemble(src.get(f.name), f.type)) && b.length > 0) r.put(f.name, b);
 		return r;
 	}
 
@@ -59,15 +58,14 @@ public class HbaseFormat extends RmapFormat {
 		Object v;
 		for (FieldDesc f : fields) {
 			for (String k : dst.keySet()) {
-				String fn = parse(dst.table(), k).column;
-				if (f.qualifier.column.equals(fn)) {
+				if (f.name.equals(k)) {
 					v = dst.get(k);
 					if (v instanceof byte[]) {
 						v = disassemble((byte[]) v, f.type);
-						if (null != v) dst.put(fn, v);
+						if (null != v) dst.put(k, v);
 					} else if (v instanceof ByteBuffer) {
 						v = disassemble(((ByteBuffer) v).array(), f.type);
-						if (null != v) dst.put(fn, v);
+						if (null != v) dst.put(k, v);
 					}
 					break;
 				}
