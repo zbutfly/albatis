@@ -75,6 +75,7 @@ public final class DBDesc extends Desc<DBDesc> {
 		this(null, uri);
 	}
 
+	@Deprecated
 	public TableDesc table(String qualifier) {
 		return tables.computeIfAbsent(qf(qualifier), q -> new TableDesc(q));
 	}
@@ -93,8 +94,8 @@ public final class DBDesc extends Desc<DBDesc> {
 		b.append("Models [").append(models.size()).append("] databases: ");
 		for (DBDesc db : models.values()) {
 			b.append("\n\t").append(db.name).append("[").append(db.uri).append("] with [").append(db.tables.size()).append("] tables");
-			if (!db.tables.isEmpty()) b.append(": \n\t\t").append(db.tables.values().stream().map(t -> t.qualifier.name).collect(Collectors.joining(
-					", ")));
+			if (!db.tables.isEmpty()) b.append(": \n\t\t").append(db.tables.values().stream() //
+				.map(t -> t.qualifier.name).collect(Collectors.joining(", ")));
 		}
 		return b.toString();
 

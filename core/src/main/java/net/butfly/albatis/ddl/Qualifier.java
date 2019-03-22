@@ -4,6 +4,7 @@ import static net.butfly.albacore.utils.Texts.eq;
 import static net.butfly.albatis.ddl.FieldDesc.SPLIT_CF;
 import static net.butfly.albatis.ddl.FieldDesc.SPLIT_CF_CH;
 import static net.butfly.albatis.ddl.FieldDesc.SPLIT_PREFIX_CH;
+import static net.butfly.albatis.ddl.FieldDesc.SPLIT_PREFIX;
 
 import java.io.Serializable;
 
@@ -32,8 +33,7 @@ public class Qualifier implements Serializable {
 	}
 
 	/**
-	 * @param q
-	 *            table:cf#prefix
+	 * @param q table:cf#prefix
 	 * @return (table_name, col_family, col_prefix)
 	 * @return
 	 */
@@ -47,8 +47,7 @@ public class Qualifier implements Serializable {
 	}
 
 	/**
-	 * @param q
-	 *            cf:prefix#col
+	 * @param q cf:prefix#col
 	 * @return [(table_name, col_family, col_prefix), col_name]
 	 * @return
 	 */
@@ -100,10 +99,10 @@ public class Qualifier implements Serializable {
 			fqs[0] = cfs[0];
 			fqs[2] = cfs[1];
 		}
-		int sp = fqs[2].lastIndexOf(SPLIT_PREFIX_CH);
-		if (sp >= 0) {
-			fqs[1] = fqs[2].substring(0, sp);
-			fqs[2] = fqs[2].substring(sp + 1);
+		String[] pfxs = fqs[2].split(SPLIT_PREFIX, 2);
+		if (pfxs.length == 2) {
+			fqs[1] = pfxs[0];
+			fqs[2] = pfxs[1];
 		}
 		return fqs;
 	}
@@ -124,5 +123,10 @@ public class Qualifier implements Serializable {
 		if (null == obj || !(obj instanceof Qualifier)) return false;
 		Qualifier q = (Qualifier) obj;
 		return eq(prefix, q.prefix) && eq(family, q.family) && eq(name, q.name);
+	}
+
+	@Override
+	public int hashCode() {
+		return qualifier.hashCode();
 	}
 }
