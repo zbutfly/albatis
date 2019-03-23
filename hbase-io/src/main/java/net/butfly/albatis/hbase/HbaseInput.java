@@ -3,9 +3,12 @@ package net.butfly.albatis.hbase;
 import static net.butfly.albacore.paral.Sdream.of;
 import static net.butfly.albatis.ddl.FieldDesc.SPLIT_CF;
 import static net.butfly.albatis.ddl.FieldDesc.SPLIT_PREFIX;
+import static net.butfly.albatis.hbase.HbaseFilters.and;
 import static net.butfly.albatis.hbase.HbaseFilters.filterFamily;
 import static net.butfly.albatis.hbase.HbaseFilters.filterPrefix;
+import static net.butfly.albatis.hbase.HbaseFilters.optimize;
 import static net.butfly.albatis.hbase.HbaseFilters.or;
+import static net.butfly.albatis.hbase.HbaseFilters.scan;
 import static net.butfly.albatis.io.IOProps.propB;
 import static net.butfly.albatis.io.IOProps.propI;
 import static net.butfly.albatis.io.IOProps.propL;
@@ -21,6 +24,7 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.Filter;
+import org.apache.hadoop.hbase.filter.KeyOnlyFilter;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import net.butfly.albacore.base.Namedly;
@@ -40,6 +44,7 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 	static final boolean SCAN_CACHE_BLOCKS = propB(HbaseInput.class, "scan.cache.blocks", false, "Hbase Scan.setCacheBlocks(false).");
 	static final int SCAN_MAX_CELLS_PER_ROW = propI(HbaseInput.class, "scan.max.cells.per.row", 10000,
 			"Hbase max cells per row (more will be ignore).");
+	private static final long SCAN_SKIP = propL(HbaseInput.class, "scan.skip", 0, "Hbase scan skip (for debug or resume).");
 	private final HbaseConnection hconn;
 	private final BlockingQueue<TableScaner> scans = new LinkedBlockingQueue<>();
 	private final Map<String, TableScaner> scansMap = Maps.of();
@@ -68,74 +73,37 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 		} catch (Exception e) {}
 	}
 
-	private class TableScaner {
-		final String name;
-		final String logicalName;
-		final ResultScanner scaner;
-
-		public TableScaner(String table, String logicalTable, byte[]... startAndEndRow) {
-			super();
-			name = table;
-			this.logicalName = logicalTable;
-			Scan sc;
-			if (null == startAndEndRow) sc = new Scan();
-			else switch (startAndEndRow.length) {
-			case 0:
-				sc = new Scan();
-				break;
-			case 1:
-				sc = new Scan(startAndEndRow[0]);
-				break;
-			default:
-				sc = new Scan(startAndEndRow[0], startAndEndRow[1]);
-				break;
+	@Override
+	public void dequeue(Consumer<Sdream<Rmap>> using) {
+		TableScaner s;
+		while (opened() && !empty())
+			if (null != (s = scans.poll())) {
+				try {
+					Result[] results = s.next(batchSize());
+					Map<String, Rmap> ms = Maps.of();
+					boolean end = Colls.empty(results);
+					if (!end) {
+						Rmap last = lastRmaps.remove(s.name);
+						if (null != last) {
+							Rmap m = ms.get(last.key());
+							if (null != m) m.putAll(last);
+							else ms.put((String) last.key(), last);
+						}
+						for (Result r : results)
+							if (null != r) compute(ms, Hbases.Results.result(s.logicalName, r));
+						end = scanLast(s, ms);
+						if (end) {
+							String tn = s.name;
+							s.close();
+							s = null;
+							compute(ms, lastRmaps.remove(tn));
+						}
+						if (!ms.isEmpty()) using.accept(of(ms.values()));
+					}
+				} finally {
+					if (null != s) scans.offer(s);
+				}
 			}
-			try {
-				scaner = hconn.table(name).getScanner(Hbases.optimize(sc, batchSize(), SCAN_COLS));
-			} catch (IOException e) {
-				throw new RuntimeException(e);
-			}
-		}
-
-		public TableScaner(String table, String logicalTable, Filter f) {
-			name = table;
-			this.logicalName = logicalTable;
-			Scan sc = new Scan();
-
-			if (null != f) {
-				logger().debug(name() + " filtered: " + f.toString());
-				sc = sc.setFilter(f);
-			}
-			try {
-				scaner = hconn.table(name).getScanner(Hbases.optimize(sc, batchSize(), SCAN_COLS));
-			} catch (IOException e) {
-				throw new RuntimeException(e);
-			}
-		}
-
-		public void close() {
-			try {
-				scaner.close();
-			} catch (Exception e) {} finally {
-				scansMap.remove(name);
-			}
-		}
-
-		public Result[] next(int batchSize) {
-			try {
-				return scaner.next(batchSize);
-			} catch (IOException e) {
-				return null;
-			}
-		}
-
-		public Result next() {
-			try {
-				return scaner.next();
-			} catch (IOException e) {
-				return null;
-			}
-		}
 	}
 
 	public void table(String... table) {
@@ -160,11 +128,11 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 	}
 
 	public void table(String table, String logicalTable, byte[]... startAndEndRow) {
-		table(table, logicalTable, () -> new TableScaner(table, logicalTable, startAndEndRow));
+		table(table, logicalTable, () -> new TableScaner(table, logicalTable, null, startAndEndRow));
 	}
 
 	public void table(String table, String logicalTable) {
-		table(table, logicalTable, () -> new TableScaner(table, logicalTable));
+		table(table, logicalTable, () -> new TableScaner(table, logicalTable, null));
 	}
 
 	public void tableWithFamily(String table, String... cf) {
@@ -208,39 +176,6 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 
 	private Map<String, Rmap> lastRmaps = Maps.of();
 
-	@Override
-	public void dequeue(Consumer<Sdream<Rmap>> using) {
-		TableScaner s;
-		while (opened() && !empty())
-			if (null != (s = scans.poll())) {
-				try {
-					Result[] results = s.next(batchSize());
-					Map<String, Rmap> ms = Maps.of();
-					boolean end = Colls.empty(results);
-					if (!end) {
-						Rmap last = lastRmaps.remove(s.name);
-						if (null != last) {
-							Rmap m = ms.get(last.key());
-							if (null != m) m.putAll(last);
-							else ms.put((String) last.key(), last);
-						}
-						for (Result r : results)
-							if (null != r) compute(ms, Hbases.Results.result(s.logicalName, r));
-						end = scanLast(s, ms);
-						if (end) {
-							String tn = s.name;
-							s.close();
-							s = null;
-							compute(ms, lastRmaps.remove(tn));
-						}
-						if (!ms.isEmpty()) using.accept(of(ms.values()));
-					}
-				} finally {
-					if (null != s) scans.offer(s);
-				}
-			}
-	}
-
 	private boolean scanLast(TableScaner s, Map<String, Rmap> ms) {
 		Rmap last = null;
 		Object rowkey = null;
@@ -265,7 +200,7 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 		}
 	}
 
-	private void compute(Map<String, Rmap> ms, Rmap m) {
+	private static void compute(Map<String, Rmap> ms, Rmap m) {
 		if (!Colls.empty(m)) ms.compute((String) m.key(), (rowkey, existed) -> {
 			if (null == existed) return m;
 			existed.putAll(m);
@@ -273,9 +208,79 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 		});
 	}
 
+	private class TableScaner {
+		final String name;
+		final String logicalName;
+		final ResultScanner scaner;
+
+		public TableScaner(String table, String logicalTable, Filter f, byte[]... startAndEndRow) {
+			super();
+			name = table;
+			this.logicalName = logicalTable;
+			if (SCAN_SKIP > 0) startAndEndRow = skip(f, startAndEndRow);
+			Scan sc = scan(startAndEndRow);
+			if (null != f) {
+				logger().debug(name() + " filtered: " + f.toString());
+				sc = sc.setFilter(f);
+			}
+
+			sc = optimize(sc, batchSize(), SCAN_COLS);
+			try {
+				scaner = hconn.table(name).getScanner(sc);
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
+		}
+
+		private byte[][] skip(Filter f, byte[][] startAndEndRow) {
+			logger().warn("Hbase scan on table [" + name + "] skip [" + SCAN_SKIP + "].");
+			Scan sc1 = scan(startAndEndRow);
+			sc1.setFilter(and(f, new KeyOnlyFilter()));
+			Result r = null;
+			try (ResultScanner rs = hconn.table(name).getScanner(sc1)) {
+				for (long i = 0; i < SCAN_SKIP; i++)
+					if (null == (r = rs.next())) //
+						throw new IllegalArgumentException("Hbase table [" + name + "] skipping scaned [" + i
+								+ "] and finished, maybe caused by start/end row if set.");
+			} catch (IOException e) {}
+			if (null != r) {
+				byte[] row = r.getRow();
+				logger().warn("Hbase scan on table [" + name + "] skip [" + SCAN_SKIP + "], "//
+						+ "really scan start from: [" + Bytes.toString(row) + "].");
+				if (startAndEndRow.length == 0) startAndEndRow = new byte[][] { row };
+				else startAndEndRow[0] = row;
+			}
+			return startAndEndRow;
+		}
+
+		public void close() {
+			try {
+				scaner.close();
+			} catch (Exception e) {} finally {
+				scansMap.remove(name);
+			}
+		}
+
+		public Result[] next(int batchSize) {
+			try {
+				return scaner.next(batchSize);
+			} catch (IOException e) {
+				return null;
+			}
+		}
+
+		public Result next() {
+			try {
+				return scaner.next();
+			} catch (IOException e) {
+				return null;
+			}
+		}
+	}
+
 	public static void main(String[] args) throws InterruptedException {
 		System.err.println(HbaseInput.SCAN_MAX_CELLS_PER_ROW);
-//		while (true)
-//			Thread.sleep(10000);
+		// while (true)
+		// Thread.sleep(10000);
 	}
 }

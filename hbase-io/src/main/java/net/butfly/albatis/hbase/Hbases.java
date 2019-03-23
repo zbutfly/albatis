@@ -1,6 +1,5 @@
 package net.butfly.albatis.hbase;
 
-import static net.butfly.albatis.hbase.HbaseInput.*;
 import static net.butfly.albatis.ddl.FieldDesc.SPLIT_CF;
 import static net.butfly.albatis.ddl.FieldDesc.SPLIT_PREFIX;
 import static net.butfly.albatis.io.Rmap.Op.INCREASE;
@@ -12,7 +11,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -37,7 +35,6 @@ import org.apache.hadoop.hbase.client.Increment;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.security.User;
 import org.apache.hadoop.hbase.util.Bytes;
 
@@ -341,59 +338,5 @@ public final class Hbases extends Utils {
 			if (null != is) p.load(is);
 		} catch (IOException e) {}
 		return Maps.of(p);
-	}
-
-	private static final Method SET_CHACHING, SET_BATCH, SET_MAX_RESULT_SIZE, SET_CACHE_BLOCKS;
-
-	static {
-		try {
-			SET_CHACHING = Scan.class.getMethod("setCaching", int.class);
-			SET_BATCH = Scan.class.getMethod("setBatch", int.class);
-			SET_MAX_RESULT_SIZE = Scan.class.getMethod("setMaxResultSize", long.class);
-			SET_CACHE_BLOCKS = Scan.class.getMethod("setCacheBlocks", boolean.class);
-		} catch (NoSuchMethodException | SecurityException e) {
-			throw new RuntimeException(e);
-		}
-	}
-
-	public static Scan optimize(Scan s, int rowsPerRpc, int colsPerRpc) {
-		// optimize scan for performance, but hbase throw strang exception...
-		if (rowsPerRpc > 0) try {
-			s.setCaching(rowsPerRpc);// rows per rpc
-		} catch (Throwable t) {
-			try {
-				SET_CHACHING.invoke(s, rowsPerRpc);
-			} catch (Throwable tt) {
-				logger.warn("Optimize scan Caching fail", tt);
-			}
-		}
-		if (colsPerRpc > 0) try {
-			s.setBatch(colsPerRpc);// cols per rpc
-		} catch (Throwable t) {
-			try {
-				SET_BATCH.invoke(s, colsPerRpc);// cols per rpc
-			} catch (Throwable tt) {
-				logger.warn("Optimize scan Batch fail", tt);
-			}
-		}
-		if (SCAN_BYTES > 0) try {
-			s.setMaxResultSize(SCAN_BYTES);
-		} catch (Throwable t) {
-			try {
-				SET_MAX_RESULT_SIZE.invoke(s, SCAN_BYTES);
-			} catch (Throwable tt) {
-				logger.warn("Optimize scan MaxResultSize fail", tt);
-			}
-		}
-		try {
-			s.setCacheBlocks(SCAN_CACHE_BLOCKS);
-		} catch (Throwable t) {
-			try {
-				SET_CACHE_BLOCKS.invoke(s, SCAN_CACHE_BLOCKS);
-			} catch (Throwable tt) {
-				logger.warn("Optimize scan MaxResultSize fail", tt);
-			}
-		}
-		return s;
 	}
 }

@@ -89,7 +89,7 @@ public class HbaseInput2 extends Namedly implements Input<Rmap> {
 				sc = sc.setFilter(f);
 			}
 			try {
-				scaner = hconn.table(name).getScanner(Hbases.optimize(sc, batchSize(), SCAN_COLS));
+				scaner = hconn.table(name).getScanner(HbaseFilters.optimize(sc, batchSize(), SCAN_COLS));
 			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}

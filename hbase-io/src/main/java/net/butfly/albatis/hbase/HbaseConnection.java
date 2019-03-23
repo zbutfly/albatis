@@ -323,8 +323,8 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 					}
 				} catch (Exception ex) {
 					if (doNotRetry(ex)) {
-						logger().error("Hbase get(scan) failed on retry #" + retry + ": [" + Bytes.toString(row) + "] in ["
-								+ (System.currentTimeMillis() - now) + " ms], error:\n\t" + ex.getMessage());
+						logger().error("Hbase get(scan) failed on retry #" + retry + ": [" + Bytes.toString(row) + "] in [" + (System
+								.currentTimeMillis() - now) + " ms], error:\n\t" + ex.getMessage());
 						return null;
 					}
 				}
@@ -332,8 +332,8 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 			if (null == r) return null;
 			Result rr = r;
 			int rt = retry;
-			logger().trace(() -> "Hbase get(scan) on [" + Bytes.toString(row) + "] with [" + rt + "] retries, size: ["
-					+ Result.getTotalSizeOfCells(rr) + "]");
+			logger().trace(() -> "Hbase get(scan) on [" + Bytes.toString(row) + "] with [" + rt + "] retries, size: [" + Result
+					.getTotalSizeOfCells(rr) + "]");
 			return r;
 		});
 	}
@@ -346,7 +346,7 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 	}
 
 	private Scan scanOpen(byte[] row, Filter filter, byte[]... families) {
-		Scan s = Hbases.optimize(new Scan(), 1, -1);
+		Scan s = HbaseFilters.optimize(new Scan(), 1, -1);
 		s = s.setStartRow(row).setStopRow(row);
 		s.getFamilyMap().clear();
 		for (byte[] cf : families)
@@ -382,8 +382,8 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 		Map<String, Pair<Set<String>, Set<String>>> tbls = Maps.of();
 		Map<String, String> rowkeys = Maps.of();
 		for (TableDesc table : tables) {
-			Pair<Set<String>, Set<String>> cfAndPfxList = tbls.computeIfAbsent(table.qualifier.name,
-					n -> new Pair<>(new HashSet<>(), new HashSet<>()));
+			Pair<Set<String>, Set<String>> cfAndPfxList = tbls.computeIfAbsent(table.qualifier.name, n -> new Pair<>(new HashSet<>(),
+					new HashSet<>()));
 			cfAndPfxList.v1().add(table.qualifier.family);
 			cfAndPfxList.v2().add(table.qualifier.prefix);
 			String rowkey = table.attr("..ROW_KEY_FILTER", String.class);
@@ -422,8 +422,8 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 	}
 
 	@SuppressWarnings("deprecation")
-	public static void createHbaseTable(Connection client, String tableName, Object startKey, Object endKey, Object splitKey, Object numRegions,
-			Object families) throws IOException {
+	public static void createHbaseTable(Connection client, String tableName, Object startKey, Object endKey, Object splitKey,
+			Object numRegions, Object families) throws IOException {
 		byte[] startKeys = null;
 		byte[] endKeys = null;
 		byte[][] splitKeys = null;
@@ -485,13 +485,13 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 					columnFamily.setInMemory(inMemory);
 				}
 				if (null != familyParam.get("keep_deleted_cells")) {
-					KeepDeletedCells keepDeletedCells = KeepDeletedCells
-							.valueOf(familyParam.get("keep_deleted_cells").toString().toUpperCase());
+					KeepDeletedCells keepDeletedCells = KeepDeletedCells.valueOf(familyParam.get("keep_deleted_cells").toString()
+							.toUpperCase());
 					columnFamily.setKeepDeletedCells(keepDeletedCells);
 				}
 				if (null != familyParam.get("data_block_encoding")) {
-					DataBlockEncoding dataBlockEncoding = DataBlockEncoding
-							.valueOf(familyParam.get("data_block_encoding").toString().toUpperCase());
+					DataBlockEncoding dataBlockEncoding = DataBlockEncoding.valueOf(familyParam.get("data_block_encoding").toString()
+							.toUpperCase());
 					columnFamily.setDataBlockEncoding(dataBlockEncoding);
 				}
 				if (null != familyParam.get("ttl")) {

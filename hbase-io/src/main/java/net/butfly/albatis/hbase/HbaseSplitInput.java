@@ -90,7 +90,7 @@ public class HbaseSplitInput extends Namedly implements Input<Rmap> {
 				sc = sc.setFilter(limitCells(f));
 			}
 			try {
-				scaner = hconn.table(name).getScanner(Hbases.optimize(sc, batchSize(), SCAN_COLS));
+				scaner = hconn.table(name).getScanner(HbaseFilters.optimize(sc, batchSize(), SCAN_COLS));
 			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}
@@ -172,7 +172,7 @@ public class HbaseSplitInput extends Namedly implements Input<Rmap> {
 
 	@Override
 	public Statistic trace() {
-		return new Statistic(this).sizing(Result::getTotalSizeOfCells).<Result>sampling(r -> Bytes.toString(r.getRow()));
+		return new Statistic(this).sizing(Result::getTotalSizeOfCells).<Result> sampling(r -> Bytes.toString(r.getRow()));
 	}
 
 	@Override
@@ -248,7 +248,7 @@ public class HbaseSplitInput extends Namedly implements Input<Rmap> {
 
 	public static void main(String[] args) throws InterruptedException {
 		System.err.println(HbaseSplitInput.SCAN_MAX_CELLS_PER_ROW);
-//		while (true)
-//			Thread.sleep(10000);
+		// while (true)
+		// Thread.sleep(10000);
 	}
 }
