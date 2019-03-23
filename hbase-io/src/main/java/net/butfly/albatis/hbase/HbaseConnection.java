@@ -3,7 +3,6 @@ package net.butfly.albatis.hbase;
 import static net.butfly.albacore.paral.Sdream.of;
 import static net.butfly.albacore.utils.collection.Colls.empty;
 import static net.butfly.albacore.utils.collection.Colls.list;
-import static net.butfly.albatis.ddl.FieldDesc.SPLIT_ZWNJ;
 import static net.butfly.albatis.io.IOProps.propI;
 import static net.butfly.albatis.io.IOProps.propL;
 
@@ -18,9 +17,11 @@ import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -59,6 +60,7 @@ import net.butfly.albacore.io.lambda.Function;
 import net.butfly.albacore.paral.Exeter;
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.IOs;
+import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.Texts;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
@@ -321,8 +323,8 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 					}
 				} catch (Exception ex) {
 					if (doNotRetry(ex)) {
-						logger().error("Hbase get(scan) failed on retry #" + retry + ": [" + Bytes.toString(row) + "] in [" + (System
-								.currentTimeMillis() - now) + " ms], error:\n\t" + ex.getMessage());
+						logger().error("Hbase get(scan) failed on retry #" + retry + ": [" + Bytes.toString(row) + "] in ["
+								+ (System.currentTimeMillis() - now) + " ms], error:\n\t" + ex.getMessage());
 						return null;
 					}
 				}
@@ -330,8 +332,8 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 			if (null == r) return null;
 			Result rr = r;
 			int rt = retry;
-			logger().trace(() -> "Hbase get(scan) on [" + Bytes.toString(row) + "] with [" + rt + "] retries, size: [" + Result
-					.getTotalSizeOfCells(rr) + "]");
+			logger().trace(() -> "Hbase get(scan) on [" + Bytes.toString(row) + "] with [" + rt + "] retries, size: ["
+					+ Result.getTotalSizeOfCells(rr) + "]");
 			return r;
 		});
 	}
@@ -377,17 +379,20 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 	@Override
 	public HbaseInput inputRaw(TableDesc... tables) throws IOException {
 		HbaseInput input = new HbaseInput("HbaseInput", this);
+		Map<String, Pair<Set<String>, Set<String>>> tbls = Maps.of();
+		Map<String, String> rowkeys = Maps.of();
 		for (TableDesc table : tables) {
-			List<String> pfxs = null == table.qualifier.prefix ? list() : list(p -> "".equals(p) ? null : p, table.qualifier.prefix.split(SPLIT_ZWNJ));
-			List<String> cfs = null == table.qualifier.family ? list() : list(p -> "".equals(p) ? null : p, table.qualifier.family.split(SPLIT_ZWNJ));
-			String[] tbls = table.qualifier.name.split(SPLIT_ZWNJ);
-			if (tbls.length > 1) {// row key mode
-				List<byte[]> rows = list(Bytes::toBytes, tbls);
-				rows.remove(0);
-				input.table(tbls[0], table.qualifier.name, rows.toArray(new byte[rows.size()][]));
-			} else // input.table(fqs[0]); // debug
-			input.tableWithFamilAndPrefix(tbls[0], pfxs, cfs.toArray(new String[0]));
+			Pair<Set<String>, Set<String>> cfAndPfxList = tbls.computeIfAbsent(table.qualifier.name,
+					n -> new Pair<>(new HashSet<>(), new HashSet<>()));
+			cfAndPfxList.v1().add(table.qualifier.family);
+			cfAndPfxList.v2().add(table.qualifier.prefix);
+			String rowkey = table.attr("..ROW_KEY_FILTER", String.class);
+			if (null != rowkey) rowkeys.put(table.qualifier.name, rowkey);
 		}
+		String rowkey;
+		for (String t : tbls.keySet())
+			if (null != (rowkey = rowkeys.get(t))) input.table(t, t, Bytes.toBytes(rowkey));// row key mode
+			else input.tableWithFamilAndPrefix(t, Colls.list(tbls.get(t).v2()), tbls.get(t).v1().toArray(new String[0]));
 		return input;
 	}
 
@@ -417,8 +422,8 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 	}
 
 	@SuppressWarnings("deprecation")
-	public static void createHbaseTable(Connection client, String tableName, Object startKey, Object endKey, Object splitKey,
-			Object numRegions, Object families) throws IOException {
+	public static void createHbaseTable(Connection client, String tableName, Object startKey, Object endKey, Object splitKey, Object numRegions,
+			Object families) throws IOException {
 		byte[] startKeys = null;
 		byte[] endKeys = null;
 		byte[][] splitKeys = null;
@@ -480,13 +485,13 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 					columnFamily.setInMemory(inMemory);
 				}
 				if (null != familyParam.get("keep_deleted_cells")) {
-					KeepDeletedCells keepDeletedCells = KeepDeletedCells.valueOf(familyParam.get("keep_deleted_cells").toString()
-							.toUpperCase());
+					KeepDeletedCells keepDeletedCells = KeepDeletedCells
+							.valueOf(familyParam.get("keep_deleted_cells").toString().toUpperCase());
 					columnFamily.setKeepDeletedCells(keepDeletedCells);
 				}
 				if (null != familyParam.get("data_block_encoding")) {
-					DataBlockEncoding dataBlockEncoding = DataBlockEncoding.valueOf(familyParam.get("data_block_encoding").toString()
-							.toUpperCase());
+					DataBlockEncoding dataBlockEncoding = DataBlockEncoding
+							.valueOf(familyParam.get("data_block_encoding").toString().toUpperCase());
 					columnFamily.setDataBlockEncoding(dataBlockEncoding);
 				}
 				if (null != familyParam.get("ttl")) {
@@ -548,6 +553,7 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 		try (HTable ht = new HTable(t.getName(), client);) {
 			List<byte[][]> ranges = Colls.list();
 			for (Entry<HRegionInfo, ServerName> r : ht.getRegionLocations().entrySet()) {
+				logger.debug("Hbase region found: " + r.toString());
 				HRegionInfo region = r.getKey();
 				ranges.add(new byte[][] { region.getStartKey(), region.getEndKey() });
 			}
