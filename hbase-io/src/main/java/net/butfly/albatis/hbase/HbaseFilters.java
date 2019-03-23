@@ -39,7 +39,7 @@ public interface HbaseFilters {
 		for (Filter f : fl)
 			if (null != f) l.add(f);
 		if (l.isEmpty()) return null;
-		return l.size() == 1 ? l.get(0) : new FilterList(l);
+		return l.size() == 1 ? l.get(0) : new FilterList(Operator.MUST_PASS_ALL, l);
 	}
 
 	static Filter filterFamily(String... cf) {
@@ -60,17 +60,6 @@ public interface HbaseFilters {
 		else return new MultipleColumnPrefixFilter(ps);
 	}
 
-	static Scan scan(byte[][] startAndEndRow) {
-		if (null == startAndEndRow) return new Scan();
-		else switch (startAndEndRow.length) {
-		case 0:
-			return new Scan();
-		case 1:
-			return new Scan(startAndEndRow[0]);
-		default:
-			return new Scan(startAndEndRow[0], startAndEndRow[1]);
-		}
-	}
 
 	public static Scan optimize(Scan s, int rowsPerRpc, int colsPerRpc) {
 		// optimize scan for performance, but hbase throw strang exception...

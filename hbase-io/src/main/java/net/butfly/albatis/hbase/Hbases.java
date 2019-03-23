@@ -35,21 +35,21 @@ import org.apache.hadoop.hbase.client.Increment;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.security.User;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import net.butfly.albacore.io.lambda.Function;
-import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.IOs;
 import net.butfly.albacore.utils.Utils;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
-import net.butfly.albacore.utils.parallel.Lambdas;
 import net.butfly.albatis.hbase.kerberos.huawei.KerberosUtil;
 import net.butfly.albatis.io.Rmap;
 
+@SuppressWarnings("deprecation")
 public final class Hbases extends Utils {
 	protected static final Logger logger = Logger.getLogger(Hbases.class);
 	public static final String DEFAULT_COL_FAMILY_NAME = "cf1";
@@ -82,14 +82,13 @@ public final class Hbases extends Utils {
 		if (User.isHBaseSecurityEnabled(hconf)) {
 			kerberosAuth(hconf);
 		}
-		while (true)
-			try {
-				return ConnectionFactory.createConnection(hconf, ex);
-			} catch (IOException e) {
-				throw e;
-			} catch (Throwable t) {// org.apache.zookeeper.KeeperException.ConnectionLossException
-				throw new IOException(t);
-			}
+		while (true) try {
+			return ConnectionFactory.createConnection(hconf, ex);
+		} catch (IOException e) {
+			throw e;
+		} catch (Throwable t) {// org.apache.zookeeper.KeeperException.ConnectionLossException
+			throw new IOException(t);
+		}
 	}
 
 	private static void kerberosAuth(Configuration conf) {
@@ -142,6 +141,18 @@ public final class Hbases extends Utils {
 		return Bytes.toString(CellUtil.cloneFamily(cell)) + SPLIT_CF + Bytes.toString(CellUtil.cloneQualifier(cell));
 	}
 
+	static Scan scan(byte[]... startAndEndRow) {
+		if (null == startAndEndRow) return new Scan();
+		else switch (startAndEndRow.length) {
+		case 0:
+			return new Scan();
+		case 1:
+			return new Scan(startAndEndRow[0]);
+		default:
+			return new Scan(startAndEndRow[0], startAndEndRow[1]);
+		}
+	}
+
 	public static byte[] toBytes(Result result) throws IOException {
 		try (ByteArrayOutputStream baos = new ByteArrayOutputStream();) {
 			if (!result.isEmpty()) result.listCells().forEach(c -> {
@@ -157,16 +168,15 @@ public final class Hbases extends Utils {
 		List<Cell> cells = new ArrayList<>();
 		try (ByteArrayInputStream bais = new ByteArrayInputStream(bytes)) {
 			byte[] buf;
-			while ((buf = IOs.readBytes(bais)) != null && buf.length > 0)
-				cells.add(cellFromBytes(buf));
+			while ((buf = IOs.readBytes(bais)) != null && buf.length > 0) cells.add(cellFromBytes(buf));
 			return Result.create(cells);
 		}
 	}
 
 	public static byte[] cellToBytes(Cell cell) throws IOException {
 		try (ByteArrayOutputStream baos = new ByteArrayOutputStream();) {
-			return IOs.writeBytes(baos, CellUtil.cloneRow(cell), CellUtil.cloneFamily(cell), CellUtil.cloneQualifier(cell), CellUtil
-					.cloneValue(cell)).toByteArray();
+			return IOs.writeBytes(baos, CellUtil.cloneRow(cell), CellUtil.cloneFamily(cell), CellUtil.cloneQualifier(cell),
+					CellUtil.cloneValue(cell)).toByteArray();
 		}
 	}
 
@@ -176,8 +186,12 @@ public final class Hbases extends Utils {
 		}
 	}
 
+	public static long totalCellSize(Result... rs) {
+		return Arrays.stream(rs).flatMap(r -> r.listCells().stream()).mapToInt(c -> CellUtil.estimatedSerializedSizeOf(c)).sum();
+	}
+
 	public static long totalCellSize(List<Result> rs) {
-		return Sdream.of(rs).map(Result::size).reduce(Lambdas.sumLong());
+		return rs.stream().flatMap(r -> r.listCells().stream()).mapToInt(c -> CellUtil.estimatedSerializedSizeOf(c)).sum();
 	}
 
 	public static Map<String, byte[]> map(Stream<Cell> cells) {
@@ -207,8 +221,8 @@ public final class Hbases extends Utils {
 		}
 
 		static Rmap result(String table, Put put) {
-			return result(table, Bytes.toString(put.getRow()), put.getFamilyCellMap().values().parallelStream().flatMap(l -> l
-					.parallelStream()));
+			return result(table, Bytes.toString(put.getRow()),
+					put.getFamilyCellMap().values().parallelStream().flatMap(l -> l.parallelStream()));
 		}
 
 		static Rmap result(String table, String row, Cell... cells) {
@@ -259,8 +273,8 @@ public final class Hbases extends Utils {
 						put.add(c);
 						fc++;
 					} catch (Exception ee) {
-						logger.warn("Hbase cell converting failure, ignored and continued, row: " + row + ", cell: " + Bytes.toString(
-								CellUtil.cloneFamily(c)) + SPLIT_CF + Bytes.toString(CellUtil.cloneQualifier(c)), ee);
+						logger.warn("Hbase cell converting failure, ignored and continued, row: " + row + ", cell: "
+								+ Bytes.toString(CellUtil.cloneFamily(c)) + SPLIT_CF + Bytes.toString(CellUtil.cloneQualifier(c)), ee);
 					}
 				}
 				return fc == 0 ? null : put;
@@ -299,8 +313,7 @@ public final class Hbases extends Utils {
 						String s = ((CharSequence) v).toString();
 						if (s.length() > 0) val = Bytes.toBytes(s);
 					} else if (v instanceof Map) {
-						logger.warn("Map field [" + e.getKey() + "] not supported, add ?df=format to conv, value lost: \n\t" + v
-								.toString());
+						logger.warn("Map field [" + e.getKey() + "] not supported, add ?df=format to conv, value lost: \n\t" + v.toString());
 						return null;
 					}
 					if (null == val || val.length == 0) return null;
@@ -310,8 +323,8 @@ public final class Hbases extends Utils {
 						put.add(c);
 						fc++;
 					} catch (Exception ee) {
-						logger.warn("Hbase cell converting failure, ignored and continued, row: " + row + ", cell: " + Bytes.toString(
-								CellUtil.cloneFamily(c)) + SPLIT_CF + Bytes.toString(CellUtil.cloneQualifier(c)), ee);
+						logger.warn("Hbase cell converting failure, ignored and continued, row: " + row + ", cell: "
+								+ Bytes.toString(CellUtil.cloneFamily(c)) + SPLIT_CF + Bytes.toString(CellUtil.cloneQualifier(c)), ee);
 					}
 				}
 				return fc == 0 ? null : put;

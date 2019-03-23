@@ -62,8 +62,7 @@ public class HbaseSplitInput extends Namedly implements Input<Rmap> {
 
 	private void closeHbase() {
 		TableScaner s;
-		while (null != (s = scans.poll()))
-			s.close();
+		while (null != (s = scans.poll())) s.close();
 		try {
 			hconn.close();
 		} catch (Exception e) {}
@@ -110,22 +109,20 @@ public class HbaseSplitInput extends Namedly implements Input<Rmap> {
 
 	private List<TableScaner> regions(String table, String logicalTable, Filter f, byte[]... startAndEndRow) {
 		if (null == startAndEndRow || 0 == startAndEndRow.length) // split into regions
-			return Colls.list(hconn.regions(table), range -> new TableScaner(table, logicalTable, f, range[0], range[1]));
+			return Colls.list(hconn.ranges(table), range -> new TableScaner(table, logicalTable, f, range.v1(), range.v2()));
 		else if (1 == startAndEndRow.length) return Colls.list(new TableScaner(table, logicalTable, f, startAndEndRow[0]));
 		else return Colls.list(new TableScaner(table, logicalTable, f, startAndEndRow[0], startAndEndRow[1]));
 	}
 
 	public void table(String... table) {
-		for (String t : table)
-			table(t, t);
+		for (String t : table) table(t, t);
 	}
 
 	private void table(String table, String logicalTable, Supplier<List<TableScaner>> constr) {
-		for (TableScaner ts : scans)
-			if (table.equals(ts.name)) {
-				logger().error("Table [" + table + "] input existed and conflicted, ignore new scan request.");
-				return;
-			}
+		for (TableScaner ts : scans) if (table.equals(ts.name)) {
+			logger().error("Table [" + table + "] input existed and conflicted, ignore new scan request.");
+			return;
+		}
 		scans.addAll(constr.get());
 	}
 
@@ -172,7 +169,7 @@ public class HbaseSplitInput extends Namedly implements Input<Rmap> {
 
 	@Override
 	public Statistic trace() {
-		return new Statistic(this).sizing(Result::getTotalSizeOfCells).<Result> sampling(r -> Bytes.toString(r.getRow()));
+		return new Statistic(this).sizing(Result::getTotalSizeOfCells).<Result>sampling(r -> Bytes.toString(r.getRow()));
 	}
 
 	@Override
@@ -188,30 +185,29 @@ public class HbaseSplitInput extends Namedly implements Input<Rmap> {
 		Map<String, Rmap> ms = Maps.of();
 		Result r;
 		boolean end = false;
-		while (opened() && !empty())
-			if (null != (s = scans.poll())) {
-				try {
-					while (!end && ms.size() < batchSize() && !(end = (null == (r = s.next())))) {
-						Rmap last = lastRmaps.remove(s.name);
-						if (null != last) {
-							Rmap m = ms.get(last.key());
-							if (null != m) m.putAll(last);
-							else ms.put((String) last.key(), last);
-						}
-						compute(ms, Hbases.Results.result(s.logicalName, r));
-						end = scanLast(s, ms);
+		while (opened() && !empty()) if (null != (s = scans.poll())) {
+			try {
+				while (!end && ms.size() < batchSize() && !(end = (null == (r = s.next())))) {
+					Rmap last = lastRmaps.remove(s.name);
+					if (null != last) {
+						Rmap m = ms.get(last.key());
+						if (null != m) m.putAll(last);
+						else ms.put((String) last.key(), last);
 					}
-					if (end) {
-						String tn = s.name;
-						s.close();
-						s = null;
-						compute(ms, lastRmaps.remove(tn));
-					}
-				} finally {
-					if (null != s) scans.offer(s);
+					compute(ms, Hbases.Results.result(s.logicalName, r));
+					end = scanLast(s, ms);
 				}
-				if (!ms.isEmpty()) using.accept(of(ms.values()));
+				if (end) {
+					String tn = s.name;
+					s.close();
+					s = null;
+					compute(ms, lastRmaps.remove(tn));
+				}
+			} finally {
+				if (null != s) scans.offer(s);
 			}
+			if (!ms.isEmpty()) using.accept(of(ms.values()));
+		}
 	}
 
 	private boolean scanLast(TableScaner s, Map<String, Rmap> ms) {

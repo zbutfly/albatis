@@ -3,6 +3,9 @@ package net.butfly.albatis.hbase;
 import static net.butfly.albacore.paral.Sdream.of;
 import static net.butfly.albacore.utils.collection.Colls.empty;
 import static net.butfly.albacore.utils.collection.Colls.list;
+import static net.butfly.albatis.hbase.HbaseFilters.and;
+import static net.butfly.albatis.hbase.HbaseInput.SCAN_SKIP_BY_REGION;
+import static net.butfly.albatis.hbase.HbaseInput.SCAN_SKIP_EST_REGIONS;
 import static net.butfly.albatis.io.IOProps.propI;
 import static net.butfly.albatis.io.IOProps.propL;
 
@@ -47,7 +50,10 @@ import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Row;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.Table;
+import org.apache.hadoop.hbase.client.coprocessor.AggregationClient;
+import org.apache.hadoop.hbase.client.coprocessor.LongColumnInterpreter;
 import org.apache.hadoop.hbase.filter.Filter;
+import org.apache.hadoop.hbase.filter.FirstKeyOnlyFilter;
 import org.apache.hadoop.hbase.io.compress.Compression;
 import org.apache.hadoop.hbase.io.encoding.DataBlockEncoding;
 import org.apache.hadoop.hbase.ipc.RemoteWithExtrasException;
@@ -134,11 +140,10 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 		try (FileObject conf = VfsConnection.vfs(vfs);) {
 			if (!conf.exists()) throw new IllegalArgumentException("Hbase configuration [" + vfs + "] not existed.");
 			if (!conf.isFolder()) throw new IllegalArgumentException("Hbase configuration [" + vfs + "] is not folder.");
-			for (FileObject f : conf.getChildren())
-				if (f.isFile() && "xml".equals(f.getName().getExtension())) {//
-					logger.debug("Hbase configuration resource adding: " + f.getName());
-					fs.add(new ByteArrayInputStream(IOs.readAll(f.getContent().getInputStream())));
-				}
+			for (FileObject f : conf.getChildren()) if (f.isFile() && "xml".equals(f.getName().getExtension())) {//
+				logger.debug("Hbase configuration resource adding: " + f.getName());
+				fs.add(new ByteArrayInputStream(IOs.readAll(f.getContent().getInputStream())));
+			}
 			return fs.toArray(new InputStream[0]);
 		}
 	}
@@ -184,13 +189,12 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 	@Override
 	public void close() throws IOException {
 		super.close();
-		for (String k : tables.keySet())
-			try {
-				Table t = tables.remove(k);
-				if (null != t) t.close();
-			} catch (IOException e) {
-				logger().error("Hbase table [" + k + "] close failure", e);
-			}
+		for (String k : tables.keySet()) try {
+			Table t = tables.remove(k);
+			if (null != t) t.close();
+		} catch (IOException e) {
+			logger().error("Hbase table [" + k + "] close failure", e);
+		}
 		Hbases.disconnect(client);
 	}
 
@@ -323,8 +327,8 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 					}
 				} catch (Exception ex) {
 					if (doNotRetry(ex)) {
-						logger().error("Hbase get(scan) failed on retry #" + retry + ": [" + Bytes.toString(row) + "] in [" + (System
-								.currentTimeMillis() - now) + " ms], error:\n\t" + ex.getMessage());
+						logger().error("Hbase get(scan) failed on retry #" + retry + ": [" + Bytes.toString(row) + "] in ["
+								+ (System.currentTimeMillis() - now) + " ms], error:\n\t" + ex.getMessage());
 						return null;
 					}
 				}
@@ -332,15 +336,14 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 			if (null == r) return null;
 			Result rr = r;
 			int rt = retry;
-			logger().trace(() -> "Hbase get(scan) on [" + Bytes.toString(row) + "] with [" + rt + "] retries, size: [" + Result
-					.getTotalSizeOfCells(rr) + "]");
+			logger().trace(() -> "Hbase get(scan) on [" + Bytes.toString(row) + "] with [" + rt + "] retries, size: ["
+					+ Result.getTotalSizeOfCells(rr) + "]");
 			return r;
 		});
 	}
 
 	private boolean doNotRetry(Throwable th) {
-		while (!(th instanceof RemoteWithExtrasException) && th.getCause() != null && th.getCause() != th)
-			th = th.getCause();
+		while (!(th instanceof RemoteWithExtrasException) && th.getCause() != null && th.getCause() != th) th = th.getCause();
 		if (th instanceof RemoteWithExtrasException) return ((RemoteWithExtrasException) th).isDoNotRetry();
 		else return true;
 	}
@@ -349,8 +352,7 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 		Scan s = HbaseFilters.optimize(new Scan(), 1, -1);
 		s = s.setStartRow(row).setStopRow(row);
 		s.getFamilyMap().clear();
-		for (byte[] cf : families)
-			s.addFamily(cf);
+		for (byte[] cf : families) s.addFamily(cf);
 		s.setFilter(filter);
 		return s;
 	}
@@ -382,17 +384,16 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 		Map<String, Pair<Set<String>, Set<String>>> tbls = Maps.of();
 		Map<String, String> rowkeys = Maps.of();
 		for (TableDesc table : tables) {
-			Pair<Set<String>, Set<String>> cfAndPfxList = tbls.computeIfAbsent(table.qualifier.name, n -> new Pair<>(new HashSet<>(),
-					new HashSet<>()));
+			Pair<Set<String>, Set<String>> cfAndPfxList = tbls.computeIfAbsent(table.qualifier.name,
+					n -> new Pair<>(new HashSet<>(), new HashSet<>()));
 			cfAndPfxList.v1().add(table.qualifier.family);
 			cfAndPfxList.v2().add(table.qualifier.prefix);
 			String rowkey = table.attr("..ROW_KEY_FILTER", String.class);
 			if (null != rowkey) rowkeys.put(table.qualifier.name, rowkey);
 		}
 		String rowkey;
-		for (String t : tbls.keySet())
-			if (null != (rowkey = rowkeys.get(t))) input.table(t, t, Bytes.toBytes(rowkey));// row key mode
-			else input.tableWithFamilAndPrefix(t, Colls.list(tbls.get(t).v2()), tbls.get(t).v1().toArray(new String[0]));
+		for (String t : tbls.keySet()) if (null != (rowkey = rowkeys.get(t))) input.table(t, t, Bytes.toBytes(rowkey));// row key mode
+		else input.tableWithFamilAndPrefix(t, Colls.list(tbls.get(t).v2()), tbls.get(t).v1().toArray(new String[0]));
 		return input;
 	}
 
@@ -422,8 +423,8 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 	}
 
 	@SuppressWarnings("deprecation")
-	public static void createHbaseTable(Connection client, String tableName, Object startKey, Object endKey, Object splitKey,
-			Object numRegions, Object families) throws IOException {
+	public static void createHbaseTable(Connection client, String tableName, Object startKey, Object endKey, Object splitKey, Object numRegions,
+			Object families) throws IOException {
 		byte[] startKeys = null;
 		byte[] endKeys = null;
 		byte[][] splitKeys = null;
@@ -485,13 +486,13 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 					columnFamily.setInMemory(inMemory);
 				}
 				if (null != familyParam.get("keep_deleted_cells")) {
-					KeepDeletedCells keepDeletedCells = KeepDeletedCells.valueOf(familyParam.get("keep_deleted_cells").toString()
-							.toUpperCase());
+					KeepDeletedCells keepDeletedCells = KeepDeletedCells
+							.valueOf(familyParam.get("keep_deleted_cells").toString().toUpperCase());
 					columnFamily.setKeepDeletedCells(keepDeletedCells);
 				}
 				if (null != familyParam.get("data_block_encoding")) {
-					DataBlockEncoding dataBlockEncoding = DataBlockEncoding.valueOf(familyParam.get("data_block_encoding").toString()
-							.toUpperCase());
+					DataBlockEncoding dataBlockEncoding = DataBlockEncoding
+							.valueOf(familyParam.get("data_block_encoding").toString().toUpperCase());
 					columnFamily.setDataBlockEncoding(dataBlockEncoding);
 				}
 				if (null != familyParam.get("ttl")) {
@@ -548,19 +549,129 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 	}
 
 	@SuppressWarnings("deprecation")
-	public List<byte[][]> regions(String table) {
-		Table t = table(table);
-		try (HTable ht = new HTable(t.getName(), client);) {
-			List<byte[][]> ranges = Colls.list();
+	public List<Pair<byte[], byte[]>> ranges(String table) {
+		try (HTable ht = new HTable(TableName.valueOf(table), client);) {
+			List<Pair<byte[], byte[]>> ranges = Colls.list();
+			StringBuilder sb = new StringBuilder("Hbase region found:");
 			for (Entry<HRegionInfo, ServerName> r : ht.getRegionLocations().entrySet()) {
-				logger.debug("Hbase region found: " + r.toString());
+				sb.append("\n\t").append(r.toString());
 				HRegionInfo region = r.getKey();
-				ranges.add(new byte[][] { region.getStartKey(), region.getEndKey() });
+				ranges.add(new Pair<>(region.getStartKey(), region.getEndKey()));
 			}
+			logger.debug(sb.toString());
 			return ranges;
 		} catch (IOException e) {
 			logger.warn("Rengions analyze for table [" + table + "] fail: " + e.getMessage());
 			return null;
+		}
+	}
+
+	/**
+	 * alter 'subject_person', METHOD => 'table_att','coprocessor'=>'|org.apache.hadoop.hbase.coprocessor.AggregateImplementation||'
+	 */
+	public long countRows(String table, byte[]... range) {
+		Scan scan = Hbases.scan(range);
+//		try (Admin admin = client.getAdmin();) {
+//			HTableDescriptor d = admin.getTableDescriptor(TableName.valueOf(table));
+//			d.addCoprocessor("org.apache.hadoop.hbase.coprocessor.AggregateImplementation");
+		try (AggregationClient ac = new AggregationClient(client.getConfiguration());) {
+			return ac.rowCount(TableName.valueOf(table), new LongColumnInterpreter(), scan);
+		} catch (Throwable e) {
+			throw new RuntimeException(e);
+//			} finally {
+//				d.removeCoprocessor("org.apache.hadoop.hbase.coprocessor.AggregateImplementation");
+		}
+//		} catch (IOException e) {
+//			throw new RuntimeException(e);
+//		}
+	}
+
+	public final Skip skip = new Skip();
+
+	public class Skip {
+		public byte[] skip(String table, long skip, Filter f) {
+			logger().warn("Hbase table [" + table + "] skip [" + skip + "] records and [" + SCAN_SKIP_EST_REGIONS + "] regions.");
+			if (!SCAN_SKIP_BY_REGION) return skipRecords(table, skip, f);
+			long c = 0, step = 0;
+			byte[] last = new byte[0];
+			List<Pair<byte[], byte[]>> ranges = ranges(table);
+			if (SCAN_SKIP_EST_REGIONS >= ranges.size()) return new byte[0];
+			try (AggregationClient ac = new AggregationClient(client.getConfiguration());) {
+				if (SCAN_SKIP_EST_REGIONS > 0) {
+					Scan scan = Hbases.scan(ranges.get(0).v1(), ranges.get(SCAN_SKIP_EST_REGIONS - 1).v2());
+					scan.setFilter(f);
+					String info = "region [1~" + SCAN_SKIP_EST_REGIONS + "] rows [" + Bytes.toString(ranges.get(0).v1()) + "] ~ ["
+							+ Bytes.toString(ranges.get(SCAN_SKIP_EST_REGIONS - 1).v2()) + "].";
+					long now = System.currentTimeMillis();
+					logger().warn("Hbase table [" + table + "] count: " + info);
+					step = ac.rowCount(TableName.valueOf(table), new LongColumnInterpreter(), scan);
+					logger().warn("Hbase table [" + table + "] count in [" + (System.currentTimeMillis() - now) / 10 / 100.0 + " seconds]: "//
+							+ "[" + step + "/" + (c + step) + "] by " + info);
+					if (c + step > skip) {
+						logger().warn("Hbase table [" + table + "] regions [" + step + "] exceeds limit [" + skip
+								+ "], direct from last of the region: [" + Bytes.toString(last) + "]");
+						return ranges.get(SCAN_SKIP_EST_REGIONS - 1).v2();
+					} else c += step;
+				}
+				for (int i = SCAN_SKIP_EST_REGIONS; i < ranges.size(); i++) {
+					Pair<byte[], byte[]> range = ranges.get(i);
+					last = range.v2();
+					if (skip <= 0) break;
+					Scan scan = Hbases.scan(range.v1(), range.v2());
+					scan.setFilter(f);
+					String info = "region [" + (i + 1) + "] rows [" + Bytes.toString(range.v1()) + "] ~ [" + Bytes.toString(range.v2()) + "].";
+					long now = System.currentTimeMillis();
+					logger().warn("Hbase table [" + table + "] count: " + info);
+					step = ac.rowCount(TableName.valueOf(table), new LongColumnInterpreter(), scan);
+					logger().warn("Hbase table [" + table + "] count in [" + (System.currentTimeMillis() - now) / 10 / 100.0 + " seconds]: "//
+							+ "[" + step + "/" + (c + step) + "] by " + info);
+					if (c + step > skip) break;
+					else c += step;
+				}
+			} catch (Throwable e) {
+				throw new RuntimeException(e);
+			}
+			if (skip > 0) {
+				Scan s = Hbases.scan(last);
+				s.setFilter(and(f, new FirstKeyOnlyFilter()));
+				last = skip0(table, skip, s);
+			}
+			logger().warn("Hbase scan on table [" + table + "] finished, scan start from rowkey [" + Bytes.toString(last) + "].");
+			return last;
+		}
+
+		private byte[] skip0(String table, long skip, Scan s) {
+			Result r = null;
+			long bytes = 0, cells = 0, rpcms = 0;
+			try (ResultScanner rs = table(table).getScanner(s)) {
+				for (long i = 0; i < skip; i++) {
+					if (i % 50000 == 0) {
+						logger().warn("Hbase scan on table [" + table + "] skipping... now [" + i + "], "//
+								+ "current rowkey [" + (null == r ? null : Bytes.toString(r.getRow())) + "], "//
+								+ "skiped bytes/cells [" + bytes + "/" + cells + "], rpc avg time [" + ((rpcms / 50) / 1000.0) + " ms].");
+						rpcms = 0;
+					}
+					long now = System.currentTimeMillis();
+					if (null == (r = rs.next())) throw new IllegalArgumentException(
+							"Hbase table [" + table + "] skipping scaned [" + i + "] and finished, maybe caused by start/end row if set.");
+					else {
+						rpcms += (System.currentTimeMillis() - now);
+						bytes += Hbases.totalCellSize(r);
+						cells += r.size();
+					}
+				}
+			} catch (IOException e) {}
+			byte[] row = r.getRow();
+			logger().warn("Hbase scan on table [" + table + "] skip [" + skip + "], "//
+					+ "really scan start from: [" + Bytes.toString(row) + "].");
+			return row;
+		}
+
+		private byte[] skipRecords(String table, long skip, Filter f) {
+			logger().warn("Hbase scan on table [" + table + "] skip [" + skip + "].");
+			Scan s = Hbases.scan();
+			s.setFilter(and(f, new FirstKeyOnlyFilter()));
+			return skip0(table, skip, s);
 		}
 	}
 }

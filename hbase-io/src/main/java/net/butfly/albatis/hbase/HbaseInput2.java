@@ -28,6 +28,7 @@ import net.butfly.albacore.io.lambda.Consumer;
 import net.butfly.albacore.io.lambda.Function;
 import net.butfly.albacore.io.lambda.Supplier;
 import net.butfly.albacore.paral.Sdream;
+import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Statistic;
@@ -62,8 +63,7 @@ public class HbaseInput2 extends Namedly implements Input<Rmap> {
 
 	private void closeHbase() {
 		TableScaner s;
-		while (!scansMap.isEmpty())
-			if (null != (s = scans.poll())) s.close();
+		while (!scansMap.isEmpty()) if (null != (s = scans.poll())) s.close();
 		try {
 			hconn.close();
 		} catch (Exception e) {}
@@ -121,8 +121,7 @@ public class HbaseInput2 extends Namedly implements Input<Rmap> {
 	}
 
 	public void table(String... table) {
-		for (String t : table)
-			table(t, t);
+		for (String t : table) table(t, t);
 	}
 
 	private void open(String table, String logicalTable, Function<byte[][], TableScaner> constr) {
@@ -132,8 +131,8 @@ public class HbaseInput2 extends Namedly implements Input<Rmap> {
 				return existed;
 			}
 			existed = new LinkedBlockingQueue<>();
-			for (byte[][] range : hconn.regions(table)) {
-				TableScaner s = constr.apply(range);
+			for (Pair<byte[], byte[]> range : hconn.ranges(table)) {
+				TableScaner s = constr.apply(new byte[][] { range.v1(), range.v2() });
 				scans.offer(s);
 				existed.offer(s);
 			}
@@ -198,7 +197,7 @@ public class HbaseInput2 extends Namedly implements Input<Rmap> {
 
 	@Override
 	public Statistic trace() {
-		return new Statistic(this).sizing(Result::getTotalSizeOfCells).<Result> sampling(r -> Bytes.toString(r.getRow()));
+		return new Statistic(this).sizing(Result::getTotalSizeOfCells).<Result>sampling(r -> Bytes.toString(r.getRow()));
 	}
 
 	@Override
@@ -211,34 +210,32 @@ public class HbaseInput2 extends Namedly implements Input<Rmap> {
 	@Override
 	public void dequeue(Consumer<Sdream<Rmap>> using) {
 		TableScaner s;
-		while (opened() && !empty())
-			if (null != (s = scans.poll())) {
-				try {
-					Result[] results = s.next(batchSize());
-					Map<String, Rmap> ms = Maps.of();
-					boolean end = Colls.empty(results);
-					if (!end) {
-						Rmap last = lastRmaps.remove(s.name);
-						if (null != last) {
-							Rmap m = ms.get(last.key());
-							if (null != m) m.putAll(last);
-							else ms.put((String) last.key(), last);
-						}
-						for (Result r : results)
-							if (null != r) compute(ms, Hbases.Results.result(s.logicalName, r));
-						end = scanLast(s, ms);
-						if (end) {
-							String tn = s.name;
-							s.close();
-							s = null;
-							compute(ms, lastRmaps.remove(tn));
-						}
-						if (!ms.isEmpty()) using.accept(of(ms.values()));
+		while (opened() && !empty()) if (null != (s = scans.poll())) {
+			try {
+				Result[] results = s.next(batchSize());
+				Map<String, Rmap> ms = Maps.of();
+				boolean end = Colls.empty(results);
+				if (!end) {
+					Rmap last = lastRmaps.remove(s.name);
+					if (null != last) {
+						Rmap m = ms.get(last.key());
+						if (null != m) m.putAll(last);
+						else ms.put((String) last.key(), last);
 					}
-				} finally {
-					if (null != s) scans.offer(s);
+					for (Result r : results) if (null != r) compute(ms, Hbases.Results.result(s.logicalName, r));
+					end = scanLast(s, ms);
+					if (end) {
+						String tn = s.name;
+						s.close();
+						s = null;
+						compute(ms, lastRmaps.remove(tn));
+					}
+					if (!ms.isEmpty()) using.accept(of(ms.values()));
 				}
+			} finally {
+				if (null != s) scans.offer(s);
 			}
+		}
 	}
 
 	private boolean scanLast(TableScaner s, Map<String, Rmap> ms) {
