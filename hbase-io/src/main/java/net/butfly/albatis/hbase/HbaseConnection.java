@@ -3,9 +3,9 @@ package net.butfly.albatis.hbase;
 import static net.butfly.albacore.paral.Sdream.of;
 import static net.butfly.albacore.utils.collection.Colls.empty;
 import static net.butfly.albacore.utils.collection.Colls.list;
-import static net.butfly.albatis.hbase.HbaseFilters.and;
-import static net.butfly.albatis.hbase.HbaseInput.SCAN_SKIP_BY_REGION;
-import static net.butfly.albatis.hbase.HbaseInput.SCAN_SKIP_EST_REGIONS;
+import static net.butfly.albatis.hbase.Hbases.scan0;
+import static net.butfly.albatis.hbase.Hbases.Results.result;
+import static net.butfly.albatis.hbase.Hbases.ScanOption.opt;
 import static net.butfly.albatis.io.IOProps.propI;
 import static net.butfly.albatis.io.IOProps.propL;
 
@@ -53,7 +53,6 @@ import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.client.coprocessor.AggregationClient;
 import org.apache.hadoop.hbase.client.coprocessor.LongColumnInterpreter;
 import org.apache.hadoop.hbase.filter.Filter;
-import org.apache.hadoop.hbase.filter.FirstKeyOnlyFilter;
 import org.apache.hadoop.hbase.io.compress.Compression;
 import org.apache.hadoop.hbase.io.encoding.DataBlockEncoding;
 import org.apache.hadoop.hbase.ipc.RemoteWithExtrasException;
@@ -75,6 +74,7 @@ import net.butfly.albacore.utils.logger.Statistic;
 import net.butfly.albatis.DataConnection;
 import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.ddl.TableDesc;
+import net.butfly.albatis.hbase.HbaseSkip.SkipMode;
 import net.butfly.albatis.io.IOFactory;
 import net.butfly.albatis.io.IOStats;
 import net.butfly.albatis.io.Rmap;
@@ -242,7 +242,7 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 				logger().warn("Hbase scan fail: [" + e.getMessage() + "].");
 				return null;
 			}
-			if (null != r) return Hbases.Results.result(table, r);
+			if (null != r) return result(table, r);
 			logger().error("Hbase get/scan return null: \n\t" + get.toString());
 			return null;
 		});
@@ -251,7 +251,7 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 	public List<Rmap> get(String table, List<Get> gets) {
 		if (empty(gets)) return list();
 		if (gets.size() == 1) {
-			Rmap r = Hbases.Results.result(table, s.stats(scan(table, gets.get(0))));
+			Rmap r = result(table, s.stats(scan(table, gets.get(0))));
 			return null == r ? list() : list(r);
 		}
 		List<Result> rr = s.statsIns(() -> table(table, t -> {
@@ -263,7 +263,7 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 		}));
 		Sdream<Result> ss = of(rr);
 		// if (GET_DUMP_MIN_SIZE > 0) ss = ss.peek(r -> dump(table, r));
-		return ss.map(r -> Hbases.Results.result(table, r)).list();
+		return ss.map(r -> result(table, r)).list();
 	}
 
 	public Result dump(String table, Result r, Function<byte[], Map<String, Object>> conv) {
@@ -276,7 +276,7 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 		} catch (Exception e) {
 			logger.error("Dump fail: " + e.getMessage());
 		}
-		Rmap m = Hbases.Results.result(table, r);
+		Rmap m = result(table, r);
 		try (PrintWriter w = new PrintWriter(new BufferedWriter(new FileWriter(fn + ".txt")));) {
 			for (String key : m.keySet()) {
 				Object val = m.get(key);
@@ -292,7 +292,7 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 	@Deprecated
 	public List<Rmap> get1(String table, List<Get> gets) {
 		if (empty(gets)) return list();
-		if (gets.size() == 1) return list(Hbases.Results.result(table, s.stats(scan(table, gets.get(0)))));
+		if (gets.size() == 1) return list(result(table, s.stats(scan(table, gets.get(0)))));
 		return table(table, t -> {
 			LinkedBlockingQueue<Get> all = new LinkedBlockingQueue<>(gets);
 			List<Callable<List<Rmap>>> tasks = list();
@@ -301,9 +301,9 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 				all.drainTo(batch, batchSize());
 				tasks.add(() -> {
 					try {
-						return of(s.stats(list(t.get(batch)))).map(r -> Hbases.Results.result(table, r)).list();
+						return of(s.stats(list(t.get(batch)))).map(r -> result(table, r)).list();
 					} catch (Exception ex) {
-						return of(batch).map(g -> Hbases.Results.result(table, s.stats(scan(table, gets.get(0))))).nonNull().list();
+						return of(batch).map(g -> result(table, s.stats(scan(table, gets.get(0))))).nonNull().list();
 					}
 				});
 			}
@@ -349,8 +349,7 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 	}
 
 	private Scan scanOpen(byte[] row, Filter filter, byte[]... families) {
-		Scan s = HbaseFilters.optimize(new Scan(), 1, -1);
-		s = s.setStartRow(row).setStopRow(row);
+		Scan s = opt(1).optimize(scan0(filter, row, row));
 		s.getFamilyMap().clear();
 		for (byte[] cf : families) s.addFamily(cf);
 		s.setFilter(filter);
@@ -570,7 +569,7 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 	 * alter 'subject_person', METHOD => 'table_att','coprocessor'=>'|org.apache.hadoop.hbase.coprocessor.AggregateImplementation||'
 	 */
 	public long countRows(String table, byte[]... range) {
-		Scan scan = Hbases.scan(range);
+		Scan scan = scan0(range);
 //		try (Admin admin = client.getAdmin();) {
 //			HTableDescriptor d = admin.getTableDescriptor(TableName.valueOf(table));
 //			d.addCoprocessor("org.apache.hadoop.hbase.coprocessor.AggregateImplementation");
@@ -586,92 +585,22 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 //		}
 	}
 
-	public final Skip skip = new Skip();
-
-	public class Skip {
-		public byte[] skip(String table, long skip, Filter f) {
-			logger().warn("Hbase table [" + table + "] skip [" + skip + "] records and [" + SCAN_SKIP_EST_REGIONS + "] regions.");
-			if (!SCAN_SKIP_BY_REGION) return skipRecords(table, skip, f);
-			long c = 0, step = 0;
-			byte[] last = new byte[0];
-			List<Pair<byte[], byte[]>> ranges = ranges(table);
-			if (SCAN_SKIP_EST_REGIONS >= ranges.size()) return new byte[0];
-			try (AggregationClient ac = new AggregationClient(client.getConfiguration());) {
-				if (SCAN_SKIP_EST_REGIONS > 0) {
-					Scan scan = Hbases.scan(ranges.get(0).v1(), ranges.get(SCAN_SKIP_EST_REGIONS - 1).v2());
-					scan.setFilter(f);
-					String info = "region [1~" + SCAN_SKIP_EST_REGIONS + "] rows [" + Bytes.toString(ranges.get(0).v1()) + "] ~ ["
-							+ Bytes.toString(ranges.get(SCAN_SKIP_EST_REGIONS - 1).v2()) + "].";
-					long now = System.currentTimeMillis();
-					logger().warn("Hbase table [" + table + "] count: " + info);
-					step = ac.rowCount(TableName.valueOf(table), new LongColumnInterpreter(), scan);
-					logger().warn("Hbase table [" + table + "] count in [" + (System.currentTimeMillis() - now) / 10 / 100.0 + " seconds]: "//
-							+ "[" + step + "/" + (c + step) + "] by " + info);
-					if (c + step > skip) {
-						logger().warn("Hbase table [" + table + "] regions [" + step + "] exceeds limit [" + skip
-								+ "], direct from last of the region: [" + Bytes.toString(last) + "]");
-						return ranges.get(SCAN_SKIP_EST_REGIONS - 1).v2();
-					} else c += step;
-				}
-				for (int i = SCAN_SKIP_EST_REGIONS; i < ranges.size(); i++) {
-					Pair<byte[], byte[]> range = ranges.get(i);
-					last = range.v2();
-					if (skip <= 0) break;
-					Scan scan = Hbases.scan(range.v1(), range.v2());
-					scan.setFilter(f);
-					String info = "region [" + (i + 1) + "] rows [" + Bytes.toString(range.v1()) + "] ~ [" + Bytes.toString(range.v2()) + "].";
-					long now = System.currentTimeMillis();
-					logger().warn("Hbase table [" + table + "] count: " + info);
-					step = ac.rowCount(TableName.valueOf(table), new LongColumnInterpreter(), scan);
-					logger().warn("Hbase table [" + table + "] count in [" + (System.currentTimeMillis() - now) / 10 / 100.0 + " seconds]: "//
-							+ "[" + step + "/" + (c + step) + "] by " + info);
-					if (c + step > skip) break;
-					else c += step;
-				}
-			} catch (Throwable e) {
-				throw new RuntimeException(e);
+	public byte[] skip(String table, SkipMode mode, String skip, Filter f) {
+		try {
+			switch (mode) {
+			case ROWKEY:
+				return Bytes.toBytes(skip);
+			case REGIONS:
+				return new HbaseSkip(this).skipByRegionNum(table, Integer.parseInt(skip), null);
+			case ROWS:
+				return new HbaseSkip(this).skipByScan(table, Long.parseLong(skip), null);
+			case REGION_COUNT:
+				return new HbaseSkip(this).skipByRegionCount(table, Long.parseLong(skip), null);
+			default:
+				return new byte[0];
 			}
-			if (skip > 0) {
-				Scan s = Hbases.scan(last);
-				s.setFilter(and(f, new FirstKeyOnlyFilter()));
-				last = skip0(table, skip, s);
-			}
-			logger().warn("Hbase scan on table [" + table + "] finished, scan start from rowkey [" + Bytes.toString(last) + "].");
-			return last;
-		}
-
-		private byte[] skip0(String table, long skip, Scan s) {
-			Result r = null;
-			long bytes = 0, cells = 0, rpcms = 0;
-			try (ResultScanner rs = table(table).getScanner(s)) {
-				for (long i = 0; i < skip; i++) {
-					if (i % 50000 == 0) {
-						logger().warn("Hbase scan on table [" + table + "] skipping... now [" + i + "], "//
-								+ "current rowkey [" + (null == r ? null : Bytes.toString(r.getRow())) + "], "//
-								+ "skiped bytes/cells [" + bytes + "/" + cells + "], rpc avg time [" + ((rpcms / 50) / 1000.0) + " ms].");
-						rpcms = 0;
-					}
-					long now = System.currentTimeMillis();
-					if (null == (r = rs.next())) throw new IllegalArgumentException(
-							"Hbase table [" + table + "] skipping scaned [" + i + "] and finished, maybe caused by start/end row if set.");
-					else {
-						rpcms += (System.currentTimeMillis() - now);
-						bytes += Hbases.totalCellSize(r);
-						cells += r.size();
-					}
-				}
-			} catch (IOException e) {}
-			byte[] row = r.getRow();
-			logger().warn("Hbase scan on table [" + table + "] skip [" + skip + "], "//
-					+ "really scan start from: [" + Bytes.toString(row) + "].");
-			return row;
-		}
-
-		private byte[] skipRecords(String table, long skip, Filter f) {
-			logger().warn("Hbase scan on table [" + table + "] skip [" + skip + "].");
-			Scan s = Hbases.scan();
-			s.setFilter(and(f, new FirstKeyOnlyFilter()));
-			return skip0(table, skip, s);
+		} catch (IOException e) {
+			return new byte[0];
 		}
 	}
 }

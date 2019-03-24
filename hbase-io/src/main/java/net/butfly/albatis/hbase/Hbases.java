@@ -2,6 +2,9 @@ package net.butfly.albatis.hbase;
 
 import static net.butfly.albatis.ddl.FieldDesc.SPLIT_CF;
 import static net.butfly.albatis.ddl.FieldDesc.SPLIT_PREFIX;
+import static net.butfly.albatis.hbase.HbaseInput.SCAN_BYTES;
+import static net.butfly.albatis.hbase.HbaseInput.SCAN_CACHE_BLOCKS;
+import static net.butfly.albatis.hbase.HbaseInput.SCAN_COLS;
 import static net.butfly.albatis.io.Rmap.Op.INCREASE;
 import static net.butfly.albatis.io.Rmap.Op.INSERT;
 import static net.butfly.albatis.io.Rmap.Op.UPSERT;
@@ -11,6 +14,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -36,10 +40,20 @@ import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.filter.BinaryComparator;
+import org.apache.hadoop.hbase.filter.ColumnCountGetFilter;
+import org.apache.hadoop.hbase.filter.ColumnPrefixFilter;
+import org.apache.hadoop.hbase.filter.CompareFilter.CompareOp;
+import org.apache.hadoop.hbase.filter.FamilyFilter;
+import org.apache.hadoop.hbase.filter.Filter;
+import org.apache.hadoop.hbase.filter.FilterList;
+import org.apache.hadoop.hbase.filter.FilterList.Operator;
+import org.apache.hadoop.hbase.filter.MultipleColumnPrefixFilter;
 import org.apache.hadoop.hbase.security.User;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import net.butfly.albacore.io.lambda.Function;
+import net.butfly.albacore.lambda.ConsumerPair;
 import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.IOs;
 import net.butfly.albacore.utils.Utils;
@@ -141,15 +155,71 @@ public final class Hbases extends Utils {
 		return Bytes.toString(CellUtil.cloneFamily(cell)) + SPLIT_CF + Bytes.toString(CellUtil.cloneQualifier(cell));
 	}
 
-	static Scan scan(byte[]... startAndEndRow) {
-		if (null == startAndEndRow) return new Scan();
-		else switch (startAndEndRow.length) {
-		case 0:
-			return new Scan();
-		case 1:
-			return new Scan(startAndEndRow[0]);
-		default:
-			return new Scan(startAndEndRow[0], startAndEndRow[1]);
+	static Scan scan0(byte[]... startAndEndRow) {
+		return scan0((Filter) null);
+	}
+
+	static Scan scan0(Filter f, byte[]... startAndEndRow) {
+		Scan s = new Scan();
+		if (null == startAndEndRow) return s;
+		if (startAndEndRow.length > 1) s.setStopRow(startAndEndRow[1]);
+		if (startAndEndRow.length > 0) s.setStopRow(startAndEndRow[0]);
+		if (null != f) s.setFilter(f);
+		return s;
+	}
+
+	public static class ScanOption {
+		public final int rowsRpc, colsRpc;
+		public final long bytesRpc;
+		public final boolean chachBlocks;
+
+		public static ScanOption opt(int rowsRpc) {
+			return new ScanOption(rowsRpc, SCAN_COLS, SCAN_BYTES, SCAN_CACHE_BLOCKS);
+		}
+
+		public static ScanOption opt(int rowsRpc, int colsRpc, long bytesRpc, boolean catchBlocks) {
+			return new ScanOption(rowsRpc, colsRpc, bytesRpc, catchBlocks);
+		}
+
+		private ScanOption(int rowsRpc, int colsRpc, long bytesRpc, boolean catchBlocks) {
+			super();
+			this.rowsRpc = rowsRpc;
+			this.colsRpc = colsRpc;
+			this.bytesRpc = bytesRpc;
+			this.chachBlocks = catchBlocks;
+		}
+
+		private <V> void set(Scan s, V v, ConsumerPair<Scan, V> set, Method fail) {
+			try {
+				set.accept(s, v);
+			} catch (Throwable t) {
+				try {
+					fail.invoke(s, v);
+				} catch (Throwable tt) {
+					Hbases.logger.warn("Optimize fail on " + fail.toString(), tt);
+				}
+			}
+		}
+
+		public Scan optimize(Scan s) {
+			if (rowsRpc > 0) set(s, rowsRpc, Scan::setCaching, SET_CHACHING);
+			if (colsRpc > 0) set(s, colsRpc, Scan::setBatch, SET_BATCH);
+			if (bytesRpc > 0) set(s, bytesRpc, Scan::setMaxResultSize, SET_MAX_RESULT_SIZE);
+			set(s, chachBlocks, Scan::setCacheBlocks, SET_CACHE_BLOCKS);
+			return s;
+		}
+
+		private static final Method SET_CHACHING, SET_BATCH, SET_MAX_RESULT_SIZE, SET_CACHE_BLOCKS;
+
+		static {
+			try {
+				SET_CHACHING = Scan.class.getMethod("setCaching", int.class);
+				SET_BATCH = Scan.class.getMethod("setBatch", int.class);
+				SET_MAX_RESULT_SIZE = Scan.class.getMethod("setMaxResultSize", long.class);
+				SET_CACHE_BLOCKS = Scan.class.getMethod("setCacheBlocks", boolean.class);
+			} catch (NoSuchMethodException | SecurityException e) {
+				throw new RuntimeException(e);
+			}
 		}
 	}
 
@@ -351,5 +421,42 @@ public final class Hbases extends Utils {
 			if (null != is) p.load(is);
 		} catch (IOException e) {}
 		return Maps.of(p);
+	}
+
+	interface Filters {
+		static Filter limitCells(Filter f) {
+			return and(f, new ColumnCountGetFilter(HbaseInput.SCAN_MAX_CELLS_PER_ROW));
+		}
+
+		static Filter or(Filter... fl) {
+			List<Filter> l = Colls.list();
+			for (Filter f : fl) if (null != f) l.add(f);
+			if (l.isEmpty()) return null;
+			return l.size() == 1 ? l.get(0) : new FilterList(Operator.MUST_PASS_ONE, l);
+		}
+
+		static Filter and(Filter... fl) {
+			List<Filter> l = Colls.list();
+			for (Filter f : fl) if (null != f) l.add(f);
+			if (l.isEmpty()) return null;
+			return l.size() == 1 ? l.get(0) : new FilterList(Operator.MUST_PASS_ALL, l);
+		}
+
+		static Filter filterFamily(String... cf) {
+			if (null == cf || 0 == cf.length) return null;
+			List<Filter> fl = Colls.list();
+			for (String c : cf) fl.add(new FamilyFilter(CompareOp.EQUAL, new BinaryComparator(Bytes.toBytes(c))));
+			return fl.size() == 1 ? fl.get(0) : new FilterList(Operator.MUST_PASS_ONE, fl);
+		}
+
+		static Filter filterPrefix(List<String> prefixes) {
+			if (Colls.empty(prefixes)) return null;
+			if (1 == prefixes.size())
+				return null == prefixes.get(0) ? null : new ColumnPrefixFilter(Bytes.toBytes(prefixes.get(0) + SPLIT_PREFIX));
+			byte[][] ps = Colls.list(prefixes, p -> Bytes.toBytes(p + SPLIT_PREFIX)).toArray(new byte[0][]);
+			if (null == ps || ps.length == 0) return null;
+			if (ps.length == 1) return new ColumnPrefixFilter(ps[0]);
+			else return new MultipleColumnPrefixFilter(ps);
+		}
 	}
 }
