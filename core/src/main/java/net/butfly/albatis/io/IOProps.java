@@ -52,43 +52,45 @@ public interface IOProps {
 		}
 	}
 
-	static String prop(Object io, String suffix, long def, String... comments) {
-		return ((CharSequence) _Priv.props(io).computeIfAbsent(suffix, //
-				k -> Long.parseLong(_Priv.prop(io, suffix, Long.toString(def), comments)))).toString();
+	static String prop(Object io, String suffix, String def, String... comments) {
+		CharSequence s = (CharSequence) _Priv.props(io).computeIfAbsent(suffix, k -> _Priv.prop(io, suffix, def, comments));
+		return null == s ? def : s.toString();
 	}
 
 	static long propL(Object io, String suffix, long def, String... comments) {
-		return ((Number) _Priv.props(io).computeIfAbsent(suffix, //
-				k -> Long.parseLong(_Priv.prop(io, suffix, Long.toString(def), comments)))).longValue();
+		Number n = (Number) _Priv.props(io).computeIfAbsent(suffix, k -> Long.parseLong(_Priv.prop(io, suffix, Long.toString(def), comments)));
+		return null == n ? def : n.longValue();
 	}
 
 	static int propI(Object io, String suffix, int def, String... comments) {
-		return ((Number) _Priv.props(io).computeIfAbsent(suffix, //
-				k -> Integer.parseInt(_Priv.prop(io, suffix, Integer.toString(def), comments)))).intValue();
+		Number n = (Number) _Priv.props(io).computeIfAbsent(suffix,
+				k -> Integer.parseInt(_Priv.prop(io, suffix, Integer.toString(def), comments)));
+		return null == n ? def : n.intValue();
 	}
 
 	static boolean propB(Object io, String suffix, boolean def, String... comments) {
-		return ((Boolean) _Priv.props(io).computeIfAbsent(suffix, //
-				k -> Boolean.parseBoolean(_Priv.prop(io, suffix, Boolean.toString(def), comments)))).booleanValue();
+		Boolean b = (Boolean) _Priv.props(io).computeIfAbsent(suffix,
+				k -> Boolean.parseBoolean(_Priv.prop(io, suffix, Boolean.toString(def), comments)));
+		return null == b ? def : b.booleanValue();
 	}
 
-	static String prop(Object io, String suffix, long def) {
-		return ((CharSequence) _Priv.props(io).computeIfAbsent(suffix, //
-				k -> Long.parseLong(_Priv.prop(io, suffix, Long.toString(def))))).toString();
+	static String prop(Object io, String suffix, String def) {
+		CharSequence s = (CharSequence) _Priv.props(io).computeIfAbsent(suffix, k -> _Priv.prop(io, suffix, def));
+		return null == s ? def : s.toString();
 	}
 
 	static long propL(Object io, String suffix, long def) {
-		return ((Number) _Priv.props(io).computeIfAbsent(suffix, //
-				k -> Long.parseLong(_Priv.prop(io, suffix, Long.toString(def))))).longValue();
+		Number n = (Number) _Priv.props(io).computeIfAbsent(suffix, k -> Long.parseLong(_Priv.prop(io, suffix, Long.toString(def))));
+		return null == n ? def : n.longValue();
 	}
 
 	static int propI(Object io, String suffix, int def) {
-		return ((Number) _Priv.props(io).computeIfAbsent(suffix, //
-				k -> Integer.parseInt(_Priv.prop(io, suffix, Integer.toString(def))))).intValue();
+		Number n = (Number) _Priv.props(io).computeIfAbsent(suffix, k -> Integer.parseInt(_Priv.prop(io, suffix, Integer.toString(def))));
+		return null == n ? def : n.intValue();
 	}
 
 	static boolean propB(Object io, String suffix, boolean def) {
-		return ((Boolean) _Priv.props(io).computeIfAbsent(suffix, //
-				k -> Boolean.parseBoolean(_Priv.prop(io, suffix, Boolean.toString(def))))).booleanValue();
+		Boolean b = (Boolean) _Priv.props(io).computeIfAbsent(suffix, k -> Boolean.parseBoolean(_Priv.prop(io, suffix, Boolean.toString(def))));
+		return null == b ? def : b.booleanValue();
 	}
 }
