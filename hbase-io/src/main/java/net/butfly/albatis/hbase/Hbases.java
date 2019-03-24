@@ -2,6 +2,7 @@ package net.butfly.albatis.hbase;
 
 import static net.butfly.albatis.ddl.FieldDesc.SPLIT_CF;
 import static net.butfly.albatis.ddl.FieldDesc.SPLIT_PREFIX;
+import static net.butfly.albatis.hbase.HbaseConnection.ROWKEY_UNDEFINED;
 import static net.butfly.albatis.hbase.HbaseInput.SCAN_BYTES;
 import static net.butfly.albatis.hbase.HbaseInput.SCAN_CACHE_BLOCKS;
 import static net.butfly.albatis.hbase.HbaseInput.SCAN_COLS;
@@ -17,6 +18,7 @@ import java.io.InputStream;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -93,9 +95,8 @@ public final class Hbases extends Utils {
 		if (!Colls.empty(res)) for (InputStream r : res)
 			hconf.addResource(r);
 		// hbase.security.authentication = kerberos/normal
-		if (User.isHBaseSecurityEnabled(hconf)) {
-			kerberosAuth(hconf);
-		}
+		if (User.isHBaseSecurityEnabled(hconf)) kerberosAuth(hconf);
+
 		while (true) try {
 			return ConnectionFactory.createConnection(hconf, ex);
 		} catch (IOException e) {
@@ -159,11 +160,22 @@ public final class Hbases extends Utils {
 		return scan0((Filter) null);
 	}
 
+	static boolean validRow(byte[] rowkey) {
+		return null != rowkey && rowkey.length > 0;
+	}
+
+	static byte[][] validRow(byte[]... startAndEndRow) {
+		if (null == startAndEndRow || startAndEndRow.length == 0) return new byte[0][];
+		if (startAndEndRow.length > 1 && !validRow(startAndEndRow[1])) startAndEndRow[1] = ROWKEY_UNDEFINED;
+		if (!validRow(startAndEndRow[0])) startAndEndRow[0] = ROWKEY_UNDEFINED;
+		return startAndEndRow;
+	}
+
 	static Scan scan0(Filter f, byte[]... startAndEndRow) {
 		Scan s = new Scan();
 		if (null == startAndEndRow) return s;
-		if (startAndEndRow.length > 1) s.setStopRow(startAndEndRow[1]);
-		if (startAndEndRow.length > 0) s.setStopRow(startAndEndRow[0]);
+		if (startAndEndRow.length > 1 && validRow(startAndEndRow[1])) s.setStopRow(startAndEndRow[1]);
+		if (startAndEndRow.length > 0 && validRow(startAndEndRow[0])) s.setStartRow(startAndEndRow[0]);
 		if (null != f) s.setFilter(f);
 		return s;
 	}
@@ -245,8 +257,8 @@ public final class Hbases extends Utils {
 
 	public static byte[] cellToBytes(Cell cell) throws IOException {
 		try (ByteArrayOutputStream baos = new ByteArrayOutputStream();) {
-			return IOs.writeBytes(baos, CellUtil.cloneRow(cell), CellUtil.cloneFamily(cell), CellUtil.cloneQualifier(cell),
-					CellUtil.cloneValue(cell)).toByteArray();
+			return IOs.writeBytes(baos, CellUtil.cloneRow(cell), CellUtil.cloneFamily(cell), //
+					CellUtil.cloneQualifier(cell), CellUtil.cloneValue(cell)).toByteArray();
 		}
 	}
 
@@ -291,13 +303,13 @@ public final class Hbases extends Utils {
 		}
 
 		static Rmap result(String table, Put put) {
-			return result(table, Bytes.toString(put.getRow()),
+			return result(table, Bytes.toString(put.getRow()), //
 					put.getFamilyCellMap().values().parallelStream().flatMap(l -> l.parallelStream()));
 		}
 
 		static Rmap result(String table, String row, Cell... cells) {
 			if (null == cells || cells.length == 0) return new Rmap(table, row);
-			else return result(table, row, Arrays.asList(cells).stream());
+			else return result(table, row, Arrays.stream(cells));
 		}
 
 		static Rmap result(String table, String row, List<Cell> cells) {
@@ -343,7 +355,7 @@ public final class Hbases extends Utils {
 						put.add(c);
 						fc++;
 					} catch (Exception ee) {
-						logger.warn("Hbase cell converting failure, ignored and continued, row: " + row + ", cell: "
+						logger.warn("Hbase cell converting failure, ignored and continued, row: " + row + ", cell: " //
 								+ Bytes.toString(CellUtil.cloneFamily(c)) + SPLIT_CF + Bytes.toString(CellUtil.cloneQualifier(c)), ee);
 					}
 				}
@@ -393,7 +405,7 @@ public final class Hbases extends Utils {
 						put.add(c);
 						fc++;
 					} catch (Exception ee) {
-						logger.warn("Hbase cell converting failure, ignored and continued, row: " + row + ", cell: "
+						logger.warn("Hbase cell converting failure, ignored and continued, row: " + row + ", cell: " //
 								+ Bytes.toString(CellUtil.cloneFamily(c)) + SPLIT_CF + Bytes.toString(CellUtil.cloneQualifier(c)), ee);
 					}
 				}
@@ -430,29 +442,34 @@ public final class Hbases extends Utils {
 
 		static Filter or(Filter... fl) {
 			List<Filter> l = Colls.list();
-			for (Filter f : fl) if (null != f) l.add(f);
+			for (Filter f : fl)
+				if (null != f) l.add(f);
 			if (l.isEmpty()) return null;
 			return l.size() == 1 ? l.get(0) : new FilterList(Operator.MUST_PASS_ONE, l);
 		}
 
 		static Filter and(Filter... fl) {
 			List<Filter> l = Colls.list();
-			for (Filter f : fl) if (null != f) l.add(f);
+			for (Filter f : fl)
+				if (null != f) l.add(f);
 			if (l.isEmpty()) return null;
 			return l.size() == 1 ? l.get(0) : new FilterList(Operator.MUST_PASS_ALL, l);
 		}
 
-		static Filter filterFamily(String... cf) {
-			if (null == cf || 0 == cf.length) return null;
+		static Filter filterFamily(Collection<String> cf) {
+			if (Colls.empty(cf)) return null;
 			List<Filter> fl = Colls.list();
-			for (String c : cf) fl.add(new FamilyFilter(CompareOp.EQUAL, new BinaryComparator(Bytes.toBytes(c))));
-			return fl.size() == 1 ? fl.get(0) : new FilterList(Operator.MUST_PASS_ONE, fl);
+			for (String c : cf)
+				fl.add(new FamilyFilter(CompareOp.EQUAL, new BinaryComparator(Bytes.toBytes(c))));
+			return fl.size() == 1 ? fl.get(0) : or(fl.toArray(new Filter[0]));
 		}
 
-		static Filter filterPrefix(List<String> prefixes) {
+		static Filter filterPrefix(Collection<String> prefixes) {
 			if (Colls.empty(prefixes)) return null;
-			if (1 == prefixes.size())
-				return null == prefixes.get(0) ? null : new ColumnPrefixFilter(Bytes.toBytes(prefixes.get(0) + SPLIT_PREFIX));
+			if (1 == prefixes.size()) {//
+				String p0 = prefixes.iterator().next();
+				return null == p0 ? null : new ColumnPrefixFilter(Bytes.toBytes(p0 + SPLIT_PREFIX));
+			}
 			byte[][] ps = Colls.list(prefixes, p -> Bytes.toBytes(p + SPLIT_PREFIX)).toArray(new byte[0][]);
 			if (null == ps || ps.length == 0) return null;
 			if (ps.length == 1) return new ColumnPrefixFilter(ps[0]);

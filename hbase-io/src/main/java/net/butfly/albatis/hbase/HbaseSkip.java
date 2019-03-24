@@ -1,5 +1,6 @@
 package net.butfly.albatis.hbase;
 
+import static net.butfly.albatis.hbase.HbaseConnection.ROWKEY_UNDEFINED;
 import static net.butfly.albatis.hbase.Hbases.scan0;
 import static net.butfly.albatis.hbase.Hbases.Filters.and;
 
@@ -51,8 +52,8 @@ class HbaseSkip {
 			try {
 				return step = ac.rowCount(TableName.valueOf(table), new LongColumnInterpreter(), scan0(start, stop));
 			} finally {
-				logger.warn("Hbase table [" + table + "] count [" + (step >= 0 ? step : "fail") + "] in ["
-						+ (System.currentTimeMillis() - now) / 10 / 100.0 + " seconds]:  by " + info);
+				logger.warn("Hbase table [" + table + "] count [" + (step >= 0 ? step : "fail") //
+						+ "] in [" + (System.currentTimeMillis() - now) / 10 / 100.0 + " seconds]:  by " + info);
 			}
 		} catch (Throwable e) {
 			if (e instanceof IOException) throw (IOException) e;
@@ -62,17 +63,17 @@ class HbaseSkip {
 	}
 
 	public byte[] skipByRegionNum(String table, int regions, Filter f) throws IOException {
-		if (regions <= 0) return new byte[0];
+		if (regions <= 0) return ROWKEY_UNDEFINED;
 		logger.warn("Hbase table [" + table + "] skip [" + regions + "] regions.");
 		List<Pair<byte[], byte[]>> ranges = conn.ranges(table);
-		if (regions >= ranges.size()) return new byte[0];
+		if (regions >= ranges.size()) return ROWKEY_UNDEFINED;
 		return ranges.get(regions - 1).v2();
 	}
 
 	public byte[] skipByRegionCount(String table, long skip, Filter f) throws IOException {
-		if (skip <= 0) return new byte[0];
+		if (skip <= 0) return ROWKEY_UNDEFINED;
 		long c = 0, step = 0, i = 0;
-		byte[] last = new byte[0];
+		byte[] last = ROWKEY_UNDEFINED;
 		for (Pair<byte[], byte[]> range : conn.ranges(table)) {
 			last = range.v2();
 			if (skip <= 0) break;
@@ -85,11 +86,10 @@ class HbaseSkip {
 		return last;
 	}
 
-	public byte[] skipByScan(String table, long skip, Filter f, byte[]... startAndStopRow) {
+	public byte[] skipByScan(String table, long skip, Filter f, byte[]... startAndStopRow) throws IOException {
 		Result r = null;
 		long bytes = 0, cells = 0, rpcms = 0;
 		Scan s = scan0(and(f, new FirstKeyOnlyFilter(), new KeyOnlyFilter()), startAndStopRow);
-
 		try (ResultScanner rs = conn.table(table).getScanner(s)) {
 			for (long i = 0; i < skip; i++) {
 				if (i % 50000 == 0) {
@@ -99,15 +99,15 @@ class HbaseSkip {
 					rpcms = 0;
 				}
 				long now = System.currentTimeMillis();
-				if (null == (r = rs.next())) throw new IllegalArgumentException(
-						"Hbase table [" + table + "] skipping scaned [" + i + "] and finished, maybe caused by start/end row if set.");
+				if (null == (r = rs.next())) throw new IllegalArgumentException("Hbase table [" + table + "] skipping scaned [" + i
+						+ "] and finished, maybe caused by start/end row if set.");
 				else {
 					rpcms += (System.currentTimeMillis() - now);
 					bytes += Hbases.totalCellSize(r);
 					cells += r.size();
 				}
 			}
-		} catch (IOException e) {}
+		}
 		byte[] row = r.getRow();
 		logger.warn("Hbase scan on table [" + table + "] skip [" + skip + "], "//
 				+ "really scan start from: [" + Bytes.toString(row) + "].");

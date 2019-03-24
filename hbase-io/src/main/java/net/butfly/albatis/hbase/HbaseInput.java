@@ -1,24 +1,20 @@
 package net.butfly.albatis.hbase;
 
 import static net.butfly.albacore.paral.Sdream.of;
-import static net.butfly.albatis.ddl.FieldDesc.SPLIT_CF;
-import static net.butfly.albatis.ddl.FieldDesc.SPLIT_PREFIX;
-import static net.butfly.albatis.hbase.Hbases.Filters.and;
-import static net.butfly.albatis.hbase.Hbases.Filters.filterFamily;
-import static net.butfly.albatis.hbase.Hbases.Filters.filterPrefix;
 import static net.butfly.albatis.io.IOProps.prop;
 import static net.butfly.albatis.io.IOProps.propB;
 import static net.butfly.albatis.io.IOProps.propI;
 import static net.butfly.albatis.io.IOProps.propL;
 
-import java.util.Arrays;
+import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import net.butfly.albacore.base.Namedly;
@@ -29,6 +25,7 @@ import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albacore.utils.logger.Statistic;
+import net.butfly.albatis.ddl.Qualifier;
 import net.butfly.albatis.hbase.HbaseSkip.SkipMode;
 import net.butfly.albatis.io.Input;
 import net.butfly.albatis.io.Rmap;
@@ -36,13 +33,13 @@ import net.butfly.albatis.io.Rmap;
 public class HbaseInput extends Namedly implements Input<Rmap> {
 	private static final long serialVersionUID = 6225222417568739808L;
 	final static Logger logger = Logger.getLogger(HbaseInput.class);
-	static final long SCAN_BYTES = propL(HbaseInput.class, "scan.bytes", 3145728, "Hbase Scan.setMaxResultSize(bytes)."); // 3M
-	static final int SCAN_COLS = propI(HbaseInput.class, "scan.cols.per.row", 1, "Hbase Scan.setBatch(cols per rpc).");
+	static final long SCAN_BYTES = propL(HbaseInput.class, "scan.bytes", 1048576, "Hbase Scan.setMaxResultSize(bytes)."); // 1M
+	static final int SCAN_COLS = propI(HbaseInput.class, "scan.cols.per.row", -1, "Hbase Scan.setBatch(cols per rpc).");
 	static final boolean SCAN_CACHE_BLOCKS = propB(HbaseInput.class, "scan.cache.blocks", false, "Hbase Scan.setCacheBlocks(false).");
 	static final int SCAN_MAX_CELLS_PER_ROW = propI(HbaseInput.class, "scan.max.cells.per.row", 10000,
 			"Hbase max cells per row (more will be ignore).");
-	static final Pair<SkipMode, String> SCAN_SKIP = SkipMode
-			.parse(prop(HbaseInput.class, "scan.skip", null, "Hbase scan skip (for debug or resume): ROWS:n, REGIONS:n, [ROWKEY:]n."));
+	static final Pair<SkipMode, String> SCAN_SKIP = SkipMode.parse(prop(HbaseInput.class, "scan.skip", null,
+			"Hbase scan skip (for debug or resume): ROWS:n, REGIONS:n, [ROWKEY:]n."));
 	final HbaseConnection hconn;
 	protected final BlockingQueue<HbaseTableScaner> SCAN_POOL = new LinkedBlockingQueue<>();
 	protected final Map<String, List<HbaseTableScaner>> SCAN_REGS = Maps.of();
@@ -55,7 +52,11 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 
 	@Override
 	public void open() {
-		if (SCAN_REGS.isEmpty() && null != hconn.uri().getFile()) table(hconn.uri().getFile());
+		if (SCAN_REGS.isEmpty() && null != hconn.uri().getFile()) try {
+			table(hconn.uri().getFile());
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
 		Input.super.open();
 	}
 
@@ -73,17 +74,16 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 	public void dequeue(Consumer<Sdream<Rmap>> using) {
 		HbaseTableScaner s;
 		boolean end = false;
-		Map<String, Rmap> ms = Maps.of();
+		Map<Qualifier, Rmap> ms = null;
+		List<Rmap> lasts;
 		while (!end && opened() && !empty()) if (null != (s = SCAN_POOL.poll())) try {
-			Result[] results = s.next(batchSize());
-			if (!(end = Colls.empty(results))) {
-				Rmap last = lastRmaps.remove(s.table);
-				if (null != last) {
-					Rmap m = ms.get(last.key());
-					if (null != m) m.putAll(last);
-					else ms.put((String) last.key(), last);
+			if (!(end = Colls.empty(ms = s.next()))) {
+				if (!Colls.empty(lasts = lastRmaps.remove(s.table))) for (Rmap l : lasts) {
+					Rmap m = ms.get(l.table());
+					if (null != m) m.putAll(l);
+					else ms.put(l.table(), l);
 				}
-				for (Result r : results) if (null != r) compute(ms, Hbases.Results.result(s.logicalName, r));
+				compute(ms, ms.values());
 				if (end = scanLast(s, ms)) {
 					compute(ms, lastRmaps.remove(s.table));
 					s.close();
@@ -93,57 +93,25 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 		} finally {
 			if (null != s) SCAN_POOL.offer(s);
 		}
-		if (!ms.isEmpty()) using.accept(of(ms.values()));
+		if (Colls.empty(ms)) using.accept(of(ms.values()));
 	}
 
-	public void table(String... table) {
-		for (String t : table) table(t, t);
+	public void table(String table) throws IOException {
+		new HbaseTableScaner(this, table, null, null, null);
 	}
 
-	protected void table(String table, String logicalTable, Filter filter) {
-		new HbaseTableScaner(this, table, logicalTable, filter);
+	public final void table(String... table) throws IOException {
+		for (String t : table)
+			table(t, t);
 	}
 
-	public void table(String table, String logicalTable, byte[]... startAndEndRow) {
-		new HbaseTableScaner(this, table, logicalTable, null, startAndEndRow);
-	}
-
-	public void table(String table, String logicalTable) {
-		new HbaseTableScaner(this, table, logicalTable, null);
-	}
-
-	public void tableWithFamily(String table, String... cf) {
-		Filter f = filterFamily(cf);
-		if (null == f) table(table);
-		else table(table, cf.length > 0 ? table : (table + SPLIT_CF + cf[0]), f);
-	}
-
-	public void tableWithPrefix(String table, String... prefix) {
-		Filter f = filterPrefix(Arrays.asList(prefix));
-		if (null == f) table(table);
-		else table(table, prefix.length > 0 ? table : (table + SPLIT_PREFIX + prefix[0]), f);
-	}
-
-	public void tableWithFamilAndPrefix(String table, List<String> prefixes, String... cf) {
-		Filter f = and(filterPrefix(prefixes), filterFamily(cf));
-
-		String logicalTable = table;
-		if (cf.length > 0) {
-			// if (cf.length > 1) throw new RuntimeException("Now only supports one cf");
-			logicalTable += SPLIT_CF + cf[0];
-		}
-		if (prefixes.size() > 0) {
-			// if (prefixes.size() > 1) throw new RuntimeException("Now only supports one prefix");
-			logicalTable += SPLIT_PREFIX + prefixes.get(0);
-		}
-
-		if (null == f) table(table);
-		else table(table, logicalTable, f);
+	public void table(String table, Collection<String> families, Collection<String> prefixes, byte[]... startAndEndRow) throws IOException {
+		new HbaseTableScaner(this, table, families, prefixes, null, startAndEndRow);
 	}
 
 	@Override
 	public Statistic trace() {
-		return new Statistic(this).sizing(Result::getTotalSizeOfCells).<Result>sampling(r -> Bytes.toString(r.getRow()));
+		return new Statistic(this).sizing(Result::getTotalSizeOfCells).<Result> sampling(r -> Bytes.toString(r.getRow()));
 	}
 
 	@Override
@@ -151,25 +119,21 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 		return SCAN_REGS.isEmpty();
 	}
 
-	protected final Map<String, Rmap> lastRmaps = Maps.of();
+	protected final Map<String, List<Rmap>> lastRmaps = Maps.of();
 
-	protected boolean scanLast(HbaseTableScaner s, Map<String, Rmap> ms) {
+	protected boolean scanLast(HbaseTableScaner s, Map<Qualifier, Rmap> ms) {
 		Rmap last = null;
 		Object rowkey = null;
-		Result r;
+		Map<Qualifier, Rmap> r;
 		try {
-			if (null == (r = s.next())) return true;
-			Rmap m = Hbases.Results.result(s.logicalName, r);
-			if (null == (last = ms.remove(m.key()))) lastRmaps.put(s.table, m); // 1st cell of a diff record
-			else {
-				last.putAll(m); // same record
-				// if (last.size() > MAX_CELLS_PER_ROW && null == rowkey) {
-				// rowkey = m.key();
-				// logger.warn("Too many (>" + MAX_CELLS_PER_ROW + ") cells in row [" + rowkey + "]" + last.size());
-				// ms.put((String) last.key(), last);
-				// } else //
-				lastRmaps.put(s.table, last);
-			}
+			if (Colls.empty(r = s.next())) return true;
+			List<Rmap> lasts = lastRmaps.computeIfAbsent(s.table, t -> Colls.list());
+			for (Entry<Qualifier, Rmap> e : r.entrySet())
+				if (null == (last = ms.remove(e.getKey()))) lasts.add(e.getValue()); // 1st cell of a diff record
+				else {
+					last.putAll(e.getValue()); // same record
+					lasts.add(last);
+				}
 			return false;
 		} finally {
 			if (null != last && null != rowkey) //
@@ -177,12 +141,13 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 		}
 	}
 
-	protected static void compute(Map<String, Rmap> ms, Rmap m) {
-		if (!Colls.empty(m)) ms.compute((String) m.key(), (rowkey, existed) -> {
-			if (null == existed) return m;
-			existed.putAll(m);
-			return existed;
-		});
+	protected static void compute(Map<Qualifier, Rmap> ms, Collection<Rmap> rs) {
+		for (Rmap m : rs)
+			if (!Colls.empty(m)) ms.compute(m.table(), (q, existed) -> {
+				if (null == existed) return m;
+				existed.putAll(m);
+				return existed;
+			});
 	}
 
 	public static void main(String[] args) throws InterruptedException {
