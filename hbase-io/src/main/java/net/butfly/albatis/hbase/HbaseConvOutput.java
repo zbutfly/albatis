@@ -4,6 +4,7 @@ import java.io.IOException;
 
 import org.apache.hadoop.hbase.client.Mutation;
 
+import net.butfly.albatis.hbase.utils.Hbases;
 import net.butfly.albatis.io.Rmap;
 
 @Deprecated

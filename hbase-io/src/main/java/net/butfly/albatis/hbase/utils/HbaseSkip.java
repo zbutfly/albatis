@@ -1,11 +1,10 @@
-package net.butfly.albatis.hbase;
+package net.butfly.albatis.hbase.utils;
 
-import static net.butfly.albatis.hbase.HbaseConnection.ROWKEY_UNDEFINED;
-import static net.butfly.albatis.hbase.Hbases.scan0;
-import static net.butfly.albatis.hbase.Hbases.Filters.and;
+import static net.butfly.albatis.hbase.utils.HbaseScan.ROWKEY_UNDEFINED;
+import static net.butfly.albatis.hbase.utils.HbaseScan.Range.range;
+import static net.butfly.albatis.hbase.utils.Hbases.Filters.and;
 
 import java.io.IOException;
-import java.util.List;
 
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Result;
@@ -20,12 +19,14 @@ import org.apache.hadoop.hbase.util.Bytes;
 
 import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.logger.Logger;
+import net.butfly.albatis.hbase.HbaseConnection;
+import net.butfly.albatis.hbase.utils.HbaseScan.Range;
 
-class HbaseSkip {
+public class HbaseSkip {
 	private static final Logger logger = Logger.getLogger(HbaseSkip.class);
 	private final HbaseConnection conn;
 
-	enum SkipMode {
+	public enum SkipMode {
 		ROWS, REGIONS, REGION_COUNT, ROWKEY;
 		public static Pair<SkipMode, String> parse(String opt) {
 			if (null == opt) return null;
@@ -50,7 +51,7 @@ class HbaseSkip {
 			logger.warn("Hbase table [" + table + "] count: " + info);
 			long step = -1;
 			try {
-				return step = ac.rowCount(TableName.valueOf(table), new LongColumnInterpreter(), scan0(start, stop));
+				return step = ac.rowCount(TableName.valueOf(table), new LongColumnInterpreter(), range(start, stop).scan(null));
 			} finally {
 				logger.warn("Hbase table [" + table + "] count [" + (step >= 0 ? step : "fail") //
 						+ "] in [" + (System.currentTimeMillis() - now) / 10 / 100.0 + " seconds]:  by " + info);
@@ -65,19 +66,19 @@ class HbaseSkip {
 	public byte[] skipByRegionNum(String table, int regions, Filter f) throws IOException {
 		if (regions <= 0) return ROWKEY_UNDEFINED;
 		logger.warn("Hbase table [" + table + "] skip [" + regions + "] regions.");
-		List<Pair<byte[], byte[]>> ranges = conn.ranges(table);
-		if (regions >= ranges.size()) return ROWKEY_UNDEFINED;
-		return ranges.get(regions - 1).v2();
+		Range[] ranges = conn.ranges(table);
+		if (regions >= ranges.length) return ROWKEY_UNDEFINED;
+		return ranges[regions - 1].stop;
 	}
 
 	public byte[] skipByRegionCount(String table, long skip, Filter f) throws IOException {
 		if (skip <= 0) return ROWKEY_UNDEFINED;
 		long c = 0, step = 0, i = 0;
 		byte[] last = ROWKEY_UNDEFINED;
-		for (Pair<byte[], byte[]> range : conn.ranges(table)) {
-			last = range.v2();
+		for (Range range : conn.ranges(table)) {
+			last = range.stop;
 			if (skip <= 0) break;
-			step = count(table, range.v1(), range.v2(), "region [" + (++i) + "]");
+			step = count(table, range.start, range.stop, "region [" + (++i) + "]");
 			if (c + step > skip) break;
 			else c += step;
 		}
@@ -89,7 +90,7 @@ class HbaseSkip {
 	public byte[] skipByScan(String table, long skip, Filter f, byte[]... startAndStopRow) throws IOException {
 		Result r = null;
 		long bytes = 0, cells = 0, rpcms = 0;
-		Scan s = scan0(and(f, new FirstKeyOnlyFilter(), new KeyOnlyFilter()), startAndStopRow);
+		Scan s = range(startAndStopRow).scan(and(f, new FirstKeyOnlyFilter(), new KeyOnlyFilter()));
 		try (ResultScanner rs = conn.table(table).getScanner(s)) {
 			for (long i = 0; i < skip; i++) {
 				if (i % 50000 == 0) {

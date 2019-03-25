@@ -3,6 +3,7 @@ package net.butfly.albatis.hbase;
 import static net.butfly.albacore.paral.Sdream.of;
 import static net.butfly.albatis.hbase.HbaseConnection.SPLIT_BY_FAMILY;
 import static net.butfly.albatis.hbase.HbaseConnection.SPLIT_BY_PREFIX;
+import static net.butfly.albatis.hbase.utils.HbaseScan.Range.range;
 import static net.butfly.albatis.io.IOProps.prop;
 import static net.butfly.albatis.io.IOProps.propB;
 import static net.butfly.albatis.io.IOProps.propI;
@@ -26,7 +27,7 @@ import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albacore.utils.logger.Statistic;
-import net.butfly.albatis.hbase.HbaseSkip.SkipMode;
+import net.butfly.albatis.hbase.utils.HbaseSkip.SkipMode;
 import net.butfly.albatis.io.Input;
 import net.butfly.albatis.io.Rmap;
 
@@ -41,8 +42,8 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 	static final Pair<SkipMode, String> SCAN_SKIP = SkipMode.parse(prop(HbaseInput.class, "scan.skip", null,
 			"Hbase scan skip (for debug or resume): ROWS:n, REGIONS:n, [ROWKEY:]n."));
 	final HbaseConnection hconn;
-	protected final BlockingQueue<HbaseTableScaner> SCAN_POOL = new LinkedBlockingQueue<>();
-	protected final Map<String, List<HbaseTableScaner>> SCAN_REGS = Maps.of();
+	final BlockingQueue<TableScaner> SCAN_POOL = new LinkedBlockingQueue<>();
+	final Map<String, List<TableScaner>> SCAN_REGS = Maps.of();
 
 	public HbaseInput(String name, HbaseConnection conn) {
 		super(name);
@@ -61,7 +62,7 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 	}
 
 	private void closeHbase() {
-		HbaseTableScaner s;
+		TableScaner s;
 		while (!SCAN_REGS.isEmpty()) if (null != (s = SCAN_POOL.poll())) try {
 			s.close();
 		} catch (Exception e) {}
@@ -72,7 +73,7 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 
 	@Override
 	public void dequeue(Consumer<Sdream<Rmap>> using) {
-		HbaseTableScaner s;
+		TableScaner s;
 		// rowkey -> record, fetch and fullfil so that earch in the poll should be whole.
 		Map<String, Rmap> wholes = Maps.of();
 		while (opened() && !empty()) if (null != (s = SCAN_POOL.poll())) try {
@@ -92,7 +93,7 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 	}
 
 	public void table(String table) throws IOException {
-		new HbaseTableScaner(this, table, null, null, null);
+		new TableScaner(this, table, null, null, null, range());
 	}
 
 	public final void table(String... table) throws IOException {
@@ -100,8 +101,8 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 			table(t, t);
 	}
 
-	public void table(String table, Collection<String> families, Collection<String> prefixes, byte[]... startAndEndRow) throws IOException {
-		new HbaseTableScaner(this, table, families, prefixes, null, startAndEndRow);
+	public void table(String table, Collection<String> families, Collection<String> prefixes, byte[]... startAndStopRow) throws IOException {
+		new TableScaner(this, table, families, prefixes, null, range(startAndStopRow));
 	}
 
 	@Override

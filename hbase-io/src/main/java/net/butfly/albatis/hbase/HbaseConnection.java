@@ -4,9 +4,13 @@ import static net.butfly.albacore.paral.Sdream.of;
 import static net.butfly.albacore.utils.collection.Colls.empty;
 import static net.butfly.albacore.utils.collection.Colls.list;
 import static net.butfly.albatis.ddl.FieldDesc.SPLIT_PREFIX_CH;
-import static net.butfly.albatis.hbase.Hbases.scan0;
-import static net.butfly.albatis.hbase.Hbases.Results.result;
-import static net.butfly.albatis.hbase.Hbases.ScanOption.opt;
+import static net.butfly.albatis.hbase.HbaseInput.SCAN_BYTES;
+import static net.butfly.albatis.hbase.HbaseInput.SCAN_CACHE_BLOCKS;
+import static net.butfly.albatis.hbase.HbaseInput.SCAN_COLS;
+import static net.butfly.albatis.hbase.utils.HbaseScan.ROWKEY_UNDEFINED;
+import static net.butfly.albatis.hbase.utils.HbaseScan.Options.opts;
+import static net.butfly.albatis.hbase.utils.HbaseScan.Range.range;
+import static net.butfly.albatis.hbase.utils.Hbases.Results.result;
 import static net.butfly.albatis.io.IOProps.propB;
 import static net.butfly.albatis.io.IOProps.propI;
 import static net.butfly.albatis.io.IOProps.propL;
@@ -76,7 +80,10 @@ import net.butfly.albacore.utils.logger.Statistic;
 import net.butfly.albatis.DataConnection;
 import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.ddl.TableDesc;
-import net.butfly.albatis.hbase.HbaseSkip.SkipMode;
+import net.butfly.albatis.hbase.utils.HbaseScan.Range;
+import net.butfly.albatis.hbase.utils.HbaseSkip;
+import net.butfly.albatis.hbase.utils.HbaseSkip.SkipMode;
+import net.butfly.albatis.hbase.utils.Hbases;
 import net.butfly.albatis.io.IOFactory;
 import net.butfly.albatis.io.IOStats;
 import net.butfly.albatis.io.Rmap;
@@ -87,7 +94,7 @@ import net.butfly.alserdes.SerDes;
 @SerDes.As("hbase")
 public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.client.Connection> implements IOFactory, IOStats {
 	protected final static Logger logger = Logger.getLogger(HbaseConnection.class);
-	public static final byte[] ROWKEY_UNDEFINED = new byte[0];
+	private static final String VFS_CONF_URI = "albatis.hbase.config.path";
 	static final boolean SPLIT_BY_FAMILY = propB(HbaseConnection.class, "split.by.family", false, "Hbase R/W split by column family.");
 	static final boolean SPLIT_BY_PREFIX = propB(HbaseConnection.class, "split.by.prefix", false, //
 			"Hbase R/W split by column name prefix (" + SPLIT_PREFIX_CH + ").");
@@ -127,7 +134,7 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 
 		Map<String, String> params = params();
 		params.putAll(uri.getParameters());
-		String confuri = params.remove(Hbases.VFS_CONF_URI);
+		String confuri = params.remove(VFS_CONF_URI);
 		if (null == confuri) try {
 			return Hbases.connect(params);
 		} catch (IOException e) {
@@ -188,7 +195,7 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 				return params;
 			default: // other, try to load by vfs
 				URISpec vfs = uri.schema(Arrays.copyOfRange(s, i, s.length));
-				return Maps.of(Hbases.VFS_CONF_URI, vfs.toString());
+				return Maps.of(VFS_CONF_URI, vfs.toString());
 			}
 		}
 		throw new IllegalArgumentException("Hbase uri not supported.");
@@ -328,7 +335,7 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 			Result r = null;
 			do {
 				try {
-					Scan s = opt(1).optimize(scan0(get.getFilter(), row));
+					Scan s = opts(1, SCAN_COLS, SCAN_BYTES, SCAN_CACHE_BLOCKS).optimize(range(row).scan(get.getFilter()));
 					s.getFamilyMap().clear();
 					for (byte[] cf : get.familySet())
 						s.addFamily(cf);
@@ -554,17 +561,17 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 	}
 
 	@SuppressWarnings("deprecation")
-	public List<Pair<byte[], byte[]>> ranges(String table) {
+	public Range[] ranges(String table) {
 		try (HTable ht = new HTable(TableName.valueOf(table), client);) {
-			List<Pair<byte[], byte[]>> ranges = Colls.list();
+			List<Range> ranges = Colls.list();
 			StringBuilder sb = new StringBuilder("Hbase region found:");
 			for (Entry<HRegionInfo, ServerName> r : ht.getRegionLocations().entrySet()) {
 				sb.append("\n\t").append(r.toString());
 				HRegionInfo region = r.getKey();
-				ranges.add(new Pair<>(region.getStartKey(), region.getEndKey()));
+				ranges.add(range(region.getStartKey(), region.getEndKey()));
 			}
 			logger.debug(sb.toString());
-			return ranges;
+			return ranges.toArray(new Range[0]);
 		} catch (IOException e) {
 			logger.warn("Rengions analyze for table [" + table + "] fail: " + e.getMessage());
 			return null;
@@ -575,7 +582,7 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 	 * alter 'subject_person', METHOD => 'table_att','coprocessor'=>'|org.apache.hadoop.hbase.coprocessor.AggregateImplementation||'
 	 */
 	public long countRows(String table, byte[]... range) {
-		Scan scan = scan0(range);
+		Scan scan = range(range).scan(null);
 		try (AggregationClient ac = new AggregationClient(client.getConfiguration());) {
 			return ac.rowCount(TableName.valueOf(table), new LongColumnInterpreter(), scan);
 		} catch (Throwable e) {

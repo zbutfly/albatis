@@ -4,11 +4,10 @@ import static net.butfly.albacore.utils.collection.Colls.list;
 import static net.butfly.albatis.hbase.HbaseInput.SCAN_BYTES;
 import static net.butfly.albatis.hbase.HbaseInput.SCAN_CACHE_BLOCKS;
 import static net.butfly.albatis.hbase.HbaseInput.SCAN_COLS;
-import static net.butfly.albatis.hbase.Hbases.scan0;
-import static net.butfly.albatis.hbase.Hbases.Filters.and;
-import static net.butfly.albatis.hbase.Hbases.Filters.filterFamily;
-import static net.butfly.albatis.hbase.Hbases.Filters.filterPrefix;
-import static net.butfly.albatis.hbase.Hbases.ScanOption.opt;
+import static net.butfly.albatis.hbase.utils.HbaseScan.Options.opts;
+import static net.butfly.albatis.hbase.utils.Hbases.Filters.and;
+import static net.butfly.albatis.hbase.utils.Hbases.Filters.filterFamily;
+import static net.butfly.albatis.hbase.utils.Hbases.Filters.filterPrefix;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -23,17 +22,28 @@ import org.apache.hadoop.hbase.util.Bytes;
 
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albatis.ddl.Qualifier;
+import net.butfly.albatis.hbase.utils.HbaseScan.Range;
+import net.butfly.albatis.hbase.utils.Hbases;
 import net.butfly.albatis.io.Rmap;
 
-class HbaseTableScaner {
+class TableScaner {
 	final HbaseInput input;
 	final String table;
 	final ResultScanner scaner;
 	final List<String> families = list();
 	final List<String> prefixes = list();
 
-	public HbaseTableScaner(HbaseInput input, String table, Collection<String> families, Collection<String> prefixes, Filter f,
-			byte[]... startAndEndRow) throws IOException {
+	public static TableScaner of(HbaseInput input, String table, Collection<String> families, Collection<String> prefixes, Filter f,
+			Range range) {
+		try {
+			return new TableScaner(input, table, families, prefixes, f, range);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	public TableScaner(HbaseInput input, String table, Collection<String> families, Collection<String> prefixes, Filter f, Range range)
+			throws IOException {
 		super();
 		input.SCAN_REGS.computeIfAbsent(table, t -> list()).add(this);
 		input.SCAN_POOL.offer(this);
@@ -42,7 +52,7 @@ class HbaseTableScaner {
 		if (null != families) this.families.addAll(families);
 		if (null != prefixes) this.prefixes.addAll(prefixes);
 		f = and(f, filterFamily(families), filterPrefix(prefixes));
-		Scan sc = opt(input.batchSize(), SCAN_COLS, SCAN_BYTES, SCAN_CACHE_BLOCKS).optimize(scan0(f, startAndEndRow));
+		Scan sc = opts(input.batchSize(), SCAN_COLS, SCAN_BYTES, SCAN_CACHE_BLOCKS).optimize(range.scan(f));
 		scaner = input.hconn.table(table).getScanner(sc);
 	}
 

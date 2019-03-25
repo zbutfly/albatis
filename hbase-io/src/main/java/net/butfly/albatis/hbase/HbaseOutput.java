@@ -19,6 +19,7 @@ import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Statistic;
 import net.butfly.albatis.Connection;
 import net.butfly.albatis.ddl.Qualifier;
+import net.butfly.albatis.hbase.utils.Hbases;
 import net.butfly.albatis.io.OutputBase;
 import net.butfly.albatis.io.Rmap;
 import net.butfly.albatis.io.Rmap.Op;

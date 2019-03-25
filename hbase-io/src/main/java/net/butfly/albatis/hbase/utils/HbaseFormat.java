@@ -1,4 +1,4 @@
-package net.butfly.albatis.hbase;
+package net.butfly.albatis.hbase.utils;
 
 import static net.butfly.albatis.ddl.vals.ValType.Flags.BINARY;
 import static net.butfly.albatis.ddl.vals.ValType.Flags.BOOL;

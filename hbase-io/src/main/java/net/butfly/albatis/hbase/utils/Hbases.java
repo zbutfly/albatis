@@ -1,22 +1,16 @@
-package net.butfly.albatis.hbase;
+package net.butfly.albatis.hbase.utils;
 
 import static net.butfly.albatis.ddl.FieldDesc.SPLIT_CF;
 import static net.butfly.albatis.ddl.FieldDesc.SPLIT_CF_CH;
 import static net.butfly.albatis.ddl.FieldDesc.SPLIT_PREFIX;
-import static net.butfly.albatis.hbase.HbaseConnection.ROWKEY_UNDEFINED;
-import static net.butfly.albatis.hbase.HbaseInput.SCAN_BYTES;
-import static net.butfly.albatis.hbase.HbaseInput.SCAN_CACHE_BLOCKS;
-import static net.butfly.albatis.hbase.HbaseInput.SCAN_COLS;
 import static net.butfly.albatis.io.Rmap.Op.INCREASE;
 import static net.butfly.albatis.io.Rmap.Op.INSERT;
 import static net.butfly.albatis.io.Rmap.Op.UPSERT;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -42,7 +36,6 @@ import org.apache.hadoop.hbase.client.Increment;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.BinaryComparator;
 import org.apache.hadoop.hbase.filter.ColumnCountGetFilter;
 import org.apache.hadoop.hbase.filter.ColumnPrefixFilter;
@@ -56,14 +49,12 @@ import org.apache.hadoop.hbase.security.User;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import net.butfly.albacore.io.lambda.Function;
-import net.butfly.albacore.lambda.ConsumerPair;
-import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.IOs;
 import net.butfly.albacore.utils.Utils;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
-import net.butfly.albatis.hbase.kerberos.huawei.KerberosUtil;
+import net.butfly.albatis.hbase.HbaseConnection;
 import net.butfly.albatis.io.Rmap;
 
 @SuppressWarnings("deprecation")
@@ -72,20 +63,12 @@ public final class Hbases extends Utils {
 	public static final String DEFAULT_COL_FAMILY_NAME = "cf1";
 	public static final byte[] DEFAULT_COL_FAMILY_VALUE = Bytes.toBytes(DEFAULT_COL_FAMILY_NAME);
 
-	// kerberos configs
-	public static final String JAAS_CONF = "jaas.conf";
-	public static final String KRB5_CONF = "krb5.conf";
-	public static final String HUAWEI_KEYTAB = "user.keytab";
-	public static final String KERBEROS_PROP_PATH = "albatis-habse.properties";
-	public static Properties KERBEROS_PROPS = new Properties();
 
-	final static ExecutorService ex = Executors.newCachedThreadPool();
+	public final static ExecutorService ex = Executors.newCachedThreadPool();
 
 	public static Connection connect() throws IOException {
 		return connect(null);
 	}
-
-	static final String VFS_CONF_URI = "albatis.hbase.config.path";
 
 	public static Connection connect(Map<String, String> conf, InputStream... res) throws IOException {
 		Configuration hconf = HBaseConfiguration.create();
@@ -96,7 +79,7 @@ public final class Hbases extends Utils {
 		if (!Colls.empty(res)) for (InputStream r : res)
 			hconf.addResource(r);
 		// hbase.security.authentication = kerberos/normal
-		if (User.isHBaseSecurityEnabled(hconf)) kerberosAuth(hconf);
+		if (User.isHBaseSecurityEnabled(hconf)) Kerberoses.kerberosAuth(hconf);
 
 		while (true) try {
 			return ConnectionFactory.createConnection(hconf, ex);
@@ -104,42 +87,6 @@ public final class Hbases extends Utils {
 			throw e;
 		} catch (Throwable t) {// org.apache.zookeeper.KeeperException.ConnectionLossException
 			throw new IOException(t);
-		}
-	}
-
-	private static void kerberosAuth(Configuration conf) {
-		String kerberosConfigPath = Configs.get("albatis.hbase.kerberos.path");
-		if (null == kerberosConfigPath) return;
-		File kerberosConfigR = new File(kerberosConfigPath);
-		String[] files = kerberosConfigR.list();
-		List<String> fileList = Colls.list(files);
-		try {
-			KERBEROS_PROPS.load(IOs.openFile(kerberosConfigPath + KERBEROS_PROP_PATH));
-		} catch (IOException e) {
-			throw new RuntimeException("load KERBEROS_PROP error!", e);
-		}
-		String jaasFile = kerberosConfigPath + JAAS_CONF;
-		String krb5ConfPath = kerberosConfigPath + KRB5_CONF;
-		String keytabPath = kerberosConfigPath + HUAWEI_KEYTAB;
-		String userPrincipal = KERBEROS_PROPS.getProperty("albatis.hbase.kerberos.hbase.principal");// user
-		String zkServerPrincipal = KERBEROS_PROPS.getProperty("albatis.hbase.kerberos.zk.principal");
-		if (fileList.contains(HUAWEI_KEYTAB)) {
-			try {
-				KerberosUtil.setJaasFile(userPrincipal, keytabPath);
-				KerberosUtil.setZookeeperServerPrincipal(zkServerPrincipal);
-				KerberosUtil.login(userPrincipal, keytabPath, krb5ConfPath, conf);
-			} catch (IOException e) {
-				logger.error("Loading huawei kerberos properties is failure", e);
-			}
-		} else {
-			logger.info("Enable normal kerberos!");
-			try {
-				KerberosUtil.setKrb5Config(krb5ConfPath);
-				KerberosUtil.setZookeeperServerPrincipal(zkServerPrincipal);
-				System.setProperty("java.security.auth.login.config", jaasFile);
-			} catch (IOException e) {
-				logger.error("Loading common kerberos properties is failure", e);
-			}
 		}
 	}
 
@@ -155,85 +102,6 @@ public final class Hbases extends Utils {
 
 	public static String colFamily(Cell cell) {
 		return Bytes.toString(CellUtil.cloneFamily(cell)) + SPLIT_CF + Bytes.toString(CellUtil.cloneQualifier(cell));
-	}
-
-	static Scan scan0(byte[]... startAndEndRow) {
-		return scan0((Filter) null);
-	}
-
-	static boolean validRow(byte[] rowkey) {
-		return null != rowkey && rowkey.length > 0;
-	}
-
-	static byte[][] validRow(byte[]... startAndEndRow) {
-		if (null == startAndEndRow || startAndEndRow.length == 0) return new byte[0][];
-		if (startAndEndRow.length > 1 && !validRow(startAndEndRow[1])) startAndEndRow[1] = ROWKEY_UNDEFINED;
-		if (!validRow(startAndEndRow[0])) startAndEndRow[0] = ROWKEY_UNDEFINED;
-		return startAndEndRow;
-	}
-
-	static Scan scan0(Filter f, byte[]... startAndEndRow) {
-		Scan s = new Scan();
-		if (null == startAndEndRow) return s;
-		if (startAndEndRow.length > 1 && validRow(startAndEndRow[1])) s.setStopRow(startAndEndRow[1]);
-		if (startAndEndRow.length > 0 && validRow(startAndEndRow[0])) s.setStartRow(startAndEndRow[0]);
-		if (null != f) s.setFilter(f);
-		return s;
-	}
-
-	public static class ScanOption {
-		public final int rowsRpc, colsRpc;
-		public final long bytesRpc;
-		public final boolean chachBlocks;
-
-		public static ScanOption opt(int rowsRpc) {
-			return new ScanOption(rowsRpc, SCAN_COLS, SCAN_BYTES, SCAN_CACHE_BLOCKS);
-		}
-
-		public static ScanOption opt(int rowsRpc, int colsRpc, long bytesRpc, boolean catchBlocks) {
-			return new ScanOption(rowsRpc, colsRpc, bytesRpc, catchBlocks);
-		}
-
-		private ScanOption(int rowsRpc, int colsRpc, long bytesRpc, boolean catchBlocks) {
-			super();
-			this.rowsRpc = rowsRpc;
-			this.colsRpc = colsRpc;
-			this.bytesRpc = bytesRpc;
-			this.chachBlocks = catchBlocks;
-		}
-
-		private <V> void set(Scan s, V v, ConsumerPair<Scan, V> set, Method fail) {
-			try {
-				set.accept(s, v);
-			} catch (Throwable t) {
-				try {
-					fail.invoke(s, v);
-				} catch (Throwable tt) {
-					Hbases.logger.warn("Optimize fail on " + fail.toString(), tt);
-				}
-			}
-		}
-
-		public Scan optimize(Scan s) {
-			if (rowsRpc > 0) set(s, rowsRpc, Scan::setCaching, SET_CHACHING);
-			if (colsRpc > 0) set(s, colsRpc, Scan::setBatch, SET_BATCH);
-			if (bytesRpc > 0) set(s, bytesRpc, Scan::setMaxResultSize, SET_MAX_RESULT_SIZE);
-			set(s, chachBlocks, Scan::setCacheBlocks, SET_CACHE_BLOCKS);
-			return s;
-		}
-
-		private static final Method SET_CHACHING, SET_BATCH, SET_MAX_RESULT_SIZE, SET_CACHE_BLOCKS;
-
-		static {
-			try {
-				SET_CHACHING = Scan.class.getMethod("setCaching", int.class);
-				SET_BATCH = Scan.class.getMethod("setBatch", int.class);
-				SET_MAX_RESULT_SIZE = Scan.class.getMethod("setMaxResultSize", long.class);
-				SET_CACHE_BLOCKS = Scan.class.getMethod("setCacheBlocks", boolean.class);
-			} catch (NoSuchMethodException | SecurityException e) {
-				throw new RuntimeException(e);
-			}
-		}
 	}
 
 	public static byte[] toBytes(Result result) throws IOException {
@@ -446,9 +314,9 @@ public final class Hbases extends Utils {
 		return Maps.of(p);
 	}
 
-	interface Filters {
-		static Filter limitCells(Filter f) {
-			return and(f, new ColumnCountGetFilter(HbaseInput.SCAN_MAX_CELLS_PER_ROW));
+	public interface Filters {
+		static Filter limitCells(Filter f, int rows) {
+			return and(f, new ColumnCountGetFilter(rows));
 		}
 
 		static Filter or(Filter... fl) {
