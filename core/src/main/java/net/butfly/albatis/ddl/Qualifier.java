@@ -3,8 +3,8 @@ package net.butfly.albatis.ddl;
 import static net.butfly.albacore.utils.Texts.eq;
 import static net.butfly.albatis.ddl.FieldDesc.SPLIT_CF;
 import static net.butfly.albatis.ddl.FieldDesc.SPLIT_CF_CH;
-import static net.butfly.albatis.ddl.FieldDesc.SPLIT_PREFIX_CH;
 import static net.butfly.albatis.ddl.FieldDesc.SPLIT_PREFIX;
+import static net.butfly.albatis.ddl.FieldDesc.SPLIT_PREFIX_CH;
 
 import java.io.Serializable;
 
@@ -33,7 +33,8 @@ public class Qualifier implements Serializable {
 	}
 
 	/**
-	 * @param q table:cf#prefix
+	 * @param q
+	 *            table:cf#prefix
 	 * @return (table_name, col_family, col_prefix)
 	 * @return
 	 */
@@ -47,7 +48,8 @@ public class Qualifier implements Serializable {
 	}
 
 	/**
-	 * @param q cf:prefix#col
+	 * @param q
+	 *            cf:prefix#col
 	 * @return [(table_name, col_family, col_prefix), col_name]
 	 * @return
 	 */
@@ -129,4 +131,5 @@ public class Qualifier implements Serializable {
 	public int hashCode() {
 		return qualifier.hashCode();
 	}
+
 }

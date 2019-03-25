@@ -3,9 +3,11 @@ package net.butfly.albatis.hbase;
 import static net.butfly.albacore.paral.Sdream.of;
 import static net.butfly.albacore.utils.collection.Colls.empty;
 import static net.butfly.albacore.utils.collection.Colls.list;
+import static net.butfly.albatis.ddl.FieldDesc.SPLIT_PREFIX_CH;
 import static net.butfly.albatis.hbase.Hbases.scan0;
 import static net.butfly.albatis.hbase.Hbases.Results.result;
 import static net.butfly.albatis.hbase.Hbases.ScanOption.opt;
+import static net.butfly.albatis.io.IOProps.propB;
 import static net.butfly.albatis.io.IOProps.propI;
 import static net.butfly.albatis.io.IOProps.propL;
 
@@ -86,6 +88,10 @@ import net.butfly.alserdes.SerDes;
 public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.client.Connection> implements IOFactory, IOStats {
 	protected final static Logger logger = Logger.getLogger(HbaseConnection.class);
 	public static final byte[] ROWKEY_UNDEFINED = new byte[0];
+	static final boolean SPLIT_BY_FAMILY = propB(HbaseConnection.class, "split.by.family", false, "Hbase R/W split by column family.");
+	static final boolean SPLIT_BY_PREFIX = propB(HbaseConnection.class, "split.by.prefix", false, //
+			"Hbase R/W split by column name prefix (" + SPLIT_PREFIX_CH + ").");
+	static final boolean SPLIT_ENABLED = SPLIT_BY_FAMILY || SPLIT_BY_PREFIX;
 
 	static {
 		logger.warn("Hbase client common lib not support 2 digitals jdk version\n\t"//

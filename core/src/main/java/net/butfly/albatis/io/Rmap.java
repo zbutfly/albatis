@@ -1,5 +1,7 @@
 package net.butfly.albatis.io;
 
+import static net.butfly.albatis.ddl.FieldDesc.SPLIT_CF_CH;
+import static net.butfly.albatis.ddl.FieldDesc.SPLIT_PREFIX_CH;
 import static net.butfly.albatis.ddl.Qualifier.qf;
 
 import java.io.ByteArrayInputStream;
@@ -7,12 +9,14 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import net.butfly.albacore.io.lambda.Function;
 import net.butfly.albacore.utils.IOs;
 import net.butfly.albacore.utils.Pair;
+import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albatis.ddl.Qualifier;
 
@@ -129,8 +133,9 @@ public class Rmap extends ConcurrentHashMap<String, Object> {
 	}
 
 	protected void write(OutputStream os, Function<Map<String, Object>, byte[]> conv) throws IOException {
-		IOs.writeBytes(os, null == table ? null : table.qualifier.getBytes(), keyBytes(), null == keyField ? null
-				: keyField.getBytes(), //
+		IOs.writeBytes(os, null == table ? //
+				null : table.qualifier.getBytes(), keyBytes(), //
+				null == keyField ? null : keyField.getBytes(), //
 				conv.apply(this), new byte[] { (byte) op });
 	}
 
@@ -242,5 +247,21 @@ public class Rmap extends ConcurrentHashMap<String, Object> {
 	@Deprecated
 	public Rmap table(String table, String expr) {
 		return table(qf(table), expr);
+	}
+
+	/**
+	 * split by family and prefix
+	 */
+	public Collection<Rmap> split(boolean byFamily, boolean byPrefix) {
+		if (!byFamily && !byPrefix) return Colls.list(this);
+		Map<Qualifier, Rmap> rr = Maps.of();
+		for (String f : keySet()) {
+			Pair<Qualifier, String> qf = table.colkey(f);
+			Qualifier tq = new Qualifier(qf.v1().name, byFamily ? qf.v1().family : null, byPrefix ? qf.v1().prefix : null);
+			String fq = (byFamily ? "" : (qf.v1().family + SPLIT_CF_CH)) //
+					+ (byPrefix ? "" : qf.v1().prefix + SPLIT_PREFIX_CH) + qf.v2();
+			rr.computeIfAbsent(tq, q -> new Rmap(q, key())).put(fq, get(f));
+		}
+		return rr.values();
 	}
 }

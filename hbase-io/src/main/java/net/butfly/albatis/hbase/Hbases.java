@@ -1,6 +1,7 @@
 package net.butfly.albatis.hbase;
 
 import static net.butfly.albatis.ddl.FieldDesc.SPLIT_CF;
+import static net.butfly.albatis.ddl.FieldDesc.SPLIT_CF_CH;
 import static net.butfly.albatis.ddl.FieldDesc.SPLIT_PREFIX;
 import static net.butfly.albatis.hbase.HbaseConnection.ROWKEY_UNDEFINED;
 import static net.butfly.albatis.hbase.HbaseInput.SCAN_BYTES;
@@ -285,6 +286,16 @@ public final class Hbases extends Utils {
 	}
 
 	public static interface Results {
+		static Map<String, byte[]> values(Result r) {
+			Map<String, byte[]> m = Maps.of();
+			if (null == r) return Maps.of();
+			for (Cell c : r.rawCells()) {
+				String fq = Bytes.toString(CellUtil.cloneFamily(c)) + SPLIT_CF_CH + Bytes.toString(CellUtil.cloneQualifier(c));
+				m.put(fq, CellUtil.cloneValue(c));
+			}
+			return m;
+		}
+
 		static byte[][] parseFQ(String name) {
 			String[] fq = name.split(SPLIT_CF, 2);
 			byte[] f, q;
