@@ -1,6 +1,8 @@
 package net.butfly.albatis.hbase;
 
 import static net.butfly.albacore.paral.Sdream.of;
+import static net.butfly.albatis.hbase.HbaseConnection.SPLIT_BY_FAMILY;
+import static net.butfly.albatis.hbase.HbaseConnection.SPLIT_BY_PREFIX;
 import static net.butfly.albatis.io.IOProps.prop;
 import static net.butfly.albatis.io.IOProps.propB;
 import static net.butfly.albatis.io.IOProps.propI;
@@ -10,7 +12,6 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -25,7 +26,6 @@ import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albacore.utils.logger.Statistic;
-import net.butfly.albatis.ddl.Qualifier;
 import net.butfly.albatis.hbase.HbaseSkip.SkipMode;
 import net.butfly.albatis.io.Input;
 import net.butfly.albatis.io.Rmap;
@@ -73,27 +73,22 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 	@Override
 	public void dequeue(Consumer<Sdream<Rmap>> using) {
 		HbaseTableScaner s;
-		boolean end = false;
-		Map<Qualifier, Rmap> ms = null;
-		List<Rmap> lasts;
-		while (!end && opened() && !empty()) if (null != (s = SCAN_POOL.poll())) try {
-			if (!(end = Colls.empty(ms = s.next()))) {
-				if (!Colls.empty(lasts = lastRmaps.remove(s.table))) for (Rmap l : lasts) {
-					Rmap m = ms.get(l.table());
-					if (null != m) m.putAll(l);
-					else ms.put(l.table(), l);
-				}
-				compute(ms, ms.values());
-				if (end = scanLast(s, ms)) {
-					compute(ms, lastRmaps.remove(s.table));
-					s.close();
-					s = null;
-				}
+		// rowkey -> record, fetch and fullfil so that earch in the poll should be whole.
+		Map<String, Rmap> wholes = Maps.of();
+		while (opened() && !empty()) if (null != (s = SCAN_POOL.poll())) try {
+			if (!s.dequeue(wholes)) {
+				s.close();
+				s = null;
 			}
 		} finally {
 			if (null != s) SCAN_POOL.offer(s);
 		}
-		if (Colls.empty(ms)) using.accept(of(ms.values()));
+		if (Colls.empty(wholes)) {
+			Collection<Rmap> ms = wholes.values();
+			if (HbaseConnection.SPLIT_ENABLED) ms = Colls.flat(Colls.list(wholes.values(), //
+					r -> r.split(SPLIT_BY_FAMILY, SPLIT_BY_PREFIX)));
+			using.accept(of(ms));
+		}
 	}
 
 	public void table(String table) throws IOException {
@@ -117,37 +112,6 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 	@Override
 	public boolean empty() {
 		return SCAN_REGS.isEmpty();
-	}
-
-	protected final Map<String, List<Rmap>> lastRmaps = Maps.of();
-
-	protected boolean scanLast(HbaseTableScaner s, Map<Qualifier, Rmap> ms) {
-		Rmap last = null;
-		Object rowkey = null;
-		Map<Qualifier, Rmap> r;
-		try {
-			if (Colls.empty(r = s.next())) return true;
-			List<Rmap> lasts = lastRmaps.computeIfAbsent(s.table, t -> Colls.list());
-			for (Entry<Qualifier, Rmap> e : r.entrySet())
-				if (null == (last = ms.remove(e.getKey()))) lasts.add(e.getValue()); // 1st cell of a diff record
-				else {
-					last.putAll(e.getValue()); // same record
-					lasts.add(last);
-				}
-			return false;
-		} finally {
-			if (null != last && null != rowkey) //
-				logger.warn("Too many cells in row [" + rowkey + "] and finished, [" + last.size() + "] cells found.");
-		}
-	}
-
-	protected static void compute(Map<Qualifier, Rmap> ms, Collection<Rmap> rs) {
-		for (Rmap m : rs)
-			if (!Colls.empty(m)) ms.compute(m.table(), (q, existed) -> {
-				if (null == existed) return m;
-				existed.putAll(m);
-				return existed;
-			});
 	}
 
 	public static void main(String[] args) throws InterruptedException {
