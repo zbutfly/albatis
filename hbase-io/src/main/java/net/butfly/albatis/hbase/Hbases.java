@@ -63,7 +63,7 @@ public final class Hbases extends Utils {
 	public static final String KRB5_CONF = "krb5.conf";
 	public static final String HUAWEI_KEYTAB = "user.keytab";
 	public static final String KERBEROS_PROP_PATH = "albatis-habse.properties";
-	public static Properties KERBEROS_PROPS;
+	public static Properties KERBEROS_PROPS = new Properties();
 
 	final static ExecutorService ex = Executors.newCachedThreadPool();
 
