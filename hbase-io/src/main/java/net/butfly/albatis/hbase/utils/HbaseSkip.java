@@ -51,7 +51,7 @@ public class HbaseSkip {
 			logger.warn("Hbase table [" + table + "] count: " + info);
 			long step = -1;
 			try {
-				return step = ac.rowCount(TableName.valueOf(table), new LongColumnInterpreter(), range(start, stop).scan(null));
+				return step = ac.rowCount(TableName.valueOf(table), new LongColumnInterpreter(), range(start, stop).scan());
 			} finally {
 				logger.warn("Hbase table [" + table + "] count [" + (step >= 0 ? step : "fail") //
 						+ "] in [" + (System.currentTimeMillis() - now) / 10 / 100.0 + " seconds]:  by " + info);

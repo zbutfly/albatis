@@ -72,11 +72,21 @@ public interface HbaseScan {
 		public final byte[] start, stop;
 		private final boolean stopped, started;
 
+		/**
+		 * @return an unranged {@code Range}
+		 */
+		public static Range range() {
+			return new Range((byte[][]) null);
+		}
+
+		/**
+		 * @return validate the param {@code startAndStopRow} and construct
+		 */
 		public static Range range(byte[]... startAndStopRow) {
 			Range range = new Range(startAndStopRow);
 			if ((range.started ^ range.stopped) || //
 					(range.started && range.stopped && lt(range.start, range.stop))) return range;
-			return null;
+			return range();
 		}
 
 		private Range(byte[]... startAndStopRow) {
@@ -93,7 +103,7 @@ public interface HbaseScan {
 		}
 
 		public boolean include(byte[] row) {
-			if (!defined(row)) return !started || !stopped;
+			if (!defined(row)) return !(started && stopped);
 			if (started && stopped) return !lt(row, start) && lt(row, stop);
 			if (started) return !lt(row, start); // gte
 			if (stopped) return lt(row, stop);
@@ -127,6 +137,10 @@ public interface HbaseScan {
 
 		private byte[] max(byte[] r0, byte[] r1) {
 			return !defined(r0) || !defined(r1) ? ROWKEY_UNDEFINED : lt(r0, r1) ? r1 : r0;
+		}
+
+		public Scan scan() {
+			return scan(null);
 		}
 
 		public Scan scan(Filter f) {

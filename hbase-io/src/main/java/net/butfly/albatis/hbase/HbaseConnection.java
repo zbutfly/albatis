@@ -582,7 +582,7 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 	 * alter 'subject_person', METHOD => 'table_att','coprocessor'=>'|org.apache.hadoop.hbase.coprocessor.AggregateImplementation||'
 	 */
 	public long countRows(String table, byte[]... range) {
-		Scan scan = range(range).scan(null);
+		Scan scan = range(range).scan();
 		try (AggregationClient ac = new AggregationClient(client.getConfiguration());) {
 			return ac.rowCount(TableName.valueOf(table), new LongColumnInterpreter(), scan);
 		} catch (Throwable e) {
