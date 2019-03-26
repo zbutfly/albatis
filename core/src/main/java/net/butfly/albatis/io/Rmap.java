@@ -258,8 +258,8 @@ public class Rmap extends ConcurrentHashMap<String, Object> {
 		for (String f : keySet()) {
 			Pair<Qualifier, String> qf = table.colkey(f);
 			Qualifier tq = new Qualifier(qf.v1().name, byFamily ? qf.v1().family : null, byPrefix ? qf.v1().prefix : null);
-			String fq = (byFamily ? "" : (qf.v1().family + SPLIT_CF_CH)) //
-					+ (byPrefix ? "" : qf.v1().prefix + SPLIT_PREFIX_CH) + qf.v2();
+			String fq = (byFamily && null != qf.v1().family ? (qf.v1().family + SPLIT_CF_CH) : "") //
+					+ (byPrefix && null != qf.v1().prefix ? (qf.v1().prefix + SPLIT_PREFIX_CH) : "") + qf.v2();
 			rr.computeIfAbsent(tq, q -> new Rmap(q, key())).put(fq, get(f));
 		}
 		return rr.values();

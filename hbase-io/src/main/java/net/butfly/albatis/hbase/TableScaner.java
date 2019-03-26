@@ -98,12 +98,12 @@ class TableScaner {
 			});
 	}
 
-	// return scan can be continue
+	// return scan finished
 	private boolean last(Map<String, Rmap> wholes) {
 		Rmap next;
 		if (null == (next = next())) {
 			if (null != last) merge(wholes, last);
-			return false;
+			return true;
 		} else {
 			Rmap l;
 			if (null != (l = wholes.remove(next.key()))) next.putAll(l); // same record, move from wholes into next
@@ -113,14 +113,14 @@ class TableScaner {
 							+ "\n\tlast: " + last + "\n\tnext: " + next);
 				last.putAll(next);
 			} else last = next;
-			return true;
+			return false;
 		}
 	}
 
-	// return scan can be continue
+	// return scan finished
 	boolean dequeue(Map<String, Rmap> wholes) {
 		Rmap orig, last;
-		if (((null != (orig = next())))) return true;
+		if (((null == (orig = next())))) return true;
 		if (null != (last = fetchLast())) {
 			Rmap m = wholes.get(last.key());
 			if (null != m) m.putAll(last);

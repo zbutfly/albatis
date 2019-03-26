@@ -77,14 +77,14 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 		// rowkey -> record, fetch and fullfil so that earch in the poll should be whole.
 		Map<String, Rmap> wholes = Maps.of();
 		while (opened() && !empty()) if (null != (s = SCAN_POOL.poll())) try {
-			if (!s.dequeue(wholes)) {
+			if (s.dequeue(wholes)) {
 				s.close();
 				s = null;
 			}
 		} finally {
 			if (null != s) SCAN_POOL.offer(s);
 		}
-		if (Colls.empty(wholes)) {
+		if (!Colls.empty(wholes)) {
 			Collection<Rmap> ms = wholes.values();
 			if (HbaseConnection.SPLIT_ENABLED) ms = Colls.flat(Colls.list(wholes.values(), //
 					r -> r.split(SPLIT_BY_FAMILY, SPLIT_BY_PREFIX)));

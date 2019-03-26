@@ -50,10 +50,12 @@ import org.apache.hadoop.hbase.util.Bytes;
 
 import net.butfly.albacore.io.lambda.Function;
 import net.butfly.albacore.utils.IOs;
+import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.Utils;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
+import net.butfly.albatis.ddl.Qualifier;
 import net.butfly.albatis.hbase.HbaseConnection;
 import net.butfly.albatis.io.Rmap;
 
@@ -62,7 +64,6 @@ public final class Hbases extends Utils {
 	protected static final Logger logger = Logger.getLogger(Hbases.class);
 	public static final String DEFAULT_COL_FAMILY_NAME = "cf1";
 	public static final byte[] DEFAULT_COL_FAMILY_VALUE = Bytes.toBytes(DEFAULT_COL_FAMILY_NAME);
-
 
 	public final static ExecutorService ex = Executors.newCachedThreadPool();
 
@@ -164,18 +165,18 @@ public final class Hbases extends Utils {
 			return m;
 		}
 
-		static byte[][] parseFQ(String name) {
-			String[] fq = name.split(SPLIT_CF, 2);
-			byte[] f, q;
-			if (fq.length == 1) {
-				f = DEFAULT_COL_FAMILY_VALUE;
-				q = Bytes.toBytes(fq[0]);
-			} else {
-				f = Bytes.toBytes(fq[0]);
-				q = Bytes.toBytes(fq[1]);
-			}
-			return new byte[][] { f, q };
-		}
+		// static byte[][] parseFQ(String name) {
+		// String[] fq = name.split(SPLIT_CF, 2);
+		// byte[] f, q;
+		// if (fq.length == 1) {
+		// f = DEFAULT_COL_FAMILY_VALUE;
+		// q = Bytes.toBytes(fq[0]);
+		// } else {
+		// f = Bytes.toBytes(fq[0]);
+		// q = Bytes.toBytes(fq[1]);
+		// }
+		// return new byte[][] { f, q };
+		// }
 
 		static Rmap result(String table, String row, Stream<Cell> cells) {
 			return new Rmap(table, row, Hbases.map(cells));
@@ -228,8 +229,9 @@ public final class Hbases extends Utils {
 						if (s.length() > 0) val = Bytes.toBytes(s);
 					} else if (v instanceof Map) val = conv.apply((Map<String, Object>) v);
 					if (null == val || val.length == 0) return null;
-					byte[][] fqs = Results.parseFQ(e.getKey());
-					Cell c = CellUtil.createCell(rowk, fqs[0], fqs[1], HConstants.LATEST_TIMESTAMP, Type.Put.getCode(), (byte[]) val);
+					Pair<Qualifier, String> qfs = m.table().colkey(e.getKey());
+					Cell c = CellUtil.createCell(rowk, Bytes.toBytes(qfs.v1().family), Bytes.toBytes(qfs.v1().prefix + SPLIT_PREFIX + qfs.v2()),
+							HConstants.LATEST_TIMESTAMP, Type.Put.getCode(), (byte[]) val);
 					if (null != c) try {
 						put.add(c);
 						fc++;
@@ -242,9 +244,10 @@ public final class Hbases extends Utils {
 			case INCREASE:
 				Increment inc = new Increment(rowk);
 				for (Entry<String, Object> e : m.entrySet()) {
-					byte[][] fq = Results.parseFQ(e.getKey());
 					Object v = e.getValue();
-					inc.addColumn(fq[0], fq[1], null == v ? 1 : ((Long) v).longValue());
+					Pair<Qualifier, String> qfs = m.table().colkey(e.getKey());
+					inc.addColumn(Bytes.toBytes(qfs.v1().family), Bytes.toBytes(qfs.v1().prefix + SPLIT_PREFIX + qfs.v2()), //
+							null == v ? 1 : ((Long) v).longValue());
 					fc++;
 				}
 				return inc;
@@ -278,8 +281,9 @@ public final class Hbases extends Utils {
 						return null;
 					}
 					if (null == val || val.length == 0) return null;
-					byte[][] fqs = Results.parseFQ(e.getKey());
-					Cell c = CellUtil.createCell(rowk, fqs[0], fqs[1], HConstants.LATEST_TIMESTAMP, Type.Put.getCode(), (byte[]) val);
+					Pair<Qualifier, String> qfs = m.table().colkey(e.getKey());
+					Cell c = CellUtil.createCell(rowk, Bytes.toBytes(qfs.v1().family), Bytes.toBytes(qfs.v1().prefix + SPLIT_PREFIX + qfs.v2()),
+							HConstants.LATEST_TIMESTAMP, Type.Put.getCode(), (byte[]) val);
 					if (null != c) try {
 						put.add(c);
 						fc++;
@@ -292,9 +296,10 @@ public final class Hbases extends Utils {
 			case INCREASE:
 				Increment inc = new Increment(rowk);
 				for (Entry<String, Object> e : m.entrySet()) {
-					byte[][] fq = Results.parseFQ(e.getKey());
+					Pair<Qualifier, String> qfs = m.table().colkey(e.getKey());
 					Object v = e.getValue();
-					inc.addColumn(fq[0], fq[1], null == v ? 1 : ((Long) v).longValue());
+					inc.addColumn(Bytes.toBytes(qfs.v1().family), Bytes.toBytes(qfs.v1().prefix + SPLIT_PREFIX + qfs.v2()), //
+							null == v ? 1 : ((Long) v).longValue());
 					fc++;
 				}
 				return inc;

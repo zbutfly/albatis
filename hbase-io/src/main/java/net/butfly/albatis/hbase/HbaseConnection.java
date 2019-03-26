@@ -396,8 +396,8 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 		for (TableDesc table : tables) {
 			Pair<Set<String>, Set<String>> cfAndPfxList = tbls.computeIfAbsent(table.qualifier.name, n -> new Pair<>(new HashSet<>(),
 					new HashSet<>()));
-			cfAndPfxList.v1().add(table.qualifier.family);
-			cfAndPfxList.v2().add(table.qualifier.prefix);
+			if (null != table.qualifier.family) cfAndPfxList.v1().add(table.qualifier.family);
+			if (null != table.qualifier.prefix) cfAndPfxList.v2().add(table.qualifier.prefix);
 			String rowkey = table.attr("..ROW_KEY_FILTER", String.class);
 			if (null != rowkey) rowkeys.put(table.qualifier.name, rowkey);
 		}
