@@ -1,8 +1,6 @@
 package net.butfly.albatis.hbase;
 
 import static net.butfly.albacore.paral.Sdream.of;
-import static net.butfly.albatis.hbase.HbaseConnection.SPLIT_BY_FAMILY;
-import static net.butfly.albatis.hbase.HbaseConnection.SPLIT_BY_PREFIX;
 import static net.butfly.albatis.hbase.utils.HbaseScan.Range.range;
 import static net.butfly.albatis.io.IOProps.prop;
 import static net.butfly.albatis.io.IOProps.propB;
@@ -30,6 +28,7 @@ import net.butfly.albacore.utils.logger.Statistic;
 import net.butfly.albatis.hbase.utils.HbaseSkip.SkipMode;
 import net.butfly.albatis.io.Input;
 import net.butfly.albatis.io.Rmap;
+import net.butfly.albatis.io.Rmap.SubtableMode;
 
 public class HbaseInput extends Namedly implements Input<Rmap> {
 	private static final long serialVersionUID = 6225222417568739808L;
@@ -41,6 +40,9 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 			"Hbase max cells per row (more will be ignore).");
 	static final Pair<SkipMode, String> SCAN_SKIP = SkipMode.parse(prop(HbaseInput.class, "scan.skip", null,
 			"Hbase scan skip (for debug or resume): ROWS:n, REGIONS:n, [ROWKEY:]n."));
+
+	// TODO:subtable split options, should move from HbaseFrom
+
 	final HbaseConnection hconn;
 	final BlockingQueue<TableScaner> SCAN_POOL = new LinkedBlockingQueue<>();
 	final Map<String, List<TableScaner>> SCAN_REGS = Maps.of();
@@ -86,8 +88,8 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 		}
 		if (!Colls.empty(wholes)) {
 			Collection<Rmap> ms = wholes.values();
-			if (HbaseConnection.SPLIT_ENABLED) ms = Colls.flat(Colls.list(wholes.values(), //
-					r -> r.split(SPLIT_BY_FAMILY, SPLIT_BY_PREFIX)));
+			if (SubtableMode.NONE != hconn.subtableMode) ms = Colls.flat(Colls.list(wholes.values(), //
+					r -> r.subs(hconn.subtableMode)));
 			using.accept(of(ms));
 		}
 	}

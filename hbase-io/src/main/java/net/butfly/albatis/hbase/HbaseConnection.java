@@ -3,7 +3,6 @@ package net.butfly.albatis.hbase;
 import static net.butfly.albacore.paral.Sdream.of;
 import static net.butfly.albacore.utils.collection.Colls.empty;
 import static net.butfly.albacore.utils.collection.Colls.list;
-import static net.butfly.albatis.ddl.FieldDesc.SPLIT_PREFIX_CH;
 import static net.butfly.albatis.hbase.HbaseInput.SCAN_BYTES;
 import static net.butfly.albatis.hbase.HbaseInput.SCAN_CACHE_BLOCKS;
 import static net.butfly.albatis.hbase.HbaseInput.SCAN_COLS;
@@ -11,7 +10,6 @@ import static net.butfly.albatis.hbase.utils.HbaseScan.ROWKEY_UNDEFINED;
 import static net.butfly.albatis.hbase.utils.HbaseScan.Options.opts;
 import static net.butfly.albatis.hbase.utils.HbaseScan.Range.range;
 import static net.butfly.albatis.hbase.utils.Hbases.Results.result;
-import static net.butfly.albatis.io.IOProps.propB;
 import static net.butfly.albatis.io.IOProps.propI;
 import static net.butfly.albatis.io.IOProps.propL;
 
@@ -87,6 +85,7 @@ import net.butfly.albatis.hbase.utils.Hbases;
 import net.butfly.albatis.io.IOFactory;
 import net.butfly.albatis.io.IOStats;
 import net.butfly.albatis.io.Rmap;
+import net.butfly.albatis.io.Rmap.SubtableMode;
 import net.butfly.albatis.io.utils.JsonUtils;
 import net.butfly.albatis.io.vfs.VfsConnection;
 import net.butfly.alserdes.SerDes;
@@ -95,10 +94,6 @@ import net.butfly.alserdes.SerDes;
 public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.client.Connection> implements IOFactory, IOStats {
 	protected final static Logger logger = Logger.getLogger(HbaseConnection.class);
 	private static final String VFS_CONF_URI = "albatis.hbase.config.path";
-	static final boolean SPLIT_BY_FAMILY = propB(HbaseConnection.class, "split.by.family", false, "Hbase R/W split by column family.");
-	static final boolean SPLIT_BY_PREFIX = propB(HbaseConnection.class, "split.by.prefix", false, //
-			"Hbase R/W split by column name prefix (" + SPLIT_PREFIX_CH + ").");
-	static final boolean SPLIT_ENABLED = SPLIT_BY_FAMILY || SPLIT_BY_PREFIX;
 
 	static {
 		logger.warn("Hbase client common lib not support 2 digitals jdk version\n\t"//
@@ -114,6 +109,7 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 	protected final long GET_DUMP_MIN_SIZE = propL(this, "get.dump.min.bytes", 2097152); // 2M
 	private final Map<String, Table> tables;
 	private final LinkedBlockingQueue<Scan> scans = new LinkedBlockingQueue<>(GET_SCAN_OBJS);
+	SubtableMode subtableMode;
 
 	public HbaseConnection() throws IOException {
 		this(new URISpec("hbase:///"));
@@ -124,8 +120,10 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 		tables = Maps.of();
 	}
 
+
 	@Override
 	protected org.apache.hadoop.hbase.client.Connection initialize(URISpec uri) {
+		this.subtableMode = SubtableMode.valueOf(uri.fetchParameter("sub", "NONE"));
 		if (null != client) try {
 			client.close();
 		} catch (Exception e) {
