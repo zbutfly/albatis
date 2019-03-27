@@ -62,11 +62,11 @@ public class MongoOutput extends OutputBase<Rmap> {
 		if (upsert)
 			n.set(msgs.list().stream().map(m -> {
 				if (null != m.key()) {
-					String keyField = m.key().toString();
+					String keyField = m.keyField().toString();
 					DBObject dbObject = null;
 					try {
 						dbObject = conn.collection(m.table()).findAndModify(
-								new BasicDBObject(keyField, m.get(keyField)), null, null, false,
+								MongoConnection.dbobj(keyField, m.get(keyField)), null, null, false,
 								MongoConnection.dbobj(m), false, true);
 					} catch (CommandFailureException e) {
 						if (11000 == e.getErrorCode()) {
