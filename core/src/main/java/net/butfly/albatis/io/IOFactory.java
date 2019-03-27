@@ -61,15 +61,13 @@ public interface IOFactory extends Formatable {
 		// deserializing
 		if (!empty(formats)) {
 			logger().info("Input [" + i.toString() + "] with formats: " + String.join(",", Colls.list(formats, f -> f.as().value())));
-			for (Format f : formats)
-				i = f.as().list() ? i.thenFlat(r -> empty((Rmap) r) ? Sdream.of()
-						: Sdream.of(f.desers((Rmap) r, (TableDesc) tbls.get(((Rmap) r).table()))))
-						: i.then(r -> empty((Rmap) r) ? null : f.deser((Rmap) r, (TableDesc) tbls.get(((Rmap) r).table())));
+			for (Format f : formats) i = f.as().list() ? i.thenFlat(r -> empty((Rmap) r) ? Sdream.of()
+					: Sdream.of(f.desers((Rmap) r, (TableDesc) tbls.get(((Rmap) r).table()))))
+					: i.then(r -> empty((Rmap) r) ? null : f.deser((Rmap) r, (TableDesc) tbls.get(((Rmap) r).table())));
 		}
 		// key field filfulling
 		Map<String, String> keys = Maps.of();
-		for (TableDesc t : tables)
-			if (null != t.rowkey()) keys.put(t.qualifier.name, t.rowkey());
+		for (TableDesc t : tables) if (null != t.rowkey()) keys.put(t.qualifier.name, t.rowkey());
 		if (!keys.isEmpty()) {
 			logger().info("Key fields found, Input will fill the key field value: \n\t" + keys.toString());
 			i = i.then(r -> {
@@ -89,10 +87,9 @@ public interface IOFactory extends Formatable {
 		Map<Qualifier, TableDesc> tbls = Maps.distinct(tables, t -> t.qualifier);
 		Output o = outputRaw(tables.toArray(new TableDesc[0]));
 		// serializing
-		if (null != fotmats) for (Format f : fotmats)
-			o = f.as().list() //
-					? o.prior(r -> empty((Rmap) r) ? null : f.sers(Colls.list((Rmap) r), (TableDesc) tbls.get(((Rmap) r).table())))
-					: o.prior(r -> empty((Rmap) r) ? null : f.ser((Rmap) r, (TableDesc) tbls.get(((Rmap) r).table())));
+		if (null != fotmats) for (Format f : fotmats) o = f.as().list() //
+				? o.prior(r -> empty((Rmap) r) ? null : f.sers(Colls.list((Rmap) r), (TableDesc) tbls.get(((Rmap) r).table())))
+				: o.prior(r -> empty((Rmap) r) ? null : f.ser((Rmap) r, (TableDesc) tbls.get(((Rmap) r).table())));
 		return o;
 	}
 }

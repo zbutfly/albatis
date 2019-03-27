@@ -8,8 +8,6 @@ import static net.butfly.albatis.ddl.FieldDesc.SPLIT_PREFIX_CH;
 
 import java.io.Serializable;
 
-import net.butfly.albacore.utils.Pair;
-
 public class Qualifier implements Serializable {
 	private static final long serialVersionUID = 501714117033564122L;
 	public final String name;
@@ -53,9 +51,9 @@ public class Qualifier implements Serializable {
 	 * @return [(table_name, col_family, col_prefix), col_name]
 	 * @return
 	 */
-	public Pair<Qualifier, String> colkey(String fqf) {
+	public QualifierField field(String fqf) {
 		String[] fqs = parseFieldName(fqf);
-		return new Pair<>(new Qualifier(name, one(family, fqs[0]), one(prefix, fqs[1])), fqs[2]);
+		return new QualifierField(name, one(family, fqs[0]), one(prefix, fqs[1]), fqs[2]);
 	}
 
 	private String qualify() {
@@ -131,5 +129,4 @@ public class Qualifier implements Serializable {
 	public int hashCode() {
 		return qualifier.hashCode();
 	}
-
 }

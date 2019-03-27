@@ -28,7 +28,6 @@ import net.butfly.albacore.utils.logger.Statistic;
 import net.butfly.albatis.hbase.utils.HbaseSkip.SkipMode;
 import net.butfly.albatis.io.Input;
 import net.butfly.albatis.io.Rmap;
-import net.butfly.albatis.io.Rmap.SubtableMode;
 
 public class HbaseInput extends Namedly implements Input<Rmap> {
 	private static final long serialVersionUID = 6225222417568739808L;
@@ -86,12 +85,7 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 		} finally {
 			if (null != s) SCAN_POOL.offer(s);
 		}
-		if (!Colls.empty(wholes)) {
-			Collection<Rmap> ms = wholes.values();
-			if (SubtableMode.NONE != hconn.subtableMode) ms = Colls.flat(Colls.list(wholes.values(), //
-					r -> r.subs(hconn.subtableMode)));
-			using.accept(of(ms));
-		}
+		if (!Colls.empty(wholes)) using.accept(of(Colls.flat(Colls.list(wholes.values(), r -> r.subs(hconn.subtableMode)))));
 	}
 
 	public void table(String table) throws IOException {
@@ -99,8 +93,7 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 	}
 
 	public final void table(String... table) throws IOException {
-		for (String t : table)
-			table(t, t);
+		for (String t : table) table(t, t);
 	}
 
 	public void table(String table, Collection<String> families, Collection<String> prefixes, byte[]... startAndStopRow) throws IOException {
@@ -115,11 +108,5 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 	@Override
 	public boolean empty() {
 		return SCAN_REGS.isEmpty();
-	}
-
-	public static void main(String[] args) throws InterruptedException {
-		System.err.println(HbaseInput.SCAN_MAX_CELLS_PER_ROW);
-		// while (true)
-		// Thread.sleep(10000);
 	}
 }

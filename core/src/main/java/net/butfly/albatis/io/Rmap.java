@@ -1,7 +1,6 @@
 package net.butfly.albatis.io;
 
 import static net.butfly.albatis.ddl.FieldDesc.SPLIT_CF_CH;
-import static net.butfly.albatis.ddl.FieldDesc.SPLIT_PREFIX_CH;
 import static net.butfly.albatis.ddl.Qualifier.qf;
 
 import java.io.ByteArrayInputStream;
@@ -20,6 +19,7 @@ import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albatis.ddl.Qualifier;
+import net.butfly.albatis.ddl.QualifierField;
 
 public class Rmap extends ConcurrentHashMap<String, Object> {
 	private static final long serialVersionUID = 2316795812336748252L;
@@ -251,55 +251,49 @@ public class Rmap extends ConcurrentHashMap<String, Object> {
 	}
 
 	/**
-	 * split subdata in one subtable record into non-subtable fields
+	 * read from subtable, split subdata in one subtable record into {@code Rmap}s with non-subtable fields
 	 */
 	public Collection<Rmap> subs(SubtableMode mode) {
-		if (null == mode || SubtableMode.NONE == mode) return Colls.list(this);
-		Object rowkey = key();
-		boolean byFamily = mode != SubtableMode.PREFIX_ONLY, byPrefix = mode != SubtableMode.FAMILY_ONLY;
-		Map<Qualifier, Rmap> m = Maps.of();
-		forEach((f, v) -> {
-			Pair<Qualifier, String[]> sub = subs(table.colkey(f), byFamily, byPrefix);
-			m.computeIfAbsent(sub.v1(), q -> new Rmap(q, rowkey)).put(String.join("", sub.v2()), v);
-		});
-		return m.values();
+		if (null == mode || SubtableMode.NONE == mode) {
+			int p;
+			for (String k : keySet()) if ((p = k.indexOf(SPLIT_CF_CH)) >= 0) put(k.substring(p + 1), remove(k));
+			return Colls.list(this);
+		} else {
+			Object rowkey = key();
+			Map<Qualifier, Rmap> m = Maps.of();
+			forEach((f, v) -> {
+				QualifierField fq = table.field(f).family(mode != SubtableMode.PREFIX_ONLY).prefix(mode != SubtableMode.FAMILY_ONLY);
+				m.computeIfAbsent(fq.table(), q -> new Rmap(q, rowkey)).put(fq.field, v);
+			});
+			return m.values();
+		}
 	}
 
 	/**
-	 * merge fields in one record into subtables
+	 * 
+	 * write to subtable, merge flat fields in one record {@code Rmap}s, each one subtables
 	 */
-	public List<Rmap> subs(SubtableMode mode, Map<String, String> colkeyMappings) {
+	public List<Rmap> subs(SubtableMode mode, Function<String, String> colkeyFromPrefix) {
 		if (null == mode || SubtableMode.NONE == mode) return Colls.list(this);
 		Object rowkey = key();
-		boolean byFamily = mode != SubtableMode.PREFIX_ONLY, byPrefix = mode != SubtableMode.FAMILY_ONLY;
 		// sub_table_name -> {sub_contents: col_key -> {sub_field -> value}},
 		// each master_table should have only one col_key since it's process in one rowkey
 		Map<Qualifier, Map<String, Map<String, Object>>> m = Maps.of();
 		forEach((f, v) -> {
-			Pair<Qualifier, String[]> sub = subs(table.colkey(f), byFamily, byPrefix);
-			m.computeIfAbsent(sub.v1(), q -> Maps.of()).computeIfAbsent(sub.v2()[0] + sub.v2()[1], // subprefix without colkey
-					k -> Maps.of()).put((byFamily ? "" : sub.v2()[0]) + (byPrefix ? "" : sub.v2()[1]) + sub.v2()[2], // subfield
-							v);
+			QualifierField fq = table.field(f).family(mode != SubtableMode.PREFIX_ONLY).prefix(mode != SubtableMode.FAMILY_ONLY);
+			m.computeIfAbsent(fq.table(), q -> Maps.of()).computeIfAbsent(fq.fieldPrefix, // subprefix without colkey
+					k -> Maps.of()).put(fq.field, v);// subfield
 		});
 		// fullfil colkey
 		for (Qualifier q : m.keySet()) {
 			Map<String, Map<String, Object>> sub = m.get(q);
 			for (String subprefix : sub.keySet()) { // should only one
 				Map<String, Object> subdata = sub.remove(subprefix);
-				String colkey = (String) subdata.get(colkeyMappings.get(subprefix));
+				String colkey = (String) subdata.get(colkeyFromPrefix.apply(subprefix));
 				if (null != colkey) sub.put(subprefix + colkey, subdata);
 			}
 		}
 		return Colls.list(m.entrySet(), e -> new Rmap(e.getKey(), rowkey, e.getValue()));
-	}
-
-	private static Pair<Qualifier, String[]> subs(Pair<Qualifier, String> qf, boolean byFamily, boolean byPrefix) {
-		String byf = byFamily && null != qf.v1().family ? qf.v1().family : null, //
-				byp = byPrefix && null != qf.v1().prefix ? qf.v1().prefix : null;
-		Qualifier tq = new Qualifier(qf.v1().name, byf, byp);
-		byf = null == byf ? "" : byf + SPLIT_CF_CH;
-		byp = null == byp ? "" : byp + SPLIT_PREFIX_CH;
-		return new Pair<>(tq, new String[] { byf, byp, qf.v2() });
 	}
 
 	public enum SubtableMode {

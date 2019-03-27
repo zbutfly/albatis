@@ -50,12 +50,11 @@ import org.apache.hadoop.hbase.util.Bytes;
 
 import net.butfly.albacore.io.lambda.Function;
 import net.butfly.albacore.utils.IOs;
-import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.Utils;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
-import net.butfly.albatis.ddl.Qualifier;
+import net.butfly.albatis.ddl.QualifierField;
 import net.butfly.albatis.hbase.HbaseConnection;
 import net.butfly.albatis.io.Rmap;
 
@@ -229,9 +228,7 @@ public final class Hbases extends Utils {
 						if (s.length() > 0) val = Bytes.toBytes(s);
 					} else if (v instanceof Map) val = conv.apply((Map<String, Object>) v);
 					if (null == val || val.length == 0) return null;
-					Pair<Qualifier, String> qfs = m.table().colkey(e.getKey());
-					Cell c = CellUtil.createCell(rowk, Bytes.toBytes(qfs.v1().family), Bytes.toBytes(qfs.v1().prefix + SPLIT_PREFIX + qfs.v2()),
-							HConstants.LATEST_TIMESTAMP, Type.Put.getCode(), (byte[]) val);
+					Cell c = cell(m.table().field(e.getKey()), rowk, (byte[]) val);
 					if (null != c) try {
 						put.add(c);
 						fc++;
@@ -245,9 +242,7 @@ public final class Hbases extends Utils {
 				Increment inc = new Increment(rowk);
 				for (Entry<String, Object> e : m.entrySet()) {
 					Object v = e.getValue();
-					Pair<Qualifier, String> qfs = m.table().colkey(e.getKey());
-					inc.addColumn(Bytes.toBytes(qfs.v1().family), Bytes.toBytes(qfs.v1().prefix + SPLIT_PREFIX + qfs.v2()), //
-							null == v ? 1 : ((Long) v).longValue());
+					inc(inc, m.table().field(e.getKey()), null == v ? 1 : ((Long) v).longValue());
 					fc++;
 				}
 				return inc;
@@ -255,6 +250,16 @@ public final class Hbases extends Utils {
 				logger.warn("Op not support: " + m.toString());
 				return null;
 			}
+		}
+
+		static Cell cell(QualifierField qf, byte[] rowk, byte[] val) {
+			return CellUtil.createCell(rowk, Bytes.toBytes(qf.family), Bytes.toBytes((null == qf.prefix ? "" : qf.prefix + SPLIT_PREFIX)
+					+ qf.field), //
+					HConstants.LATEST_TIMESTAMP, Type.Put.getCode(), val);
+		}
+
+		static void inc(Increment inc, QualifierField qf, long v) {
+			inc.addColumn(Bytes.toBytes(qf.family), Bytes.toBytes((null == qf.prefix ? "" : qf.prefix + SPLIT_PREFIX) + qf.field), v);
 		}
 
 		static Mutation op(Rmap m) {
@@ -281,9 +286,7 @@ public final class Hbases extends Utils {
 						return null;
 					}
 					if (null == val || val.length == 0) return null;
-					Pair<Qualifier, String> qfs = m.table().colkey(e.getKey());
-					Cell c = CellUtil.createCell(rowk, Bytes.toBytes(qfs.v1().family), Bytes.toBytes(qfs.v1().prefix + SPLIT_PREFIX + qfs.v2()),
-							HConstants.LATEST_TIMESTAMP, Type.Put.getCode(), (byte[]) val);
+					Cell c = cell(m.table().field(e.getKey()), rowk, (byte[]) val);
 					if (null != c) try {
 						put.add(c);
 						fc++;
@@ -296,10 +299,7 @@ public final class Hbases extends Utils {
 			case INCREASE:
 				Increment inc = new Increment(rowk);
 				for (Entry<String, Object> e : m.entrySet()) {
-					Pair<Qualifier, String> qfs = m.table().colkey(e.getKey());
-					Object v = e.getValue();
-					inc.addColumn(Bytes.toBytes(qfs.v1().family), Bytes.toBytes(qfs.v1().prefix + SPLIT_PREFIX + qfs.v2()), //
-							null == v ? 1 : ((Long) v).longValue());
+					inc(inc, m.table().field(e.getKey()), null == e.getValue() ? 1 : ((Long) e.getValue()).longValue());
 					fc++;
 				}
 				return inc;
@@ -326,16 +326,14 @@ public final class Hbases extends Utils {
 
 		static Filter or(Filter... fl) {
 			List<Filter> l = Colls.list();
-			for (Filter f : fl)
-				if (null != f) l.add(f);
+			for (Filter f : fl) if (null != f) l.add(f);
 			if (l.isEmpty()) return null;
 			return l.size() == 1 ? l.get(0) : new FilterList(Operator.MUST_PASS_ONE, l);
 		}
 
 		static Filter and(Filter... fl) {
 			List<Filter> l = Colls.list();
-			for (Filter f : fl)
-				if (null != f) l.add(f);
+			for (Filter f : fl) if (null != f) l.add(f);
 			if (l.isEmpty()) return null;
 			return l.size() == 1 ? l.get(0) : new FilterList(Operator.MUST_PASS_ALL, l);
 		}
@@ -343,8 +341,7 @@ public final class Hbases extends Utils {
 		static Filter filterFamily(Collection<String> cf) {
 			if (Colls.empty(cf)) return null;
 			List<Filter> fl = Colls.list();
-			for (String c : cf)
-				fl.add(new FamilyFilter(CompareOp.EQUAL, new BinaryComparator(Bytes.toBytes(c))));
+			for (String c : cf) fl.add(new FamilyFilter(CompareOp.EQUAL, new BinaryComparator(Bytes.toBytes(c))));
 			return fl.size() == 1 ? fl.get(0) : or(fl.toArray(new Filter[0]));
 		}
 

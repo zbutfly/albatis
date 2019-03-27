@@ -123,7 +123,7 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 
 	@Override
 	protected org.apache.hadoop.hbase.client.Connection initialize(URISpec uri) {
-		this.subtableMode = SubtableMode.valueOf(uri.fetchParameter("sub", "NONE"));
+		this.subtableMode = SubtableMode.valueOf(uri.fetchParameter("sub", "NONE").toUpperCase());
 		if (null != client) try {
 			client.close();
 		} catch (Exception e) {

@@ -43,8 +43,7 @@ public class HbaseFormat extends RmapFormat {
 	public Rmap ser(Rmap src, FieldDesc... fields) {
 		Rmap r = src.skeleton();
 		byte[] b;
-		for (FieldDesc f : fields)
-			if (null != (b = assemble(src.get(f.name), f.type)) && b.length > 0) r.put(f.name, b);
+		for (FieldDesc f : fields) if (null != (b = assemble(src.get(f.name), f.type)) && b.length > 0) r.put(f.name, b);
 		return r;
 	}
 
@@ -56,20 +55,9 @@ public class HbaseFormat extends RmapFormat {
 	@Override
 	public Rmap deser(Rmap dst, FieldDesc... fields) {
 		Object v;
-		for (FieldDesc f : fields) {
-			for (String k : dst.keySet()) {
-				if (f.name.equals(k)) {
-					v = dst.get(k);
-					if (v instanceof byte[]) {
-						v = disassemble((byte[]) v, f.type);
-						if (null != v) dst.put(k, v);
-					} else if (v instanceof ByteBuffer) {
-						v = disassemble(((ByteBuffer) v).array(), f.type);
-						if (null != v) dst.put(k, v);
-					}
-					break;
-				}
-			}
+		for (FieldDesc f : fields) if (null != (v = dst.get(f.name))) {
+			if (v instanceof ByteBuffer) v = ((ByteBuffer) v).array();
+			if (null != (v = disassemble((byte[]) v, f.type))) dst.put(f.name, v);
 		}
 		return dst;
 	}
