@@ -1,7 +1,5 @@
 package net.butfly.albatis.elastic;
 
-import static net.butfly.albatis.ddl.Qualifier.qf;
-
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -23,7 +21,7 @@ public class ElasticMessage extends Rmap {
 
 	public ElasticMessage(String index, String type, String id, Script script, Map<String, Object> upsertDoc) {
 		super((Qualifier) null, id, upsertDoc);
-		table(qf(index + "/" + type));
+		table(new Qualifier(index + "/" + type));
 		op(null == upsertDoc ? Op.UPDATE : Op.UPSERT);
 		this.script = script;
 	}
@@ -53,8 +51,8 @@ public class ElasticMessage extends Rmap {
 		super.write(os, conv);
 		boolean s = null == script;
 		IOs.writeBytes(os, new byte[] { (byte) (s ? 0 : 1) });
-		if (s) IOs.writeBytes(os, script.getType().name().getBytes(), script.getLang().getBytes(), script.getIdOrCode().getBytes(),
-				BsonSerder.map(script.getParams()));
+		if (s) IOs.writeBytes(os, script.getType().name().getBytes(), script.getLang().getBytes(), script.getIdOrCode().getBytes(), BsonSerder
+				.map(script.getParams()));
 	}
 
 	public ElasticMessage(byte[] b) throws IOException {

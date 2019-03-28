@@ -228,7 +228,7 @@ public final class Hbases extends Utils {
 						if (s.length() > 0) val = Bytes.toBytes(s);
 					} else if (v instanceof Map) val = conv.apply((Map<String, Object>) v);
 					if (null == val || val.length == 0) return null;
-					Cell c = cell(m.table().field(e.getKey()), rowk, (byte[]) val);
+					Cell c = cell(new QualifierField(m.table(), e.getKey()), rowk, (byte[]) val);
 					if (null != c) try {
 						put.add(c);
 						fc++;
@@ -242,7 +242,7 @@ public final class Hbases extends Utils {
 				Increment inc = new Increment(rowk);
 				for (Entry<String, Object> e : m.entrySet()) {
 					Object v = e.getValue();
-					inc(inc, m.table().field(e.getKey()), null == v ? 1 : ((Long) v).longValue());
+					inc(inc, new QualifierField(m.table(), e.getKey()), null == v ? 1 : ((Long) v).longValue());
 					fc++;
 				}
 				return inc;
@@ -253,13 +253,13 @@ public final class Hbases extends Utils {
 		}
 
 		static Cell cell(QualifierField qf, byte[] rowk, byte[] val) {
-			return CellUtil.createCell(rowk, Bytes.toBytes(qf.family), Bytes.toBytes((null == qf.prefix ? "" : qf.prefix + SPLIT_PREFIX)
-					+ qf.field), //
+			return CellUtil.createCell(rowk, Bytes.toBytes(qf.table.family), Bytes.toBytes((null == qf.prefix ? "" : qf.prefix + SPLIT_PREFIX)
+					+ qf.name), //
 					HConstants.LATEST_TIMESTAMP, Type.Put.getCode(), val);
 		}
 
 		static void inc(Increment inc, QualifierField qf, long v) {
-			inc.addColumn(Bytes.toBytes(qf.family), Bytes.toBytes((null == qf.prefix ? "" : qf.prefix + SPLIT_PREFIX) + qf.field), v);
+			inc.addColumn(Bytes.toBytes(qf.table.family), Bytes.toBytes((null == qf.prefix ? "" : qf.prefix + SPLIT_PREFIX) + qf.name), v);
 		}
 
 		static Mutation op(Rmap m) {
@@ -286,7 +286,7 @@ public final class Hbases extends Utils {
 						return null;
 					}
 					if (null == val || val.length == 0) return null;
-					Cell c = cell(m.table().field(e.getKey()), rowk, (byte[]) val);
+					Cell c = cell(new QualifierField(m.table(), e.getKey()), rowk, (byte[]) val);
 					if (null != c) try {
 						put.add(c);
 						fc++;
@@ -299,7 +299,7 @@ public final class Hbases extends Utils {
 			case INCREASE:
 				Increment inc = new Increment(rowk);
 				for (Entry<String, Object> e : m.entrySet()) {
-					inc(inc, m.table().field(e.getKey()), null == e.getValue() ? 1 : ((Long) e.getValue()).longValue());
+					inc(inc, new QualifierField(m.table(), e.getKey()), null == e.getValue() ? 1 : ((Long) e.getValue()).longValue());
 					fc++;
 				}
 				return inc;

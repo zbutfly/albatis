@@ -78,7 +78,7 @@ class TableScaner {
 		} catch (IOException e) {
 			return null;
 		}
-		return null == r ? null : new Rmap(Qualifier.qf(table, null, null), Bytes.toString(r.getRow()), Hbases.Results.values(r));
+		return null == r ? null : new Rmap(new Qualifier(table), Bytes.toString(r.getRow()), Hbases.Results.values(r));
 	}
 
 	private Rmap last = null;
@@ -90,12 +90,11 @@ class TableScaner {
 	}
 
 	private static void merge(Map<String, Rmap> wholes, Rmap... r) {
-		for (Rmap m : r)
-			if (!Colls.empty(m)) wholes.compute((String) m.key(), (q, existed) -> {
-				if (null == existed) return m;
-				existed.putAll(m);
-				return existed;
-			});
+		for (Rmap m : r) if (!Colls.empty(m)) wholes.compute((String) m.key(), (q, existed) -> {
+			if (null == existed) return m;
+			existed.putAll(m);
+			return existed;
+		});
 	}
 
 	// return scan finished

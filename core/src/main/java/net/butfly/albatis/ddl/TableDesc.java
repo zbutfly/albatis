@@ -1,7 +1,6 @@
 package net.butfly.albatis.ddl;
 
 import static net.butfly.albatis.ddl.DBDesc.logger;
-import static net.butfly.albatis.ddl.Qualifier.qf;
 
 import java.io.IOException;
 import java.util.List;
@@ -146,9 +145,8 @@ public class TableDesc extends Desc<TableDesc> {
 	public List<String> colkey() {
 		if (keys.size() < 2) return Colls.list();
 		List<String> ck = Colls.list();
-		for (int i = 1; i < keys.size(); i++)
-			if (keys.get(i).size() > 1) return keys.get(1);
-			else ck.add(keys.get(i).get(0));
+		for (int i = 1; i < keys.size(); i++) if (keys.get(i).size() > 1) return keys.get(1);
+		else ck.add(keys.get(i).get(0));
 		return ck;
 	}
 
@@ -166,11 +164,11 @@ public class TableDesc extends Desc<TableDesc> {
 	}
 
 	public static TableDesc dummy(String qualifier) {
-		return new TableDesc(qf(qualifier));
+		return new TableDesc(new Qualifier(qualifier));
 	}
 
 	public TableDesc clone(String qualifier) {
-		TableDesc t = new TableDesc(qf(qualifier), destruct);
+		TableDesc t = new TableDesc(new Qualifier(qualifier), destruct);
 		t.fields.putAll(fields);
 		t.keys.addAll(keys);
 		t.construct = construct;

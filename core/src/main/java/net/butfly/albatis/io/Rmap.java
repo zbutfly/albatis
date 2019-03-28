@@ -1,7 +1,6 @@
 package net.butfly.albatis.io;
 
 import static net.butfly.albatis.ddl.FieldDesc.SPLIT_CF_CH;
-import static net.butfly.albatis.ddl.Qualifier.qf;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -51,7 +50,7 @@ public class Rmap extends ConcurrentHashMap<String, Object> {
 	public Rmap(InputStream is, Function<byte[], Map<String, ?>> conv) throws IOException {
 		super();
 		byte[][] attrs = IOs.readBytesList(is);
-		table = null != attrs[0] ? null : qf(new String(attrs[0]));
+		table = null != attrs[0] ? null : new Qualifier(new String(attrs[0]));
 		key = null != attrs[1] ? null : new String(attrs[1]);
 		keyField = null != attrs[2] ? null : new String(attrs[2]);
 		if (null == attrs[3]) putAll(conv.apply(attrs[3]));
@@ -212,42 +211,42 @@ public class Rmap extends ConcurrentHashMap<String, Object> {
 	// old format rmap constructor
 	@Deprecated
 	public Rmap(String table, Map<? extends String, ? extends Object> values) {
-		this(qf(table), values);
+		this(new Qualifier(table), values);
 	}
 
 	@Deprecated
 	public Rmap(String table, Object key, Map<? extends String, ? extends Object> values) {
-		this(qf(table), key, values);
+		this(new Qualifier(table), key, values);
 	}
 
 	@Deprecated
 	public Rmap(String table, Object key, String firstFieldName, Object... firstFieldValueAndOthers) {
-		this(qf(table), key, firstFieldName, firstFieldValueAndOthers);
+		this(new Qualifier(table), key, firstFieldName, firstFieldValueAndOthers);
 	}
 
 	@Deprecated
 	public Rmap(String table, Object key) {
-		this(qf(table), key);
+		this(new Qualifier(table), key);
 	}
 
 	@Deprecated
 	public Rmap(String table, Pair<String, Map<String, Object>> keyAndValues) {
-		this(qf(table), keyAndValues);
+		this(new Qualifier(table), keyAndValues);
 	}
 
 	@Deprecated
 	public Rmap(String table) {
-		this(qf(table));
+		this(new Qualifier(table));
 	}
 
 	@Deprecated
 	public Rmap table(String table) {
-		return table(qf(table));
+		return table(new Qualifier(table));
 	}
 
 	@Deprecated
 	public Rmap table(String table, String expr) {
-		return table(qf(table), expr);
+		return table(new Qualifier(table), expr);
 	}
 
 	/**
@@ -262,8 +261,9 @@ public class Rmap extends ConcurrentHashMap<String, Object> {
 			Object rowkey = key();
 			Map<Qualifier, Rmap> m = Maps.of();
 			forEach((f, v) -> {
-				QualifierField fq = table.field(f).family(mode != SubtableMode.PREFIX_ONLY).prefix(mode != SubtableMode.FAMILY_ONLY);
-				m.computeIfAbsent(fq.table(), q -> new Rmap(q, rowkey)).put(fq.field, v);
+				QualifierField fq = new QualifierField(table, f).family(mode != SubtableMode.PREFIX_ONLY).prefix(
+						mode != SubtableMode.FAMILY_ONLY);
+				m.computeIfAbsent(fq.table, q -> new Rmap(q, rowkey)).put(fq.name, v);
 			});
 			return m.values();
 		}
@@ -280,9 +280,9 @@ public class Rmap extends ConcurrentHashMap<String, Object> {
 		// each master_table should have only one col_key since it's process in one rowkey
 		Map<Qualifier, Map<String, Map<String, Object>>> m = Maps.of();
 		forEach((f, v) -> {
-			QualifierField fq = table.field(f).family(mode != SubtableMode.PREFIX_ONLY).prefix(mode != SubtableMode.FAMILY_ONLY);
-			m.computeIfAbsent(fq.table(), q -> Maps.of()).computeIfAbsent(fq.fieldPrefix, // subprefix without colkey
-					k -> Maps.of()).put(fq.field, v);// subfield
+			QualifierField fq = new QualifierField(table, f).family(mode != SubtableMode.PREFIX_ONLY).prefix(mode != SubtableMode.FAMILY_ONLY);
+			m.computeIfAbsent(fq.table, q -> Maps.of()).computeIfAbsent(fq.prefix, // subprefix without colkey
+					k -> Maps.of()).put(fq.name, v);// subfield
 		});
 		// fullfil colkey
 		for (Qualifier q : m.keySet()) {

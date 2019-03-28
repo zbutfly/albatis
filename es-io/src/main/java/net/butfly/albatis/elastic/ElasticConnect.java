@@ -1,7 +1,6 @@
 package net.butfly.albatis.elastic;
 
 import static net.butfly.albacore.paral.Sdream.of;
-import static net.butfly.albatis.ddl.Qualifier.qf;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -26,6 +25,7 @@ import net.butfly.albacore.utils.Utils;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.Connection;
+import net.butfly.albatis.ddl.Qualifier;
 import net.butfly.albatis.ddl.vals.GeoPointVal;
 import net.butfly.albatis.io.Rmap;
 
@@ -40,7 +40,7 @@ public interface ElasticConnect extends Connection {
 		Pair<String, String> p = Elastics.dessemble(m.table().name);
 		if (null == p.v1()) p.v1(getDefaultIndex());
 		if (null == p.v2()) p.v2(getDefaultType());
-		m.table(qf(Elastics.assembly(p.v1(), p.v2())));
+		m.table(new Qualifier(Elastics.assembly(p.v1(), p.v2())));
 		Object v;
 		for (String k : m.keySet()) // process value type not supported by es
 			if ((v = m.get(k)) instanceof GeoPointVal) m.put(k, v.toString());
@@ -70,8 +70,8 @@ public interface ElasticConnect extends Connection {
 
 		@SuppressWarnings({ "unchecked", "deprecation" })
 		static Map<String, Object> fetchMetadata(InetSocketAddress... rest) {
-			if (_logger.isDebugEnabled()) _logger.debug("Fetch transport nodes meta from: " + of(rest).joinAsString(
-					InetSocketAddress::toString, ","));
+			if (_logger.isDebugEnabled()) _logger.debug("Fetch transport nodes meta from: " + of(rest).joinAsString(InetSocketAddress::toString,
+					","));
 			HttpHost[] v = Arrays.stream(rest).map(a -> new HttpHost(a.getHostName(), a.getPort())).toArray(i -> new HttpHost[i]);
 			try (RestClient client = RestClient.builder(v).build();) {
 				Response rep;
@@ -107,8 +107,8 @@ public interface ElasticConnect extends Connection {
 				String host = (String) node.get("host");
 				Map<String, Object> settings = (Map<String, Object>) node.get("settings");
 				int rest = Integer.parseInt((String) ((Map<String, Object>) settings.get("http")).get("port"));
-				int trans = Integer.parseInt((String) ((Map<String, Object>) ((Map<String, Object>) settings.get("transport")).get("tcp"))
-						.get("port"));
+				int trans = Integer.parseInt((String) ((Map<String, Object>) ((Map<String, Object>) settings.get("transport")).get("tcp")).get(
+						"port"));
 				_logger.trace("Elastic node detected: [" + host + ":" + rest + ":" + trans + "]");
 				return new Node(host, rest, trans);
 			}).toArray(i -> new Node[i]);
@@ -158,8 +158,7 @@ public interface ElasticConnect extends Connection {
 			}
 			logger.info("start normal kerberos setting!");
 			Map<String, String> props = Maps.of(p);
-			for (Map.Entry<String, String> c : props.entrySet())
-				System.setProperty(c.getKey(), c.getValue());
+			for (Map.Entry<String, String> c : props.entrySet()) System.setProperty(c.getKey(), c.getValue());
 		}
 
 		private static InetSocketAddress[] parseRestAddrs(String rest, InetSocketAddress... inetSocketAddresses) {

@@ -3,7 +3,6 @@ package net.butfly.albatis.ddl;
 import static net.butfly.albacore.utils.Texts.eq;
 import static net.butfly.albatis.ddl.FieldDesc.SPLIT_CF;
 import static net.butfly.albatis.ddl.FieldDesc.SPLIT_CF_CH;
-import static net.butfly.albatis.ddl.FieldDesc.SPLIT_PREFIX;
 import static net.butfly.albatis.ddl.FieldDesc.SPLIT_PREFIX_CH;
 
 import java.io.Serializable;
@@ -23,10 +22,11 @@ public class Qualifier implements Serializable {
 		qualifier = null;
 	}
 
-	public Qualifier(String name, String family, String prefix) {
-		this.name = name;
-		this.family = family;
-		this.prefix = prefix;
+	public Qualifier(String nameOrQf, String family, String prefix) {
+		String[] tqs = parseTableName(nameOrQf);
+		this.name = tqs[0];
+		this.family = one(tqs[1], family);
+		this.prefix = one(tqs[2], prefix);
 		qualifier = qualify();
 	}
 
@@ -36,24 +36,8 @@ public class Qualifier implements Serializable {
 	 * @return (table_name, col_family, col_prefix)
 	 * @return
 	 */
-	public static Qualifier qf(String tqf) {
-		String[] tqs = parseTableName(tqf);
-		return new Qualifier(tqs[0], tqs[1], tqs[2]);
-	}
-
-	public static Qualifier qf(String name, String family, String prefix) {
-		return new Qualifier(name, family, prefix);
-	}
-
-	/**
-	 * @param q
-	 *            cf:prefix#col
-	 * @return [(table_name, col_family, col_prefix), col_name]
-	 * @return
-	 */
-	public QualifierField field(String fqf) {
-		String[] fqs = parseFieldName(fqf);
-		return new QualifierField(name, one(family, fqs[0]), one(prefix, fqs[1]), fqs[2]);
+	public Qualifier(String tqf) {
+		this(tqf, null, null);
 	}
 
 	private String qualify() {
@@ -64,7 +48,7 @@ public class Qualifier implements Serializable {
 		return s.toString();
 	}
 
-	private static String one(String t, String f) {
+	static String one(String t, String f) {
 		// return null == t ? f : t.equals(f) ? t : null;
 		return null != f ? f : t;
 	}
@@ -85,24 +69,6 @@ public class Qualifier implements Serializable {
 				fqs[2] = fqs[1].substring(sp + 1);
 				fqs[1] = fqs[1].substring(0, sp);
 			}
-		}
-		return fqs;
-	}
-
-	// cf#prefix:colkey
-	private static String[] parseFieldName(String fq) {
-		String[] fqs = new String[3];
-		if (null == fq) return fqs;
-		fqs[2] = fq;
-		String[] cfs = fqs[2].split(SPLIT_CF, 2); // cf and prefix#colkey
-		if (cfs.length == 2) {
-			fqs[0] = cfs[0];
-			fqs[2] = cfs[1];
-		}
-		String[] pfxs = fqs[2].split(SPLIT_PREFIX, 2);
-		if (pfxs.length == 2) {
-			fqs[1] = pfxs[0];
-			fqs[2] = pfxs[1];
 		}
 		return fqs;
 	}

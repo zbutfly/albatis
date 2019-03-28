@@ -1,14 +1,11 @@
 package net.butfly.albatis.ddl;
 
-import static net.butfly.albatis.ddl.Qualifier.qf;
-
 import java.util.Map;
 import java.util.stream.Collectors;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
-import net.butfly.albatis.ddl.Qualifier;
 
 /**
  * Desc of some models of one datasource (database).
@@ -77,7 +74,7 @@ public final class DBDesc extends Desc<DBDesc> {
 
 	@Deprecated
 	public TableDesc table(String qualifier) {
-		return tables.computeIfAbsent(qf(qualifier), q -> new TableDesc(q));
+		return tables.computeIfAbsent(new Qualifier(qualifier), q -> new TableDesc(q));
 	}
 
 	public TableDesc table(Qualifier qualifier) {
@@ -95,7 +92,7 @@ public final class DBDesc extends Desc<DBDesc> {
 		for (DBDesc db : models.values()) {
 			b.append("\n\t").append(db.name).append("[").append(db.uri).append("] with [").append(db.tables.size()).append("] tables");
 			if (!db.tables.isEmpty()) b.append(": \n\t\t").append(db.tables.values().stream() //
-				.map(t -> t.qualifier.name).collect(Collectors.joining(", ")));
+					.map(t -> t.qualifier.name).collect(Collectors.joining(", ")));
 		}
 		return b.toString();
 
