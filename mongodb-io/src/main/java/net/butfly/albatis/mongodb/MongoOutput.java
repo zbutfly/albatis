@@ -8,7 +8,6 @@ import com.mongodb.BasicDBObject;
 import com.mongodb.CommandFailureException;
 import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
-import com.mongodb.WriteResult;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.paral.Exeter;
@@ -59,15 +58,15 @@ public class MongoOutput extends OutputBase<Rmap> {
 	protected void enqsafe(Sdream<Rmap> msgs) {
 		AtomicLong n = new AtomicLong();
 		List<Rmap> retries = Colls.list();
-		if (upsert)
-			n.set(msgs.list().stream().map(m -> {
+		if (upsert) {
+			msgs.eachs(m -> {
 				if (null != m.key()) {
 					String keyField = m.keyField().toString();
-					DBObject dbObject = null;
 					try {
-						dbObject = conn.collection(m.table()).findAndModify(
+						conn.collection(m.table()).findAndModify(
 								MongoConnection.dbobj(keyField, m.get(keyField)), null, null, false,
 								MongoConnection.dbobj(m), false, true);
+						n.incrementAndGet();
 					} catch (CommandFailureException e) {
 						if (11000 == e.getErrorCode()) {
 							retries.add(m);
@@ -75,12 +74,12 @@ public class MongoOutput extends OutputBase<Rmap> {
 							logger().error("upsert mongo error!", e);
 						}
 					}
-					return dbObject;
 				} else {
-					WriteResult writeResult = conn.collection(m.table()).save(MongoConnection.dbobj(m));
-					return writeResult;
+					conn.collection(m.table()).save(MongoConnection.dbobj(m));
+					n.incrementAndGet();
 				}
-			}).count());
+			});
+		}
 		else
 			Exeter.of().join(
 					e -> n.addAndGet(
