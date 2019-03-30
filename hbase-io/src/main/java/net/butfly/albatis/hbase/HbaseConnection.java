@@ -85,7 +85,7 @@ import net.butfly.albatis.hbase.utils.Hbases;
 import net.butfly.albatis.io.IOFactory;
 import net.butfly.albatis.io.IOStats;
 import net.butfly.albatis.io.Rmap;
-import net.butfly.albatis.io.Rmap.SubtableMode;
+import net.butfly.albatis.io.RmapSubMode;
 import net.butfly.albatis.io.utils.JsonUtils;
 import net.butfly.albatis.io.vfs.VfsConnection;
 import net.butfly.alserdes.SerDes;
@@ -109,7 +109,7 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 	protected final long GET_DUMP_MIN_SIZE = propL(this, "get.dump.min.bytes", 2097152); // 2M
 	private final Map<String, Table> tables;
 	private final LinkedBlockingQueue<Scan> scans = new LinkedBlockingQueue<>(GET_SCAN_OBJS);
-	SubtableMode subtableMode;
+	RmapSubMode subtableMode;
 
 	public HbaseConnection() throws IOException {
 		this(new URISpec("hbase:///"));
@@ -123,7 +123,7 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 
 	@Override
 	protected org.apache.hadoop.hbase.client.Connection initialize(URISpec uri) {
-		this.subtableMode = SubtableMode.valueOf(uri.fetchParameter("sub", "NONE").toUpperCase());
+		this.subtableMode = RmapSubMode.valueOf(uri.fetchParameter("sub", "NONE").toUpperCase());
 		if (null != client) try {
 			client.close();
 		} catch (Exception e) {

@@ -252,8 +252,8 @@ public class Rmap extends ConcurrentHashMap<String, Object> {
 	/**
 	 * read from subtable, split subdata in one subtable record into {@code Rmap}s with non-subtable fields
 	 */
-	public Collection<Rmap> subs(SubtableMode mode) {
-		if (null == mode || SubtableMode.NONE == mode) {
+	public Collection<Rmap> subs(RmapSubMode mode) {
+		if (null == mode || RmapSubMode.NONE == mode) {
 			int p;
 			for (String k : keySet()) if ((p = k.indexOf(SPLIT_CF_CH)) >= 0) put(k.substring(p + 1), remove(k));
 			return Colls.list(this);
@@ -261,8 +261,7 @@ public class Rmap extends ConcurrentHashMap<String, Object> {
 			Object rowkey = key();
 			Map<Qualifier, Rmap> m = Maps.of();
 			forEach((f, v) -> {
-				QualifierField fq = new QualifierField(table, f).family(mode != SubtableMode.FAMILY_ONLY).prefix(
-						mode != SubtableMode.PREFIX_ONLY);
+				QualifierField fq = mode.proc(table, f);
 				m.computeIfAbsent(fq.table, q -> new Rmap(q, rowkey)).put(fq.name, v);
 			});
 			return m.values();
@@ -270,17 +269,16 @@ public class Rmap extends ConcurrentHashMap<String, Object> {
 	}
 
 	/**
-	 * 
 	 * write to subtable, merge flat fields in one record {@code Rmap}s, each one subtables
 	 */
-	public List<Rmap> subs(SubtableMode mode, Function<String, String> colkeyFromPrefix) {
-		if (null == mode || SubtableMode.NONE == mode) return Colls.list(this);
+	public List<Rmap> subs(RmapSubMode mode, Function<String, String> colkeyFromPrefix) {
+		if (null == mode || RmapSubMode.NONE == mode) return Colls.list(this);
 		Object rowkey = key();
 		// sub_table_name -> {sub_contents: col_key -> {sub_field -> value}},
 		// each master_table should have only one col_key since it's process in one rowkey
 		Map<Qualifier, Map<String, Map<String, Object>>> m = Maps.of();
 		forEach((f, v) -> {
-			QualifierField fq = new QualifierField(table, f).family(mode != SubtableMode.PREFIX_ONLY).prefix(mode != SubtableMode.FAMILY_ONLY);
+			QualifierField fq = mode.proc(table, f);
 			m.computeIfAbsent(fq.table, q -> Maps.of()).computeIfAbsent(fq.prefix, // subprefix without colkey
 					k -> Maps.of()).put(fq.name, v);// subfield
 		});
@@ -296,7 +294,4 @@ public class Rmap extends ConcurrentHashMap<String, Object> {
 		return Colls.list(m.entrySet(), e -> new Rmap(e.getKey(), rowkey, e.getValue()));
 	}
 
-	public enum SubtableMode {
-		NONE, FULL, FAMILY_ONLY, PREFIX_ONLY
-	}
 }
