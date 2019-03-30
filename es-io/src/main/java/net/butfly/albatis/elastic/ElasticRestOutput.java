@@ -3,23 +3,24 @@ package net.butfly.albatis.elastic;
 import static net.butfly.albacore.utils.Exceptions.unwrap;
 
 import java.io.IOException;
-import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 
+import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
+import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.index.mapper.MapperException;
-import org.elasticsearch.transport.RemoteTransportException;
 
 import net.butfly.albacore.utils.logger.Logger;
 
-public class ElasticOutput extends ElasticOutputBase<ElasticConnection> {
-	private static final long serialVersionUID = 1874320396863861434L;
-	static final Logger logger = Logger.getLogger(ElasticOutput.class);
+public class ElasticRestOutput extends ElasticOutputBase<ElasticRestHighLevelConnection> {
+	private static final long serialVersionUID = 3882692296354935800L;
+	
+	static final Logger logger = Logger.getLogger(ElasticRestOutput.class);
 	public static final int MAX_RETRY = 3;
 	public static final int SUGGEST_BATCH_SIZE = 1000;
 
-	public ElasticOutput(String name, ElasticConnection conn) throws IOException {
+	protected ElasticRestOutput(String name, ElasticRestHighLevelConnection conn) throws IOException {
 		super(name, conn);
 	}
 
@@ -29,10 +30,8 @@ public class ElasticOutput extends ElasticOutputBase<ElasticConnection> {
 			// logger().error("Elastic step [" + size + "] begin.");
 			// long now = System.currentTimeMillis();
 			try {
-				return conn.client.bulk(b).get();
-			} catch (ExecutionException ex) {
-				logger().error("Elastic client fail: [" + ex.getCause() + "]");
-			} catch (Exception ex) {
+				return conn.client.bulk(b, RequestOptions.DEFAULT);
+			} catch (IOException ex) {
 				logger().error("Elastic client fail: [" + ex + "]");
 				// } finally {
 				// logger().error("Elastic step [" + size + "] spent: " + (System.currentTimeMillis() - now) + " ms.");
@@ -43,7 +42,7 @@ public class ElasticOutput extends ElasticOutputBase<ElasticConnection> {
 
 	@Override
 	boolean noRetry(Throwable cause) {
-		while (RemoteTransportException.class.isAssignableFrom(cause.getClass()) && cause.getCause() != null)
+		while (ElasticsearchException.class.isAssignableFrom(cause.getClass()) && cause.getCause() != null)
 			cause = cause.getCause();
 		if (MapperException.class.isAssignableFrom(cause.getClass())) logger().error("ES mapper exception", cause);
 		return // EsRejectedExecutionException.class.isAssignableFrom(cause.getClass()) ||
@@ -52,7 +51,7 @@ public class ElasticOutput extends ElasticOutputBase<ElasticConnection> {
 	}
 
 	static {
-		unwrap(RemoteTransportException.class, "getCause");
+		unwrap(ElasticsearchException.class, "getCause");
 	}
 
 }

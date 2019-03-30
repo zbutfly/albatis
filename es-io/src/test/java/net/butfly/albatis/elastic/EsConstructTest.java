@@ -14,7 +14,7 @@ import net.butfly.albatis.ddl.vals.ValType;
 
 public class EsConstructTest {
 	public static void main(String[] args) throws IOException {
-		String url = "es://hzcominfo@172.30.10.31:39300/";
+		String url = "es://hzcominfo@172.30.10.31:29300/";
 		Map<String, Object> indexConfig = new HashMap<>();
 		indexConfig.put("index/type", "es_test/es_test");
 		indexConfig.put("alias", "test1");

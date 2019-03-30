@@ -13,6 +13,7 @@ import java.util.Properties;
 import org.apache.http.HttpHost;
 import org.elasticsearch.client.Response;
 import org.elasticsearch.client.RestClient;
+import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
@@ -49,7 +50,10 @@ public interface ElasticConnect extends Connection {
 
 	@SuppressWarnings("unchecked")
 	static <C extends ElasticConnect> C connect(URISpec uri) throws IOException {
-		switch (uri.getSchema().toLowerCase()) {
+		switch (uri.getScheme().toLowerCase()) {
+		case "es:rest":
+		case "elasticsearch:rest":
+			return (C) new ElasticRestHighLevelConnection(uri);
 		case "es":
 		case "elasticsearch":
 		case "es:transport":
@@ -184,6 +188,15 @@ public interface ElasticConnect extends Connection {
 					i -> new HttpHost[i]);
 			else addrs = Arrays.stream(Parser.getNodes(meta)).map(n -> n.transport).toArray(i -> new HttpHost[i]);
 			return RestClient.builder(addrs).build();
+		}
+
+		static RestHighLevelClient buildRestHighLevelClient(URISpec u) {
+			Map<String, Object> meta = Parser.fetchMetadata(u.getInetAddrs());
+			HttpHost[] addrs;
+			if (meta == null) addrs = Arrays.stream(u.getInetAddrs()).map(a -> new HttpHost(a.getHostName(), a.getPort())).toArray(
+					i -> new HttpHost[i]);
+			else addrs = Arrays.stream(Parser.getNodes(meta)).map(n -> n.rest).toArray(i -> new HttpHost[i]);
+			return new RestHighLevelClient(RestClient.builder(addrs));
 		}
 	}
 

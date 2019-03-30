@@ -1,1 +1,2 @@
 net.butfly.albatis.elastic.ElasticConnection$Driver
+net.butfly.albatis.elastic.ElasticRestHighLevelConnection$Driver
