@@ -402,8 +402,8 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 		String rowkey;
 		for (String t : tbls.keySet())
 			if (null != (rowkey = rowkeys.get(t))) // row key mode
-				input.table(t, tbls.get(t).v2(), tbls.get(t).v1(), Bytes.toBytes(rowkey));
-			else input.table(t, tbls.get(t).v2(), tbls.get(t).v1());
+				input.table(t, tbls.get(t).v1(), tbls.get(t).v2(), Bytes.toBytes(rowkey));
+			else input.table(t, tbls.get(t).v1(), tbls.get(t).v2());
 		return input;
 	}
 

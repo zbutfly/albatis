@@ -261,8 +261,8 @@ public class Rmap extends ConcurrentHashMap<String, Object> {
 			Object rowkey = key();
 			Map<Qualifier, Rmap> m = Maps.of();
 			forEach((f, v) -> {
-				QualifierField fq = new QualifierField(table, f).family(mode != SubtableMode.PREFIX_ONLY).prefix(
-						mode != SubtableMode.FAMILY_ONLY);
+				QualifierField fq = new QualifierField(table, f).family(mode != SubtableMode.FAMILY_ONLY).prefix(
+						mode != SubtableMode.PREFIX_ONLY);
 				m.computeIfAbsent(fq.table, q -> new Rmap(q, rowkey)).put(fq.name, v);
 			});
 			return m.values();
