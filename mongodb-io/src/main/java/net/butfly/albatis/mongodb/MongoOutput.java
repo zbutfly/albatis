@@ -57,27 +57,24 @@ public class MongoOutput extends OutputBase<Rmap> {
 	protected void enqsafe(Sdream<Rmap> msgs) {
 		AtomicLong n = new AtomicLong();
 		List<Rmap> retries = Colls.list();
-		if (upsert) n.set(msgs.list().stream().map(m -> {
-			if (null != m.key()) {
-				String keyField = m.key().toString();
-				DBObject dbo = null;
-				try {
-					dbo = conn.collection(m.table().name).findAndModify(//
-							new BasicDBObject(keyField, m.get(keyField)), null, null, false, MongoConnection.dbobj(m), false, true);
-				} catch (MongoCommandException e) {
-					if (11000 == e.getErrorCode()) retries.add(m);
-					else logger().error("upsert mongo error!", e);
-				}
-				return dbo;
-			} else {
-				return conn.collection(m.table().name).save(MongoConnection.dbobj(m));
-			}
-		}).count());
-		else Exeter.of().join(e -> n.addAndGet(//
-				conn.collection(e.getKey().name).insert(//
-						Sdream.of(e.getValue()).map(MongoConnection::dbobj).list().toArray(new BasicDBObject[0])//
-				).getN()), Maps.of(msgs, m -> m.table()).entrySet());
+		if (upsert) msgs.eachs(m -> upsert(m, m.keyField(), m.key(), retries));
+		else Exeter.of().join(e -> n.addAndGet(conn.collection(e.getKey().name).insert(//
+				Sdream.of(e.getValue()).map(MongoConnection::dbobj).list().toArray(new BasicDBObject[0])//
+		).getN()), Maps.of(msgs, m -> m.table()).entrySet());
 		succeeded(n.get());
 		if (!retries.isEmpty()) failed(Sdream.of(retries));
+	}
+
+	private boolean upsert(Rmap m, String keyField, Object keyValue, List<Rmap> retries) {
+		if (null == keyField && null != keyValue) conn.collection(m.table().name).save(MongoConnection.dbobj(m)).getN();
+		else try {
+			conn.collection(m.table().name).findAndModify(new BasicDBObject(keyField, keyValue), //
+					null, null, false, MongoConnection.dbobj(m), false, true);
+		} catch (MongoCommandException e) {
+			if (11000 == e.getErrorCode()) retries.add(m);
+			else logger().error("upsert mongo error!", e);
+			return false;
+		}
+		return true;
 	}
 }
