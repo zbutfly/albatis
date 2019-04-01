@@ -20,6 +20,7 @@ import net.butfly.albacore.utils.Texts;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.kerberos.huawei.LoginUtil;
+import net.butfly.albatis.tbds.TbdsAuthenticationUtil;
 
 public abstract class KafkaConfigBase implements Serializable {
 	private static final long serialVersionUID = -4020530608706621876L;
@@ -31,7 +32,10 @@ public abstract class KafkaConfigBase implements Serializable {
 	public static final String HUAWEI_KEYTAB = "huawei.keytab";
 	public static final String KERBEROS_PROP_PATH = "kerberos.properties";
 	public static Properties KERBEROS_PROPS = new Properties();
-
+	
+	//tbds
+	public static final String TBDS_PROP_PATH = "tbds.properties";
+	
 	private static final Logger logger = Logger.getLogger(KafkaConfigBase.class);
 
 	protected final String zookeeperConnect;
@@ -45,6 +49,8 @@ public abstract class KafkaConfigBase implements Serializable {
 	protected String valueDeserializerClass;
 
 	protected String kerberosConfigPath;
+	
+	protected String tbdsConfigPath;
 
 	private final Long poolSize;
 	protected final List<String> topics;
@@ -133,6 +139,7 @@ public abstract class KafkaConfigBase implements Serializable {
 		topics = props.containsKey("topics") ? Colls.list(new HashSet<>(Texts.split(props.get("topics") + "," + props.get("topic"), ",")))
 				: Colls.list();
 		kerberosConfigPath = Configs.get("albatis.kafka.kerberos");
+		tbdsConfigPath = Configs.get("albatis.kafka.tbds");
 		kerberos();
 	}
 
@@ -195,6 +202,20 @@ public abstract class KafkaConfigBase implements Serializable {
 			props.setProperty("kerberos.domain.name", KERBEROS_PROPS.getProperty("kerberos.domain.name"));
 			props.setProperty("security.protocol", KERBEROS_PROPS.getProperty("security.protocol"));
 			props.setProperty("sasl.kerberos.service.name", KERBEROS_PROPS.getProperty("sasl.kerberos.service.name"));
+		}
+	}
+	
+	public void tbds(Properties props) {
+	    Properties TBDS_PROPS = new Properties();
+		if (null == tbdsConfigPath) return;
+		try {
+			TBDS_PROPS.load(IOs.openFile(tbdsConfigPath + TBDS_PROP_PATH));
+			props.put(TbdsAuthenticationUtil.KAFKA_SECURITY_PROTOCOL, TbdsAuthenticationUtil.KAFKA_SECURITY_PROTOCOL_AVLUE);
+			props.put(TbdsAuthenticationUtil.KAFKA_SASL_MECHANISM, TbdsAuthenticationUtil.KAFKA_SASL_MECHANISM_VALUE);
+			props.put(TbdsAuthenticationUtil.KAFKA_SASL_TBDS_SECURE_ID,TBDS_PROPS.getProperty("albatis.kafka.tbds.secureId"));
+			props.put(TbdsAuthenticationUtil.KAFKA_SASL_TBDS_SECURE_KEY,TBDS_PROPS.getProperty("albatis.kafka.tbds.secureKey"));
+		} catch (IOException e) {
+			throw new RuntimeException("load TBDS_PROP error!", e);
 		}
 	}
 }
