@@ -1,24 +1,18 @@
 package net.butfly.albatis.io;
 
-import static net.butfly.albatis.ddl.FieldDesc.SPLIT_CF_CH;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import net.butfly.albacore.io.lambda.Function;
 import net.butfly.albacore.utils.IOs;
 import net.butfly.albacore.utils.Pair;
-import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albatis.ddl.Qualifier;
-import net.butfly.albatis.ddl.QualifierField;
 
 public class Rmap extends ConcurrentHashMap<String, Object> {
 	private static final long serialVersionUID = 2316795812336748252L;
@@ -248,50 +242,4 @@ public class Rmap extends ConcurrentHashMap<String, Object> {
 	public Rmap table(String table, String expr) {
 		return table(new Qualifier(table), expr);
 	}
-
-	/**
-	 * read from subtable, split subdata in one subtable record into {@code Rmap}s with non-subtable fields
-	 */
-	public Collection<Rmap> subs(RmapSubMode mode) {
-		if (null == mode || RmapSubMode.NONE == mode) {
-			int p;
-			for (String k : keySet()) if ((p = k.indexOf(SPLIT_CF_CH)) >= 0) put(k.substring(p + 1), remove(k));
-			return Colls.list(this);
-		} else {
-			Object rowkey = key();
-			Map<Qualifier, Rmap> m = Maps.of();
-			forEach((f, v) -> {
-				QualifierField fq = mode.proc(table, f);
-				m.computeIfAbsent(fq.table, q -> new Rmap(q, rowkey)).put(fq.name, v);
-			});
-			return m.values();
-		}
-	}
-
-	/**
-	 * write to subtable, merge flat fields in one record {@code Rmap}s, each one subtables
-	 */
-	public List<Rmap> subs(RmapSubMode mode, Function<String, String> colkeyFromPrefix) {
-		if (null == mode || RmapSubMode.NONE == mode) return Colls.list(this);
-		Object rowkey = key();
-		// sub_table_name -> {sub_contents: col_key -> {sub_field -> value}},
-		// each master_table should have only one col_key since it's process in one rowkey
-		Map<Qualifier, Map<String, Map<String, Object>>> m = Maps.of();
-		forEach((f, v) -> {
-			QualifierField fq = mode.proc(table, f);
-			m.computeIfAbsent(fq.table, q -> Maps.of()).computeIfAbsent(fq.prefix, // subprefix without colkey
-					k -> Maps.of()).put(fq.name, v);// subfield
-		});
-		// fullfil colkey
-		for (Qualifier q : m.keySet()) {
-			Map<String, Map<String, Object>> sub = m.get(q);
-			for (String subprefix : sub.keySet()) { // should only one
-				Map<String, Object> subdata = sub.remove(subprefix);
-				String colkey = (String) subdata.get(colkeyFromPrefix.apply(subprefix));
-				if (null != colkey) sub.put(subprefix + colkey, subdata);
-			}
-		}
-		return Colls.list(m.entrySet(), e -> new Rmap(e.getKey(), rowkey, e.getValue()));
-	}
-
 }

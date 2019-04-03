@@ -119,7 +119,7 @@ class TableScaner {
 	// return scan finished
 	boolean dequeue(Map<String, Rmap> wholes) {
 		Rmap orig, last;
-		if (((null == (orig = next())))) return true;
+		if (null == (orig = next())) return true;
 		if (null != (last = fetchLast())) {
 			Rmap m = wholes.get(last.key());
 			if (null != m) m.putAll(last);

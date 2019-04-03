@@ -1,6 +1,5 @@
 package net.butfly.albatis.hbase;
 
-import static net.butfly.albacore.paral.Sdream.of;
 import static net.butfly.albatis.hbase.utils.HbaseScan.Range.range;
 import static net.butfly.albatis.io.IOProps.prop;
 import static net.butfly.albatis.io.IOProps.propB;
@@ -21,7 +20,6 @@ import net.butfly.albacore.base.Namedly;
 import net.butfly.albacore.io.lambda.Consumer;
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.Pair;
-import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albacore.utils.logger.Statistic;
@@ -85,7 +83,8 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 		} finally {
 			if (null != s) SCAN_POOL.offer(s);
 		}
-		if (!Colls.empty(wholes)) using.accept(of(Colls.flat(Colls.list(wholes.values(), r -> r.subs(hconn.subtableMode)))));
+		using.accept(Sdream.of(wholes.values()));
+		// if (!Colls.empty(wholes)) using.accept(of(Colls.flat(Colls.list(wholes.values(), r -> r.subs(hconn.subtableMode)))));
 	}
 
 	public void table(String table) throws IOException {

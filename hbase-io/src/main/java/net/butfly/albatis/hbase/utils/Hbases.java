@@ -157,25 +157,11 @@ public final class Hbases extends Utils {
 		static Map<String, byte[]> values(Result r) {
 			Map<String, byte[]> m = Maps.of();
 			if (null == r) return Maps.of();
-			for (Cell c : r.rawCells()) {
-				String fq = Bytes.toString(CellUtil.cloneFamily(c)) + SPLIT_CF_CH + Bytes.toString(CellUtil.cloneQualifier(c));
-				m.put(fq, CellUtil.cloneValue(c));
-			}
+			for (Cell c : r.rawCells()) m.put(//
+					Bytes.toString(CellUtil.cloneFamily(c)) + SPLIT_CF_CH + Bytes.toString(CellUtil.cloneQualifier(c)), //
+					CellUtil.cloneValue(c));
 			return m;
 		}
-
-		// static byte[][] parseFQ(String name) {
-		// String[] fq = name.split(SPLIT_CF, 2);
-		// byte[] f, q;
-		// if (fq.length == 1) {
-		// f = DEFAULT_COL_FAMILY_VALUE;
-		// q = Bytes.toBytes(fq[0]);
-		// } else {
-		// f = Bytes.toBytes(fq[0]);
-		// q = Bytes.toBytes(fq[1]);
-		// }
-		// return new byte[][] { f, q };
-		// }
 
 		static Rmap result(String table, String row, Stream<Cell> cells) {
 			return new Rmap(table, row, Hbases.map(cells));
@@ -228,7 +214,7 @@ public final class Hbases extends Utils {
 						if (s.length() > 0) val = Bytes.toBytes(s);
 					} else if (v instanceof Map) val = conv.apply((Map<String, Object>) v);
 					if (null == val || val.length == 0) return null;
-					Cell c = cell(new QualifierField(m.table(), e.getKey()), rowk, (byte[]) val);
+					Cell c = cell(QualifierField.of(m.table(), e.getKey()), rowk, (byte[]) val);
 					if (null != c) try {
 						put.add(c);
 						fc++;
@@ -242,7 +228,7 @@ public final class Hbases extends Utils {
 				Increment inc = new Increment(rowk);
 				for (Entry<String, Object> e : m.entrySet()) {
 					Object v = e.getValue();
-					inc(inc, new QualifierField(m.table(), e.getKey()), null == v ? 1 : ((Long) v).longValue());
+					inc(inc, QualifierField.of(m.table(), e.getKey()), null == v ? 1 : ((Long) v).longValue());
 					fc++;
 				}
 				return inc;
@@ -253,13 +239,13 @@ public final class Hbases extends Utils {
 		}
 
 		static Cell cell(QualifierField qf, byte[] rowk, byte[] val) {
-			return CellUtil.createCell(rowk, Bytes.toBytes(qf.table.family), Bytes.toBytes((null == qf.prefix ? "" : qf.prefix + SPLIT_PREFIX)
+			return CellUtil.createCell(rowk, Bytes.toBytes(qf.family), Bytes.toBytes((null == qf.prefix ? "" : qf.prefix + SPLIT_PREFIX)
 					+ qf.name), //
 					HConstants.LATEST_TIMESTAMP, Type.Put.getCode(), val);
 		}
 
 		static void inc(Increment inc, QualifierField qf, long v) {
-			inc.addColumn(Bytes.toBytes(qf.table.family), Bytes.toBytes((null == qf.prefix ? "" : qf.prefix + SPLIT_PREFIX) + qf.name), v);
+			inc.addColumn(Bytes.toBytes(qf.family), Bytes.toBytes((null == qf.prefix ? "" : qf.prefix + SPLIT_PREFIX) + qf.name), v);
 		}
 
 		static Mutation op(Rmap m) {
@@ -286,7 +272,7 @@ public final class Hbases extends Utils {
 						return null;
 					}
 					if (null == val || val.length == 0) return null;
-					Cell c = cell(new QualifierField(m.table(), e.getKey()), rowk, (byte[]) val);
+					Cell c = cell(QualifierField.of(m.table(), e.getKey()), rowk, (byte[]) val);
 					if (null != c) try {
 						put.add(c);
 						fc++;
@@ -299,7 +285,7 @@ public final class Hbases extends Utils {
 			case INCREASE:
 				Increment inc = new Increment(rowk);
 				for (Entry<String, Object> e : m.entrySet()) {
-					inc(inc, new QualifierField(m.table(), e.getKey()), null == e.getValue() ? 1 : ((Long) e.getValue()).longValue());
+					inc(inc, QualifierField.of(m.table(), e.getKey()), null == e.getValue() ? 1 : ((Long) e.getValue()).longValue());
 					fc++;
 				}
 				return inc;

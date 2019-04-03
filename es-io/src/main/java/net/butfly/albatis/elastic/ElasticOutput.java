@@ -43,8 +43,7 @@ public class ElasticOutput extends ElasticOutputBase<ElasticConnection> {
 
 	@Override
 	boolean noRetry(Throwable cause) {
-		while (RemoteTransportException.class.isAssignableFrom(cause.getClass()) && cause.getCause() != null)
-			cause = cause.getCause();
+		while (RemoteTransportException.class.isAssignableFrom(cause.getClass()) && cause.getCause() != null) cause = cause.getCause();
 		if (MapperException.class.isAssignableFrom(cause.getClass())) logger().error("ES mapper exception", cause);
 		return // EsRejectedExecutionException.class.isAssignableFrom(cause.getClass()) ||
 				// VersionConflictEngineException.class.isAssignableFrom(c) ||
@@ -54,5 +53,4 @@ public class ElasticOutput extends ElasticOutputBase<ElasticConnection> {
 	static {
 		unwrap(RemoteTransportException.class, "getCause");
 	}
-
 }

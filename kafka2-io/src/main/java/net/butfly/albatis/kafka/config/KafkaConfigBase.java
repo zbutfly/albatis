@@ -117,7 +117,7 @@ public abstract class KafkaConfigBase implements Serializable {
 			bootstrapServers = bAndZk.v1();
 			zookeeperConnect = bAndZk.v2();
 			break;
-		case "bootstrap": // directly bootstrap support
+		case "bootstrap": // directly bootstrap support kafka:bootstrap://172.30.1.3:2334/
 			bootstrapServers = uri.getHost();
 			zookeeperConnect = null;
 			break;

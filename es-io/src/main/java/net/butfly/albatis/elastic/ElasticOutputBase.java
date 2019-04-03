@@ -24,8 +24,7 @@ import net.butfly.albatis.DataConnection;
 import net.butfly.albatis.io.OutputBase;
 import net.butfly.albatis.io.Rmap;
 
-public abstract class ElasticOutputBase <T extends DataConnection<?> & ElasticConnect> extends OutputBase<Rmap> {
-
+public abstract class ElasticOutputBase<T extends DataConnection<?> & ElasticConnect> extends OutputBase<Rmap> {
 	private static final long serialVersionUID = 1874320396863861434L;
 	static final Logger logger = Logger.getLogger(ElasticOutput.class);
 	public static final int MAX_RETRY = 3;
@@ -45,8 +44,8 @@ public abstract class ElasticOutputBase <T extends DataConnection<?> & ElasticCo
 	@Override
 	public Statistic trace() {
 		return new Statistic(this).sizing(BulkRequest::estimatedSizeInBytes)//
-				.<BulkRequest>batchSizeCalcing(r -> (long) r.requests().size())//
-				.<BulkRequest>sampling(r -> r.requests().isEmpty() ? null : r.requests().get(0).toString());
+				.<BulkRequest> batchSizeCalcing(r -> (long) r.requests().size())//
+				.<BulkRequest> sampling(r -> r.requests().isEmpty() ? null : r.requests().get(0).toString());
 	}
 
 	@Override
@@ -60,8 +59,7 @@ public abstract class ElasticOutputBase <T extends DataConnection<?> & ElasticCo
 	@Override
 	protected void enqsafe(Sdream<Rmap> msgs) {
 		Map<Object, Rmap> remains = Maps.of();
-		for (Rmap m : msgs.list())
-			remains.put(m.key(), conn.fixTable(m));
+		for (Rmap m : msgs.list()) remains.put(m.key(), conn.fixTable(m));
 		if (!remains.isEmpty()) go(remains);
 	}
 

@@ -45,8 +45,7 @@ public class ElasticOutputAsync extends ElasticOutput {
 		}
 
 		public void join() {
-			while (!remains.isEmpty())
-				Task.waitSleep(10);
+			while (!remains.isEmpty()) Task.waitSleep(10);
 		}
 
 		@Override
