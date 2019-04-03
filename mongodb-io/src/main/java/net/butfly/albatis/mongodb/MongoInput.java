@@ -103,6 +103,7 @@ public class MongoInput extends net.butfly.albacore.base.Namedly implements OddI
 			} catch (Exception ex) {
 				logger.error("MongoDB query [" + col + "] failed", ex);
 				c = null;
+				throw ex;
 			}
 			cursor = c;
 		}
