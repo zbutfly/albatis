@@ -93,7 +93,7 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 	}
 
 	public final void table(String... table) throws IOException {
-		for (String t : table) table(t, t);
+		for (String t : table) table(t);
 	}
 
 	public void table(String table, Collection<String> families, Collection<String> prefixes, byte[]... startAndStopRow) throws IOException {
