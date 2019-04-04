@@ -72,12 +72,9 @@ public final class Hbases extends Utils {
 
 	public static Connection connect(Map<String, String> conf, InputStream... res) throws IOException {
 		Configuration hconf = HBaseConfiguration.create();
-		for (Entry<String, String> c : props().entrySet())
-			hconf.set(c.getKey(), c.getValue());
-		if (null != conf && !conf.isEmpty()) for (Entry<String, String> c : conf.entrySet())
-			hconf.set(c.getKey(), c.getValue());
-		if (!Colls.empty(res)) for (InputStream r : res)
-			hconf.addResource(r);
+		for (Entry<String, String> c : props().entrySet()) hconf.set(c.getKey(), c.getValue());
+		if (null != conf && !conf.isEmpty()) for (Entry<String, String> c : conf.entrySet()) hconf.set(c.getKey(), c.getValue());
+		if (!Colls.empty(res)) for (InputStream r : res) hconf.addResource(r);
 		// hbase.security.authentication = kerberos/normal
 		if (User.isHBaseSecurityEnabled(hconf)) Kerberoses.kerberosAuth(hconf);
 

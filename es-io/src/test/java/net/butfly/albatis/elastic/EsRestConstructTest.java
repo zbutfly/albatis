@@ -27,7 +27,7 @@ public class EsRestConstructTest {
 	public void output() {
 		String url = "es://es632@172.30.10.31:29300/";
 		try (Connection connection = Connection.connect(new URISpec(url));
-				Output o = connection.output();) {
+				Output<Rmap> o = connection.output();) {
 			Rmap r = new Rmap("es_rest_test/es_rest_test", "165");
 			r.keyField("name");
 			r.put("name", "165");
