@@ -195,8 +195,7 @@ public class OracleDialect extends Dialect {
 		for (FieldDesc f : fields)
 			fieldSql.add(buildField(f));
 		sql.append("create table ").append(table).append("(").append(String.join(",", fieldSql.toArray(new String[0]))).append(")");
-		// TODO Auto-generated method stub
-		return null;
+		return sql.toString();
 	}
 
 	private static String buildField(FieldDesc field) {
