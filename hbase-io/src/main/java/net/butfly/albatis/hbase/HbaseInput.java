@@ -36,7 +36,7 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 	static final int SCAN_MAX_CELLS_PER_ROW = propI(HbaseInput.class, "scan.max.cells.per.row", 10000,
 			"Hbase max cells per row (more will be ignore).");
 	static final Pair<SkipMode, String> SCAN_SKIP = SkipMode.parse(prop(HbaseInput.class, "scan.skip", null,
-			"Hbase scan skip (for debug or resume): ROWS:n, REGIONS:n, [ROWKEY:]n."));
+			"Hbase scan skip (for debug or resume): ROWS:N, REGIONS:N, ROWKEY:N."));
 
 	// TODO:subtable split options, should move from HbaseFrom
 
