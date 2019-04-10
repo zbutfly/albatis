@@ -137,6 +137,52 @@ public class MysqlDialect extends Dialect {
 	}
 
 	@Override
+	public String buildCreateTableSql(String table, FieldDesc... fields) {
+		StringBuilder sql = new StringBuilder();
+		List<String> fieldSql = new ArrayList<>();
+		for (FieldDesc f : fields)
+			fieldSql.add(buildField(f));
+		sql.append("create table ").append(table).append("(").append(String.join(",", fieldSql.toArray(new String[0]))).append(")");
+		return sql.toString();
+	}
+
+	private static String buildField(FieldDesc field) {
+		StringBuilder sb = new StringBuilder();
+		switch (field.type.flag) {
+			case BOOL:
+			case BYTE:
+				sb.append(field.name).append(" tinyint(1)");
+				break;
+			case SHORT:
+			case BINARY:
+				sb.append(field.name).append(" int(8)");
+				break;
+			case INT:
+				sb.append(field.name).append(" int(16)");
+				break;
+			case LONG:
+				sb.append(field.name).append(" int(64)");
+				break;
+			case FLOAT:
+			case DOUBLE:
+				sb.append(field.name).append(" double(16,2)");
+				break;
+			case STR:
+			case CHAR:
+			case UNKNOWN:
+				sb.append(field.name).append(" varchar(50)");
+				break;
+			case DATE:
+				sb.append(field.name).append(" datetime");
+				break;
+			default:
+				break;
+		}
+		if (field.rowkey) sb.append(" not null primary key");
+		return sb.toString();
+	}
+
+	@Override
 	public void tableConstruct(Connection conn, String table, TableDesc tableDesc, List<FieldDesc> fields) {
 		StringBuilder createSql = new StringBuilder();
 		StringBuilder createIndex = new StringBuilder();
