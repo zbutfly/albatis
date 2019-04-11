@@ -75,7 +75,7 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 		TableScaner s;
 		// rowkey -> record, fetch and fullfil so that earch in the poll should be whole.
 		Map<String, Rmap> wholes = Maps.of();
-		while (opened() && !empty()) if (null != (s = SCAN_POOL.poll())) try {
+		while (opened() && !empty() && wholes.size() < batchSize()) if (null != (s = SCAN_POOL.poll())) try {
 			if (s.dequeue(wholes)) {
 				s.close();
 				s = null;
