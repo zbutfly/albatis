@@ -112,7 +112,7 @@ public class MappingConstructor {
 		throw new IllegalArgumentException();
 	}
 
-	protected Map<String, Object> fieldAnalyzer() {
+	public Map<String, Object> fieldAnalyzer() {
 		return fieldAnalyzer(analyzer);
 	}
 
