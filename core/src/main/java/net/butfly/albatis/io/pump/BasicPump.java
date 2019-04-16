@@ -1,25 +1,29 @@
 package net.butfly.albatis.io.pump;
 
-import net.butfly.albacore.utils.Reflections;
+import static net.butfly.albacore.utils.Reflections.noneNull;
+
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albatis.io.Input;
 import net.butfly.albatis.io.Output;
 
 public class BasicPump<V> extends PumpImpl<V, BasicPump<V>> {
-	private final Input<V> input;
-	private final Output<V> output;
+	protected final Input<V> input;
+	protected final Output<V> output;
 
-	public BasicPump(Input<V> input, int parallelism, Output<V> output) {
-		super(input.name() + ">" + output.name(), parallelism);
+	protected BasicPump(String name, Input<V> input, int parallelism, Output<V> output) {
+		super(name, parallelism);
+		noneNull("Pump source/destination should not be null", input, output);
 		this.input = input;
 		this.output = output;
-		Reflections.noneNull("Pump source/destination should not be null", input, output);
 		depend(Colls.list(input, output));
-		pumping(input::empty, this::p);
+		pumping(input::empty, this::proc);
 	}
 
-	private void p() {
-		if (opened()) //
-			input.dequeue(output);
+	public BasicPump(Input<V> input, int parallelism, Output<V> output) {
+		this(input.name() + ">" + output.name(), input, parallelism, output);
+	}
+
+	protected void proc() {
+		if (opened()) input.dequeue(output);
 	}
 }
