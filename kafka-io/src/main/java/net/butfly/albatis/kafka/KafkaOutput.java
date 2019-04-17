@@ -3,7 +3,6 @@ package net.butfly.albatis.kafka;
 import static net.butfly.albacore.paral.Sdream.of;
 
 import java.util.List;
-import java.util.concurrent.atomic.AtomicLong;
 
 import kafka.javaapi.producer.Producer;
 import kafka.producer.KeyedMessage;
@@ -28,39 +27,25 @@ public class KafkaOutput extends KafkaOut {
 		closing(producer::close);
 	}
 
-	private static AtomicLong count = new AtomicLong(), spent = new AtomicLong();
-
 	@Override
 	protected void enqsafe(Sdream<Rmap> messages) {
 		List<Rmap> msgs = messages.list();
-		List<KeyedMessage<byte[], byte[]>> ms = of(msgs).mapFlat(m -> {
+		List<KeyedMessage<byte[], byte[]>> ml = of(msgs).mapFlat(m -> {
 			List<KeyedMessage<byte[], byte[]>> l = Colls.list();
 			m.forEach((k, body) -> l.add(new KeyedMessage<>(m.table().name, k.getBytes(), (byte[]) body)));
 			return of(l);
 		}).nonNull().list();
-		if (!ms.isEmpty()) try {
-			int s = ms.size();
-			long now = System.currentTimeMillis();
-			try {
-				if (s == 1) producer.send(ms.get(0));
-				else producer.send(ms);
-			} finally {
-				long t = spent.addAndGet(System.currentTimeMillis() - now) / 1000;
-				long c = count.addAndGet(s);
-				if (t > 1 && c % 1000 == 0) //
-					logger().trace("\n\tKafka sent [" + c + " recs], spent [" + t + " s], avg [" + c / t + " recs/s].");
-			}
-			succeeded(s);
-		} catch (
-
-		Exception e) {
+		int size;
+		if (!ml.isEmpty()) try {
+			if (1 == (size = ml.size())) s().statsOutN(ml.get(0), producer::send);
+			else s().statsOutsN(ml, producer::send);
+			succeeded(size);
+		} catch (Exception e) {
 			failed(Sdream.of(msgs));
 		}
 	}
 
-	public String getDefaultTopic() {
-		return config.topics().isEmpty() ? null : config.topics().get(0);
-	}
+	public String getDefaultTopic() { return config.topics().isEmpty() ? null : config.topics().get(0); }
 
 	@Override
 	public URISpec target() {
