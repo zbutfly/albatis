@@ -10,6 +10,7 @@ import net.butfly.albacore.exception.ConfigException;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.collection.Colls;
+import net.butfly.albacore.utils.logger.Statistic;
 import net.butfly.albatis.io.Rmap;
 import net.butfly.albatis.kafka.config.KafkaOutputConfig;
 
@@ -25,6 +26,13 @@ public class KafkaOutput extends KafkaOut {
 		config = new KafkaOutputConfig(uri);
 		producer = new Producer<byte[], byte[]>(config.getConfig());
 		closing(producer::close);
+	}
+
+	@Override
+	public Statistic trace() {
+		return new Statistic(this).<KeyedMessage<byte[], byte[]>>sizing(km -> null == km ? 0 : (long) km.message().length)
+//				.<KeyedMessage<byte[], byte[]>>sampling(km -> null == km ? null : new String(km.message()))
+		;
 	}
 
 	@Override
