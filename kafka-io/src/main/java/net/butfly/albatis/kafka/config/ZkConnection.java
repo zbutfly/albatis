@@ -12,12 +12,14 @@ import org.apache.zookeeper.ZooKeeper;
 
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.serder.JsonSerder;
+import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.logger.Logger;
 
 public class ZkConnection implements AutoCloseable {
 	protected static final Logger logger = Logger.getLogger(KafkaZkParser.class);
+	private static final int MAX_RETRIES = Integer.parseInt(Configs.gets("albatis.kafka.zookeeper.max.retries", "10"));
 	private static final Watcher w = e -> {};
 
 	protected final ZooKeeper zk;
@@ -28,26 +30,41 @@ public class ZkConnection implements AutoCloseable {
 	}
 
 	public Sdream<String> fetchChildren(String path) {
+		int retried = 0;
+		KeeperException err = null;
 		try {
-			return of(zk.getChildren(path, false));
-		} catch (KeeperException e) {
-			throw new RuntimeException("ZK failure", e);
+			while (retried++ < MAX_RETRIES) try {
+				return of(zk.getChildren(path, false));
+			} catch (KeeperException e) {
+				logger.warn("ZK children [" + path + "] being retried [" + retried + "] for failure: " + e.toString());
+				err = e;
+				Thread.sleep(100);
+			}
 		} catch (InterruptedException e) {
 			throw new RuntimeException("Kafka connecting [" + zk.toString() + "] path [" + path + "] interrupted.", e);
 		}
+		logger.error("ZK children [" + path + "] failure after [" + retried + "] retries.", err);
+		return of();
 	}
 
 	public String fetchText(String path) {
+		int retried = 0;
+		KeeperException err = null;
 		try {
-			byte[] b = zk.getData(path, false, null);
-			return null == b ? null : new String(b);
-		} catch (KeeperException e) {
-			logger.warn("ZK failure: " + e.getMessage());
-			return null;
+			while (retried++ < MAX_RETRIES) try {
+				byte[] b = zk.getData(path, false, null);
+				return null == b ? null : new String(b);
+			} catch (KeeperException e) {
+				logger.warn("ZK data [" + path + "] being retried [" + retried + "] for failure: " + e.toString());
+				err = e;
+				Thread.sleep(100);
+			}
 		} catch (InterruptedException e) {
 			logger.warn("Kafka connecting [" + zk.toString() + "] path [" + path + "] interrupted." + e.getMessage());
 			return null;
 		}
+		logger.error("ZK data [" + path + "] failed after [" + retried + "] retries.", err);
+		return null;
 	}
 
 	public <T> T fetchValue(String path, Class<T> cl) {

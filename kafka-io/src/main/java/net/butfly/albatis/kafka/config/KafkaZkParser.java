@@ -9,8 +9,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.IntStream;
 
-import com.google.common.base.Joiner;
-
 import kafka.api.PartitionOffsetRequestInfo;
 import kafka.common.TopicAndPartition;
 import kafka.javaapi.OffsetRequest;
@@ -69,7 +67,9 @@ public class KafkaZkParser extends ZkConnection {
 		SimpleConsumer c = getLeaderConsumer(topic, group);
 		if (null == c) return -1;
 		try {
-			return IntStream.of(getTopicPartitions(topic).get(topic)).mapToLong(p -> getLag(c, topic, group, p)).sum();
+			int[] s = getTopicPartitions(topic).get(topic);
+			if (null == s) return -1;
+			return IntStream.of(s).mapToLong(p -> getLag(c, topic, group, p)).sum();
 		} catch (Throwable t) {
 			return -1;
 		} finally {
@@ -78,8 +78,8 @@ public class KafkaZkParser extends ZkConnection {
 	}
 
 	private long getLag(SimpleConsumer consumer, String topic, String group, int part) {
-		OffsetRequest req = new OffsetRequest(Maps.of(new TopicAndPartition(topic, part), new PartitionOffsetRequestInfo(
-				kafka.api.OffsetRequest.LatestTime(), 1)), kafka.api.OffsetRequest.CurrentVersion(), group);
+		OffsetRequest req = new OffsetRequest(Maps.of(new TopicAndPartition(topic, part), //
+				new PartitionOffsetRequestInfo(kafka.api.OffsetRequest.LatestTime(), 1)), kafka.api.OffsetRequest.CurrentVersion(), group);
 		OffsetResponse resp = consumer.getOffsetsBefore(req);
 		long[] logsize = resp.offsets(topic, part);
 		return logsize.length == 0 ? 0 : logsize[0] - getOffset(topic, group, part);
@@ -117,20 +117,20 @@ public class KafkaZkParser extends ZkConnection {
 			try (KafkaZkParser zk = new KafkaZkParser(uri.getHost() + path)) {
 				bstrs = zk.getBrokers();
 			} catch (Exception e) {
-				logger.warn("ZK [" + uri.getHost() + path + "] detecting failure, try parent uri as ZK.", e);
+				logger.warn("ZK [" + uri.getHost() + path + "] detecting failure, try parent uri as ZK, error:" + e.toString());
 			}
 		} while (bstrs.length == 0 && !(path = path.replaceAll("/[^/]*$", "")).isEmpty());
 		if (bstrs.length > 0) return new Pair<>(String.join(",", bstrs), uri.getHost() + path);
 		else return new Pair<>(Configs.gets(KafkaConfigBase.PROP_PREFIX + "brokers"), uri.getHost() + uri.getPath());
 	}
 
-	static String bootstrapFromZk(String zookeeperConnect) {
-		try (KafkaZkParser zk = new KafkaZkParser(zookeeperConnect)) {
-			String b = Joiner.on(",").join(zk.getBrokers());
-			logger.trace("Zookeeper detect broken list automatically: [" + b + "])");
-			return b;
+	static String bootstrapFromZk(String zkconn) {
+		try (KafkaZkParser zk = new KafkaZkParser(zkconn)) {
+			String b = String.join(",", zk.getBrokers());
+			logger.trace("ZK [" + zkconn + "] detect broken list automatically: [" + b + "])");
+			return b.length() > 0 ? b : null;
 		} catch (Exception e) {
-			logger.warn("Zookeeper detect broken list failure", e);
+			logger.warn("ZK [" + zkconn + "] detect broken list failure: " + e.toString());
 			return null;
 		}
 	}
