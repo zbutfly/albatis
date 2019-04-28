@@ -8,7 +8,6 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import com.google.common.base.Joiner;
 import com.mongodb.Bytes;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
@@ -55,7 +54,7 @@ public class MongoLockedInput extends net.butfly.albacore.base.Namedly implement
 			if (conn.defaultCollection() == null) throw new IOException("MongoDB could not input whith non or null table.");
 			tables = new String[] { conn.defaultCollection() };
 		}
-		logger().info("[" + name + "] from [" + conn.toString() + "], collection [" + Joiner.on(",").join(tables) + "]");
+		logger().info("[" + name + "] from [" + conn.toString() + "], collection [" + String.join(",", tables) + "]");
 		queryings = new AtomicInteger(tables.length);
 		this.conn = conn;
 		logger().debug("[" + name + "] find begin...");
@@ -97,10 +96,9 @@ public class MongoLockedInput extends net.butfly.albacore.base.Namedly implement
 	}
 
 	private void closeMongo() {
-		while (!cursors.isEmpty())
-			try {
-				cursors.remove(0).close();
-			} catch (Exception e) {}
+		while (!cursors.isEmpty()) try {
+			cursors.remove(0).close();
+		} catch (Exception e) {}
 		conn.close();
 	}
 
@@ -113,33 +111,31 @@ public class MongoLockedInput extends net.butfly.albacore.base.Namedly implement
 	@Override
 	public Rmap dequeue() {
 		int i = 0;
-		while (!cursors.isEmpty())
+		while (!cursors.isEmpty()) try {
+			if (i >= cursors.size()) i -= cursors.size();
+			C c = cursors.get(i);
+			DBObject dbo = null;
+			if (!c.lock.writeLock().tryLock()) continue;
 			try {
-				if (i >= cursors.size()) i -= cursors.size();
-				C c = cursors.get(i);
-				DBObject dbo = null;
-				if (!c.lock.writeLock().tryLock()) continue;
-				try {
-					if (c.cursor.hasNext()) dbo = c.cursor.next();
-					else {
-						cursors.remove(c);
-						c.close();
-					}
-				} catch (Exception e) {
-					logger().warn("Mongodb fail and ignore: " + e.toString());
-				} finally {
-					c.lock.writeLock().unlock();
+				if (c.cursor.hasNext()) dbo = c.cursor.next();
+				else {
+					cursors.remove(c);
+					c.close();
 				}
-				if (null != dbo) return new Rmap(c.table, (String) null, dbo.toMap());
+			} catch (Exception e) {
+				logger().warn("Mongodb fail and ignore: " + e.toString());
 			} finally {
-				i++;
+				c.lock.writeLock().unlock();
 			}
+			if (null != dbo) return new Rmap(c.table, (String) null, dbo.toMap());
+		} finally {
+			i++;
+		}
 		return null;
 	}
 
 	public MongoLockedInput batch(int batching) {
-		for (C c : cursors)
-			c.cursor.batchSize(batching);
+		for (C c : cursors) c.cursor.batchSize(batching);
 		return this;
 	}
 }

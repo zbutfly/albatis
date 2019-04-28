@@ -1,7 +1,22 @@
 package net.butfly.albatis.mongodb;
 
-import com.google.common.base.Joiner;
-import com.mongodb.*;
+import java.io.IOException;
+import java.net.UnknownHostException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+
+import org.bson.BSONObject;
+
+import com.mongodb.BasicDBList;
+import com.mongodb.BasicDBObject;
+import com.mongodb.DB;
+import com.mongodb.DBCollection;
+import com.mongodb.DBCursor;
+import com.mongodb.DBObject;
+import com.mongodb.MongoClient;
+import com.mongodb.MongoClientURI;
+
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
@@ -9,14 +24,6 @@ import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.DataConnection;
 import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.ddl.TableDesc;
-
-import org.bson.BSONObject;
-
-import java.io.IOException;
-import java.net.UnknownHostException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
 
 /**
  * @author butfly
@@ -119,9 +126,7 @@ public class MongoConnection extends DataConnection<MongoClient> {
 	 */
 	public static BasicDBObject dbobj(BSONObject... origin) {
 		BasicDBObject dbo = new BasicDBObject();
-		for (BSONObject o : origin)
-			if (null != o) for (String k : o.keySet())
-				putDeeply(dbo, k, o.get(k));
+		for (BSONObject o : origin) if (null != o) for (String k : o.keySet()) putDeeply(dbo, k, o.get(k));
 		return dbo;
 	}
 
@@ -133,8 +138,7 @@ public class MongoConnection extends DataConnection<MongoClient> {
 	 */
 	public static BasicDBObject dbobj(Map<String, ?> map) {
 		BasicDBObject dbo = new BasicDBObject();
-		for (String k : map.keySet())
-			putDeeply(dbo, k, map.get(k));
+		for (String k : map.keySet()) putDeeply(dbo, k, map.get(k));
 		return dbo;
 	}
 
@@ -149,8 +153,8 @@ public class MongoConnection extends DataConnection<MongoClient> {
 	public static BasicDBObject dbobj(String key, Object... valueAndKeys) {
 		BasicDBObject dbo = dbobj();
 		if (null != valueAndKeys[0]) dbo.put(key, valueAndKeys[0]);
-		for (int i = 1; i + 1 < valueAndKeys.length; i += 2)
-			if (null != valueAndKeys[i + 1]) dbo.put(((CharSequence) valueAndKeys[i]).toString(), valueAndKeys[i + 1]);
+		for (int i = 1; i + 1 < valueAndKeys.length; i += 2) if (null != valueAndKeys[i + 1]) dbo.put(((CharSequence) valueAndKeys[i])
+				.toString(), valueAndKeys[i + 1]);
 		return dbo;
 	}
 
@@ -163,22 +167,20 @@ public class MongoConnection extends DataConnection<MongoClient> {
 
 	public DBCursor cursor(String table, DBObject... filter) {
 		DBCursor cursor;
-		if (!collectionExists(table))
-			throw new IllegalArgumentException("Collection [" + table + "] not existed for input");
+		if (!collectionExists(table)) throw new IllegalArgumentException("Collection [" + table + "] not existed for input");
 		DBCollection col = collection(table);
 		long now;
 		if (null == filter || filter.length == 0) {
 			now = System.nanoTime();
 			cursor = col.find();
 		} else {
-			logger.info("Mongodb [" + table + "] filters: \n\t" + Joiner.on("\n\t").join(filter) + "\nnow count:");
+			logger.info("Mongodb [" + table + "] filters: \n\t" + String.join("\n\t", String.valueOf(filter)) + "\nnow count:");
 			if (filter.length == 1) {
 				now = System.nanoTime();
 				cursor = col.find(filter[0]);
 			} else {
 				BasicDBList filters = new BasicDBList();
-				for (DBObject f : filter)
-					filters.add(f);
+				for (DBObject f : filter) filters.add(f);
 				now = System.nanoTime();
 				cursor = col.find(dbobj("$and", filters));
 			}
@@ -235,8 +237,7 @@ public class MongoConnection extends DataConnection<MongoClient> {
 		DBObject object = new BasicDBObject();
 		Object cappedSize = tableDesc.construct.get("size");
 		Object cappedMax = tableDesc.construct.get("max");
-		if (null == cappedMax || null == cappedSize)
-			object.put("capped", false);
+		if (null == cappedMax || null == cappedSize) object.put("capped", false);
 		else {
 			object.put("capped", true);
 			object.put("size", cappedSize);

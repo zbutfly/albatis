@@ -31,8 +31,6 @@ import org.apache.kudu.client.Operation;
 import org.apache.kudu.client.OperationResponse;
 import org.apache.kudu.client.SessionConfiguration.FlushMode;
 
-import com.google.common.base.Joiner;
-
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.io.lambda.BiConsumer;
 import net.butfly.albacore.utils.Configs;
@@ -139,9 +137,8 @@ public class KuduConnection extends KuduConnectionBase<KuduConnection, KuduClien
 			throw new RuntimeException(e);
 		}
 		List<String> keys = new ArrayList<>();
-		for (ColumnSchema c : cols)
-			if (c.isKey()) keys.add(c.getName());
-			else break;
+		for (ColumnSchema c : cols) if (c.isKey()) keys.add(c.getName());
+		else break;
 
 		int buckets = Integer.parseInt(System.getProperty(KuduProps.TABLE_BUCKETS, "24"));
 		String v = Configs.get(KuduProps.TABLE_REPLICAS);
@@ -149,7 +146,7 @@ public class KuduConnection extends KuduConnectionBase<KuduConnection, KuduClien
 		String info = "with bucket [" + buckets + "], can be defined by [-D" + KuduProps.TABLE_BUCKETS + "=8(default value)]";
 		if (replicas > 0) info = info + ", with replicas [" + replicas + "], can be defined by [-D" + KuduProps.TABLE_REPLICAS
 				+ "=xx(no default value)]";
-		logger.info("Kudu table [" + table + "] will be created with keys: [" + Joiner.on(',').join(keys) + "], " + info);
+		logger.info("Kudu table [" + table + "] will be created with keys: [" + String.join(",", keys) + "], " + info);
 		CreateTableOptions opts = new CreateTableOptions().addHashPartitions(keys, buckets);
 		if (replicas > 0) opts = opts.setNumReplicas(replicas);
 		try {
@@ -206,8 +203,8 @@ public class KuduConnection extends KuduConnectionBase<KuduConnection, KuduClien
 				// 用列做为分区的参照
 				tableOptions.setRangePartitionColumns(keys);
 			else
-			// 添加key的hash分区
-			tableOptions.addHashPartitions(keys, Integer.parseInt(bucket.toString()));
+				// 添加key的hash分区
+				tableOptions.addHashPartitions(keys, Integer.parseInt(bucket.toString()));
 			// 创建table,并设置partition
 			try {
 				client.createTable(tableName, schema, tableOptions);

@@ -23,7 +23,6 @@ import org.apache.kudu.client.Operation;
 import org.apache.kudu.client.OperationResponse;
 import org.apache.kudu.client.SessionConfiguration.FlushMode;
 
-import com.google.common.base.Joiner;
 import com.stumbleupon.async.Deferred;
 
 import net.butfly.albacore.io.URISpec;
@@ -43,9 +42,8 @@ public class KuduConnectionAsync extends KuduConnectionBase<KuduConnectionAsync,
 		pendingHandler = new Thread(() -> {
 			List<Pair<Operation, Deferred<OperationResponse>>> m = new CopyOnWriteArrayList<Pair<Operation, Deferred<OperationResponse>>>();
 			do {
-				while (PENDINGS.drainTo(m, 1000) > 0)
-					for (Pair<Operation, Deferred<OperationResponse>> d : m)
-						process(d.v1(), d.v2(), this::error);
+				while (PENDINGS.drainTo(m, 1000) > 0) for (Pair<Operation, Deferred<OperationResponse>> d : m) process(d.v1(), d.v2(),
+						this::error);
 			} while (Task.waitSleep());
 		}, "KuduErrorHandler[" + kuduUri.toString() + "]");
 		pendingHandler.setDaemon(true);
@@ -72,7 +70,7 @@ public class KuduConnectionAsync extends KuduConnectionBase<KuduConnectionAsync,
 		if (null == op) return false;
 		Deferred<OperationResponse> or;
 		try {
-			session= op.getTable().getAsyncClient().newSession();
+			session = op.getTable().getAsyncClient().newSession();
 			session.setFlushMode(FlushMode.AUTO_FLUSH_BACKGROUND);
 			session.setTimeoutMillis(Long.parseLong(Configs.get(KuduProps.TIMEOUT, "2000")));
 			session.setFlushInterval(1000);
@@ -135,9 +133,8 @@ public class KuduConnectionAsync extends KuduConnectionBase<KuduConnectionAsync,
 			throw new RuntimeException(e);
 		}
 		List<String> keys = new ArrayList<>();
-		for (ColumnSchema c : cols)
-			if (c.isKey()) keys.add(c.getName());
-			else break;
+		for (ColumnSchema c : cols) if (c.isKey()) keys.add(c.getName());
+		else break;
 
 		int buckets = Integer.parseInt(System.getProperty(KuduProps.TABLE_BUCKETS, "24"));
 		String v = Configs.get(KuduProps.TABLE_REPLICAS);
@@ -145,7 +142,7 @@ public class KuduConnectionAsync extends KuduConnectionBase<KuduConnectionAsync,
 		String info = "with bucket [" + buckets + "], can be defined by [-D" + KuduProps.TABLE_BUCKETS + "=8(default value)]";
 		if (replicas > 0) info = info + ", with replicas [" + replicas + "], can be defined by [-D" + KuduProps.TABLE_REPLICAS
 				+ "=xx(no default value)]";
-		logger.info("Kudu table [" + table + "] will be created with keys: [" + Joiner.on(',').join(keys) + "], " + info);
+		logger.info("Kudu table [" + table + "] will be created with keys: [" + String.join(",", keys) + "], " + info);
 		CreateTableOptions opts = new CreateTableOptions().addHashPartitions(keys, buckets);
 		if (replicas > 0) opts = opts.setNumReplicas(replicas);
 		try {

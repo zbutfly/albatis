@@ -6,8 +6,6 @@ import java.text.MessageFormat;
 import org.elasticsearch.script.Script;
 import org.elasticsearch.script.ScriptType;
 
-import com.google.common.base.Joiner;
-
 import net.butfly.albacore.utils.IOs;
 import net.butfly.albacore.utils.Reflections;
 import net.butfly.albacore.utils.collection.Maps;
@@ -28,15 +26,15 @@ public enum ScriptLang {
 
 	public String readTemplate(Class<?> loadClass, String templateName) {
 		String content = read(loadClass, new StringBuilder().append("/").append(templateName).append(".").append(ext).toString());
-		if (null == content) content = new StringBuilder().append("/").append(Reflections.packageName(loadClass).replaceAll("\\.", "/"))
-				.append("/").append(templateName).append(".").append(ext).toString();
+		if (null == content) content = new StringBuilder().append("/").append(Reflections.packageName(loadClass).replaceAll("\\.", "/")).append(
+				"/").append(templateName).append(".").append(ext).toString();
 		return content;
 	}
 
 	private String read(Class<?> loadClass, String filename) {
 		String content;
 		try (InputStream is = loadClass.getResourceAsStream(filename);) {
-			content = Joiner.on("\n").join(IOs.readLines(is));
+			content = String.join("\n", IOs.readLines(is));
 		} catch (Throwable e) {
 			return null;
 		}

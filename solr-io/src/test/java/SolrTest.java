@@ -5,8 +5,6 @@ import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.response.QueryResponse;
 
-import com.google.common.base.Joiner;
-
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.solr.SolrConnection;
 
@@ -22,13 +20,12 @@ public class SolrTest {
 
 	private static void test(String solrURL, String... core) throws URISyntaxException {
 		try (SolrConnection solr = new SolrConnection(solrURL);) {
-			QueryResponse resp = core.length == 0 ? solr.client.query(new SolrQuery("*:*"))
-					: solr.client.query(core[0], new SolrQuery("*:*"));
+			QueryResponse resp = core.length == 0 ? solr.client.query(new SolrQuery("*:*")) : solr.client.query(core[0], new SolrQuery("*:*"));
 			assert (resp.getResults().size() > 0);
 			System.err.println("Original URL: \t" + solrURL);
 			System.err.println("Base URL: \t" + solr.getBase());
 			System.err.println("Default Core: \t" + solr.getDefaultColl());
-			System.err.println("Cores: " + Joiner.on(',').join(solr.getColls()));
+			System.err.println("Cores: " + String.join(",", solr.getColls()));
 		} catch (SolrServerException | IOException e) {
 			logger.error("", e);
 		}

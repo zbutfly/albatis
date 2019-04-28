@@ -9,8 +9,6 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.Properties;
 
-import com.google.common.base.Joiner;
-
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.logger.Loggable;
 
@@ -35,7 +33,7 @@ public abstract class DataConnection<C> implements Connection, Loggable {
 		if (this.uri.getDefaultPort() < 0) this.uri.setDefaultPort(defaultPort);
 		String schema = supportedSchema(uri.getSchema());
 		if (null == schema) throw new ProtocolException(uri.getSchema() + " is not supported, "//
-				+ "supported list: [" + Joiner.on(',').join(supportedSchemas) + "]");
+				+ "supported list: [" + String.join(",", supportedSchemas) + "]");
 		this.client = initialize(uri);// client.apply(uri);
 
 		parameters = new Properties();
@@ -66,9 +64,7 @@ public abstract class DataConnection<C> implements Connection, Loggable {
 		return null != b ? Integer.parseInt(b) : DEFAULT_BATCH_SIZE;
 	}
 
-	public final Properties getParameters() {
-		return parameters;
-	}
+	public final Properties getParameters() { return parameters; }
 
 	@Override
 	public final String defaultSchema() {
@@ -77,8 +73,7 @@ public abstract class DataConnection<C> implements Connection, Loggable {
 
 	public String supportedSchema(String schema) {
 		if (null == schema) return defaultSchema();
-		for (String s : supportedSchemas)
-			if (schema.toLowerCase().startsWith(s.toLowerCase())) return s;
+		for (String s : supportedSchemas) if (schema.toLowerCase().startsWith(s.toLowerCase())) return s;
 		return defaultSchema();
 	}
 
