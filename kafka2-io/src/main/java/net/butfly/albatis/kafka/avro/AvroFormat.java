@@ -202,10 +202,10 @@ public class AvroFormat extends RmapFormat {
 			switch (f.type.flag) {
 			case BINARY:
 				return new Schema.Field(f.name, createOptional(Schema.create(Schema.Type.BYTES)), null, new byte[0]);
-			case DATE:
 			case INT:
 				return new Schema.Field(f.name, createOptional(Schema.create(Schema.Type.INT)), null, 0);
 			case LONG:
+			case DATE:
 				return new Schema.Field(f.name, createOptional(Schema.create(Schema.Type.LONG)), null, 0);
 			case FLOAT:
 				return new Schema.Field(f.name, createOptional(Schema.create(Schema.Type.FLOAT)), null, 0.0);
