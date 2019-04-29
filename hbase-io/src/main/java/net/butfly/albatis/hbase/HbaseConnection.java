@@ -10,6 +10,7 @@ import static net.butfly.albatis.hbase.utils.HbaseScan.ROWKEY_UNDEFINED;
 import static net.butfly.albatis.hbase.utils.HbaseScan.Options.opts;
 import static net.butfly.albatis.hbase.utils.HbaseScan.Range.range;
 import static net.butfly.albatis.hbase.utils.Hbases.Results.result;
+import static net.butfly.albatis.io.IOProps.propB;
 import static net.butfly.albatis.io.IOProps.propI;
 import static net.butfly.albatis.io.IOProps.propL;
 
@@ -31,6 +32,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.vfs2.FileObject;
 import org.apache.hadoop.hbase.HColumnDescriptor;
@@ -103,12 +105,14 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 				+ ClassSize.TREEMAP);
 	}
 
+	final boolean OP_SINGLE = propB(this, "use.single.op", false);
+	private final boolean OP_CONFIRM_RETRY = propB(this, "confirm.and.retry", false);
 	private final int GET_SCAN_OBJS = propI(this, "get.scaner.object.queue.size", 500);
 	private final int GET_MAX_RETRIES = propI(this, "get.retry", 2);
 	protected final long GET_DUMP_MIN_SIZE = propL(this, "get.dump.min.bytes", 2097152); // 2M
 	private final Map<String, Table> tables;
 	private final LinkedBlockingQueue<Scan> scans = new LinkedBlockingQueue<>(GET_SCAN_OBJS);
-//	RmapSubMode subtableMode;
+	// RmapSubMode subtableMode;
 
 	public HbaseConnection() throws IOException {
 		this(new URISpec("hbase:///"));
@@ -119,10 +123,9 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 		tables = Maps.of();
 	}
 
-
 	@Override
 	protected org.apache.hadoop.hbase.client.Connection initialize(URISpec uri) {
-//		this.subtableMode = RmapSubMode.valueOf(uri.fetchParameter("sub", "NONE").toUpperCase());
+		// this.subtableMode = RmapSubMode.valueOf(uri.fetchParameter("sub", "NONE").toUpperCase());
 		if (null != client) try {
 			client.close();
 		} catch (Exception e) {
@@ -151,11 +154,10 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 		try (FileObject conf = VfsConnection.vfs(vfs);) {
 			if (!conf.exists()) throw new IllegalArgumentException("Hbase configuration [" + vfs + "] not existed.");
 			if (!conf.isFolder()) throw new IllegalArgumentException("Hbase configuration [" + vfs + "] is not folder.");
-			for (FileObject f : conf.getChildren())
-				if (f.isFile() && "xml".equals(f.getName().getExtension())) {//
-					logger.debug("Hbase configuration resource adding: " + f.getName());
-					fs.add(new ByteArrayInputStream(IOs.readAll(f.getContent().getInputStream())));
-				}
+			for (FileObject f : conf.getChildren()) if (f.isFile() && "xml".equals(f.getName().getExtension())) {//
+				logger.debug("Hbase configuration resource adding: " + f.getName());
+				fs.add(new ByteArrayInputStream(IOs.readAll(f.getContent().getInputStream())));
+			}
 			return fs.toArray(new InputStream[0]);
 		}
 	}
@@ -201,13 +203,12 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 	@Override
 	public void close() throws IOException {
 		super.close();
-		for (String k : tables.keySet())
-			try {
-				Table t = tables.remove(k);
-				if (null != t) t.close();
-			} catch (IOException e) {
-				logger().error("Hbase table [" + k + "] close failure", e);
-			}
+		for (String k : tables.keySet()) try {
+			Table t = tables.remove(k);
+			if (null != t) t.close();
+		} catch (IOException e) {
+			logger().error("Hbase table [" + k + "] close failure", e);
+		}
 		Hbases.disconnect(client);
 	}
 
@@ -221,8 +222,60 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 		});
 	}
 
-	public void put(String table, Mutation op) throws IOException {
+	private static final AtomicInteger C = new AtomicInteger();
+
+	public Result put(String table, Mutation op) throws IOException {
 		Table t = table(table);
+		put1(t, op);
+		Result r = check(t, op);
+		logger().trace("[" + op.getClass().getSimpleName() + ":" + C.incrementAndGet() + "]\t" + op.toJSON() //
+				+ "\n\tResult: " + String.valueOf(r));
+		return r;
+	}
+
+	public Result[] put(String table, Mutation... ops) throws IOException {
+		int cc = C.incrementAndGet();
+		Table t = table(table);
+		Object[] results = new Object[ops.length];
+		try {
+			t.batch(Arrays.asList(ops), results);
+		} catch (InterruptedException e) {
+			throw new RuntimeException();
+		}
+		Result[] rs = new Result[ops.length];
+		for (int i = 0; i < ops.length; i++) {
+			Object r = results[i];
+			if (null == r) rs[i] = null;
+			else if (r instanceof Result) {
+				if (invalid(ops[i], (Result) r)) rs[i] = check(t, ops[i]);
+				if (null == rs[i]) rs[i] = (Result) r;
+			} else logger.error("Unknown error result from batch of [" + i + "][" + ops[i].toJSON() + "]: " + r.toString());
+		}
+		if (logger().isTraceEnabled()) for (int i = 0; i < ops.length; i++) try {
+			Mutation op = ops[i];
+			logger().trace("[enqs:" + op.getClass().getSimpleName() + ":" + cc + ":" + (i + 1) + "]\t" + op.toJSON() //
+					+ "\n\tResult: " + String.valueOf(rs[i]));
+		} catch (IOException e) {}
+		return rs;
+	}
+
+	private Result check(Table t, Mutation op) throws IOException {
+		if (OP_CONFIRM_RETRY) {
+			Result r;
+			while (invalid(op, r = t.get(new Get(op.getRow())))) {
+				logger().warn("Retry [" + op.toJSON() + "] for rowkey [" + Bytes.toString(op.getRow()) + "] not found after op: " + r
+						.toString());
+				put1(t, op);
+			}
+			return r;
+		} else return null;
+	}
+
+	private boolean invalid(Mutation op, Result r) {
+		return (op instanceof Delete && null != r && null != r.getRow()) || (null == r || null == r.getRow());
+	}
+
+	private static void put1(Table t, Mutation op) throws IOException {
 		if (op instanceof Put) t.put((Put) op);
 		else if (op instanceof Delete) t.delete((Delete) op);
 		else if (op instanceof Increment) t.increment((Increment) op);
@@ -334,8 +387,7 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 				try {
 					Scan s = opts(1, SCAN_COLS, SCAN_BYTES, SCAN_CACHE_BLOCKS).optimize(range(row).scan(get.getFilter()));
 					s.getFamilyMap().clear();
-					for (byte[] cf : get.familySet())
-						s.addFamily(cf);
+					for (byte[] cf : get.familySet()) s.addFamily(cf);
 					try (ResultScanner sc = t.getScanner(s);) {
 						r = sc.next();
 					} finally {
@@ -399,10 +451,9 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 			if (null != rowkey) rowkeys.put(table.qualifier.name, rowkey);
 		}
 		String rowkey;
-		for (String t : tbls.keySet())
-			if (null != (rowkey = rowkeys.get(t))) // row key mode
-				input.table(t, tbls.get(t).v1(), tbls.get(t).v2(), Bytes.toBytes(rowkey));
-			else input.table(t, tbls.get(t).v1(), tbls.get(t).v2());
+		for (String t : tbls.keySet()) if (null != (rowkey = rowkeys.get(t))) // row key mode
+			input.table(t, tbls.get(t).v1(), tbls.get(t).v2(), Bytes.toBytes(rowkey));
+		else input.table(t, tbls.get(t).v1(), tbls.get(t).v2());
 		return input;
 	}
 
