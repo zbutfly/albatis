@@ -2,8 +2,10 @@ package net.butfly.albatis.kafka.config;
 
 import java.util.Map;
 import java.util.Properties;
+import java.util.UUID;
 
 import net.butfly.albacore.io.URISpec;
+import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.Systems;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.kafka.Kafka2Input;
@@ -87,8 +89,7 @@ public class Kafka2InputConfig extends KafkaConfigBase {
 		autoCommitIntervalMs = props.containsKey(PROP_PREFIX + "auto.commit.interval.ms") ? //
 				Long.parseLong(props.getProperty(PROP_PREFIX + "auto.commit.interval.ms", DEFAULT_AUTO_COMMIT_MS)) : null;
 		autoCommitEnable = props.containsKey(PROP_PREFIX + "auto.commit.enable") ? //
-				Boolean.parseBoolean(props.getProperty(PROP_PREFIX + "auto.commit.enable", Boolean.toString(autoCommitIntervalMs > 0)))
-				: null;
+				Boolean.parseBoolean(props.getProperty(PROP_PREFIX + "auto.commit.enable", Boolean.toString(autoCommitIntervalMs > 0))) : null;
 		autoOffsetReset = props.getProperty(PROP_PREFIX + "auto.offset.reset");
 		sessionTimeoutMs = props.containsKey(PROP_PREFIX + "session.timeout.ms") ? //
 				Long.parseLong(props.getProperty(PROP_PREFIX + "session.timeout.ms")) : null;
@@ -106,15 +107,18 @@ public class Kafka2InputConfig extends KafkaConfigBase {
 				Integer.parseInt(props.getProperty(PROP_PREFIX + "partition.parallelism")) : null;
 	}
 
+	private static final boolean RANDOM_SUFFIX = Boolean.parseBoolean(Configs.gets("albatis.kafka.from.begin.by.groupid.suffix", "false"));
+
 	private static String calcGroupId(String configGroupId) {
+		String origin = configGroupId;
 		if (configGroupId == null || "".equals(configGroupId)) configGroupId = Systems.getMainClass().getSimpleName();
 		configGroupId = Systems.suffixDebug(configGroupId, logger);
+		if (RANDOM_SUFFIX) configGroupId += UUID.randomUUID();
+		if (!configGroupId.equals(origin)) logger.info("Kafka group id adjust into: " + configGroupId);
 		return configGroupId;
 	}
 
-	public int getDefaultPartitionParallelism() {
-		return partitionParallelism;
-	}
+	public int getDefaultPartitionParallelism() { return partitionParallelism; }
 
 	@Override
 	public Properties props() {
@@ -153,8 +157,6 @@ public class Kafka2InputConfig extends KafkaConfigBase {
 		return groupId + "@" + zookeeperConnect;
 	}
 
-	public String getGroupId() {
-		return groupId;
-	}
+	public String getGroupId() { return groupId; }
 
 }

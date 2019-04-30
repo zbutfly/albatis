@@ -81,8 +81,8 @@ public class KafkaInput extends Namedly implements KafkaIn {
 			int parts = topicPartitions.getOrDefault(t, 1);
 			int p = configTopicParallinism <= 0 ? parts : configTopicParallinism;
 			allTopics.put(t, p);
-			if (p > parts) logger().warn("[" + name() + "] topic [" + t + "] define parallelism: [" + p + "] "
-					+ "over existed partitions: [" + parts + "].");
+			if (p > parts) logger().warn("[" + name() + "] topic [" + t + "] define parallelism: [" + p + "] " + "over existed partitions: ["
+					+ parts + "].");
 			else logger().info("[" + name() + "] topic [" + t + "] consumers creating as parallelism [" + p + "]");
 		}
 		logger().trace("[" + name() + "] parallelism of topics: " + allTopics.toString() + ".");
@@ -101,46 +101,42 @@ public class KafkaInput extends Namedly implements KafkaIn {
 		Map<String, List<KafkaStream<String, String>>> temp = null;
 		StringDecoder d = new StringDecoder(null);
 		ConsumerConnector c = null;
-		do
-			try {
-				c = kafka.consumer.Consumer.createJavaConsumerConnector(config.getConfig());
-				temp = c.createMessageStreams(allTopics, d, d);
-			} catch (ConsumerRebalanceFailedException | MessageStreamsExistException e) {
-				logger().warn("[" + name() + "] reopen too quickly, wait 10 seconds and retry");
-				if (c != null) c.shutdown();
-				temp = null;
-				if (!Task.waitSleep(1000 * 10)) throw e;
-			}
+		do try {
+			c = kafka.consumer.Consumer.createJavaConsumerConnector(config.getConfig());
+			temp = c.createMessageStreams(allTopics, d, d);
+		} catch (ConsumerRebalanceFailedException | MessageStreamsExistException e) {
+			logger().warn("[" + name() + "] reopen too quickly, wait 10 seconds and retry");
+			if (c != null) c.shutdown();
+			temp = null;
+			if (!Task.waitSleep(1000 * 10)) throw e;
+		}
 		while (temp == null);
 		connect = c;
 		logger().info("[" + name() + "] connected.");
 		List<ConsumerIterator<String, String>> l = Colls.list();
-		for (Entry<String, List<KafkaStream<String, String>>> e : temp.entrySet())
-			for (KafkaStream<String, String> ks : e.getValue())
-				l.add(ks.iterator());
+		for (Entry<String, List<KafkaStream<String, String>>> e : temp.entrySet()) for (KafkaStream<String, String> ks : e.getValue()) l.add(ks
+				.iterator());
 		return l;
 	}
 
 	private List<ConsumerIterator<byte[], byte[]>> createBinaryConsumers() throws ConfigException {
 		Map<String, List<KafkaStream<byte[], byte[]>>> temp = null;
 		ConsumerConnector c = null;
-		do
-			try {
-				c = kafka.consumer.Consumer.createJavaConsumerConnector(config.getConfig());
-				temp = c.createMessageStreams(allTopics);
-			} catch (ConsumerRebalanceFailedException | MessageStreamsExistException e) {
-				logger().warn("[" + name() + "] reopen too quickly, wait 10 seconds and retry");
-				if (c != null) c.shutdown();
-				temp = null;
-				if (!Task.waitSleep(1000 * 10)) throw e;
-			}
+		do try {
+			c = kafka.consumer.Consumer.createJavaConsumerConnector(config.getConfig());
+			temp = c.createMessageStreams(allTopics);
+		} catch (ConsumerRebalanceFailedException | MessageStreamsExistException e) {
+			logger().warn("[" + name() + "] reopen too quickly, wait 10 seconds and retry");
+			if (c != null) c.shutdown();
+			temp = null;
+			if (!Task.waitSleep(1000 * 10)) throw e;
+		}
 		while (temp == null);
 		connect = c;
 		logger().info("[" + name() + "] connected.");
 		List<ConsumerIterator<byte[], byte[]>> l = Colls.list();
-		for (Entry<String, List<KafkaStream<byte[], byte[]>>> e : temp.entrySet())
-			for (KafkaStream<byte[], byte[]> ks : e.getValue())
-				l.add(ks.iterator());
+		for (Entry<String, List<KafkaStream<byte[], byte[]>>> e : temp.entrySet()) for (KafkaStream<byte[], byte[]> ks : e.getValue()) l.add(ks
+				.iterator());
 		return l;
 	}
 
@@ -158,27 +154,25 @@ public class KafkaInput extends Namedly implements KafkaIn {
 	public Rmap dequeue() {
 		ConsumerIterator<byte[], byte[]> it;
 		MessageAndMetadata<byte[], byte[]> m;
-		while (opened())
-			if (null != (it = consumers.poll())) {
-				try {
-					if (null == (m = it.next())) return null;
-					MessageAndMetadata<byte[], byte[]> km = (MessageAndMetadata<byte[], byte[]>) s().stats(m);
-					String k = null == km.key() || km.key().length == 0 ? null : new String(km.key());
-					return new Rmap(km.topic(), k, null == k ? "km" : k, (Object) km.message());
-				} catch (ConsumerTimeoutException | NoSuchElementException ex) {
-					Instant last = LAST_FETCH.get();
-					if (null != last && Duration.between(Instant.now(), last).abs().getSeconds() > EMPTY_INFO_ITV) //
-						logger().debug("No data (kafka timeout) for more than " + EMPTY_INFO_ITV + " seconds.");
-					return null;
-				} catch (Exception ex) {
-					logger().warn("Unprocessed kafka error [" + ex.getClass().toString() + ": " + ex.getMessage()
-							+ "], ignore and continue.", ex);
-					return null;
-				} finally {
-					consumers.offer(it);
-					LAST_FETCH.set(Instant.now());
-				}
+		while (opened()) if (null != (it = consumers.poll())) {
+			try {
+				if (null == (m = it.next())) return null;
+				MessageAndMetadata<byte[], byte[]> km = (MessageAndMetadata<byte[], byte[]>) s().stats(m);
+				String k = null == km.key() || km.key().length == 0 ? null : new String(km.key());
+				return new Rmap(km.topic(), k, null == k ? "km" : k, (Object) km.message());
+			} catch (ConsumerTimeoutException | NoSuchElementException ex) {
+				Instant last = LAST_FETCH.get();
+				if (null != last && Duration.between(Instant.now(), last).abs().getSeconds() > EMPTY_INFO_ITV) //
+					logger().debug("No data (kafka timeout) for more than " + EMPTY_INFO_ITV + " seconds.");
+				return null;
+			} catch (Exception ex) {
+				logger().warn("Unprocessed kafka error [" + ex.getClass().toString() + ": " + ex.getMessage() + "], ignore and continue.", ex);
+				return null;
+			} finally {
+				consumers.offer(it);
+				LAST_FETCH.set(Instant.now());
 			}
+		}
 		return null;
 	}
 

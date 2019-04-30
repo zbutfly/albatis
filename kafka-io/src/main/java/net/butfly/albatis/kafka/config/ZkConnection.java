@@ -55,7 +55,7 @@ public class ZkConnection implements AutoCloseable {
 				byte[] b = zk.getData(path, false, null);
 				return null == b ? null : new String(b);
 			} catch (KeeperException e) {
-				logger.warn("ZK data [" + path + "] being retried [" + retried + "] for failure: " + e.toString());
+				logger.warn("ZK data [" + path + "] retry [" + retried + "] for failure: " + e.toString());
 				err = e;
 				Thread.sleep(100);
 			}
@@ -63,7 +63,7 @@ public class ZkConnection implements AutoCloseable {
 			logger.warn("Kafka connecting [" + zk.toString() + "] path [" + path + "] interrupted." + e.getMessage());
 			return null;
 		}
-		logger.error("ZK data [" + path + "] failed after [" + retried + "] retries.", err);
+		if (null != err) logger.warn("ZK data [" + path + "] failed after [" + retried + "] retries with error: " + err.toString());
 		return null;
 	}
 
