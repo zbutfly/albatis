@@ -74,7 +74,7 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 	public void dequeue(Consumer<Sdream<Rmap>> using) {
 		TableScaner s;
 		// rowkey -> record, fetch and fullfil so that earch in the poll should be whole.
-		Map<String, Rmap> wholes = Maps.of();
+		Map<HbaseKey, Rmap> wholes = Maps.of();
 		while (opened() && !empty() && wholes.size() < batchSize()) if (null != (s = SCAN_POOL.poll())) try {
 			if (s.dequeue(wholes)) {
 				s.close();

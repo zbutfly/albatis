@@ -89,8 +89,8 @@ class TableScaner {
 		return l;
 	}
 
-	private static void merge(Map<String, Rmap> wholes, Rmap... r) {
-		for (Rmap m : r) if (!Colls.empty(m)) wholes.compute((String) m.key(), (q, existed) -> {
+	private static void merge(Map<HbaseKey, Rmap> wholes, Rmap... r) {
+		for (Rmap m : r) if (!Colls.empty(m)) wholes.compute(new HbaseKey(m.table().qualifier, (String) m.key()), (q, existed) -> {
 			if (null == existed) return m;
 			existed.putAll(m);
 			return existed;
@@ -98,14 +98,14 @@ class TableScaner {
 	}
 
 	// return scan finished
-	private boolean last(Map<String, Rmap> wholes) {
+	private boolean last(Map<HbaseKey, Rmap> wholes) {
 		Rmap next;
 		if (null == (next = next())) {
 			if (null != last) merge(wholes, last);
 			return true;
 		} else {
 			Rmap l;
-			if (null != (l = wholes.remove(next.key()))) next.putAll(l); // same record, move from wholes into next
+			if (null != (l = wholes.remove(new HbaseKey(next.table().qualifier, (String) next.key())))) next.putAll(l); // same record, move from wholes into next
 			if (null != last) {
 				if (!last.key().equals(next.key())) //
 					HbaseInput.logger.error("Records row key conflicted on merge of last and next:"//
@@ -117,13 +117,13 @@ class TableScaner {
 	}
 
 	// return scan finished
-	boolean dequeue(Map<String, Rmap> wholes) {
+	boolean dequeue(Map<HbaseKey, Rmap> wholes) {
 		Rmap orig, last;
 		if (null == (orig = next())) return true;
 		if (null != (last = fetchLast())) {
 			Rmap m = wholes.get(last.key());
 			if (null != m) m.putAll(last);
-			else wholes.put(last.key().toString(), last);
+			else wholes.put(new HbaseKey(last.table().qualifier, (String) last.key()), last);
 		}
 		merge(wholes, orig);
 		if (last(wholes)) return true;
