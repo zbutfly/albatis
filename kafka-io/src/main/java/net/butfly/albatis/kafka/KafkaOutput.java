@@ -46,7 +46,7 @@ public class KafkaOutput extends KafkaOut {
 		int size;
 		if (!ml.isEmpty()) try {
 			if (1 == (size = ml.size())) s().statsOutN(ml.get(0), producer::send);
-			else s().statsOutsN(ml, producer::send);
+			else s().statsOuts(ml, producer::send);
 			succeeded(size);
 		} catch (Exception e) {
 			failed(Sdream.of(msgs));

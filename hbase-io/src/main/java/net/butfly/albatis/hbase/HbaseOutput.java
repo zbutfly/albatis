@@ -108,7 +108,7 @@ public class HbaseOutput extends OutputBase<Rmap> {
 		List<Rmap> failed = Colls.list();
 		AtomicInteger succs = new AtomicInteger();
 		try {
-			s().statsOutsN(ops, c -> {
+			s().statsOuts(ops, c -> {
 				try {
 					Result[] rs = conn.put(table, ops.toArray(new Mutation[0]));
 					for (int i = 0; i < rs.length; i++) {
