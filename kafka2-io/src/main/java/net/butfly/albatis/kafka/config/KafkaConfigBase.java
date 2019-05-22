@@ -138,8 +138,8 @@ public abstract class KafkaConfigBase implements Serializable {
 
 		topics = props.containsKey("topics") ? Colls.list(new HashSet<>(Texts.split(props.get("topics") + "," + props.get("topic"), ",")))
 				: Colls.list();
-		kerberosConfigPath = Configs.get("albatis.kafka.kerberos");
-		tbdsConfigPath = Configs.get("albatis.kafka.tbds");
+		kerberosConfigPath = Configs.gets(PROP_PREFIX + "kerberos");
+		tbdsConfigPath = Configs.gets(PROP_PREFIX + "tbds");
 		kerberos();
 	}
 
@@ -199,9 +199,14 @@ public abstract class KafkaConfigBase implements Serializable {
 
 	public void kerberosConfig(Properties props) {
 		if (null != kerberosConfigPath) {
+			logger.info("Enable kerberos! Config file path:" + kerberosConfigPath);
 			props.setProperty("kerberos.domain.name", KERBEROS_PROPS.getProperty("kerberos.domain.name"));
+			logger.trace("kerberos.domain.name" + KERBEROS_PROPS.getProperty("kerberos.domain.name"));
 			props.setProperty("security.protocol", KERBEROS_PROPS.getProperty("security.protocol"));
+			logger.trace("security.protocol" + KERBEROS_PROPS.getProperty("security.protocol"));
 			props.setProperty("sasl.kerberos.service.name", KERBEROS_PROPS.getProperty("sasl.kerberos.service.name"));
+			logger.trace("sasl.kerberos.service.name" + KERBEROS_PROPS.getProperty("sasl.kerberos.service.name"));
+			
 		}
 	}
 	
