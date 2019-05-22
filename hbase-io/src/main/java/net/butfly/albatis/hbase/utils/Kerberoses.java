@@ -22,7 +22,7 @@ public class Kerberoses {
 	private static final Logger logger = Logger.getLogger(Kerberoses.class);
 	private static final String LINE_SEPARATOR = System.getProperty("line.separator");
 	private static final boolean IS_IBM_JDK = System.getProperty("java.vendor").contains("IBM");
-	private static final String KERBEROS_PROP_PATH = "albatis-habse.properties";
+	private static final String KERBEROS_PROP_PATH = "albatis-hbase.properties";
 	private static final Properties KERBEROS_PROPS = new Properties();
 	// kerberos configs
 	private static final String JAAS_CONF = "jaas.conf";
@@ -53,7 +53,7 @@ public class Kerberoses {
 	}
 
 	public static void kerberosAuth(Configuration conf) {
-		String kerberosConfigPath = Configs.get("albatis.hbase.kerberos.path");
+		String kerberosConfigPath = Configs.gets("albatis.hbase.kerberos.path");
 		if (null == kerberosConfigPath) return;
 		try {
 			KERBEROS_PROPS.load(IOs.openFile(kerberosConfigPath + KERBEROS_PROP_PATH));
