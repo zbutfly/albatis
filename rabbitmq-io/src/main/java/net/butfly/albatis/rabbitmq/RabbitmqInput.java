@@ -24,7 +24,7 @@ public class RabbitmqInput extends net.butfly.albacore.base.Namedly implements O
 		consumer = new ConcurrentLinkedQueue<>();
 	}
 	
-	public RabbitmqInput(String name, Connection conn, String queuename) throws IOException {
+	protected RabbitmqInput(String name, Connection conn, String queuename) throws IOException {
 		super(name);
 		// 创建一个通道
 		Channel channel = conn.createChannel();
@@ -43,6 +43,13 @@ public class RabbitmqInput extends net.butfly.albacore.base.Namedly implements O
 		channel.basicConsume(queuename, true, c);
 		closing(this::close);
 	}
+	
+	
+	public RabbitmqInput(String name, RabbitmqConnection conn, String table) {
+		super(name);
+		conn.input(table);
+	}
+	
 
 	@Override
 	public Rmap dequeue(){

@@ -15,12 +15,15 @@ public class RabbitmqConnection extends DataConnection<RpcClient> {
 	
 	public Connection conn;
 	
-	//amqp   ://username       :password           @hostName   :    portNumber/virtualHost
+	public String exchange_name;
+	
+	//amqp   ://username       :password           @hostName   :    portNumber/exchange
 	protected RabbitmqConnection(URISpec  uri, String... supportedSchema) throws IOException {
 		super(uri, supportedSchema);
 		ConnectionFactory factory = new ConnectionFactory();
 		try {
 	        //设置RabbitMQ地址
+			exchange_name = uri.getFile();
 	        factory.setHost(uri.getHost());
 	        factory.setUsername(uri.getUsername());
 	        factory.setPassword(uri.getPassword());
@@ -36,6 +39,7 @@ public class RabbitmqConnection extends DataConnection<RpcClient> {
 		ConnectionFactory factory = new ConnectionFactory();
 		try {
 			 //设置RabbitMQ地址
+			exchange_name = uri.getFile();
 	        factory.setHost(uri.getHost());
 	        factory.setUsername(uri.getUsername());
 	        factory.setPassword(uri.getPassword());
@@ -48,18 +52,21 @@ public class RabbitmqConnection extends DataConnection<RpcClient> {
 	
 	
 	@Override
-	public RabbitmqInput input(String... tables) throws IOException{
+	public RabbitmqInput input(String... tables) {
 		try {
 			return new RabbitmqInput("RabbitmqInput", conn, tables[0]);
 		} catch (ConfigException e) {
 			throw new IllegalArgumentException(e);
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
+		return null;
 	}
 
 	@Override
 	public RabbitmqOutput output(String... tables) throws IOException {
 		try {
-			return new RabbitmqOutput("RabbitmqOutput", conn, tables[0]);
+			return new RabbitmqOutput("RabbitmqOutput", conn, exchange_name, tables[0]);
 		} catch (TimeoutException e) {
 			e.printStackTrace();
 		}
