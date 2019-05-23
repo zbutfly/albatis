@@ -29,7 +29,7 @@ public abstract class KafkaConfigBase implements Serializable {
 	// kerberos configs
 	public static final String JAAS_CONF = "jaas.conf";
 	public static final String KRB5_CONF = "krb5.conf";
-	public static final String HUAWEI_KEYTAB = "huawei.keytab";
+	public static final String HUAWEI_KEYTAB = Configs.gets(PROP_PREFIX + "huawei.keytab", "user.keytab");
 	public static final String KERBEROS_PROP_PATH = "kerberos.properties";
 	public static Properties KERBEROS_PROPS = new Properties();
 	
