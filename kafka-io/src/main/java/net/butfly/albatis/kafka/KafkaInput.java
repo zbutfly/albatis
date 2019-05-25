@@ -143,7 +143,7 @@ public class KafkaInput extends Namedly implements KafkaIn {
 	@Override
 	public Statistic trace() {
 		return new Statistic(this).<MessageAndMetadata<byte[], byte[]>> sizing(km -> (long) km.rawMessage$1().payloadSize()) //
-				.<MessageAndMetadata<byte[], byte[]>> sampling(km -> new String(km.key())).detailing(Exeter.of()::toString);
+				.<MessageAndMetadata<byte[], byte[]>> infoing(km -> new String(km.key())).detailing(Exeter.of()::toString);
 	}
 
 	private static final long EMPTY_INFO_ITV = Long.parseLong(Configs.gets("albatis.kafka.input.empty.info.interval", "10"));

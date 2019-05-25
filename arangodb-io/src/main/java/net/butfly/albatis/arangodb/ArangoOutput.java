@@ -40,30 +40,26 @@ public class ArangoOutput extends OutputBase<AqlNestedMessage> {
 	protected void enqsafe(Sdream<AqlNestedMessage> edges) {
 		Map<AqlNestedMessage, Pair<Integer, CompletableFuture<List<BaseDocument>>>> rs = Maps.of();
 		for (AqlNestedMessage m : edges.list()) {
-			for (int i = 0; MAX_RETRY > 0 && i < MAX_RETRY; i++)
-				rs.put(m, new Pair<>(0, m.exec(conn, s())));
+			for (int i = 0; MAX_RETRY > 0 && i < MAX_RETRY; i++) rs.put(m, new Pair<>(0, m.exec(conn, s())));
 		}
 		while (!rs.isEmpty()) {
-			Entry<AqlNestedMessage, Pair<Integer, CompletableFuture<List<BaseDocument>>>> first = rs.entrySet()
-					.iterator().next();
+			Entry<AqlNestedMessage, Pair<Integer, CompletableFuture<List<BaseDocument>>>> first = rs.entrySet().iterator().next();
 			result(rs, first.getKey(), first.getValue().v1() + 1, first.getValue().v2());
 		}
 	}
 
-	private void result(Map<AqlNestedMessage, Pair<Integer, CompletableFuture<List<BaseDocument>>>> rs,
-			AqlNestedMessage m, Integer retry, CompletableFuture<List<BaseDocument>> f) {
+	private void result(Map<AqlNestedMessage, Pair<Integer, CompletableFuture<List<BaseDocument>>>> rs, AqlNestedMessage m, Integer retry,
+			CompletableFuture<List<BaseDocument>> f) {
 		List<BaseDocument> r = ArangoConnection.get(f);
 		if (null != r) {
-			if (retry > 5)
-				logger().warn("Many retries [" + retry + "] and success: " + r.toString());
+			if (retry > 5) logger().warn("Many retries [" + retry + "] and success: " + r.toString());
 			rs.remove(m);
 		} else {
 			if (retry > MAX_RETRY) {
 				logger().error("Fail after retry [" + MAX_RETRY + "]: " + m.toString());
 				rs.remove(m);
 			} else {// retry
-				if (retry > 5)
-					logger().warn("Many retries [" + retry + "], still not success: " + m.toString());
+				if (retry > 5) logger().warn("Many retries [" + retry + "], still not success: " + m.toString());
 				rs.put(m, new Pair<>(retry, m.exec(conn, s())));
 			}
 		}
@@ -71,8 +67,8 @@ public class ArangoOutput extends OutputBase<AqlNestedMessage> {
 
 	@Override
 	public Statistic trace() {
-		return new Statistic(this).<BaseDocument>sizing(b -> conn.sizeOf(b)) //
-				.<BaseDocument>sampling(BaseDocument::toString);
+		return new Statistic(this).<BaseDocument> sizing(b -> conn.sizeOf(b)) //
+				.<BaseDocument> infoing(BaseDocument::toString);
 	}
 
 	@Override

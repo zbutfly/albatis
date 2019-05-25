@@ -64,7 +64,7 @@ public class HbaseOutput extends OutputBase<Rmap> {
 	@Override
 	public Statistic trace() {
 		return new Statistic(this).sizing(Mutation::heapSize).detailing(() -> "Pengding ops: " + opsPending.get())//
-				.<Mutation> sampling(r -> Bytes.toString(r.getRow()));
+				.<Mutation> infoing(r -> Bytes.toString(r.getRow()));
 	}
 
 	@Override

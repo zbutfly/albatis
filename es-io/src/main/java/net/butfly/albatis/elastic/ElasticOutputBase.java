@@ -45,7 +45,7 @@ public abstract class ElasticOutputBase<T extends DataConnection<?> & ElasticCon
 	public Statistic trace() {
 		return new Statistic(this).sizing(BulkRequest::estimatedSizeInBytes)//
 				.<BulkRequest> batchSizeCalcing(r -> (long) r.requests().size())//
-				.<BulkRequest> sampling(r -> r.requests().isEmpty() ? null : r.requests().get(0).toString());
+				.<BulkRequest> infoing(r -> r.requests().isEmpty() ? null : r.requests().get(0).toString());
 	}
 
 	@Override

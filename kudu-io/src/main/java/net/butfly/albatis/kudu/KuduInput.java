@@ -93,7 +93,7 @@ public class KuduInput extends Namedly implements Input<Rmap> {
 
 	@Override
 	public Statistic trace() {
-		return new Statistic(this).sizing(KuduScanner::getLimit).<KuduScanner> sampling(ks -> {
+		return new Statistic(this).sizing(KuduScanner::getLimit).<KuduScanner> infoing(ks -> {
 			try {
 				return ks.nextRows().next().rowToString();
 			} catch (KuduException e) {

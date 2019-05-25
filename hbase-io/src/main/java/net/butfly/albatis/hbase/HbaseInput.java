@@ -101,7 +101,7 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 
 	@Override
 	public Statistic trace() {
-		return new Statistic(this).sizing(Result::getTotalSizeOfCells).<Result> sampling(r -> Bytes.toString(r.getRow()));
+		return new Statistic(this).sizing(Result::getTotalSizeOfCells).<Result> infoing(r -> Bytes.toString(r.getRow()));
 	}
 
 	@Override

@@ -70,7 +70,7 @@ public class Kafka2Input extends Namedly implements Input<Rmap> {
 	@Override
 	public Statistic trace() {
 		return new Statistic(this).<ConsumerRecord<byte[], byte[]>> sizing(km -> (long) km.value().length) //
-				.<ConsumerRecord<byte[], byte[]>> sampling(km -> new String(km.key())).detailing(Exeter.of()::toString);
+				.<ConsumerRecord<byte[], byte[]>> infoing(km -> new String(km.key())).detailing(Exeter.of()::toString);
 	}
 
 	private static final Duration TIMEOUT = Duration.of(Long.parseLong(Configs.gets("albatis.kafka.input.timeout", "100")),
