@@ -23,7 +23,7 @@ public class DataHubConnection extends DataConnection<DatahubClient> {
 	@Override
 	public DataHubInput input(String... tables) throws IOException {
 		try {
-			return new DataHubInput("DataHubOutput", uri, tables);
+			return new DataHubInput("DataHubInput", uri, tables);
 		} catch (ConfigException e) {
 			throw new IllegalArgumentException(e);
 		}

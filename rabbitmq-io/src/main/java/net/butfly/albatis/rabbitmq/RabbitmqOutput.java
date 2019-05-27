@@ -8,6 +8,7 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 
 import net.butfly.albacore.paral.Sdream;
+import net.butfly.albacore.utils.Configs;
 import net.butfly.albatis.io.OutputBase;
 import net.butfly.albatis.io.Rmap;
 
@@ -26,7 +27,9 @@ public class RabbitmqOutput extends OutputBase<Rmap> {
 		 // 获取到连接以及mq通道
         channel = conn.createChannel();
         // 声明exchange
-        channel.exchangeDeclare(exchange_name, "direct");
+        channel.exchangeDeclare(exchange_name, Configs.gets("albatis.rabbitmq.exchange.type", "direct"));
+     //   channel.queueDeclare(queue, durable, exclusive, autoDelete, arguments)
+       // channel.queueBind(queue, exchange, routingKey)
         channel.close();
 	}
 	

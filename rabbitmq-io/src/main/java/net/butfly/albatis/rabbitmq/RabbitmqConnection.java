@@ -17,7 +17,7 @@ public class RabbitmqConnection extends DataConnection<RpcClient> {
 	
 	public String exchange_name;
 	
-	//amqp   ://username       :password           @hostName   :    portNumber/exchange
+	//amqp ://username       :password           @hostName   :    portNumber/exchange
 	protected RabbitmqConnection(URISpec  uri, String... supportedSchema) throws IOException {
 		super(uri, supportedSchema);
 		ConnectionFactory factory = new ConnectionFactory();
