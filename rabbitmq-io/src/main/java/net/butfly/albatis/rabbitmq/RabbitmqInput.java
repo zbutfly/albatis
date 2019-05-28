@@ -19,6 +19,7 @@ public class RabbitmqInput extends net.butfly.albacore.base.Namedly implements O
 	
 	private final ConcurrentLinkedQueue<String> consumer;
 	private static final String charset = "UTF-8";
+	private String queue_name;
 	
 	{
 		consumer = new ConcurrentLinkedQueue<>();
@@ -26,6 +27,7 @@ public class RabbitmqInput extends net.butfly.albacore.base.Namedly implements O
 	
 	protected RabbitmqInput(String name, Connection conn, String queuename) throws IOException {
 		super(name);
+		this.queue_name = queuename;
 		// 创建一个通道
 		Channel channel = conn.createChannel();
 		// 声明要关注的队列
@@ -47,17 +49,17 @@ public class RabbitmqInput extends net.butfly.albacore.base.Namedly implements O
 	
 	public RabbitmqInput(String name, RabbitmqConnection conn, String table) {
 		super(name);
+		this.queue_name = table;
 		conn.input(table);
 	}
 	
 
+	@SuppressWarnings("deprecation")
 	@Override
 	public Rmap dequeue(){
 		while (opened()) {
 			String c = consumer.poll();
-			Rmap rs =  new Rmap();
-			rs.put("data", c);
-			return rs;	
+			return new Rmap(queue_name, null,"km", c);
 		}
 		return null;
 	}

@@ -45,7 +45,7 @@ public class RabbitmqOutput extends OutputBase<Rmap> {
 		List<Rmap> records = messages.list();
 		records.forEach(r ->{
 			try {
-				channel.basicPublish(exchange_name, routing_Key, null, r.get("data").toString().getBytes());
+				channel.basicPublish(exchange_name, routing_Key, null, r.get("km").toString().getBytes());
 			} catch (IOException e) {
 				e.printStackTrace();
 			}

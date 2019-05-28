@@ -24,6 +24,7 @@ public class DataHubInput extends net.butfly.albacore.base.Namedly implements Od
 	private final BlockingQueue<Consumer> consumers;
 	
 	private final Consumer consumer;
+	private String table;
 	
 	{
 		consumers = new LinkedBlockingQueue<>();
@@ -31,32 +32,34 @@ public class DataHubInput extends net.butfly.albacore.base.Namedly implements Od
 	
 	public DataHubInput(String name, URISpec uri, String... tables) throws IOException {
 		super(name);
+		this.table = tables[0];
 		ConsumerConfig config = new ConsumerConfig("http://"+uri.getHost(), uri.getUsername(), uri.getPassword());
 		consumer = new Consumer(uri.getFile(), tables[0], "1", config);
 		consumers.add(consumer);
 		closing(this::close);
 	}
 
+	@SuppressWarnings("deprecation")
 	@Override
 	public Rmap dequeue(){
 		while (opened()) {
 			Consumer c = consumers.poll();
 			if(null != c) {
-				Rmap rs =  new Rmap();
 				RecordEntry entry = c.read(1);
 				consumers.add(c);
 				RecordData rdata = entry.getRecordData();
 				if(rdata == null ) return null;
 				if (rdata instanceof TupleRecordData) {
+					Rmap rs =  new Rmap();
 					TupleRecordData data = (TupleRecordData) rdata;
 					data.getRecordSchema().getFields().forEach(f ->{
 						rs.put(f.getName(), data.getField(f.getName()));
 					});
+					return new Rmap(table, null,"km", rs);
 				}else {
 					BlobRecordData data = (BlobRecordData) rdata;
-					rs.put("BlobRecordData", new String(data.getData(), Charsets.UTF_8));
+					return new Rmap(table, null,"km", new String(data.getData(), Charsets.UTF_8));
 				}
-				return rs;	
 			}
 		}
 		return null;
