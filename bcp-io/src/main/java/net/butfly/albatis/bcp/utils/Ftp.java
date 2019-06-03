@@ -3,6 +3,7 @@ package net.butfly.albatis.bcp.utils;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.Pair;
+import net.butfly.albatis.bcp.Props;
 import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPFile;
@@ -12,6 +13,7 @@ import org.apache.log4j.Logger;
 import java.io.*;
 import java.nio.file.Path;
 
+import static net.butfly.albatis.bcp.Props.BCP_PATH_ZIP;
 
 
 public class Ftp implements Closeable {
@@ -19,10 +21,9 @@ public class Ftp implements Closeable {
     private final FTPClient client = new FTPClient();
     private final String base;
 
-    public static Ftp connect() {
-        String f = Configs.gets("albatis.bcp.input.ftp");
-        return null == f ? null : new Ftp(new URISpec(f));
-    }
+	public static Ftp connect() {
+		return null == Props.FTP_URI ? null : new Ftp(Props.FTP_URI);
+	}
 
     private Ftp(URISpec uri) {
         client.setControlEncoding("utf-8");
@@ -225,6 +226,14 @@ public class Ftp implements Closeable {
         }
     }
 
+	public void moveTotherFolders(Path origin, String zip, String dir) {
+		try {
+			File tmpFile = BCP_PATH_ZIP.resolve(dir).resolve(zip).toFile();// 获取文件夹路径
+			if (!origin.toFile().renameTo(tmpFile)) logger.error(zip + "File moving failed");
+		} catch (Exception e) {
+			logger.error(zip + "File moving failed", e);
+		}
+	}
 
     public void addText(String filename, String content) {
         FileWriter writer = null;

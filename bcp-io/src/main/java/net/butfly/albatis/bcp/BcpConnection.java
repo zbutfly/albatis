@@ -41,7 +41,8 @@ public class BcpConnection extends DataConnection<Connection> {
 	@Override
 	@SuppressWarnings("unchecked")
 	public Output<Rmap> outputRaw(TableDesc... table) throws IOException {
-		throw new UnsupportedOperationException();
+		BcpOutput bcpOutput = new BcpOutput("BcpOutnput",table[0].qualifier.name);
+		return bcpOutput;
 	}
 
 	@Override
