@@ -37,7 +37,8 @@ public class JdbcConnection extends DataConnection<DataSource> {
 	protected DataSource initialize(URISpec uri) {
 		Dialect dialect = Dialect.of(uri.getSchema());
 		try {
-			return new HikariDataSource(toConfig(dialect, uri));
+			HikariDataSource h = new HikariDataSource(toConfig(dialect, uri));
+			return h;
 		} catch (Throwable t) {
 			logger().error("jdbc connection fail on [" + uri.toString() + "]");
 			throw new RuntimeException(t);
@@ -58,14 +59,23 @@ public class JdbcConnection extends DataConnection<DataSource> {
 	@Override
 	public void construct(String table, TableDesc tableDesc, List<FieldDesc> fields) {
 		String tableName;
+		Connection conn = null;
 		String[] tables = table.split("\\.");
 		if (tables.length == 1) tableName = tables[0];
 		else if (tables.length == 2) tableName = tables[1];
 		else throw new RuntimeException("Please type in correct jdbc table format: db.table !");
-		try (Connection conn = client.getConnection()) {
+		try {
+			conn = client.getConnection();
 			dialect.tableConstruct(conn, tableName, tableDesc, fields);
 		} catch (SQLException e) {
 			logger().error("construct table failure", e);
+		}finally {
+				try {
+					if(null !=conn )
+					conn.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
 		}
 
 	}
@@ -102,15 +112,24 @@ public class JdbcConnection extends DataConnection<DataSource> {
 	@Override
 	public boolean judge(String table) {
 		String tableName;
+		Connection conn =  null;
 		String[] tables = table.split("\\.");
 		if (tables.length == 1) tableName = tables[0];
 		else if (tables.length == 2) tableName = tables[1];
 		else throw new RuntimeException("Please type in correct jdbc table format: db.table !");
-		try (Connection conn = client.getConnection()) {
+		try {
+			conn = client.getConnection();
 			return dialect.tableExisted(conn, tableName);
 		} catch (SQLException e) {
 			logger().error("jdbc judge table isExists error", e);
-		}
+		}finally {
+			try {
+				if(null !=conn )
+				conn.close();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+	}
 		return false;
 	}
 

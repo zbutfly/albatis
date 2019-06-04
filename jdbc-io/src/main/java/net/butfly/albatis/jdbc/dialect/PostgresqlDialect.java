@@ -55,6 +55,12 @@ public class PostgresqlDialect extends Dialect {
 			count.addAndGet(sucessed);
 		} catch (SQLException e) {
 			logger().warn(() -> "execute batch(size: " + records.size() + ") error, operation may not take effect. reason:", e);
+		}finally {
+			try {
+				if(null != null) conn.close();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 
@@ -86,6 +92,12 @@ public class PostgresqlDialect extends Dialect {
 			count.addAndGet(sucessed);
 		} catch (SQLException e) {
 			logger().warn(() -> "execute batch(size: " + records.size() + ") error, operation may not take effect. reason:", e);
+		}finally {
+			try {
+				if(null != conn) conn.close();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 
