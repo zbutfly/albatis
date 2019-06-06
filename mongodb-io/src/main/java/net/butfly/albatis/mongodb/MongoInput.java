@@ -99,6 +99,7 @@ public class MongoInput extends net.butfly.albacore.base.Namedly implements OddI
 				} else {
 					logger.warn("MongoDB query [" + col + "] finished but empty.");
 					c = null;
+					cursors.add(this);
 				}
 			} catch (Exception ex) {
 				logger.error("MongoDB query [" + col + "] failed", ex);
@@ -110,7 +111,7 @@ public class MongoInput extends net.butfly.albacore.base.Namedly implements OddI
 
 		public void close() {
 			try {
-				cursor.close();
+				if(null != cursor) cursor.close();
 			} finally {
 				cursorsMap.remove(col);
 			}
@@ -137,7 +138,7 @@ public class MongoInput extends net.butfly.albacore.base.Namedly implements OddI
 		Map<String, Object> m;
 		while (opened() && !empty())
 			if (null != (c = cursors.poll())) try {
-				if (c.cursor.hasNext()) {
+				if (null != c.cursor && c.cursor.hasNext()) {
 					try {
 						m = s().stats(c.cursor.next()).toMap();
 					} catch (MongoException ex) {
