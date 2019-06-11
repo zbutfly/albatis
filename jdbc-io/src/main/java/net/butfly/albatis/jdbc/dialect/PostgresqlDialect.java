@@ -57,7 +57,7 @@ public class PostgresqlDialect extends Dialect {
 			logger().warn(() -> "execute batch(size: " + records.size() + ") error, operation may not take effect. reason:", e);
 		}finally {
 			try {
-				if(null != null) conn.close();
+				if(conn != null) conn.close();
 			} catch (SQLException e) {
 				e.printStackTrace();
 			}
@@ -143,6 +143,14 @@ public class PostgresqlDialect extends Dialect {
 			return rs.next();
 		} catch (SQLException e) {
 			throw new RuntimeException(e);
+		}finally {
+			if(conn != null) {
+				try {
+					conn.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
 		}
 	}
 
