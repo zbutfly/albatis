@@ -126,7 +126,7 @@ public interface ElasticConnect extends Connection {
 			kerberosAuth();
 			String rest = uri.fetchParameter("rest");
 			Settings.Builder settings = Settings.builder();
-			uri.getParameters("script", "batch").forEach(settings::put);
+			uri.getParameters("script", "batch", "df").forEach(settings::put);
 			if (null != props && !props.isEmpty()) props.forEach(settings::put);
 
 			Map<String, Object> meta = null == rest ? null : Parser.fetchMetadata(parseRestAddrs(rest, uri.getInetAddrs()));
