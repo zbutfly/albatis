@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeoutException;
+import com.stumbleupon.async.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.kudu.ColumnSchema;
@@ -32,17 +32,17 @@ import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.Pair;
 
 public class KuduConnectionAsync extends KuduConnectionBase<KuduConnectionAsync, AsyncKuduClient, AsyncKuduSession> {
-	private BlockingQueue<Pair<Operation, Deferred<OperationResponse>>> PENDINGS = new LinkedBlockingQueue<>(1000);
+	private BlockingQueue<Pair<AsyncKuduSession, Pair<Operation, Deferred<OperationResponse>>>> PENDINGS = new LinkedBlockingQueue<>(1000);
 	private final Thread pendingHandler;
-	AsyncKuduSession session;
+	private final int STUMBLEUPON_TIMEOUT = Integer.parseInt(Configs.gets(KuduProps.STUMBLEUPON_TIMEOUT, "500"));
 
 	public KuduConnectionAsync(URISpec kuduUri) throws IOException {
 		super(kuduUri);
 
 		pendingHandler = new Thread(() -> {
-			List<Pair<Operation, Deferred<OperationResponse>>> m = new CopyOnWriteArrayList<Pair<Operation, Deferred<OperationResponse>>>();
+			List<Pair<AsyncKuduSession, Pair<Operation, Deferred<OperationResponse>>>> m = new CopyOnWriteArrayList<Pair<AsyncKuduSession, Pair<Operation, Deferred<OperationResponse>>>>();
 			do {
-				while (PENDINGS.drainTo(m, 1000) > 0) for (Pair<Operation, Deferred<OperationResponse>> d : m) process(d.v1(), d.v2(),
+				while (PENDINGS.drainTo(m, 1000) > 0) for (Pair<AsyncKuduSession, Pair<Operation, Deferred<OperationResponse>>> d : m) process(d.v1(), d.v2().v1(), d.v2().v2(),
 						this::error);
 			} while (Task.waitSleep());
 		}, "KuduErrorHandler[" + kuduUri.toString() + "]");
@@ -68,6 +68,7 @@ public class KuduConnectionAsync extends KuduConnectionBase<KuduConnectionAsync,
 	@Override
 	public boolean apply(Operation op, BiConsumer<Operation, Throwable> error) {
 		if (null == op) return false;
+		AsyncKuduSession session;
 		Deferred<OperationResponse> or;
 		try {
 			session = op.getTable().getAsyncClient().newSession();
@@ -81,27 +82,31 @@ public class KuduConnectionAsync extends KuduConnectionBase<KuduConnectionAsync,
 			else error.accept(op, e);
 			return false;
 		}
-		return process(op, or, error);
+		return process(session, op, or, error);
 	}
 
 	private final AtomicLong millis = new AtomicLong(), ops = new AtomicLong();
 
-	private boolean process(Operation op, Deferred<OperationResponse> or, BiConsumer<Operation, Throwable> error) {
+	private boolean process(AsyncKuduSession session, Operation op, Deferred<OperationResponse> or, BiConsumer<Operation, Throwable> error) {
 		OperationResponse r;
 		try {
-			r = or.joinUninterruptibly(500);
+			r = or.joinUninterruptibly(STUMBLEUPON_TIMEOUT);
 		} catch (TimeoutException e) {
-			if (!PENDINGS.offer(new Pair<>(op, or))) //
-				logger.warn("Kudu op response timeout and pending queue full, dropped: \n\t" + op.toString());
+			logger.trace("Kudu op response timeout after " + STUMBLEUPON_TIMEOUT + "ms");
+			if (!PENDINGS.offer(new Pair<>(session, new Pair<>(op, or)))) //
+				logger.warn("Kudu op response timeout and pending queue full, dropped: \n\t" + op.toString(), e);
 			return true;
 		} catch (Exception e) {
-			error.accept(op, e);
+			//error.accept(op, e);
+			logger.error("Unkown error, droped: \n\t" + op.toString(), e);
 			return false;
 		}
 		if (r != null && r.hasRowError()) {
 			error.accept(op, new IOException(r.getRowError().getErrorStatus().toString()));
 			return false;
 		} else {
+//			logger.info("right success!" + op.toString());
+			if (session != null && !session.isClosed()) session.close();
 			if (logger.isTraceEnabled()) {
 				long ms = millis.addAndGet(r.getElapsedMillis());
 				long c = ops.incrementAndGet();

@@ -11,4 +11,6 @@ public @interface KuduProps {
 	final String INPUT_BATCH_SIZE = "albatis." + MODULE_NAME + ".concurrent.ops.limit";
 	final String INPUT_STATS_STEP = "albatis." + MODULE_NAME + ".input.stats.step";
 	final String OUTPUT_STATS_STEP = "albatis." + MODULE_NAME + ".output.stats.step";
+	
+	final String STUMBLEUPON_TIMEOUT = "albatis." + MODULE_NAME + ".output.stumbleupon.timeout";
 }
