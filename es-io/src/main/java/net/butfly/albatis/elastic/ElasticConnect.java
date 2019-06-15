@@ -196,7 +196,7 @@ public interface ElasticConnect extends Connection {
 			if (meta == null) addrs = Arrays.stream(u.getInetAddrs()).map(a -> new HttpHost(a.getHostName(), a.getPort())).toArray(
 					i -> new HttpHost[i]);
 			else addrs = Arrays.stream(Parser.getNodes(meta)).map(n -> n.rest).toArray(i -> new HttpHost[i]);
-			return new RestHighLevelClient(RestClient.builder(addrs));
+			return new RestHighLevelClient(RestClient.builder(addrs).setMaxRetryTimeoutMillis(6*1000*60));
 		}
 	}
 
