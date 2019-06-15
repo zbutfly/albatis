@@ -1,6 +1,7 @@
 package net.butfly.albatis.bcp;
 
 import net.butfly.albacore.base.Namedly;
+import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albatis.bcp.utils.FileUtil;
 import net.butfly.albatis.bcp.utils.Ftp;
@@ -29,18 +30,18 @@ public class BcpInput extends Namedly implements Input<Rmap> {
     private Path bcpPath;
     List<String> zipNames;
 
-    public BcpInput(final String name, String dataPath, String tableName) {
+    public BcpInput(final String name, URISpec uri, String dataPath, String tableName) {
         super(name);
         this.tableName = tableName;
         this.dataPath = Paths.get(dataPath);
         this.bcpPath = this.dataPath.resolve(tableName);
         FileUtil.confirmDir(this.bcpPath);
-        opening(this::openBcp);
+        opening(() -> openBcp(uri) );
         closing(this::closeBcp);
     }
 
-    private void openBcp() {
-        try (Ftp ftp = Ftp.connect()) {
+    private void openBcp(URISpec uri) {
+        try (Ftp ftp = Ftp.connect(uri)) {
             if (null != ftp) {
                 ftp.downloadAllFiles(dataPath.toString());
             }

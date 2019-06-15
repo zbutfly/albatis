@@ -1,6 +1,7 @@
 package net.butfly.albatis.bcp.imports.frame;
 
 
+import net.butfly.albacore.io.URISpec;
 import net.butfly.albatis.bcp.imports.criterion.Criterion;
 import net.butfly.albatis.bcp.imports.frame.reader.ReadFromDirectory;
 import net.butfly.albatis.bcp.imports.frame.reader.ReadFromFile;
@@ -44,11 +45,12 @@ public class HandleFrame implements Runnable {
 	private String[] transFunctionArray = null;
 
 	private long lastLogTime = 0;
+	private URISpec uri;
 
-	public HandleFrame(KernelInfo kernelInfo, boolean loopFalg) {
+	public HandleFrame(KernelInfo kernelInfo, boolean loopFalg, URISpec uri) {
 		this.kernelInfo = kernelInfo;
 		this.loopFalg = loopFalg;
-
+		this.uri = uri;
 		init();
 	}
 
@@ -78,7 +80,7 @@ public class HandleFrame implements Runnable {
 	public void run() {
 		// logger.debug("HandleFrame is start.");
 		LOGGER.debug("Starting to handle DataEName:" + this.kernelInfo.getInputDataEName());
-		try (Criterion criterion = new Criterion(this.kernelInfo);) {
+		try (Criterion criterion = new Criterion(this.kernelInfo, uri);) {
 			do { // 框架代码
 				List<String> files = rfd.getFiles(this.kernelInfo.getInputPath());
 				if (files.size() != 0) {

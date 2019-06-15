@@ -21,8 +21,8 @@ public class Ftp implements Closeable {
     private final FTPClient client = new FTPClient();
     private final String base;
 
-	public static Ftp connect() {
-		return null == Props.FTP_URI ? null : new Ftp(Props.FTP_URI);
+	public static Ftp connect(URISpec uri) {
+		return null == uri ? null : new Ftp(uri);
 	}
 
     private Ftp(URISpec uri) {

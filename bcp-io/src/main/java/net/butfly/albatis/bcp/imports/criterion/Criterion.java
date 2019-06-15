@@ -1,5 +1,6 @@
 package net.butfly.albatis.bcp.imports.criterion;
 
+import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.bcp.Props;
 import net.butfly.albatis.bcp.imports.criterion.compress.CompressToZip;
@@ -56,8 +57,10 @@ public class Criterion implements AutoCloseable {
 	// 控制文件分隔数
 	private int FILEMAXNUM = 10000;
 	private Path endPath = Props.BCP_PATH_BASE.resolve("zip");
+	private URISpec uri;
 
-	public Criterion(KernelInfo kernelInfo) {
+	public Criterion(KernelInfo kernelInfo, URISpec uri) {
+		this.uri = uri;
 		lineSplit = kernelInfo.getIntputLineSplit();
 		fieldSplit = kernelInfo.getIntputFiledSplit();
 
@@ -223,7 +226,7 @@ public class Criterion implements AutoCloseable {
 
 		boolean flag;
 		int n = 0;
-		try (Ftp ftp = Ftp.connect()) {
+		try (Ftp ftp = Ftp.connect(uri)) {
 			if (null != ftp) {
 				while (!(flag = ftp.uploadFile(zipDst, zipSrc)) && n++ < 5);
 				if (flag) {

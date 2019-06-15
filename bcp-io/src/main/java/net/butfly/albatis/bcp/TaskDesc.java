@@ -1,5 +1,6 @@
 package net.butfly.albatis.bcp;
 
+import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.paral.Exeter;
 import net.butfly.albacore.utils.Texts;
 import net.butfly.albacore.utils.collection.Colls;
@@ -85,7 +86,7 @@ public class TaskDesc {
 		void upload(int retries) {
 			boolean flag;
 			int retry = 0;
-			try (Ftp ftp = Ftp.connect()) {
+			try (Ftp ftp = Ftp.connect(new URISpec(dstDsUri))) {
 				if (null != ftp) {
 					while (!(flag = ftp.uploadFile(recFilename, recFile)) && retry++ < retries);
 					if (!flag && retry >= retries) logger.error("Ftp sent failed: " + recFile);

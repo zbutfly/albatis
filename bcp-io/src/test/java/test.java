@@ -5,6 +5,7 @@ import net.butfly.albatis.io.Output;
 import net.butfly.albatis.io.Rmap;
 import net.butfly.albatis.io.pump.Pump;
 import java.io.IOException;
+import java.net.URLEncoder;
 
 
 public class test {
@@ -30,9 +31,9 @@ public class test {
 
         try (Connection oconn = Connection.connect(new URISpec("mongodb://unify:unify2233@10.33.41.52:30012/unify"));
              Output<Rmap> out = oconn.output("bcp_test");
-             Connection iconn = Connection.connect(new URISpec("bcp:///C:\\Users\\zhuqh\\Desktop\\test"));
+             Connection iconn = Connection.connect(new URISpec("bcp:ftp://ftpuser001:ftpuser001@10.33.41.56:21/bcp"));
              Input<Rmap> in0 = iconn.input("mq_HIK_SNAP_IMAGE_ST");
-             Pump<Rmap> p =in0.pump(2, out);) {
+             Pump<Rmap> p =in0.then(m ->m.keyField("UUID")).pump(2, out);) {
             p.open();
         } catch (IOException e) {
             e.printStackTrace();
