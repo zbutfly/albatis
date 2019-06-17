@@ -147,7 +147,7 @@ public class JdbcConnection extends DataConnection<DataSource> {
 		}
 		String jdbcconn = dialect.jdbcConnStr(uriSpec);
 		logger.info("Connect to jdbc with connection string: \n\t" + jdbcconn);
-		config.setJdbcUrl(jdbcconn);
+		config.setJdbcUrl(jdbcconn.split("\\?")[0]);
 		config.setUsername(uriSpec.getParameter("user"));
 		config.setPassword(uriSpec.getParameter("password"));
 		uriSpec.getParameters().forEach(config::addDataSourceProperty);

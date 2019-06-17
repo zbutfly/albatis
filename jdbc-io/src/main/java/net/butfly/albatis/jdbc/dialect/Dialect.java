@@ -79,7 +79,6 @@ public class Dialect implements Loggable {
 	}
 
 	public String buildCreateTableSql(String table, FieldDesc... fields) {
-		// TODO Auto-generated method stub
-		return null;
+		throw new NotImplementedException();
 	}
 }
