@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static net.butfly.albacore.utils.Configs.get;
 import static net.butfly.albacore.utils.Configs.logger;
@@ -32,9 +33,10 @@ public class BcpOutput extends OutputBase<Rmap> {
     private boolean inc;
     private List<TaskDesc> tasks;
     private TaskDesc task;
-    private URISpec uriSpec,uri;
+    private URISpec uriSpec, uri;
+    AtomicLong count = new AtomicLong();
 
-    public BcpOutput(String name,URISpec uri, String taskName) throws IOException {
+    public BcpOutput(String name, URISpec uri, String taskName) throws IOException {
         super(name);
         initBcp(taskName);
         this.uri = uri;
@@ -101,9 +103,18 @@ public class BcpOutput extends OutputBase<Rmap> {
         private void bcp() {
             List<Map<String, Object>> l = new ArrayList<>();
             pool.drainTo(l, BCP_FLUSH_COUNT);
+            count.incrementAndGet();
             EXPOOL_BCP.submit(() -> {
-                bcp.bcp(l,uri);
+                bcp.bcp(l, uri);
+                count.decrementAndGet();
             });
+            while (count.get() > 0) {
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
         }
 
         @Override
