@@ -38,10 +38,13 @@
 #页面配置说明
     input url连接串：bcp:///C:\Users\zhuqh\Desktop\test
     url后半段路径为bcp文件的本地存放路径
+    或者配置ftp连接串,如：bcp:ftp://ftpuser001:ftpuser001@10.33.41.56:21/bcp
 
     output url连接串：bcp:///
+    或者配置ftp连接串,如：bcp:ftp://ftpuser001:ftpuser001@10.33.41.56:21/bcp
+
     输出表名需要配置成当前任务名
     
 #启动
-    ./run.sh <dpc任务名>
+    ./udpc.sh <dpc任务名>
 
