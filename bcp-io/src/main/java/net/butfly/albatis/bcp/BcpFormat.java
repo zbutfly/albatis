@@ -154,7 +154,7 @@ public class BcpFormat {
         try {
             List<String> fs = new ArrayList<>();
             for (TaskDesc.FieldDesc fd : task.fields)
-                count(fd.dstName, null == fd.dstExpr ? m.get(fd.fieldName) : Engine.eval(fd.dstExpr, m), fs, counts);
+                count(fd.dstName, null == fd.dstExpr ? m.get(fd.dstName) : Engine.eval(fd.dstExpr, m), fs, counts);
             return String.join(FIELD_SPLIT, fs);
         } finally {
             spent = FIELD_SPENT.addAndGet(System.currentTimeMillis() - spent);
@@ -206,7 +206,7 @@ public class BcpFormat {
         String[][] fileds = new String[task.fields.size()][2];
         for (int i = 0; i < task.fields.size(); i++) {
             TaskDesc.FieldDesc fd = task.fields.get(i);
-            fileds[i][0] = null == fd.dstExpr || "".equals(fd.dstExpr) ? fd.fieldName : fd.dstName;
+            fileds[i][0] = null == fd.dstExpr || "".equals(fd.dstExpr) ? fd.dstName : fd.dstExpr;
             fileds[i][1] = fd.comment;
         }
         try (WriteToXml wxml = new WriteToXml(base.resolve("xml").resolve(filename + ".xml").toString())) {
