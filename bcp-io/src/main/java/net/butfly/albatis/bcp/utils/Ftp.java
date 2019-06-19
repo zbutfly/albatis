@@ -1,9 +1,7 @@
 package net.butfly.albatis.bcp.utils;
 
 import net.butfly.albacore.io.URISpec;
-import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.Pair;
-import net.butfly.albatis.bcp.Props;
 import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPFile;
@@ -158,6 +156,7 @@ public class Ftp implements Closeable {
                 logger.trace("[FTP] path is not exist [ <- " + base + "].");
                 return false;
             }
+            client.setFileType(FTP.BINARY_FILE_TYPE);
             client.changeWorkingDirectory(base);
             FTPFile[] ftpFiles = client.listFiles();
             for (FTPFile file : ftpFiles) {

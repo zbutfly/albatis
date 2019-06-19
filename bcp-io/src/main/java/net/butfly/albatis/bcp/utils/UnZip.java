@@ -6,6 +6,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -17,7 +18,7 @@ public class UnZip {
         byte doc[] = null;
         FileOutputStream out = null;
         try{
-            ZipInputStream zipis=new ZipInputStream(new FileInputStream(filename));
+            ZipInputStream zipis=new ZipInputStream(new FileInputStream(filename), StandardCharsets.UTF_8);
             ZipEntry fentry=null;
             while((fentry=zipis.getNextEntry())!=null) {
                 if(fentry.isDirectory()){

@@ -3,6 +3,7 @@ package net.butfly.albatis.bcp.utils;
 import net.butfly.albatis.io.Rmap;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -39,7 +40,7 @@ public class FileUtil {
         String line;
         List<Rmap> list = new ArrayList<>();
         for (InputStream in : ins){
-            try (InputStreamReader ir = new InputStreamReader(in); BufferedReader br = new BufferedReader(ir);) {
+            try (InputStreamReader ir = new InputStreamReader(in, StandardCharsets.UTF_8); BufferedReader br = new BufferedReader(ir);) {
                 while (null != (line = br.readLine())) {
                     list.add(integratedBcpData(line,fields,separator,table));
                 }
