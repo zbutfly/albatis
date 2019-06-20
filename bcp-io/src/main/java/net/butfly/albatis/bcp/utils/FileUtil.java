@@ -112,6 +112,19 @@ public class FileUtil {
         }
     }
 
+    public static void deleteZip(String path) {
+        File file = new File(path);
+        File temp = null;
+        File[] fileList = file.listFiles();
+        assert null != fileList;
+        for (int i = 0; i < fileList.length; i++) {
+            temp = fileList[i];
+            if (temp.getName().endsWith("zip")) {
+               temp.delete();
+            }
+        }
+    }
+
     /**
      * 删除单个文件
      *

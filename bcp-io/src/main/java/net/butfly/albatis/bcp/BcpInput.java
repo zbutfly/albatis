@@ -107,6 +107,7 @@ public class BcpInput extends Namedly implements Input<Rmap> {
         private void close() {
             zipNames.remove(zipName);
             FileUtil.deleteDirectory(tempPath.toString());
+            FileUtil.deleteZip(dataPath.toString());
         }
     }
 
