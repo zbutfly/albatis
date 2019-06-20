@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
+import net.butfly.albatis.ddl.Qualifier;
 import org.apache.kudu.ColumnSchema;
 import org.apache.kudu.client.KuduException;
 import org.apache.kudu.client.KuduTable;
@@ -123,11 +124,11 @@ public abstract class KuduConnectionBase<C extends KuduConnectionBase<C, KC, S>,
 	@Override
 	public abstract void destruct(String table);
 
-	protected abstract void construct(String table, ColumnSchema... cols);
+	protected abstract void construct(String qualifier, ColumnSchema... cols);
 
 	@Override
-	public final void construct(String table, FieldDesc... fields) {
-		construct(table, ColBuild.buildColumns(false, fields));
+	public final void construct(Qualifier qualifier, FieldDesc... fields) {
+		construct(qualifier.toString(), ColBuild.buildColumns(false, fields));
 	}
 
 	public static class Driver implements net.butfly.albatis.Connection.Driver<KuduConnection> {

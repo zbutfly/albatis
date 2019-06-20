@@ -14,6 +14,7 @@ import net.butfly.albacore.serder.JsonSerder;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.ddl.FieldDesc;
+import net.butfly.albatis.ddl.Qualifier;
 import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.io.IOFactory;
 
@@ -108,6 +109,10 @@ public interface Connection extends AutoCloseable, IOFactory {
 	}
 
 	default void construct(String table, FieldDesc... fields) {
+		logger().warn("Constructing invoked but not implemented, ignore.");
+	}
+
+	default void construct(Qualifier qualifier, FieldDesc... fields) {
 		logger().warn("Constructing invoked but not implemented, ignore.");
 	}
 

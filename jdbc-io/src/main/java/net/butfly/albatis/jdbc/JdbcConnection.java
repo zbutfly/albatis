@@ -20,6 +20,7 @@ import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.DataConnection;
 import net.butfly.albatis.ddl.FieldDesc;
+import net.butfly.albatis.ddl.Qualifier;
 import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.jdbc.dialect.Dialect;
 import net.butfly.albatis.jdbc.dialect.DialectFor;
@@ -46,8 +47,8 @@ public class JdbcConnection extends DataConnection<DataSource> {
 	}
 
 	@Override
-	public void construct(String table, FieldDesc... fields) {
-		String sql = dialect.buildCreateTableSql(table, fields);
+	public void construct(Qualifier qualifier, FieldDesc... fields) {
+		String sql = dialect.buildCreateTableSql(qualifier.name, fields);
 		logger().info("Table constructed with statment:\n\t" + sql);
 		try (Connection conn = client.getConnection(); PreparedStatement ps = conn.prepareStatement(sql.toString());) {
 			ps.execute();

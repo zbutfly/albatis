@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import net.butfly.albatis.ddl.Qualifier;
 import org.apache.http.StatusLine;
 import org.apache.http.nio.entity.NStringEntity;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
@@ -48,7 +49,7 @@ public class ElasticRestConnection extends DataConnection<RestClient> implements
 	}
 
 	@Override
-	public void construct(String type, FieldDesc... fields) {
+	public void construct(Qualifier qualifier, FieldDesc... fields) {
 		Map<String, Object> mapping;
 		MappingConstructor cstr = new MappingConstructor(Maps.of());
 		mapping = cstr.construct(fields);
@@ -59,11 +60,11 @@ public class ElasticRestConnection extends DataConnection<RestClient> implements
 		// if (null != getDefaultType()) tps.add(getDefaultType());
 		try {
 			@SuppressWarnings("deprecation")
-			StatusLine r = client.performRequest("PUT", getDefaultIndex() + "/_mapping/" + type, new HashMap<>(), new NStringEntity(
+			StatusLine r = client.performRequest("PUT", getDefaultIndex() + "/_mapping/" + qualifier.name, new HashMap<>(), new NStringEntity(
 					mappings)).getStatusLine();
-			if (200 != r.getStatusCode()) logger().error("Mapping failed on type [" + type + "]: \n\t" + r.getReasonPhrase());
+			if (200 != r.getStatusCode()) logger().error("Mapping failed on type [" + qualifier.name + "]: \n\t" + r.getReasonPhrase());
 		} catch (IOException ex) {
-			logger().error("Mapping failed on type [" + type + "]", ex);
+			logger().error("Mapping failed on type [" + qualifier.name + "]", ex);
 		}
 	}
 

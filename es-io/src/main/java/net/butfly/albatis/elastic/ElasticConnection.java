@@ -6,6 +6,7 @@ import net.butfly.albacore.serder.json.Jsons;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albatis.DataConnection;
 import net.butfly.albatis.ddl.FieldDesc;
+import net.butfly.albatis.ddl.Qualifier;
 import net.butfly.albatis.ddl.TableDesc;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
@@ -54,9 +55,9 @@ public class ElasticConnection extends DataConnection<TransportClient> implement
 	}
 
 	@Override
-	public void construct(String indexType, FieldDesc... fields) {
+	public void construct(Qualifier qualifier, FieldDesc... fields) {
 		Map<String, Object> indexConfig = new HashMap<>();
-		indexConfig.put("index/type", indexType);
+		indexConfig.put("index/type", qualifier.name);
 		construct(indexConfig, fields);
 	}
 
