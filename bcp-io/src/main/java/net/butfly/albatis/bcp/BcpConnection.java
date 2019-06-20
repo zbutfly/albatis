@@ -23,7 +23,7 @@ public class BcpConnection extends DataConnection<Connection> {
 
 	public BcpConnection(URISpec urispec) throws IOException {
 		super(urispec, schema);
-		dataPath = urispec.getFile();
+		dataPath = urispec.getPath();
 	}
 
 	@Deprecated

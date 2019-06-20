@@ -20,7 +20,7 @@ public class Ftp implements Closeable {
     private final String base;
 
 	public static Ftp connect(URISpec uri) {
-		return null == uri ? null : new Ftp(uri);
+		return null == uri || uri.toString().contains("///")? null : new Ftp(uri);
 	}
 
     private Ftp(URISpec uri) {
