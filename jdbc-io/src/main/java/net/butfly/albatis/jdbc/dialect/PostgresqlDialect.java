@@ -54,10 +54,13 @@ public class PostgresqlDialect extends Dialect {
 			long sucessed = Arrays.stream(rs).filter(r -> r >= 0).count();
 			count.addAndGet(sucessed);
 		} catch (SQLException e) {
-			logger().warn(() -> "execute batch(size: " + records.size() + ") error, operation may not take effect. reason:", e);
-		}finally {
+			logger().warn(
+					() -> "execute batch(size: " + records.size() + ") error, operation may not take effect. reason:",
+					e);
+		} finally {
 			try {
-				if(conn != null) conn.close();
+				if (conn != null)
+					conn.close();
 			} catch (SQLException e) {
 				e.printStackTrace();
 			}
@@ -68,11 +71,13 @@ public class PostgresqlDialect extends Dialect {
 	protected void doUpsert(Connection conn, String table, String keyField, List<Rmap> records, AtomicLong count) {
 		records.sort((m1, m2) -> m2.size() - m1.size());
 		List<String> allFields = new ArrayList<>(records.get(0).keySet());
-		List<String> nonKeyFields = allFields.stream().filter(f -> !f.equals(keyField)).collect(Collectors.toList()); // update fields
+		List<String> nonKeyFields = allFields.stream().filter(f -> !f.equals(keyField)).collect(Collectors.toList()); // update
+																														// fields
 
 		String fieldnames = allFields.stream().collect(Collectors.joining("\",\""));
 		String values = allFields.stream().map(f -> "?").collect(Collectors.joining(","));
-		String updates = nonKeyFields.stream().map(f -> "\""+ f +"\"" + " = EXCLUDED.\"" + f +"\"").collect(Collectors.joining(", "));
+		String updates = nonKeyFields.stream().map(f -> "\"" + f + "\"" + " = EXCLUDED.\"" + f + "\"")
+				.collect(Collectors.joining(", "));
 		String sql = String.format(UPSERT_SQL_TEMPLATE, table, fieldnames, values, keyField, updates);
 
 		try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -91,10 +96,13 @@ public class PostgresqlDialect extends Dialect {
 			long sucessed = Arrays.stream(rs).filter(r -> r >= 0).count();
 			count.addAndGet(sucessed);
 		} catch (SQLException e) {
-			logger().warn(() -> "execute batch(size: " + records.size() + ") error, operation may not take effect. reason:", e);
-		}finally {
+			logger().warn(
+					() -> "execute batch(size: " + records.size() + ") error, operation may not take effect. reason:",
+					e);
+		} finally {
 			try {
-				if(null != conn) conn.close();
+				if (null != conn)
+					conn.close();
 			} catch (SQLException e) {
 				e.printStackTrace();
 			}
@@ -109,8 +117,8 @@ public class PostgresqlDialect extends Dialect {
 			fieldSql.add(buildSqlField(tableDesc, field));
 		try (Statement statement = conn.createStatement()) {
 			List<Map<String, Object>> indexes = tableDesc.indexes;
-			sb.append("create table ").append("\"").append(table).append("\"").append("(").append(String.join(",", fieldSql.toArray(
-					new String[0]))).append(")");
+			sb.append("create table ").append("\"").append(table).append("\"").append("(")
+					.append(String.join(",", fieldSql.toArray(new String[0]))).append(")");
 			statement.addBatch(sb.toString());
 			if (!indexes.isEmpty()) {
 				for (Map<String, Object> index : indexes) {
@@ -118,9 +126,9 @@ public class PostgresqlDialect extends Dialect {
 					String type = (String) index.get("type");
 					String alias = (String) index.get("alias");
 					List<String> fieldList = JsonUtils.parseFieldsByJson(index.get("field"));
-					createIndex.append("create ").append(type).append(" ").append(alias).append(" on ").append("\"").append(table).append(
-							"\"").append("(").append("\"").append(String.join("\",\"", fieldList.toArray(new String[0]))).append("\"")
-							.append(")");
+					createIndex.append("create ").append(type).append(" ").append(alias).append(" on ").append("\"")
+							.append(table).append("\"").append("(").append("\"")
+							.append(String.join("\",\"", fieldList.toArray(new String[0]))).append("\"").append(")");
 					statement.addBatch(createIndex.toString());
 				}
 			}
@@ -137,14 +145,14 @@ public class PostgresqlDialect extends Dialect {
 		try {
 			dbm = conn.getMetaData();
 		} catch (SQLException e) {
-			logger().error("Getting metadata is failure",e);
+			logger().error("Getting metadata is failure", e);
 		}
 		try (ResultSet rs = dbm.getTables(null, null, table, null)) {
 			return rs.next();
 		} catch (SQLException e) {
 			throw new RuntimeException(e);
-		}finally {
-			if(conn != null) {
+		} finally {
+			if (conn != null) {
 				try {
 					conn.close();
 				} catch (SQLException e) {
@@ -155,37 +163,48 @@ public class PostgresqlDialect extends Dialect {
 	}
 
 	@Override
-	protected String buildSqlField(TableDesc tableDesc, FieldDesc field) {
+	public String buildCreateTableSql(String table, FieldDesc... fields) {
+		StringBuilder sql = new StringBuilder();
+		List<String> fieldSql = new ArrayList<>();
+		for (FieldDesc f : fields)
+			fieldSql.add(buildPostgreField(f));
+		sql.append("create table ").append(table).append("(").append(String.join(",", fieldSql.toArray(new String[0])))
+				.append(")");
+		return sql.toString();
+	}
+
+	private String buildPostgreField(FieldDesc field) {
 		StringBuilder sb = new StringBuilder();
 		switch (field.type.flag) {
 		case INT:
 		case SHORT:
 		case BINARY:
-			sb.append("\"").append(field.name).append("\"").append(" int4");
+			sb.append(field.name).append(" int4");
 			break;
 		case LONG:
-			sb.append("\"").append(field.name).append("\"").append(" int8");
+			sb.append(field.name).append(" int8");
 			break;
 		case FLOAT:
 		case DOUBLE:
-			sb.append("\"").append(field.name).append("\"").append(" numeric(10)");
+			sb.append(field.name).append(" numeric");
 			break;
 		case BYTE:
 		case BOOL:
-			sb.append("\'").append(field.name).append("\'").append(" bool(1)");
+			sb.append(field.name).append(" bool");
 			break;
 		case STR:
 		case CHAR:
 		case UNKNOWN:
-			sb.append("\"").append(field.name).append("\"").append(" varchar(256)");
+			sb.append(field.name).append(" varchar");
 			break;
 		case DATE:
-			sb.append("\"").append(field.name).append("\"").append(" date");
+			sb.append(field.name).append(" date");
 			break;
 		default:
 			break;
 		}
-		if (tableDesc.keys.get(0).contains(field.name)) sb.append(" not null primary key");
+		if (field.rowkey)
+			sb.append(" not null primary key");
 		return sb.toString();
 	}
 }
