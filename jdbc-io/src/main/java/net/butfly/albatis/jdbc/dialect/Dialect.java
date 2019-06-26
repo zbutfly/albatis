@@ -6,6 +6,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
+import javax.print.DocFlavor.STRING;
+
 import net.butfly.albacore.exception.NotImplementedException;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.paral.Exeter;
@@ -19,7 +21,8 @@ import net.butfly.albatis.io.Rmap;
 public class Dialect implements Loggable {
 	public static Dialect of(String schema) {
 		String s = schema.substring(schema.indexOf(':') + 1);
-		Set<Class<? extends Dialect>> classes = Reflections.getSubClasses(Dialect.class, "net.butfly.albatis.jdbc.dialect");
+		Set<Class<? extends Dialect>> classes = Reflections.getSubClasses(Dialect.class,
+				"net.butfly.albatis.jdbc.dialect");
 		int lastpos;
 		do {
 			for (Class<? extends Dialect> c : classes)
@@ -38,10 +41,22 @@ public class Dialect implements Loggable {
 		Exeter.of().join(entry -> {
 			String table = entry.getKey();
 			List<Rmap> records = entry.getValue();
-			if (records.isEmpty()) return;
-			String keyField = Dialects.determineKeyField(records);
-			if (null != keyField) doUpsert(conn, table, keyField, records, count);
-			else doInsertOnUpsert(conn, table, records, count);
+			if (records.isEmpty())
+				return;
+			if (null != records.get(0).keyField) {
+				String keyField = records.get(0).keyField;
+				if (null != keyField)
+					doUpsert(conn, table, keyField, records, count);
+				else
+					doInsertOnUpsert(conn, table, records, count);
+			} else {
+				String keyField = Dialects.determineKeyField(records);
+				if (null != keyField)
+					doUpsert(conn, table, keyField, records, count);
+				else
+					doInsertOnUpsert(conn, table, records, count);
+			}
+
 		}, allRecords.entrySet());
 		return count.get();
 	}
@@ -70,7 +85,8 @@ public class Dialect implements Loggable {
 		throw new NotImplementedException();
 	}
 
-	public List<Map<String, Object>> getResultListByCondition(Connection conn, String table, Map<String, Object> condition) {
+	public List<Map<String, Object>> getResultListByCondition(Connection conn, String table,
+			Map<String, Object> condition) {
 		throw new NotImplementedException();
 	}
 

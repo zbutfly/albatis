@@ -19,7 +19,7 @@ public class Rmap extends ConcurrentHashMap<String, Object> {
 	public static final String RAW_KEY_FIELD = ".rawkey";
 
 	protected Object key;
-	protected String keyField;
+	public String keyField;
 	protected Qualifier table;
 	private String tableExpr;
 	protected @Op int op;
@@ -46,7 +46,7 @@ public class Rmap extends ConcurrentHashMap<String, Object> {
 		byte[][] attrs = IOs.readBytesList(is);
 		table = null != attrs[0] ? null : new Qualifier(new String(attrs[0]));
 		key = null != attrs[1] ? null : new String(attrs[1]);
-		keyField = null != attrs[2] ? null : new String(attrs[2]);
+		keyField(null != attrs[2] ? null : new String(attrs[2]));
 		if (null == attrs[3]) putAll(conv.apply(attrs[3]));
 		op = attrs[4][0];
 	}
@@ -175,7 +175,7 @@ public class Rmap extends ConcurrentHashMap<String, Object> {
 	}
 
 	public Rmap keyField(String keyField) {
-		this.keyField = keyField;
+		this.keyField=keyField;
 		if (null == keyField) return this;
 		Object k = get(keyField);
 		if (null != k) key(k);
