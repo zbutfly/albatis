@@ -138,15 +138,13 @@ public interface ElasticConnect extends Connection {
 				settings.put("cluster.name", cn);
 				_logger.info("ElasticSearch \"cluster.name\" set to: " + cn);
 			}
-
-			TransportClient tc = new PreBuiltTransportClient(settings.build());
-
 			TransportAddress[] addrs = meta == null ? //
 					Arrays.stream(uri.getInetAddrs()).map(TransportAddress::new).toArray(i -> new TransportAddress[i])
 					: Arrays.stream(Parser.getNodes(meta)).map(n -> n.transport).toArray(i -> new TransportAddress[i]);
 			_logger.debug(() -> "Elastic transport client construct, cluster: [" + cn + "]\n\t" + of(addrs).joinAsString(
 					TransportAddress::toString, ","));
 
+			TransportClient tc = new PreBuiltTransportClient(settings.build());
 			tc.addTransportAddresses(addrs);
 			return tc;
 		}
