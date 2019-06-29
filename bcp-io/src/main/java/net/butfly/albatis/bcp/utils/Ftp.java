@@ -160,9 +160,11 @@ public class Ftp implements Closeable {
             client.changeWorkingDirectory(base);
             FTPFile[] ftpFiles = client.listFiles();
             for (FTPFile file : ftpFiles) {
-                File directory = new File(localpath);
-                if(!directory.exists()) directory.mkdir();
-                File localFile = new File(localpath + "/" + file.getName());
+                File directory = new File(this.getClass().getResource("/").getPath());
+                String parent = directory.getParent();
+                File assembleDir = new File(parent + localpath);
+                if(!assembleDir.exists()) assembleDir.mkdir();
+                File localFile = new File(parent+localpath + "/" + file.getName());
                 try (OutputStream os = new FileOutputStream(localFile)) {
                     client.retrieveFile(file.getName(), os);
                     client.dele(file.getName());
