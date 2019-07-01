@@ -6,8 +6,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
-import javax.print.DocFlavor.STRING;
-
 import net.butfly.albacore.exception.NotImplementedException;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.paral.Exeter;
@@ -43,19 +41,11 @@ public class Dialect implements Loggable {
 			List<Rmap> records = entry.getValue();
 			if (records.isEmpty())
 				return;
-			if (null != records.get(0).keyField) {
-				String keyField = records.get(0).keyField;
-				if (null != keyField)
-					doUpsert(conn, table, keyField, records, count);
-				else
-					doInsertOnUpsert(conn, table, records, count);
-			} else {
-				String keyField = Dialects.determineKeyField(records);
-				if (null != keyField)
-					doUpsert(conn, table, keyField, records, count);
-				else
-					doInsertOnUpsert(conn, table, records, count);
-			}
+			String keyField = null != records.get(0).keyField() ? records.get(0).keyField() : Dialects.determineKeyField(records);
+			if (null != keyField)
+				doUpsert(conn, table, keyField, records, count);
+			else
+				doInsertOnUpsert(conn, table, records, count);
 
 		}, allRecords.entrySet());
 		return count.get();
