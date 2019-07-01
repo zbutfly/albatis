@@ -101,8 +101,9 @@ public class ElasticConnection extends DataConnection<TransportClient> implement
 				+ JsonSerder.JSON_MAPPER.ser(mapping));
 		IndicesExistsRequest indexExists = new IndicesExistsRequest(index);
 		IndicesExistsRequest aliasExists = new IndicesExistsRequest(alias);
-		if (client.admin().indices().exists(indexExists).actionGet().isExists() && !client.admin().indices().exists(aliasExists).actionGet()
-				.isExists()) {
+//		if (client.admin().indices().exists(indexExists).actionGet().isExists() && !client.admin().indices().exists(aliasExists).actionGet()
+//				.isExists()) {
+		if (client.admin().indices().exists(indexExists).actionGet().isExists()) {
 			AcknowledgedResponse response = client.admin().indices().prepareAliases().addAlias(index, alias).execute().actionGet();
 			if (!response.isAcknowledged()) logger().error("create elastic index alias failure:" + response.toString());
 			else logger().info("create elastic index alias successful");
