@@ -7,8 +7,6 @@ import static net.butfly.albatis.io.IOProps.propI;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.kafka.clients.consumer.Consumer;
@@ -35,7 +33,6 @@ public class Kafka2Input extends Namedly implements Input<Rmap> {
 
 	private final Kafka2InputConfig config;
 	private final Consumer<byte[], byte[]> connect;
-	private final BlockingQueue<Consumer<byte[], byte[]>> connects;
 
 	// for debug
 	private final AtomicLong skip;
@@ -67,8 +64,6 @@ public class Kafka2Input extends Namedly implements Input<Rmap> {
 
 		connect = new KafkaConsumer<>(config.props());
 		connect.subscribe(list(t -> t.qualifier.name, topics));
-		connects = new LinkedBlockingQueue<>();
-		connects.add(connect);
 		closing(this::closeKafka);
 	}
 
@@ -83,39 +78,38 @@ public class Kafka2Input extends Namedly implements Input<Rmap> {
 
 	@Override
 	public void dequeue(net.butfly.albacore.io.lambda.Consumer<Sdream<Rmap>> using) {
-		Consumer<byte[], byte[]> c;
 		ConsumerRecords<byte[], byte[]> it;
 		while (opened()) {
-			if (null != (c = connects.poll())) {
+			synchronized(connect) {
 				try {
 					it = connect.poll(TIMEOUT);
 				} catch (IllegalStateException e) {
-					logger().error("", e);
+					logger().error("Illegal state when poll data by consumer", e);
 					it = null;
-				} finally {
-					connects.offer(c);
 				}
-				if (Colls.empty(it)) continue;
-				using.accept(Sdream.of(list(it, km -> {
-					km = s().stats(km);
-					String k = null == km.key() || km.key().length == 0 ? null : new String(km.key());
-					return new Rmap(km.topic(), k, null == k ? "km" : k, (Object) km.value());
-				})));
-				return;
 			}
+			if (Colls.empty(it)) continue;
+			using.accept(Sdream.of(list(it, km -> {
+				km = s().stats(km);
+				String k = null == km.key() || km.key().length == 0 ? null : new String(km.key());
+				return new Rmap(km.topic(), k, null == k ? "km" : k, (Object) km.value());
+			})));
+			return;
 		}
 	}
 
 	private void closeKafka() {
-		try {
-			connect.commitSync();
-		} catch (Exception e) {
-			logger().error("[" + name() + "] commit fail", e);
-		}
-		try {
-			connect.close();
-		} catch (Exception e) {
-			logger().error("[" + name() + "] shutdown fail", e);
+		synchronized(connect) {
+			try {
+				connect.commitSync();
+			} catch (Exception e) {
+				logger().error("[" + name() + "] commit fail", e);
+			}
+			try {
+				connect.close();
+			} catch (Exception e) {
+				logger().error("[" + name() + "] shutdown fail", e);
+			}
 		}
 	}
 }
