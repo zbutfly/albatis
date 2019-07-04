@@ -8,6 +8,7 @@ import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.bcp.imports.trans.TransToZIP;
 import net.butfly.albatis.bcp.imports.trans.WriteToNb;
 import net.butfly.albatis.bcp.imports.trans.WriteToXml;
+import net.butfly.albatis.io.Rmap;
 import org.dom4j.DocumentException;
 
 import java.io.File;
@@ -20,6 +21,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static net.butfly.albacore.paral.Exeter.*;
 import static net.butfly.albacore.utils.logger.StatsUtils.formatKilo;
@@ -36,11 +39,11 @@ public class BcpFormat {
     // private final static ExecutorService exec = Executors.newCachedThreadPool();
     // new ForkJoinPool(Props.HTTP_PARAL, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
 
-    final TaskDesc task;
+    final List<TaskDesc> tasks;
 
-    public BcpFormat(TaskDesc task) {
+    public BcpFormat(List<TaskDesc> tasks) {
         super();
-        this.task = task;
+        this.tasks = tasks;
     }
 
     private static final AtomicLong COUNT_LINES = new AtomicLong();
@@ -48,22 +51,22 @@ public class BcpFormat {
     private static final AtomicLong COUNT_CHARS = new AtomicLong();
     private static final long START = System.currentTimeMillis();
 
-    public void bcp(List<Map<String, Object>> recs, URISpec uri) {
+    public void bcp(List<Rmap> recs, URISpec uri, String taskName) {
         if (recs.isEmpty()) return;
-        String fn = task.tableName + "-" + fileIndex.incrementAndGet();
+        TaskDesc taskDesc = tasks.stream().filter(task -> taskName.equals(task.name)).collect(Collectors.toList()).get(0);
+        String fn = taskDesc.tableName + "-" + fileIndex.incrementAndGet();
         logger.trace("BCP [" + fn + "] for [" + recs.size() + "] recs beginning... ");
         Map<String, Integer> counts = Maps.of();
-
-        Path fnp = task.fd.base.resolve(fn);
+        Path fnp = taskDesc.fd.base.resolve(fn);
         confirmDir(fnp);
 
         List<String> lines;
         long now = System.currentTimeMillis();
+
         try {
-//			lines = Colls.list(recs, r -> sync(r, counts));
             lines = Colls.list();
             getn(Colls.list(recs, r -> of().submit(() -> {
-                lines.add(sync(r, counts));
+                lines.add(sync(r, counts, taskDesc));
             })));
         } finally {
             long ms = System.currentTimeMillis() - now;
@@ -72,24 +75,24 @@ public class BcpFormat {
         if (lines.isEmpty()) return;
         of().submit(() -> {
             try {
-                bcp(uri,fnp, fn, lines);
+                bcp(uri, fnp, fn, lines, taskDesc);
             } catch (IOException e) {
                 logger.error("BCP [" + fn + "] for [" + recs.size() + "] failed", e);
             }
         });
         of().submit(() -> {
             try {
-                task.fd.rec(fn, lines.size(), counts);
+                taskDesc.fd.rec(fn, lines.size(), counts);
             } catch (IOException e) {
                 logger.error("BCP [" + fn + "] for [" + recs.size() + "] rec log fail", e);
             }
         });
     }
 
-    protected void bcp(URISpec uri,Path fnp, String fn, List<String> lines) throws IOException {
+    protected void bcp(URISpec uri, Path fnp, String fn, List<String> lines, TaskDesc task) throws IOException {
         long now = System.currentTimeMillis();
         Future<?> f1 = of().submit(() -> {
-            xml(fnp, fn);
+            xml(fnp, fn, task);
         });
         Future<?> f2 = of().submit(() -> {
             nb(fnp, fn, lines);
@@ -111,7 +114,7 @@ public class BcpFormat {
 
     private static final AtomicLong FIELD_SPENT = new AtomicLong(), REC_COUNT = new AtomicLong();
 
-    protected String async(Map<String, Object> m, Map<String, Integer> counts) {
+    protected String async(Map<String, Object> m, Map<String, Integer> counts, TaskDesc task) {
         if (null == m || m.isEmpty()) return null;
         long spent = System.currentTimeMillis();
         try {
@@ -148,13 +151,13 @@ public class BcpFormat {
         else return r;
     }
 
-    protected String sync(Map<String, Object> m, Map<String, Integer> counts/* , String desc */) {
-        if (null == m || m.isEmpty()) return null;
+    protected String sync(Rmap m, Map<String, Integer> counts, TaskDesc task) {
+        if (null == m.map() || m.map().isEmpty()) return null;
         long spent = System.currentTimeMillis();
         try {
             List<String> fs = new ArrayList<>();
             for (TaskDesc.FieldDesc fd : task.fields)
-                count(fd.dstName, null == fd.dstExpr ? m.get(fd.dstName) : Engine.eval(fd.dstExpr, m), fs, counts);
+                count(fd.dstName, null == fd.dstExpr ? m.map().get(fd.dstName) : Engine.eval(fd.dstExpr, m.map()), fs, counts);
             return String.join(FIELD_SPLIT, fs);
         } finally {
             spent = FIELD_SPENT.addAndGet(System.currentTimeMillis() - spent);
@@ -201,7 +204,7 @@ public class BcpFormat {
     /**
      * generate "base/xml/fn.xml"
      */
-    private void xml(Path base, String filename) {
+    private void xml(Path base, String filename, TaskDesc task) {
         confirmDir(base.resolve("xml"));
         String[][] fileds = new String[task.fields.size()][2];
         for (int i = 0; i < task.fields.size(); i++) {

@@ -10,7 +10,6 @@ import net.butfly.albatis.io.Output;
 import net.butfly.albatis.io.Rmap;
 
 import java.io.IOException;
-import java.sql.SQLException;
 import java.util.List;
 
 /**
@@ -41,7 +40,7 @@ public class BcpConnection extends DataConnection<Connection> {
 	@Override
 	@SuppressWarnings("unchecked")
 	public Output<Rmap> outputRaw(TableDesc... table) throws IOException {
-		BcpOutput bcpOutput = new BcpOutput("BcpOutnput",uri,table[0].qualifier.name);
+		BcpOutput bcpOutput = new BcpOutput("BcpOutnput",uri,table);
 		return bcpOutput;
 	}
 
