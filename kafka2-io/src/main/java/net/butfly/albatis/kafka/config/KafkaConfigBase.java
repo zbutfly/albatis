@@ -32,7 +32,7 @@ public abstract class KafkaConfigBase implements Serializable {
 	public static final String HUAWEI_KEYTAB = Configs.gets(PROP_PREFIX + "huawei.keytab", "user.keytab");
 	public static final String KERBEROS_PROP_PATH = "kerberos.properties";
 	public static Properties KERBEROS_PROPS = new Properties();
-	
+	public static boolean KRB5_CONF_EXIST = false;
 	//tbds
 	public static final String TBDS_PROP_PATH = "tbds.properties";
 	
@@ -186,27 +186,50 @@ public abstract class KafkaConfigBase implements Serializable {
 				throw new RuntimeException("Load huawei kerberos config error!", e);
 			}
 		} else {
-			logger.info("Enable normal kerberos!");
-			try {
-				LoginUtil.setKrb5Config(kerberosConfigPath + KRB5_CONF);
-				LoginUtil.setZookeeperServerPrincipal(KERBEROS_PROPS.getProperty("albatis.kafka.kerberos.zk.principal"));
-				System.setProperty("java.security.auth.login.config", kerberosConfigPath + JAAS_CONF);
-			} catch (IOException e) {
-				throw new RuntimeException("Load normal kerberos config error!", e);
+			File file = new File(kerberosConfigPath + KRB5_CONF);
+			KRB5_CONF_EXIST = file.exists();
+			if(!file.exists()){
+				logger.info("Enable normal SASL/PLAIN");
+				try {
+					System.setProperty("java.security.auth.login.config", kerberosConfigPath + JAAS_CONF);
+					logger.trace("java.security.auth.login.config:" +  kerberosConfigPath + JAAS_CONF);
+				} catch (Exception e) {
+					throw new RuntimeException("Load normal SASL/PLAIN config error!", e);
+				}
+			}else {
+				logger.info("Enable normal kerberos!");
+				try {
+					LoginUtil.setKrb5Config(kerberosConfigPath + KRB5_CONF);
+					LoginUtil.setZookeeperServerPrincipal(KERBEROS_PROPS.getProperty("albatis.kafka.kerberos.zk.principal"));
+					System.setProperty("java.security.auth.login.config", kerberosConfigPath + JAAS_CONF);
+				} catch (IOException e) {
+					throw new RuntimeException("Load normal kerberos config error!", e);
+				}
 			}
 		}
 	}
 
 	public void kerberosConfig(Properties props) {
 		if (null != kerberosConfigPath) {
-			logger.info("Enable kerberos! Config file path:" + kerberosConfigPath);
-			props.setProperty("kerberos.domain.name", KERBEROS_PROPS.getProperty("kerberos.domain.name"));
-			logger.trace("kerberos.domain.name" + KERBEROS_PROPS.getProperty("kerberos.domain.name"));
-			props.setProperty("security.protocol", KERBEROS_PROPS.getProperty("security.protocol"));
-			logger.trace("security.protocol" + KERBEROS_PROPS.getProperty("security.protocol"));
-			props.setProperty("sasl.kerberos.service.name", KERBEROS_PROPS.getProperty("sasl.kerberos.service.name"));
-			logger.trace("sasl.kerberos.service.name" + KERBEROS_PROPS.getProperty("sasl.kerberos.service.name"));
-			
+			if(!KRB5_CONF_EXIST){
+				logger.info("Enable SASL/PLAIN! Config file path:" + kerberosConfigPath);
+				props.put("security.protocol",KERBEROS_PROPS.getProperty("security.protocol"));
+				logger.trace("security.protocol" + KERBEROS_PROPS.getProperty("security.protocol"));
+				props.put("sasl.mechanism",KERBEROS_PROPS.getProperty("sasl.mechanism"));
+				logger.trace("sasl.mechanism" + KERBEROS_PROPS.getProperty("sasl.mechanism"));
+				if(null!=KERBEROS_PROPS.getProperty("schema.registry.url") && !"".equals(KERBEROS_PROPS.getProperty("schema.registry.url"))){
+					props.put("schema.registry.url",KERBEROS_PROPS.getProperty("schema.registry.url"));
+					logger.trace("schema.registry.url" + KERBEROS_PROPS.getProperty("schema.registry.url"));
+				}
+			}else {
+				logger.info("Enable kerberos! Config file path:" + kerberosConfigPath);
+				props.setProperty("kerberos.domain.name", KERBEROS_PROPS.getProperty("kerberos.domain.name"));
+				logger.trace("kerberos.domain.name" + KERBEROS_PROPS.getProperty("kerberos.domain.name"));
+				props.setProperty("security.protocol", KERBEROS_PROPS.getProperty("security.protocol"));
+				logger.trace("security.protocol" + KERBEROS_PROPS.getProperty("security.protocol"));
+				props.setProperty("sasl.kerberos.service.name", KERBEROS_PROPS.getProperty("sasl.kerberos.service.name"));
+				logger.trace("sasl.kerberos.service.name" + KERBEROS_PROPS.getProperty("sasl.kerberos.service.name"));
+			}
 		}
 	}
 	
