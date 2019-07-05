@@ -157,7 +157,7 @@ public class BcpFormat {
         try {
             List<String> fs = new ArrayList<>();
             for (TaskDesc.FieldDesc fd : task.fields)
-                count(fd.dstName, null == fd.dstExpr ? m.map().get(fd.dstName) : Engine.eval(fd.dstExpr, m.map()), fs, counts);
+                count(fd.dstName, m.map().get(fd.dstName), fs, counts);
             return String.join(FIELD_SPLIT, fs);
         } finally {
             spent = FIELD_SPENT.addAndGet(System.currentTimeMillis() - spent);
