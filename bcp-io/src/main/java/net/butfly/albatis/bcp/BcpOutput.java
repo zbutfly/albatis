@@ -86,6 +86,7 @@ public class BcpOutput extends OutputBase<Rmap> {
                     LinkedBlockingQueue<Rmap> pool = poolMap.get(m.table().qualifier);
                     Map<String, Object> map = m.containsKey("value") ? (Map<String, Object>) m.get("value") : m.map();
                     Rmap rmap = new Rmap(m.table().qualifier, map);
+                    if(null == m.keyField()) return;
                     if (rmap.containsKey(m.keyField()))
                         if (null != rmap.get(m.keyField()) && Props.BCP_KEY_FIELD_EXCLUDE)
                             pool.put(rmap);
@@ -93,6 +94,7 @@ public class BcpOutput extends OutputBase<Rmap> {
                     LinkedBlockingQueue<Rmap> pool = new LinkedBlockingQueue<>(50000);
                     Map<String, Object> map = m.containsKey("value") ? (Map<String, Object>) m.get("value") : m.map();
                     Rmap rmap = new Rmap(m.table().qualifier, map);
+                    if(null == m.keyField()) return;
                     if (rmap.containsKey(m.keyField()))
                         if (null != rmap.get(m.keyField()) && Props.BCP_KEY_FIELD_EXCLUDE) {
                             pool.put(rmap);
