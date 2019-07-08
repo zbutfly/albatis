@@ -46,6 +46,11 @@ public class KuduConnectionAsync extends KuduConnectionBase<KuduConnectionAsync,
 						this::error);
 			} while (Task.waitSleep());
 		}, "KuduErrorHandler[" + kuduUri.toString() + "]");
+		session = client.newSession();
+		session.setFlushMode(FlushMode.AUTO_FLUSH_BACKGROUND);
+		session.setTimeoutMillis(Long.parseLong(Configs.get(KuduProps.TIMEOUT, "2000")));
+		session.setFlushInterval(1000);
+		session.setMutationBufferSpace(5);
 		pendingHandler.setDaemon(true);
 		pendingHandler.start();
 	}
@@ -68,14 +73,8 @@ public class KuduConnectionAsync extends KuduConnectionBase<KuduConnectionAsync,
 	@Override
 	public boolean apply(Operation op, BiConsumer<Operation, Throwable> error) {
 		if (null == op) return false;
-		AsyncKuduSession session;
 		Deferred<OperationResponse> or;
 		try {
-			session = op.getTable().getAsyncClient().newSession();
-			session.setFlushMode(FlushMode.AUTO_FLUSH_BACKGROUND);
-			session.setTimeoutMillis(Long.parseLong(Configs.get(KuduProps.TIMEOUT, "2000")));
-			session.setFlushInterval(1000);
-			session.setMutationBufferSpace(5);
 			or = session.apply(op);
 		} catch (KuduException e) {
 			if (isNonRecoverable(e)) logger.error("Kudu apply fail non-recoverable: " + e.getMessage());
