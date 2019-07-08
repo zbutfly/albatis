@@ -86,13 +86,18 @@ public class BcpOutput extends OutputBase<Rmap> {
                     LinkedBlockingQueue<Rmap> pool = poolMap.get(m.table().qualifier);
                     Map<String, Object> map = m.containsKey("value") ? (Map<String, Object>) m.get("value") : m.map();
                     Rmap rmap = new Rmap(m.table().qualifier, map);
-                    pool.put(rmap);
+                    if (rmap.containsKey(m.keyField()))
+                        if (null != rmap.get(m.keyField()) && Props.BCP_KEY_FIELD_EXCLUDE)
+                            pool.put(rmap);
                 } else {
                     LinkedBlockingQueue<Rmap> pool = new LinkedBlockingQueue<>(50000);
                     Map<String, Object> map = m.containsKey("value") ? (Map<String, Object>) m.get("value") : m.map();
                     Rmap rmap = new Rmap(m.table().qualifier, map);
-                    pool.put(rmap);
-                    poolMap.put(m.table().qualifier, pool);
+                    if (rmap.containsKey(m.keyField()))
+                        if (null != rmap.get(m.keyField()) && Props.BCP_KEY_FIELD_EXCLUDE) {
+                            pool.put(rmap);
+                            poolMap.put(m.table().qualifier, pool);
+                        }
                 }
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
@@ -127,7 +132,7 @@ public class BcpOutput extends OutputBase<Rmap> {
                         poolMap.get(k).drainTo(l, BCP_FLUSH_COUNT);
                         count.incrementAndGet();
                         EXPOOL_BCP.submit(() -> {
-                            bcp.bcp(l, uri,k);
+                            bcp.bcp(l, uri, k);
                             count.decrementAndGet();
                         });
                     }
@@ -137,7 +142,7 @@ public class BcpOutput extends OutputBase<Rmap> {
                 poolMap.get(taskName).drainTo(l, BCP_FLUSH_COUNT);
                 count.incrementAndGet();
                 EXPOOL_BCP.submit(() -> {
-                    bcp.bcp(l, uri,taskName);
+                    bcp.bcp(l, uri, taskName);
                     count.decrementAndGet();
                 });
             }

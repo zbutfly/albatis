@@ -46,6 +46,8 @@
     dataggr.migrate.http.timeout.ms=300000
     是否删除临时文件，默认true
     dataggr.migrate.bcp.tempfields.clean=true
+    是否过滤主键为空的记录
+    dataggr.migrate.bcp.key.field.exclude=true
     
 #页面配置说明
     input url连接串：bcp:///C:\Users\zhuqh\Desktop\test
