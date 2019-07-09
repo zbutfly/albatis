@@ -57,10 +57,15 @@ public class HbaseFormat extends RmapFormat {
 		Object v;
 		for (FieldDesc f : fields) if (null != (v = dst.get(f.name))) {
 			if (v instanceof ByteBuffer) v = ((ByteBuffer) v).array();
-			if (null != (v = disassemble((byte[]) v, f.type))){
-				dst.put(f.name, v);
-			} else {
-				dst.remove(f.name);
+			try {
+				if (null != (v = disassemble((byte[]) v, f.type))){
+					dst.put(f.name, v);
+				} else {
+					dst.remove(f.name);
+				}
+			} catch (IllegalArgumentException e) {
+				logger().error("Disassemble failed. Field:[" + f.name + "]", e);
+				throw e;
 			}
 		}
 		return dst;
