@@ -33,12 +33,19 @@ public class BcpInput extends Namedly implements Input<Rmap> {
     public BcpInput(final String name, URISpec uri, String dataPath, String tableName) {
         super(name);
         this.tableName = tableName;
-        this.dataPath = Paths.get(dataPath);
+        this.dataPath = getDataPath(dataPath);
         this.bcpPath = this.dataPath.resolve(tableName);
         FileUtil.confirmDir(this.bcpPath);
         opening(() -> openBcp(uri) );
         closing(this::closeBcp);
     }
+
+    private Path getDataPath(String dataPath){
+        File directory = new File(this.getClass().getResource("/").getPath());
+        String parent = directory.getParent();
+        return Paths.get(parent + dataPath);
+    }
+
 
     private void openBcp(URISpec uri) {
         try (Ftp ftp = Ftp.connect(uri)) {

@@ -2,6 +2,7 @@ package net.butfly.albatis.bcp.utils;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.Pair;
+import net.butfly.albatis.bcp.Props;
 import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPFile;
@@ -10,6 +11,7 @@ import org.apache.log4j.Logger;
 
 import java.io.*;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import static net.butfly.albatis.bcp.Props.BCP_PATH_ZIP;
 
@@ -160,11 +162,8 @@ public class Ftp implements Closeable {
             client.changeWorkingDirectory(base);
             FTPFile[] ftpFiles = client.listFiles();
             for (FTPFile file : ftpFiles) {
-                File directory = new File(this.getClass().getResource("/").getPath());
-                String parent = directory.getParent();
-                File assembleDir = new File(parent + localpath);
-                if(!assembleDir.exists()) assembleDir.mkdir();
-                File localFile = new File(parent+localpath + "/" + file.getName());
+                Props.confirmDir(Paths.get(localpath));
+                File localFile = new File(localpath + "/" + file.getName());
                 try (OutputStream os = new FileOutputStream(localFile)) {
                     client.retrieveFile(file.getName(), os);
                     client.dele(file.getName());
