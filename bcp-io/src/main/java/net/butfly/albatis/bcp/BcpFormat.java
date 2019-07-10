@@ -209,7 +209,7 @@ public class BcpFormat {
         String[][] fileds = new String[task.fields.size()][2];
         for (int i = 0; i < task.fields.size(); i++) {
             TaskDesc.FieldDesc fd = task.fields.get(i);
-            fileds[i][0] = null == fd.dstExpr || "".equals(fd.dstExpr) ? fd.dstName : fd.dstExpr;
+            fileds[i][0] = fd.dstName;
             fileds[i][1] = fd.comment;
         }
         try (WriteToXml wxml = new WriteToXml(base.resolve("xml").resolve(filename + ".xml").toString())) {
