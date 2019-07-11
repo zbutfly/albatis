@@ -59,7 +59,10 @@ public abstract class ElasticOutputBase<T extends DataConnection<?> & ElasticCon
 	@Override
 	protected void enqsafe(Sdream<Rmap> msgs) {
 		Map<Object, Rmap> remains = Maps.of();
-		for (Rmap m : msgs.list()) remains.put(m.key(), conn.fixTable(m));
+		for (Rmap m : msgs.list()) {
+			Rmap mm = conn.fixTable(m);
+			remains.put(mm.table().toString() + mm.key(), mm);
+		}
 		if (!remains.isEmpty()) go(remains);
 	}
 
@@ -88,7 +91,7 @@ public abstract class ElasticOutputBase<T extends DataConnection<?> & ElasticCon
 		if (respSize == 0) return;
 		List<Rmap> retries = Colls.list();
 		if (null != response) for (BulkItemResponse r : response) {
-			Rmap o = remains.remove(r.getId());
+			Rmap o = remains.remove(r.getIndex() + "/" + r.getType() + r.getId());
 			if (!r.isFailed()) {
 				succs++;
 				if (null != o && null != r.getResponse()) logger.trace(() -> //
