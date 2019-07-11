@@ -14,6 +14,7 @@ import org.dom4j.DocumentException;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -57,7 +58,12 @@ public class BcpFormat {
         String fn = taskDesc.tableName + "-" + fileIndex.incrementAndGet();
         logger.trace("BCP [" + fn + "] for [" + recs.size() + "] recs beginning... ");
         Map<String, Integer> counts = Maps.of();
-        Path fnp = taskDesc.fd.base.resolve(fn);
+        Path fnp ;
+        if(uri.toString().contains("///"))
+            fnp = confirmDir(Paths.get(uri.getPath()).resolve(taskDesc.tableName)).resolve(fn);
+        else
+            fnp = taskDesc.fd.base.resolve(fn);
+
         confirmDir(fnp);
 
         List<String> lines;
