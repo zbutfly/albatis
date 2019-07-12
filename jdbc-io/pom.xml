@@ -37,6 +37,7 @@
 			<groupId>com.oracle.db</groupId>
 			<artifactId>oracle-jdbc</artifactId>
 			<version>11.2.0.3</version>
+			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>com.microsoft.sqlserver</groupId>
@@ -54,6 +55,7 @@
 			<groupId>com.hmpp</groupId>
 			<artifactId>hmppanalyticsdb</artifactId>
 			<version>V1.0.0.jdbc</version>
+			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>junit</groupId>
