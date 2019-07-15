@@ -9,7 +9,6 @@ import com.arangodb.entity.BaseDocument;
 import net.butfly.albacore.io.lambda.Function;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
-import net.butfly.albacore.utils.logger.Statistic;
 import net.butfly.albatis.io.Rmap;
 
 public abstract class AqlNestedMessage extends Rmap {
@@ -25,12 +24,12 @@ public abstract class AqlNestedMessage extends Rmap {
 		super(tbl, key, vertex);
 	}
 
-	public CompletableFuture<List<BaseDocument>> exec(ArangoConnection conn, Statistic s) {
+	public CompletableFuture<List<BaseDocument>> exec(ArangoConnection conn) {
 		if (null == nestedResults) throw new IllegalStateException("Parent of nested aql has not been executed.");
 		List<CompletableFuture<List<BaseDocument>>> fff = Colls.list();
 		for (BaseDocument d : nestedResults)
 			for (AqlNestedMessage n : applyThen(d))
-				fff.add(n.exec(conn, s));
+				fff.add(n.exec(conn));
 		return fff.isEmpty() ? ArangoConnection.empty() : ArangoConnection.merge(fff);
 	}
 

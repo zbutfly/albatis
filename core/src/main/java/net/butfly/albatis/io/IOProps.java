@@ -10,6 +10,7 @@ import net.butfly.albacore.utils.collection.Maps;
 public interface IOProps {
 	static final String BATCH_SIZE = "batch.size";
 	static final String STATS_STEP = "stats.step";
+	static final String STATS_SAMPLE_STEP = "stats.sample.step";
 	static Map<Object, Map<String, Object>> PROPS = Maps.of();
 
 	static String propName(Class<?> c, String suffix) {

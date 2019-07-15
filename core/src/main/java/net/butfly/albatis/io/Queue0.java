@@ -201,4 +201,9 @@ public interface Queue0<I, O> extends Input<O>, Output<I> {
 		// TODO Auto-generated method stub
 		return null;
 	}
+
+	@Override
+	default Queue0<I, O> stats() {
+		return this;
+	}
 }

@@ -29,9 +29,9 @@ public class KafkaOutput extends KafkaOut {
 	}
 
 	@Override
-	public Statistic trace() {
-		return new Statistic(this).<KeyedMessage<byte[], byte[]>>sizing(km -> null == km ? 0 : (long) km.message().length)
-//				.<KeyedMessage<byte[], byte[]>>sampling(km -> null == km ? null : new String(km.message()))
+	public Statistic statistic() {
+		return new Statistic(this).<KeyedMessage<byte[], byte[]>> sizing(km -> null == km ? 0 : (long) km.message().length)
+		// .<KeyedMessage<byte[], byte[]>>sampling(km -> null == km ? null : new String(km.message()))
 		;
 	}
 
@@ -40,13 +40,16 @@ public class KafkaOutput extends KafkaOut {
 		List<Rmap> msgs = messages.list();
 		List<KeyedMessage<byte[], byte[]>> ml = of(msgs).mapFlat(m -> {
 			List<KeyedMessage<byte[], byte[]>> l = Colls.list();
-			m.forEach((k, body) -> l.add(new KeyedMessage<>(m.table().name, k.getBytes(), (byte[]) body)));
+			m.forEach((k, body) -> {
+				byte[] d = body instanceof CharSequence ? ((CharSequence) body).toString().getBytes() : (byte[]) body;
+				if (null != d && d.length > 0) l.add(new KeyedMessage<>(m.table().name, k.getBytes(), d));
+			});
 			return of(l);
 		}).nonNull().list();
 		int size;
 		if (!ml.isEmpty()) try {
-			if (1 == (size = ml.size())) s().statsOutN(ml.get(0), producer::send);
-			else s().statsOuts(ml, producer::send);
+			if (1 == (size = ml.size())) producer.send(ml.get(0));
+			else producer.send(ml);
 			succeeded(size);
 		} catch (Exception e) {
 			failed(Sdream.of(msgs));

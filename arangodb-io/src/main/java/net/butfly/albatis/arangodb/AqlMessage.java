@@ -6,7 +6,6 @@ import java.util.concurrent.CompletableFuture;
 import com.arangodb.entity.BaseDocument;
 
 import net.butfly.albacore.paral.Exeter;
-import net.butfly.albacore.utils.logger.Statistic;
 
 public class AqlMessage extends AqlNestedMessage {
 	private static final long serialVersionUID = 6783506759570424659L;
@@ -18,10 +17,10 @@ public class AqlMessage extends AqlNestedMessage {
 	}
 
 	@Override
-	public CompletableFuture<List<BaseDocument>> exec(ArangoConnection conn, Statistic s) {
-		return conn.exec(aql, null, s).thenComposeAsync(l -> {
+	public CompletableFuture<List<BaseDocument>> exec(ArangoConnection conn) {
+		return conn.exec(aql, null).thenComposeAsync(l -> {
 			nestedResults(l);
-			return super.exec(conn, s);
+			return super.exec(conn);
 		}, Exeter.of());
 	}
 }

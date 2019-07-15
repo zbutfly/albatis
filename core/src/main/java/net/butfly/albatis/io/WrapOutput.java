@@ -3,6 +3,7 @@ package net.butfly.albatis.io;
 import net.butfly.albacore.lambda.Runnable;
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.logger.Logger;
+import net.butfly.albacore.utils.logger.Statistic;
 
 public abstract class WrapOutput<V, V0> extends WrapperBase<Output<V0>> implements Output<V> {
 	private static final long serialVersionUID = 7409156522259075670L;
@@ -67,5 +68,15 @@ public abstract class WrapOutput<V, V0> extends WrapperBase<Output<V0>> implemen
 	@Override
 	public void close() {
 		base.close();
+	}
+
+	@Override
+	public Statistic statistic() {
+		return base.statistic();
+	}
+
+	@Override
+	public void statistic(Statistic s) {
+		base.statistic(s);
 	}
 }

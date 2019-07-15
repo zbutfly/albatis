@@ -34,6 +34,10 @@ public interface Input<V> extends IO, Dequeuer<V> {
 		return 0;
 	}
 
+	default Input<V> stats() {
+		return this;
+	}
+
 	static final Map<Input<?>, String> KEY_FIELDS = Maps.of();
 
 	default String keyField() {
@@ -64,8 +68,7 @@ public interface Input<V> extends IO, Dequeuer<V> {
 		return using -> {
 			final List<T> l = Colls.list();
 			T t;
-			while (!ending.get() && null != (t = next.get()) && l.size() < batchSize)
-				l.add(t);
+			while (!ending.get() && null != (t = next.get()) && l.size() < batchSize) l.add(t);
 			using.accept(Sdream.of(l));
 		};
 	}

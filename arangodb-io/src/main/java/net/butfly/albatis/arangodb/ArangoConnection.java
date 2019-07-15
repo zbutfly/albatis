@@ -28,7 +28,6 @@ import net.butfly.albacore.paral.Exeter;
 import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.logger.Logger;
-import net.butfly.albacore.utils.logger.Statistic;
 import net.butfly.albatis.DataConnection;
 import net.butfly.albatis.ddl.TableDesc;
 
@@ -60,8 +59,7 @@ public class ArangoConnection extends DataConnection<ArangoDBAsync> {
 	@Override
 	protected ArangoDBAsync initialize(URISpec uri) {
 		Builder b = new ArangoDBAsync.Builder();
-		for (InetSocketAddress h : uri.getInetAddrs())
-			b.host(h.getHostName(), h.getPort());
+		for (InetSocketAddress h : uri.getInetAddrs()) b.host(h.getHostName(), h.getPort());
 		if (null != uri.getUsername()) b.user(uri.getUsername());
 		if (null != uri.getPassword()) b.password(uri.getPassword());
 		if (MAX_CONNECTIONS > 0) b.maxConnections(MAX_CONNECTIONS);
@@ -115,7 +113,7 @@ public class ArangoConnection extends DataConnection<ArangoDBAsync> {
 	private static final Format AVG = new DecimalFormat("0.00");
 	private final AtomicLong count = new AtomicLong(), spent = new AtomicLong();
 
-	public CompletableFuture<List<BaseDocument>> exec(String aql, Map<String, Object> param, Statistic s) {
+	public CompletableFuture<List<BaseDocument>> exec(String aql, Map<String, Object> param) {
 		long t = System.currentTimeMillis();
 		return db.query(aql, param, null, BaseDocument.class).thenApplyAsync(c -> {
 			long tt = System.currentTimeMillis() - t;
@@ -125,7 +123,7 @@ public class ArangoConnection extends DataConnection<ArangoDBAsync> {
 				return "AQL: [spent " + tt + " ms, total " + total + ", avg " + avg + " ms] with aql: " + aql //
 						+ (Colls.empty(param) ? "" : "\n\tparams: " + param) + ".";
 			});
-			return s.stats(c.asListRemaining());
+			return c.asListRemaining();
 		}, Exeter.of());
 	}
 
@@ -138,14 +136,14 @@ public class ArangoConnection extends DataConnection<ArangoDBAsync> {
 		} catch (ExecutionException e) {
 			Throwable ee = e.getCause();
 			if (ee instanceof ArangoDBException)
-//				ArangoDBException ae = (ArangoDBException) ee;
-//				if (503 == ae.getResponseCode() && 21003 == ae.getErrorNum())
-//					logger.error("fail: " + ae.getMessage());
+				// ArangoDBException ae = (ArangoDBException) ee;
+				// if (503 == ae.getResponseCode() && 21003 == ae.getErrorNum())
+				// logger.error("fail: " + ae.getMessage());
 				return null;
 			logger.error("fail", ee);
 			throw ee instanceof RuntimeException ? (RuntimeException) ee : new RuntimeException(ee);
 		} catch (TimeoutException e) {
-//			logger.error("aql timeout for " + TIMEOUT_SECS + " seconds");
+			// logger.error("aql timeout for " + TIMEOUT_SECS + " seconds");
 			return null;
 		}
 	}
@@ -153,16 +151,14 @@ public class ArangoConnection extends DataConnection<ArangoDBAsync> {
 	@SafeVarargs
 	public static List<BaseDocument> merge(List<BaseDocument>... c) {
 		List<BaseDocument> ll = Colls.list();
-		for (List<BaseDocument> l : c)
-			if (null != l && !l.isEmpty()) ll.addAll(l);
+		for (List<BaseDocument> l : c) if (null != l && !l.isEmpty()) ll.addAll(l);
 		return ll.isEmpty() ? null : ll;
 	}
 
 	public static CompletableFuture<List<BaseDocument>> merge(List<CompletableFuture<List<BaseDocument>>> fs) {
 		if (Colls.empty(fs)) return empty();
 		CompletableFuture<List<BaseDocument>> f = fs.get(0);
-		for (int i = 1; i < fs.size(); i++)
-			f = f.thenCombineAsync(fs.get(i), ArangoConnection::merge, Exeter.of());
+		for (int i = 1; i < fs.size(); i++) f = f.thenCombineAsync(fs.get(i), ArangoConnection::merge, Exeter.of());
 		return f;
 	}
 

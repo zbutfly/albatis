@@ -39,7 +39,7 @@ public abstract class PumpImpl<V, P extends PumpImpl<V, P>> extends Namedly impl
 			try {
 				dep.close();
 			} catch (Exception e) {
-				logger().error(dep.getClass().getName() + " close failed");
+				logger().error(dep.getClass().getName() + " close failed", e);
 			}
 	}
 

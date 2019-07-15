@@ -69,10 +69,11 @@ public class BcpOutput extends OutputBase<Rmap> {
     }
 
     @Override
-    public Statistic trace() {
+    public Statistic s() {
+//        return super.s().detailing(() -> "Pending records: " + pool.size() + ", thread pool: " + EXPOOL_BCP.toString());
         Statistic statistic = new Statistic(BcpOutput.class);
         for (Map.Entry<String, LinkedBlockingQueue<Rmap>> entry : poolMap.entrySet()) {
-            statistic = super.trace().detailing(() -> "Pending table :" + entry.getKey() + ",Pending records: " + entry.getValue().size() + ", thread pool: " + EXPOOL_BCP.toString());
+            statistic = super.s().detailing(() -> "Pending table :" + entry.getKey() + ",Pending records: " + entry.getValue().size() + ", thread pool: " + EXPOOL_BCP.toString());
         }
         return statistic;
     }

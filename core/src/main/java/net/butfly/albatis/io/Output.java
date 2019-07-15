@@ -7,6 +7,8 @@ import net.butfly.albacore.io.lambda.Consumer;
 import net.butfly.albacore.io.lambda.Function;
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albatis.io.ext.FailoverOutput;
+import net.butfly.albatis.io.ext.SampleOutput;
+import net.butfly.albatis.io.ext.StatsOutput;
 
 public interface Output<V> extends IO, Consumer<Sdream<V>>, Enqueuer<V> {
 	static Output<?> NULL = items -> {};
@@ -46,5 +48,14 @@ public interface Output<V> extends IO, Consumer<Sdream<V>>, Enqueuer<V> {
 
 	static <T> Output<T> of(Collection<? super T> underly) {
 		return s -> s.eachs(underly::add);
+	}
+
+	default Output<V> sampling(Consumer<V> sampling) {
+		return new SampleOutput<>(this, sampling);
+	}
+
+	@Deprecated
+	default Output<V> stats() {
+		return new StatsOutput<V>(this);
 	}
 }

@@ -141,7 +141,7 @@ public class KafkaInput extends Namedly implements KafkaIn {
 	}
 
 	@Override
-	public Statistic trace() {
+	public Statistic statistic() {
 		return new Statistic(this).<MessageAndMetadata<byte[], byte[]>> sizing(km -> (long) km.rawMessage$1().payloadSize()) //
 				.<MessageAndMetadata<byte[], byte[]>> infoing(km -> new String(km.key())).detailing(Exeter.of()::toString);
 	}
@@ -157,7 +157,7 @@ public class KafkaInput extends Namedly implements KafkaIn {
 		while (opened()) if (null != (it = consumers.poll())) {
 			try {
 				if (null == (m = it.next())) return null;
-				MessageAndMetadata<byte[], byte[]> km = (MessageAndMetadata<byte[], byte[]>) s().stats(m);
+				MessageAndMetadata<byte[], byte[]> km = (MessageAndMetadata<byte[], byte[]>) m;
 				String k = null == km.key() || km.key().length == 0 ? null : new String(km.key());
 				return new Rmap(km.topic(), k, null == k ? "km" : k, (Object) km.message());
 			} catch (ConsumerTimeoutException | NoSuchElementException ex) {

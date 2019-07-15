@@ -40,7 +40,7 @@ public class ArangoOutput extends OutputBase<AqlNestedMessage> {
 	protected void enqsafe(Sdream<AqlNestedMessage> edges) {
 		Map<AqlNestedMessage, Pair<Integer, CompletableFuture<List<BaseDocument>>>> rs = Maps.of();
 		for (AqlNestedMessage m : edges.list()) {
-			for (int i = 0; MAX_RETRY > 0 && i < MAX_RETRY; i++) rs.put(m, new Pair<>(0, m.exec(conn, s())));
+			for (int i = 0; MAX_RETRY > 0 && i < MAX_RETRY; i++) rs.put(m, new Pair<>(0, m.exec(conn)));
 		}
 		while (!rs.isEmpty()) {
 			Entry<AqlNestedMessage, Pair<Integer, CompletableFuture<List<BaseDocument>>>> first = rs.entrySet().iterator().next();
@@ -60,15 +60,15 @@ public class ArangoOutput extends OutputBase<AqlNestedMessage> {
 				rs.remove(m);
 			} else {// retry
 				if (retry > 5) logger().warn("Many retries [" + retry + "], still not success: " + m.toString());
-				rs.put(m, new Pair<>(retry, m.exec(conn, s())));
+				rs.put(m, new Pair<>(retry, m.exec(conn)));
 			}
 		}
 	}
 
 	@Override
-	public Statistic trace() {
-		return new Statistic(this).<BaseDocument> sizing(b -> conn.sizeOf(b)) //
-				.<BaseDocument> infoing(BaseDocument::toString);
+	public Statistic statistic() {
+		return new Statistic(this).<BaseDocument>sizing(b -> conn.sizeOf(b)) //
+				.<BaseDocument>infoing(BaseDocument::toString);
 	}
 
 	@Override

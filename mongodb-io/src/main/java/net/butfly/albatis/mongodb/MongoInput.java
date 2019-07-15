@@ -50,7 +50,7 @@ public class MongoInput extends net.butfly.albacore.base.Namedly implements OddI
 	}
 
 	@Override
-	public Statistic trace() {
+	public Statistic statistic() {
 		return new Statistic(this).<DBObject> sizing(b -> (long) b.keySet().size()) //
 				.<DBObject> infoing(DBObject::toString).detailing(() -> "[Stats Field Count, not Bytes]");
 	}
@@ -140,7 +140,7 @@ public class MongoInput extends net.butfly.albacore.base.Namedly implements OddI
 			if (null != (c = cursors.poll())) try {
 				if (null != c.cursor && c.cursor.hasNext()) {
 					try {
-						m = s().stats(c.cursor.next()).toMap();
+						m = c.cursor.next().toMap();
 					} catch (MongoException ex) {
 						logger.warn("Mongo fail fetch, ignore and continue retry...");
 						continue;

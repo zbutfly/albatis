@@ -24,7 +24,6 @@ public interface IO extends IOSchemaness, Sizable, Openable, Serializable, IOSta
 
 	@Override
 	default void open() {
-		stating();
 		Openable.super.open();
 	}
 
@@ -35,6 +34,7 @@ public interface IO extends IOSchemaness, Sizable, Openable, Serializable, IOSta
 	default int features() {
 		return 0;
 	}
+	
 
 	interface Feature {
 		static final int STREAMING = 0x1;

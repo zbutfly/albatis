@@ -2,6 +2,7 @@ package net.butfly.albatis.io;
 
 import net.butfly.albacore.lambda.Runnable;
 import net.butfly.albacore.utils.logger.Logger;
+import net.butfly.albacore.utils.logger.Statistic;
 
 public abstract class WrapOddOutput<V, V0> extends WrapperBase<OddOutput<V0>> implements OddOutput<V> {
 	private static final long serialVersionUID = 2713449285484389905L;
@@ -63,5 +64,15 @@ public abstract class WrapOddOutput<V, V0> extends WrapperBase<OddOutput<V0>> im
 	@Override
 	public void close() {
 		base.close();
+	}
+
+	@Override
+	public Statistic statistic() {
+		return base.statistic();
+	}
+
+	@Override
+	public void statistic(Statistic s) {
+		base.statistic(s);
 	}
 }

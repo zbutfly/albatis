@@ -107,11 +107,11 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 
 	final boolean OP_SINGLE = propB(this, "use.single.op", false);
 	private final boolean OP_CONFIRM_RETRY = propB(this, "confirm.and.retry", false);
-	private final int GET_SCAN_OBJS = propI(this, "get.scaner.object.queue.size", 500);
+	// private final int GET_SCAN_OBJS = propI(this, "get.scaner.object.queue.size", 500);
 	private final int GET_MAX_RETRIES = propI(this, "get.retry", 2);
 	protected final long GET_DUMP_MIN_SIZE = propL(this, "get.dump.min.bytes", 2097152); // 2M
 	private final Map<String, Table> tables;
-	private final LinkedBlockingQueue<Scan> scans = new LinkedBlockingQueue<>(GET_SCAN_OBJS);
+	// private final LinkedBlockingQueue<Scan> scans = new LinkedBlockingQueue<>(GET_SCAN_OBJS);
 	// RmapSubMode subtableMode;
 
 	public HbaseConnection() throws IOException {
@@ -228,13 +228,11 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 		Table t = table(table);
 		put1(t, op);
 		Result r = check(t, op);
-		logger().trace("[" + op.getClass().getSimpleName() + ":" + C.incrementAndGet() + "]\t" + op.toJSON() //
-				+ "\n\tResult: " + String.valueOf(r));
 		return r;
 	}
 
 	public Result[] put(String table, Mutation... ops) throws IOException {
-		int cc = C.incrementAndGet();
+//		int cc = C.incrementAndGet();
 		Table t = table(table);
 		Object[] results = new Object[ops.length];
 		try {
@@ -251,11 +249,11 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 				if (null == rs[i]) rs[i] = (Result) r;
 			} else logger.error("Unknown error result from batch of [" + i + "][" + ops[i].toJSON() + "]: " + r.toString());
 		}
-		if (logger().isTraceEnabled()) for (int i = 0; i < ops.length; i++) try {
-			Mutation op = ops[i];
-			logger().trace("[enqs:" + op.getClass().getSimpleName() + ":" + cc + ":" + (i + 1) + "]\t" + op.toJSON() //
-					+ "\n\tResult: " + String.valueOf(rs[i]));
-		} catch (IOException e) {}
+//		if (logger().isTraceEnabled()) for (int i = 0; i < ops.length; i++) try {
+//			Mutation op = ops[i];
+//			logger().trace("[enqs:" + op.getClass().getSimpleName() + ":" + cc + ":" + (i + 1) + "]\t" + op.toJSON() //
+//					+ "\n\tResult: " + String.valueOf(rs[i]));
+//		} catch (IOException e) {}
 		return rs;
 	}
 
@@ -267,6 +265,8 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 						.toString());
 				put1(t, op);
 			}
+			logger().trace("[" + op.getClass().getSimpleName() + ":" + C.incrementAndGet() + "]\t" + op.toJSON() //
+					+ "\n\tResult: " + String.valueOf(r));
 			return r;
 		} else return null;
 	}
@@ -297,7 +297,7 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 		return using.apply(table(name));
 	}
 
-	private final Statistic s = stating().detailing(() -> "Cached scaner object: " + scans.size()).sizing(Result::getTotalSizeOfCells);
+	private final Statistic s = null;// s().detailing(() -> "Cached scaner object: " + scans.size()).sizing(Result::getTotalSizeOfCells);
 
 	public Rmap get(String table, Get get) {
 		return table(table, t -> {
@@ -317,10 +317,18 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 	public List<Rmap> get(String table, List<Get> gets) {
 		if (empty(gets)) return list();
 		if (gets.size() == 1) {
-			Rmap r = result(table, s.stats(scan(table, gets.get(0))));
+			Result rr = scan(table, gets.get(0));
+			rr = null == s ? rr : s.stats(rr);
+			Rmap r = result(table, rr);
 			return null == r ? list() : list(r);
 		}
-		List<Result> rr = s.statsIns(() -> table(table, t -> {
+		List<Result> rr;
+		if (null == s) try {
+			rr = list(table(table).get(gets));
+		} catch (IOException e1) {
+			rr = of(gets).map(g -> scan(table, g)).nonNull().list();
+		}
+		else rr = s.statsIns(() -> table(table, t -> {
 			try {
 				return list(t.get(gets));
 			} catch (IOException e) {
@@ -390,8 +398,6 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 					for (byte[] cf : get.familySet()) s.addFamily(cf);
 					try (ResultScanner sc = t.getScanner(s);) {
 						r = sc.next();
-					} finally {
-						scanClose(s);
 					}
 				} catch (Exception ex) {
 					if (doNotRetry(ex)) {
@@ -414,10 +420,6 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 		while (!(th instanceof RemoteWithExtrasException) && th.getCause() != null && th.getCause() != th) th = th.getCause();
 		if (th instanceof RemoteWithExtrasException) return ((RemoteWithExtrasException) th).isDoNotRetry();
 		else return true;
-	}
-
-	private void scanClose(Scan s) {
-		// scans.offer(s);
 	}
 
 	public static class Driver implements net.butfly.albatis.Connection.Driver<HbaseConnection> {

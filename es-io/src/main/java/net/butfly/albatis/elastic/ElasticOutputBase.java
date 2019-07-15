@@ -42,8 +42,8 @@ public abstract class ElasticOutputBase<T extends DataConnection<?> & ElasticCon
 	}
 
 	@Override
-	public Statistic trace() {
-		return new Statistic(this).sizing(BulkRequest::estimatedSizeInBytes)//
+	public Statistic statistic() {
+		return super.statistic().sizing(BulkRequest::estimatedSizeInBytes)//
 				.<BulkRequest> batchSizeCalcing(r -> (long) r.requests().size())//
 				.<BulkRequest> infoing(r -> r.requests().isEmpty() ? null : r.requests().get(0).toString());
 	}
@@ -78,7 +78,7 @@ public abstract class ElasticOutputBase<T extends DataConnection<?> & ElasticCon
 				remains.values().forEach(r -> reqs.add(Elastics.forWrite(r)));
 				if (reqs.isEmpty()) return;
 				BulkRequest bulk = new BulkRequest().add(reqs);
-				process(remains, s().statsOut(bulk, request()));
+				process(remains, request().apply(bulk));
 			}
 		} finally {
 			if (!remains.isEmpty()) failed(of(remains.values()));

@@ -9,8 +9,6 @@ import java.util.stream.Collectors;
 
 import com.arangodb.entity.BaseDocument;
 
-import net.butfly.albacore.utils.logger.Statistic;
-
 public class AqlVertexMessage extends AqlNestedMessage {
 	private static final long serialVersionUID = -7016058550224590870L;
 	protected static final Format AQL_UPSERT = new MessageFormat("upsert '{'_key: @_key} insert {1} update {1} in {0} OPTIONS '{' exclusive: true '}' return NEW"); //
@@ -29,11 +27,11 @@ public class AqlVertexMessage extends AqlNestedMessage {
 	}
 
 	@Override
-	public CompletableFuture<List<BaseDocument>> exec(ArangoConnection conn, Statistic s) {
+	public CompletableFuture<List<BaseDocument>> exec(ArangoConnection conn) {
 		String aql = AQL_UPSERT.format(new String[] { table().name, parseAqlAsBindParams(this) });
-		return conn.exec(aql, this, s).thenComposeAsync(l -> {
+		return conn.exec(aql, this).thenComposeAsync(l -> {
 			nestedResults(l);
-			return super.exec(conn, s);
+			return super.exec(conn);
 		});
 	}
 

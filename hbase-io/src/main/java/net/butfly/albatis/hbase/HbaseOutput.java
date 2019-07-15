@@ -62,7 +62,7 @@ public class HbaseOutput extends OutputBase<Rmap> {
 	}
 
 	@Override
-	public Statistic trace() {
+	public Statistic statistic() {
 		return new Statistic(this).sizing(Mutation::heapSize).detailing(() -> "Pengding ops: " + opsPending.get())//
 				.<Mutation> infoing(r -> Bytes.toString(r.getRow()));
 	}
@@ -92,38 +92,32 @@ public class HbaseOutput extends OutputBase<Rmap> {
 	}
 
 	protected void enq1(String table, Mutation op, Rmap origin) {
-		s().statsOutN(op, o -> {
-			try {
-				conn.put(table, op);
-				succeeded(1);
-			} catch (IOException e) {
-				if (null != origin) failed(Sdream.of1(origin));
-			} catch (Throwable e) {
-				logger().error("Unknown hbase error for: " + String.valueOf(origin), e);
-			}
-		});
+		try {
+			conn.put(table, op);
+			succeeded(1);
+		} catch (IOException e) {
+			if (null != origin) failed(Sdream.of1(origin));
+		} catch (Throwable e) {
+			logger().error("Unknown hbase error for: " + String.valueOf(origin), e);
+		}
 	}
 
 	protected void enqs(String table, List<Mutation> ops, List<Rmap> origins) {
 		List<Rmap> failed = Colls.list();
 		AtomicInteger succs = new AtomicInteger();
 		try {
-			s().statsOuts(ops, c -> {
-				try {
-					Result[] rs = conn.put(table, ops.toArray(new Mutation[0]));
-					for (int i = 0; i < rs.length; i++) {
-						if (null == rs[i]) failed.add(origins.get(i));// error
-						else succs.incrementAndGet();
-					}
-				} catch (IOException e) {
-					logger().debug(() -> name() + " write failed [" //
-							+ unwrap(e).getMessage().replaceAll("\n\\s+at .*\\)\n", "") // shink stacktrace in error message;
-							+ "], [" + ops.size() + "] into fails.");
-					failed(Sdream.of(origins));
-				} catch (Throwable e) {
-					logger().error("Unknown hbase error for: " + origins.toString(), e);
-				}
-			});
+			Result[] rs = conn.put(table, ops.toArray(new Mutation[0]));
+			for (int i = 0; i < rs.length; i++) {
+				if (null == rs[i]) failed.add(origins.get(i));// error
+				else succs.incrementAndGet();
+			}
+		} catch (IOException e) {
+			logger().debug(() -> name() + " write failed [" //
+					+ unwrap(e).getMessage().replaceAll("\n\\s+at .*\\)\n", "") // shink stacktrace in error message;
+					+ "], [" + ops.size() + "] into fails.");
+			failed(Sdream.of(origins));
+		} catch (Throwable e) {
+			logger().error("Unknown hbase error for: " + origins.toString(), e);
 		} finally {
 			if (!failed.isEmpty()) failed(Sdream.of(failed));
 			int s = succs.get();

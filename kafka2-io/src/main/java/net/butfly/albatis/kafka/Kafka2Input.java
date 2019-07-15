@@ -68,13 +68,12 @@ public class Kafka2Input extends Namedly implements Input<Rmap> {
 	}
 
 	@Override
-	public Statistic trace() {
+	public Statistic statistic() {
 		return new Statistic(this).<ConsumerRecord<byte[], byte[]>> sizing(km -> (long) km.value().length) //
 				.<ConsumerRecord<byte[], byte[]>> infoing(km -> new String(km.key())).detailing(Exeter.of()::toString);
 	}
 
-	private static final Duration TIMEOUT = Duration.of(Long.parseLong(Configs.gets("albatis.kafka.input.timeout", "100")),
-			ChronoUnit.MILLIS);
+	private static final Duration TIMEOUT = Duration.of(Long.parseLong(Configs.gets("albatis.kafka.input.timeout", "100")), ChronoUnit.MILLIS);
 
 	@Override
 	public void dequeue(net.butfly.albacore.io.lambda.Consumer<Sdream<Rmap>> using) {
@@ -90,7 +89,6 @@ public class Kafka2Input extends Namedly implements Input<Rmap> {
 			}
 			if (Colls.empty(it)) continue;
 			using.accept(Sdream.of(list(it, km -> {
-				km = s().stats(km);
 				String k = null == km.key() || km.key().length == 0 ? null : new String(km.key());
 				return new Rmap(km.topic(), k, null == k ? "km" : k, (Object) km.value());
 			})));
