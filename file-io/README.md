@@ -1,0 +1,13 @@
+实现数据输出到txt/csv文件,上传ftp
+输出到txt中可以是json格式数据，也可以是单纯的txt数据:
+files:json:///txt/
+files:csv:///txt/
+files:txt:///txt/
+生成的数据文件可以上传ftp：
+files:txt:ftp://ftpuser001:ftpuser001@10.33.41.56:21/txt/
+可以控制单个文件数据量大小:
+dataggr.migrate.file.flush.count=100
+字段之间分隔符隔开:
+dataggr.migrate.file.split=;
+是否在文件第一行添加字段信息或jsonarrstr
+dataggr.migrate.file.fields=true

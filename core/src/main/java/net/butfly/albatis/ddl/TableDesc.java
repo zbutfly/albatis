@@ -3,6 +3,7 @@ package net.butfly.albatis.ddl;
 import static net.butfly.albatis.ddl.DBDesc.logger;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -23,6 +24,8 @@ public class TableDesc extends Desc<TableDesc> {
 	public final Qualifier qualifier;
 	// public final String name;
 	private final Map<String, FieldDesc> fields = Maps.of();
+
+	public final List<FieldDesc> fieldDescList = new ArrayList<>();
 	// options
 	public final List<List<String>> keys = Colls.list();
 	public final List<Map<String, Object>> indexes = Colls.list();
