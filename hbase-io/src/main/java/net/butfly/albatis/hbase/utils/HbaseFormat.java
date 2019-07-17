@@ -75,43 +75,47 @@ public class HbaseFormat extends RmapFormat {
 
 	private Object disassemble(byte[] b, ValType t) {
 		if (null == b || b.length == 0) return null;
-		switch (t.flag) {
-		case BINARY:
-			return b;
-		case DATE:
-			Long ms = Bytes.toLong(b);
-			return null == ms ? null : new Date(ms.longValue());
-		case INT:
-			switch (b.length) {
-			case 1:
-				return b[0];
-			case 2:
-				return Bytes.toShort(b);
-			case 4:
+		try {
+			switch (t.flag) {
+			case BINARY:
+				return b;
+			case DATE:
+				Long ms = Bytes.toLong(b);
+				return null == ms ? null : new Date(ms.longValue());
+			case INT:
+				switch (b.length) {
+				case 1:
+					return b[0];
+				case 2:
+					return Bytes.toShort(b);
+				case 4:
+					return Bytes.toInt(b);
+				case 8:
+					return Bytes.toLong(b);
+				}
 				return Bytes.toInt(b);
-			case 8:
+			case LONG:
 				return Bytes.toLong(b);
+			case FLOAT:
+				return Bytes.toFloat(b);
+			case DOUBLE:
+				return Bytes.toDouble(b);
+			case BOOL:
+				return Bytes.toBoolean(b);
+			case CHAR:
+			case STR:
+			case STRL:
+			case GEO:
+			case JSON_STR:
+			case UNKNOWN:
+				return Bytes.toString(b);
 			}
-			return Bytes.toInt(b);
-		case LONG:
-			return Bytes.toLong(b);
-		case FLOAT:
-			return Bytes.toFloat(b);
-		case DOUBLE:
-			return Bytes.toDouble(b);
-		case BOOL:
-			return Bytes.toBoolean(b);
-		case CHAR:
-		case STR:
-		case STRL:
-		case GEO:
-		case JSON_STR:
-		case UNKNOWN:
-			return Bytes.toString(b);
+			// will not be invoked
+			logger().warn("Unknown disassembling: [" + b.length + " bytes] =>[" + t.toString() + "], the warn should not happened!!");
+			return b;
+		} catch (IllegalArgumentException e) {
+			throw e;
 		}
-		// will not be invoked
-		logger().warn("Unknown disassembling: [" + b.length + " bytes] =>[" + t.toString() + "], the warn should not happened!!");
-		return b;
 	}
 
 	private byte[] assemble(Object v, ValType t) {

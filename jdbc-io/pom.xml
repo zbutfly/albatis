@@ -51,12 +51,11 @@
 			<version>3.0-jdbc</version>
 			<scope>test</scope>
 		</dependency>
-		<dependency>
+		<!-- <dependency>
 			<groupId>com.hmpp</groupId>
 			<artifactId>hmppanalyticsdb</artifactId>
 			<version>V1.0.0.jdbc</version>
-			<scope>test</scope>
-		</dependency>
+		</dependency> -->
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>

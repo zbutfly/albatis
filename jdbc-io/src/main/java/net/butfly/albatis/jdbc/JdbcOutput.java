@@ -51,7 +51,7 @@ public class JdbcOutput extends OutputBase<Rmap> {
 		try (Connection c = conn.client.getConnection()) {
 			n.addAndGet(conn.dialect.upsert(mml, c));
 		} catch (SQLException e) {
-			logger().error("failed to insert or update items.");
+			logger().error("failed to insert or update items.", e);
 		}
 		succeeded(n.get());
 	}
