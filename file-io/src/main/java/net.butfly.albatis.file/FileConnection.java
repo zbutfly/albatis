@@ -25,7 +25,8 @@ public class FileConnection extends DataConnection<Connection> {
 		if (schemas.length > 2) ftp = schemas[2];
 		else ftp = "";
 		root = uri.getPath();
-		ext = "." + format;
+		if ("json".equals(format)) ext = ".txt";
+		else ext = "." + format;
 		this.uri = uri;
 	}
 

@@ -30,6 +30,7 @@ public class FileFormat {
     public static Logger logger = Logger.getLogger(FileFormat.class);
     private static String FIELD_SPLIT = Configs.gets("dataggr.migrate.file.split", ";");
     private static final boolean ADD_FIELDS = Boolean.valueOf(Configs.gets("dataggr.migrate.file.fields", "true"));
+    public static final int FTP_RETRIES = Integer.valueOf(Configs.gets("dataggr.migrate.file.ftp.retries", "3"));
     private static final AtomicInteger COUNT_LINES = new AtomicInteger();
     private static final Map<String, AtomicInteger> FILE_INDEX = new ConcurrentHashMap<>();
     private static final AtomicLong FIELD_SPENT = new AtomicLong(), REC_COUNT = new AtomicLong();
@@ -56,9 +57,6 @@ public class FileFormat {
         String fn;
         if ("csv".equals(format)) {
             FIELD_SPLIT = ",";
-        }
-        if ("json".equals(format)) {
-            ext = ".txt";
         }
         if (FILE_INDEX.containsKey(table)) {
             fn = table + "-" + FILE_INDEX.get(table).incrementAndGet() + ext;
@@ -103,7 +101,7 @@ public class FileFormat {
                     bw.write(r);
                     bw.newLine();
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    logger.error("writeToFile IOException:"+e);
                 }
             });
         } catch (UnsupportedEncodingException e) {
@@ -172,8 +170,8 @@ public class FileFormat {
         int retry = 0;
         try (Ftp ftp = Ftp.connect(uri)) {
             if (null != ftp) {
-                while (!(flag = ftp.uploadFile(recFilename, recFile)) && retry++ < 3) ;
-                if (!flag && retry >= 3) logger.error("Ftp sent failed: " + recFile);
+                while (!(flag = ftp.uploadFile(recFilename, recFile)) && retry++ < FTP_RETRIES) ;
+                if (!flag && retry >= FTP_RETRIES) logger.error("Ftp sent failed: " + recFile);
             }
         }
     }
