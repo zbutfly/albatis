@@ -14,6 +14,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import static net.butfly.albatis.bcp.Props.BCP_PATH_ZIP;
+import static net.butfly.albatis.bcp.Props.CLEAN_TEMP_FILES;
 
 
 public class Ftp implements Closeable {
@@ -153,11 +154,13 @@ public class Ftp implements Closeable {
      */
     public boolean downloadAllFiles(String localpath) {
         logger.trace("[FTP] begin download all files [ <- " + base + "].");
+        client.enterLocalPassiveMode();
         try {
             if (!existFile(base)){
                 logger.trace("[FTP] path is not exist [ <- " + base + "].");
                 return false;
             }
+            client.setDataTimeout(30000);
             client.setFileType(FTP.BINARY_FILE_TYPE);
             client.changeWorkingDirectory(base);
             FTPFile[] ftpFiles = client.listFiles();
@@ -166,7 +169,7 @@ public class Ftp implements Closeable {
                 File localFile = new File(localpath + "/" + file.getName());
                 try (OutputStream os = new FileOutputStream(localFile)) {
                     client.retrieveFile(file.getName(), os);
-                    client.dele(file.getName());
+                    if(CLEAN_TEMP_FILES) client.dele(file.getName());
                 }
             }
             logger.trace("[FTP] download all files successfully [ <- " + base + "].");

@@ -8,6 +8,8 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
+import static net.butfly.albatis.bcp.Props.CLEAN_TEMP_FILES;
+
 public class FileUtil {
 
     public static List<String> getFileNames(String fileSuffix, String tableName, String path) {
@@ -113,6 +115,7 @@ public class FileUtil {
     }
 
     public static void deleteZip(String path) {
+        if(!CLEAN_TEMP_FILES) return;
         File file = new File(path);
         File temp = null;
         File[] fileList = file.listFiles();

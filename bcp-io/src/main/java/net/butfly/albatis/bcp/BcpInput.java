@@ -54,9 +54,7 @@ public class BcpInput extends Namedly implements Input<Rmap> {
             }
         }
         zipNames = FileUtil.getFileNames(ZIP, tableName, dataPath.toString());
-        zipNames.forEach(zipName -> {
-            new Bcp(zipName);
-        });
+        zipNames.forEach(Bcp::new);
     }
 
     private void closeBcp() {

@@ -150,7 +150,7 @@ public class BcpOutput extends OutputBase<Rmap> {
             }
             while (count.get() > 0) {
                 try {
-                    Thread.sleep(1000);
+                    Thread.sleep(5000);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
