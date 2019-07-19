@@ -66,7 +66,7 @@ public class FileFormat {
         }
         Path fnp = Paths.get(basePath).resolve(fn);
         List<String> lines;
-        List<String> fields = new ArrayList<>();
+        List<String> fields = getFileList(fieldDescs);
         long now = System.currentTimeMillis();
         try {
             lines = Colls.list();
@@ -74,7 +74,7 @@ public class FileFormat {
                 if ("json".equals(format)) {
                     lines.add(JsonSerder.JSON_MAPPER.ser(r));
                 } else {
-                    lines.add(sync(r, fieldDescs, fields));
+                    lines.add(sync(r, fieldDescs));
                 }
             })));
         } finally {
@@ -122,30 +122,36 @@ public class FileFormat {
                 long cc = 0;
                 for (String s : lines) cc = COUNT_CHARS.addAndGet(s.length());
                 logger.debug("File [" + fn + "] for [" + lines.size() + "] finished, spent: " + formatMillis(ms0) + "\n\tstats: " //
-                        + "[" + cb + "] bcps in [" + formatMillis(ms) + "], [" + cl + "] records, "
+                        + "[" + cb + "] files in [" + formatMillis(ms) + "], [" + cl + "] records, "
                         + "avg [" + cl * 1000.0 / ms + " recs/s] and [" + formatKilo(cc * 1000.0 / ms, "B/s") + "]");
             }
         }
     }
 
-    protected String sync(Rmap m, List<FieldDesc> fieldDescs, List<String> fields) {
+    protected String sync(Rmap m, List<FieldDesc> fieldDescs) {
         if (null == m.map() || m.map().isEmpty()) return null;
         long spent = System.currentTimeMillis();
         try {
             List<String> fs = new ArrayList<>();
             for (FieldDesc fd : fieldDescs) {
                 count(m.map().get(fd.name), fs);
-                if (fieldDescs.size() > fields.size()) {
-                    fields.add(fd.name);
-                }
             }
-
             return String.join(FIELD_SPLIT, fs);
         } finally {
             spent = FIELD_SPENT.addAndGet(System.currentTimeMillis() - spent);
             long c = REC_COUNT.incrementAndGet();
             if (c % 25000 == 0) logger.trace("avg field proc time of [" + c + "] recs: " + (spent / c) + "ms/rec");
         }
+    }
+
+    private List<String> getFileList(List<FieldDesc> fieldDescs){
+        List<String> fields = new ArrayList<>();
+        for (FieldDesc fd : fieldDescs) {
+            if (fieldDescs.size() > fields.size()) {
+                fields.add(fd.name);
+            }
+        }
+        return fields;
     }
 
     private void count(Object v, List<String> vs) {
