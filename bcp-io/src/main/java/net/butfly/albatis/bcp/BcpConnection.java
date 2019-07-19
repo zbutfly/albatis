@@ -65,7 +65,7 @@ public class BcpConnection extends DataConnection<Connection> {
 
 		@Override
 		public List<String> schemas() {
-			return Colls.list("bcp","bcp:ftp");
+			return Colls.list("bcp","bcp:ftp","bcp:csv:ftp");
 		}
 	}
 }

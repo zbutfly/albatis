@@ -17,7 +17,6 @@ import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
 
 
-
 public class BcpInput extends Namedly implements Input<Rmap> {
     private static final long serialVersionUID = -8772607845694039875L;
     private static final String FIELD_SPLIT = "\t";
@@ -36,11 +35,11 @@ public class BcpInput extends Namedly implements Input<Rmap> {
         this.dataPath = getDataPath(dataPath);
         this.bcpPath = this.dataPath.resolve(tableName);
         FileUtil.confirmDir(this.bcpPath);
-        opening(() -> openBcp(uri) );
+        opening(() -> openBcp(uri));
         closing(this::closeBcp);
     }
 
-    private Path getDataPath(String dataPath){
+    private Path getDataPath(String dataPath) {
         File directory = new File(this.getClass().getResource("/").getPath());
         String parent = directory.getParent();
         return Paths.get(parent + dataPath);
@@ -53,13 +52,25 @@ public class BcpInput extends Namedly implements Input<Rmap> {
                 ftp.downloadAllFiles(dataPath.toString());
             }
         }
-        zipNames = FileUtil.getFileNames(ZIP, tableName, dataPath.toString());
-        zipNames.forEach(Bcp::new);
+        if (uri.getSchemas().length >= 2 && !uri.getSchemas()[1].equals("ftp"))
+            zipNames = FileUtil.getFileNames(uri.getSchemas()[1], tableName, dataPath.toString());
+        else
+            zipNames = FileUtil.getFileNames(ZIP, tableName, dataPath.toString());
+        zipNames.forEach(zipName -> {
+            if (uri.getSchemas().length >= 2 && !uri.getSchemas()[1].equals("ftp")) {
+                File file = new File(zipName);
+                String renameFile = zipName.replace("." + uri.getSchemas()[1], ".zip");
+                file.renameTo(new File(renameFile));
+                new Bcp(renameFile);
+            } else
+                new Bcp(zipName);
+
+        });
     }
 
     private void closeBcp() {
         Bcp bcp;
-        while (!zipNames.isEmpty()){
+        while (!zipNames.isEmpty()) {
             if (null != (bcp = BCP_POOL.poll())) bcp.close();
         }
         FileUtil.deleteDirectory(bcpPath.toString());
@@ -100,7 +111,7 @@ public class BcpInput extends Namedly implements Input<Rmap> {
         private Bcp(String zipName) {
             super();
             this.zipName = zipName;
-            String fileName = zipName.substring(zipName.lastIndexOf(File.separator)+1);
+            String fileName = zipName.substring(zipName.lastIndexOf(File.separator) + 1);
             tempPath = bcpPath.resolve(fileName.substring(0, fileName.length() - 4));
             FileUtil.confirmDir(tempPath);
             UnZip.unZip(zipName, tempPath);
