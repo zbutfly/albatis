@@ -10,7 +10,6 @@ import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.logger.Statistic;
 import net.butfly.albatis.ddl.Qualifier;
 import net.butfly.albatis.io.Output;
-import net.butfly.albatis.io.Rmap;
 
 public class SampleOutput<V> extends StatsOutput<V> {
 	private static final long serialVersionUID = 2115147630344788786L;
@@ -28,9 +27,8 @@ public class SampleOutput<V> extends StatsOutput<V> {
 		try {
 			base.enqueue(Sdream.of(l));
 		} finally {
-			l.forEach(v -> {
-				s(((Rmap) v).table()).stats(v);
-			});
+			Statistic s = s();
+			l.forEach(s::stats);
 		}
 	}
 

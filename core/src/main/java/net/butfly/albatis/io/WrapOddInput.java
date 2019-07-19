@@ -3,10 +3,10 @@ package net.butfly.albatis.io;
 import net.butfly.albacore.lambda.Runnable;
 import net.butfly.albacore.utils.logger.Logger;
 
-public abstract class WrapOddInput<V, V1> extends WrapperBase<OddInput<? extends V1>> implements OddInput<V> {
+public abstract class WrapOddInput<V, V1> extends WrapperBase<OddInput<V1>> implements OddInput<V> {
 	private static final long serialVersionUID = -8501308891027830037L;
 
-	protected WrapOddInput(OddInput<? extends V1> base, String suffix) {
+	protected WrapOddInput(OddInput<V1> base, String suffix) {
 		super(base.name() + suffix, base);
 	}
 

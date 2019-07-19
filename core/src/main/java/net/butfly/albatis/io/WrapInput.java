@@ -5,10 +5,10 @@ import net.butfly.albacore.lambda.Runnable;
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.logger.Logger;
 
-public abstract class WrapInput<V, V1> extends WrapperBase<Input<? extends V1>> implements Input<V> {
+public abstract class WrapInput<V, V1> extends WrapperBase<Input<V1>> implements Input<V> {
 	private static final long serialVersionUID = 4826171507809605571L;
 
-	protected WrapInput(Input<? extends V1> base, String suffix) {
+	protected WrapInput(Input<V1> base, String suffix) {
 		super(base.name() + suffix, base);
 	}
 
