@@ -23,22 +23,33 @@ public class FileConnection extends DataConnection<Connection> {
 		if (schemas.length == 1){
 			format = "json";
 			ftp = "";
+			ext = "." + format;
 		}else {
 			if("ftp".equals(schemas[schemas.length-1])){
 				ftp = "ftp";
-				format = schemas[schemas.length-2];
+				if (schemas.length > 3){
+					format = schemas[schemas.length-3]+":"+schemas[schemas.length-2];
+					ext = "." + schemas[schemas.length-1];
+				}else {
+					format = schemas[schemas.length-2];
+					ext = "." + format;
+				}
 			}else {
 				ftp = "";
-				format = schemas[schemas.length-1];
+				if (schemas.length > 2){
+					format = schemas[schemas.length-2]+":"+schemas[schemas.length-1];
+					ext = "." + schemas[schemas.length-1];
+				}else {
+					format = schemas[schemas.length-1];
+					ext = "." + format;
+				}
 			}
 		}
 		if (!uri.getPath().endsWith("/")) root = uri.getPath() + "/";
 		else root = uri.getPath();
-		ext = "." + format;
 		this.uri = uri;
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public FileOutput outputRaw(TableDesc... table) throws IOException {
 		this.tables = table;

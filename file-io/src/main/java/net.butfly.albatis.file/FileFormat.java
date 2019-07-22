@@ -71,7 +71,7 @@ public class FileFormat {
         try {
             lines = Colls.list();
             getn(Colls.list(recs, r -> of().submit(() -> {
-                if ("json".equals(format)) {
+                if ("json".equals(format) || "json:txt".equals(format)) {
                     lines.add(JsonSerder.JSON_MAPPER.ser(r));
                 } else {
                     lines.add(sync(r, fieldDescs));
@@ -89,7 +89,7 @@ public class FileFormat {
         long now = System.currentTimeMillis();
         try (BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(path.toFile()), "GBK"));) {
             if (ADD_FIELDS) {
-                if ("json".equals(format)) {
+                if ("json:txt".equals(format)) {
                     bw.write("jsonarrstr");
                 } else {
                     bw.write(String.join(FIELD_SPLIT, fields));
