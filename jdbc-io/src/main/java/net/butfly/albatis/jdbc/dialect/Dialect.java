@@ -31,7 +31,18 @@ public class Dialect implements Loggable {
 	}
 
 	public String jdbcConnStr(URISpec uriSpec) {
-		return uriSpec.toString();
+		StringBuilder url = new StringBuilder();
+		if (uriSpec.toString().contains("?")) {
+			url.append(uriSpec.getSchema()).append("://").append(uriSpec.getHost()).append("/")
+					.append(uriSpec.getFile()).append("?").append(uriSpec.toString().split("\\?")[1]);
+			URISpec uri = new URISpec(url.toString());
+			return uri.toString();
+		} else {
+			url.append(uriSpec.getSchema()).append("://").append(uriSpec.getHost()).append("/")
+					.append(uriSpec.getFile());
+			URISpec uri = new URISpec(url.toString());
+			return uri.toString();
+		}
 	}
 
 	public long upsert(Map<String, List<Rmap>> allRecords, Connection conn) {
@@ -41,7 +52,8 @@ public class Dialect implements Loggable {
 			List<Rmap> records = entry.getValue();
 			if (records.isEmpty())
 				return;
-			String keyField = null != records.get(0).keyField() ? records.get(0).keyField() : Dialects.determineKeyField(records);
+			String keyField = null != records.get(0).keyField() ? records.get(0).keyField()
+					: Dialects.determineKeyField(records);
 			if (null != keyField)
 				doUpsert(conn, table, keyField, records, count);
 			else

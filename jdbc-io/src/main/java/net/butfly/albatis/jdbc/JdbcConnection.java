@@ -2,6 +2,7 @@ package net.butfly.albatis.jdbc;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -62,21 +63,24 @@ public class JdbcConnection extends DataConnection<DataSource> {
 		String tableName;
 		Connection conn = null;
 		String[] tables = table.split("\\.");
-		if (tables.length == 1) tableName = tables[0];
-		else if (tables.length == 2) tableName = tables[1];
-		else throw new RuntimeException("Please type in correct jdbc table format: db.table !");
+		if (tables.length == 1)
+			tableName = tables[0];
+		else if (tables.length == 2)
+			tableName = tables[1];
+		else
+			throw new RuntimeException("Please type in correct jdbc table format: db.table !");
 		try {
 			conn = client.getConnection();
 			dialect.tableConstruct(conn, tableName, tableDesc, fields);
 		} catch (SQLException e) {
 			logger().error("construct table failure", e);
-		}finally {
-				try {
-					if(null !=conn )
+		} finally {
+			try {
+				if (null != conn)
 					conn.close();
-				} catch (SQLException e) {
-					e.printStackTrace();
-				}
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
 		}
 
 	}
@@ -113,24 +117,27 @@ public class JdbcConnection extends DataConnection<DataSource> {
 	@Override
 	public boolean judge(String table) {
 		String tableName;
-		Connection conn =  null;
+		Connection conn = null;
 		String[] tables = table.split("\\.");
-		if (tables.length == 1) tableName = tables[0];
-		else if (tables.length == 2) tableName = tables[1];
-		else throw new RuntimeException("Please type in correct jdbc table format: db.table !");
+		if (tables.length == 1)
+			tableName = tables[0];
+		else if (tables.length == 2)
+			tableName = tables[1];
+		else
+			throw new RuntimeException("Please type in correct jdbc table format: db.table !");
 		try {
 			conn = client.getConnection();
 			return dialect.tableExisted(conn, tableName);
 		} catch (SQLException e) {
 			logger().error("jdbc judge table isExists error", e);
-		}finally {
+		} finally {
 			try {
-				if(null !=conn )
-				conn.close();
+				if (null != conn)
+					conn.close();
 			} catch (SQLException e) {
 				e.printStackTrace();
 			}
-	}
+		}
 		return false;
 	}
 
@@ -142,15 +149,22 @@ public class JdbcConnection extends DataConnection<DataSource> {
 			try {
 				Class.forName(d.jdbcClassname());
 			} catch (ClassNotFoundException e) {
-				throw new RuntimeException("JDBC driver class [" + d.jdbcClassname() + "] not found, need driver lib jar file?");
+				throw new RuntimeException(
+						"JDBC driver class [" + d.jdbcClassname() + "] not found, need driver lib jar file?");
 			}
 			config.setDriverClassName(d.jdbcClassname());
 		}
 		String jdbcconn = dialect.jdbcConnStr(uriSpec);
 		logger.info("Connect to jdbc with connection string: \n\t" + jdbcconn);
 		config.setJdbcUrl(jdbcconn.split("\\?")[0]);
-		config.setUsername(uriSpec.getParameter("user"));
-		config.setPassword(uriSpec.getParameter("password"));
+		if (null == uriSpec.getParameter("user")) {
+			config.setUsername(uriSpec.getAuthority().split(":")[0].toString());
+			config.setPassword(uriSpec.getAuthority().split(":")[1].substring(0,
+					uriSpec.getAuthority().split(":")[1].lastIndexOf("@")));
+		} else {
+			config.setUsername(uriSpec.getParameter("username"));
+			config.setPassword(uriSpec.getParameter("password"));
+		}
 		uriSpec.getParameters().forEach(config::addDataSourceProperty);
 		try {
 			InputStream in = JdbcConnection.class.getClassLoader().getResourceAsStream("ssl.properties");
@@ -171,15 +185,18 @@ public class JdbcConnection extends DataConnection<DataSource> {
 	@Override
 	public void close() {
 		DataSource hds = client;
-		if (null != hds && hds instanceof AutoCloseable) try {
-			((AutoCloseable) hds).close();
-		} catch (Exception e) {}
+		if (null != hds && hds instanceof AutoCloseable)
+			try {
+				((AutoCloseable) hds).close();
+			} catch (Exception e) {
+			}
 	}
 
 	@SuppressWarnings("unchecked")
 	@Override
 	public JdbcInput inputRaw(TableDesc... sql) throws IOException {
-		if (sql.length > 1) throw new UnsupportedOperationException("Multiple sql input");
+		if (sql.length > 1)
+			throw new UnsupportedOperationException("Multiple sql input");
 		JdbcInput i;
 		try {
 			i = new JdbcInput("JdbcInput", this, sql[0].qualifier.name);
