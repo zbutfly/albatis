@@ -15,6 +15,12 @@ public class BasicPump<V> extends PumpImpl<V, BasicPump<V>> {
 		noneNull("Pump source/destination should not be null", input, output);
 		this.input = input;
 		this.output = output;
+		try {
+			Class.forName("net.butfly.albacore.expr.Engine");
+			Class.forName(net.butfly.albacore.expr.Engine.Default.class.getName());
+		} catch (ClassNotFoundException e) {
+			logger().error("init fel error!", e);
+		}
 		depend(Colls.list(input, output));
 		pumping(input::empty, this::proc);
 	}
