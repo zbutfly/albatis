@@ -6,6 +6,7 @@ import java.sql.Types;
 import java.util.Date;
 import java.util.Map;
 
+import de.undercouch.bson4jackson.types.Timestamp;
 import net.butfly.albacore.utils.collection.Maps;
 
 public abstract class ValType implements Serializable {
@@ -31,6 +32,7 @@ public abstract class ValType implements Serializable {
 		public static final String STRL = "strl";
 		public static final String BINARY = "bin";
 		public static final String DATE = "dt";
+		public static final String TIMESTAMP = "ts";
 		// assembly type
 		public static final String GEO = "g";
 		public static final String LOCATION_RPT = "srpt";
@@ -59,7 +61,8 @@ public abstract class ValType implements Serializable {
 			"str_long");
 	public static final BasicValType BIN = new BasicValType(byte[].class, ByteBuffer.class, Types.BINARY, Flags.BINARY, "binary");
 	public static final BasicValType DATE = new BasicValType(Date.class, Date.class, Types.TIMESTAMP, Flags.DATE, "date", "time",
-			"datetime", "timestamp");
+			"datetime");
+	public static final BasicValType TIMESTAMP = new BasicValType(Timestamp.class, Timestamp.class, Types.TIMESTAMP, Flags.TIMESTAMP,"timestamp");
 	// assembly type
 	public static final ListValType GEO = new ListValType(new String[] { Flags.GEO, "geo" }, DOUBLE, DOUBLE);
 	public static final ListValType LOCATION_RPT = new ListValType(new String[] { Flags.LOCATION_RPT, "string_srpt" }, STR);
@@ -111,6 +114,7 @@ public abstract class ValType implements Serializable {
 		if (CharSequence.class.isAssignableFrom(cls)) return STR;
 		if (byte[].class.isAssignableFrom(cls)) return BIN;
 		if (Date.class.isAssignableFrom(cls)) return DATE;
+		if (Timestamp.class.isAssignableFrom(cls)) return TIMESTAMP;
 		return UNKNOWN;
 	}
 }
