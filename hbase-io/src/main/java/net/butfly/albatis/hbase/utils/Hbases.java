@@ -75,7 +75,7 @@ public final class Hbases extends Utils {
 		for (Entry<String, String> c : props().entrySet()) hconf.set(c.getKey(), c.getValue());
 		if (null != conf && !conf.isEmpty()) for (Entry<String, String> c : conf.entrySet()) hconf.set(c.getKey(), c.getValue());
 		if (!Colls.empty(res)) for (InputStream r : res) hconf.addResource(r);
-		// 1.hbase.security.authentication = kerberos/normal  (albatis-hbase.properties)
+		// 1.hbase.security.authentication = kerberos/normal (albatis-hbase.properties)
 		if (User.isHBaseSecurityEnabled(hconf)) Kerberoses.kerberosAuth(hconf);
 
 		while (true) try {
@@ -236,8 +236,8 @@ public final class Hbases extends Utils {
 		}
 
 		static Cell cell(QualifierField qf, byte[] rowk, byte[] val) {
-			return CellUtil.createCell(rowk, Bytes.toBytes(qf.family), Bytes.toBytes((null == qf.prefix ? "" : qf.prefix + SPLIT_PREFIX)
-					+ qf.name), //
+			return CellUtil.createCell(rowk, Bytes.toBytes(qf.family), //
+					Bytes.toBytes((null == qf.prefix ? "" : qf.prefix + SPLIT_PREFIX) + qf.name), //
 					HConstants.LATEST_TIMESTAMP, Type.Put.getCode(), val);
 		}
 

@@ -28,7 +28,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -40,17 +39,16 @@ import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.KeepDeletedCells;
-import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.Append;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Increment;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.RegionLocator;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Row;
@@ -64,7 +62,7 @@ import org.apache.hadoop.hbase.io.encoding.DataBlockEncoding;
 import org.apache.hadoop.hbase.ipc.RemoteWithExtrasException;
 import org.apache.hadoop.hbase.regionserver.BloomType;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.hbase.util.ClassSize;
+//import org.apache.hadoop.hbase.util.ClassSize;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.io.lambda.Function;
@@ -96,14 +94,14 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 	protected final static Logger logger = Logger.getLogger(HbaseConnection.class);
 	private static final String VFS_CONF_URI = "albatis.hbase.config.path";
 
-	static {
-		logger.warn("Hbase client common lib not support 2 digitals jdk version\n\t"//
-				+ "(checked by \"\\d\\.\\d\\..*\" in org.apache.hadoop.hbase.util.ClassSize:118)\nhacking into 9.0.4 -_-");
-		System.setProperty("java.version", "9.0.4");
-		// XXX: check
-		ClassSize.align(ClassSize.OBJECT + 2 * ClassSize.REFERENCE + 1 * Bytes.SIZEOF_LONG + ClassSize.REFERENCE + ClassSize.REFERENCE
-				+ ClassSize.TREEMAP);
-	}
+	// static {
+	// logger.warn("Hbase client common lib not support 2 digitals jdk version\n\t"//
+	// + "(checked by \"\\d\\.\\d\\..*\" in org.apache.hadoop.hbase.util.ClassSize:118)\nhacking into 9.0.4 -_-");
+	// System.setProperty("java.version", "9.0.4");
+	// // XXX: check
+	// ClassSize.align(ClassSize.OBJECT + 2 * ClassSize.REFERENCE + 1 * Bytes.SIZEOF_LONG + ClassSize.REFERENCE + ClassSize.REFERENCE
+	// + ClassSize.TREEMAP);
+	// }
 
 	final boolean OP_SINGLE = propB(this, "use.single.op", false);
 	private final boolean OP_CONFIRM_RETRY = propB(this, "confirm.and.retry", false);
@@ -232,11 +230,13 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 	}
 
 	public Result[] put(String table, Mutation... ops) throws IOException {
-//		int cc = C.incrementAndGet();
+		// int cc = C.incrementAndGet();
 		Table t = table(table);
 		Object[] results = new Object[ops.length];
 		try {
 			t.batch(Arrays.asList(ops), results);
+			// } catch (IOException e) {
+			// logger.error("Hbase IO failed", e);
 		} catch (InterruptedException e) {
 			throw new RuntimeException();
 		}
@@ -249,11 +249,11 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 				if (null == rs[i]) rs[i] = (Result) r;
 			} else logger.error("Unknown error result from batch of [" + i + "][" + ops[i].toJSON() + "]: " + r.toString());
 		}
-//		if (logger().isTraceEnabled()) for (int i = 0; i < ops.length; i++) try {
-//			Mutation op = ops[i];
-//			logger().trace("[enqs:" + op.getClass().getSimpleName() + ":" + cc + ":" + (i + 1) + "]\t" + op.toJSON() //
-//					+ "\n\tResult: " + String.valueOf(rs[i]));
-//		} catch (IOException e) {}
+		// if (logger().isTraceEnabled()) for (int i = 0; i < ops.length; i++) try {
+		// Mutation op = ops[i];
+		// logger().trace("[enqs:" + op.getClass().getSimpleName() + ":" + cc + ":" + (i + 1) + "]\t" + op.toJSON() //
+		// + "\n\tResult: " + String.valueOf(rs[i]));
+		// } catch (IOException e) {}
 		return rs;
 	}
 
@@ -612,15 +612,14 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 
 	@SuppressWarnings("deprecation")
 	public Range[] ranges(String table) {
-		try (HTable ht = new HTable(TableName.valueOf(table), client);) {
-			List<Range> ranges = Colls.list();
-			StringBuilder sb = new StringBuilder("Hbase region found:");
-			for (Entry<HRegionInfo, ServerName> r : ht.getRegionLocations().entrySet()) {
+		StringBuilder sb = new StringBuilder("Hbase region found:");
+		try (RegionLocator rl = client.getRegionLocator(TableName.valueOf(table));) {
+			List<Range> ranges = Colls.list(rl.getAllRegionLocations(), r -> {
 				sb.append("\n\t").append(r.toString());
-				HRegionInfo region = r.getKey();
-				ranges.add(range(region.getStartKey(), region.getEndKey()));
-			}
-			logger.debug(sb.toString());
+				HRegionInfo ri = r.getRegionInfo();
+				return range(ri.getStartKey(), ri.getEndKey());
+			});
+			if (!ranges.isEmpty()) logger.debug(sb.toString());
 			return ranges.toArray(new Range[0]);
 		} catch (IOException e) {
 			logger.warn("Rengions analyze for table [" + table + "] fail: " + e.getMessage());
