@@ -13,21 +13,30 @@ import static net.butfly.albatis.ddl.vals.ValType.Flags.SHORT;
 import static net.butfly.albatis.ddl.vals.ValType.Flags.STR;
 import static net.butfly.albatis.ddl.vals.ValType.Flags.UNKNOWN;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
+import com.zaxxer.hikari.HikariConfig;
+
+import net.butfly.albacore.io.URISpec;
+import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.io.Rmap;
 import net.butfly.albatis.io.utils.JsonUtils;
+import net.butfly.albatis.jdbc.JdbcConnection;
 
 @DialectFor(subSchema = "postgresql", jdbcClassname = "org.postgresql.Driver")
 public class PostgresqlDialect extends Dialect {
+	private static final Logger logger = Logger.getLogger(PostgresqlDialect.class);
 	private static final String UPSERT_SQL_TEMPLATE = "INSERT INTO \"%s\" (\"%s\") VALUES (%s) ON CONFLICT(\"%s\") DO UPDATE SET %s";
 	private static final String INSERT_SQL_TEMPLATE = "INSERT INTO \"%s\" (\"%s\") VALUES (%s)";
 
@@ -206,5 +215,63 @@ public class PostgresqlDialect extends Dialect {
 		if (field.rowkey)
 			sb.append(" not null primary key");
 		return sb.toString();
+	}
+
+	@Override
+	public String jdbcConnStr(URISpec uriSpec) {
+		StringBuilder url = new StringBuilder();
+		if (uriSpec.toString().contains("?")) {
+			url.append(uriSpec.getSchema()).append("://").append(uriSpec.getHost()).append("/")
+					.append(uriSpec.getFile()).append("?").append(uriSpec.toString().split("\\?")[1]);
+			URISpec uri = new URISpec(url.toString());
+			return uri.toString();
+		} else {
+			url.append(uriSpec.getSchema()).append("://").append(uriSpec.getHost()).append("/")
+					.append(uriSpec.getFile());
+			URISpec uri = new URISpec(url.toString());
+			return uri.toString();
+		}
+	}
+
+	@Override
+	public HikariConfig toConfig(Dialect dialect, URISpec uriSpec) {
+		HikariConfig config = new HikariConfig();
+		DialectFor d = dialect.getClass().getAnnotation(DialectFor.class);
+		config.setPoolName(d.subSchema() + "-Hikari-Pool");
+		if (!"".equals(d.jdbcClassname())) {
+			try {
+				Class.forName(d.jdbcClassname());
+			} catch (ClassNotFoundException e) {
+				throw new RuntimeException(
+						"JDBC driver class [" + d.jdbcClassname() + "] not found, need driver lib jar file?");
+			}
+			config.setDriverClassName(d.jdbcClassname());
+		}
+		String jdbcconn = dialect.jdbcConnStr(uriSpec);
+		logger.info("Connect to jdbc with connection string: \n\t" + jdbcconn);
+		config.setJdbcUrl(jdbcconn.split("\\?")[0]);
+		if (null == uriSpec.getParameter("user")) {
+			config.setUsername(uriSpec.getAuthority().split(":")[0].toString());
+			config.setPassword(uriSpec.getAuthority().split(":")[1].substring(0,
+					uriSpec.getAuthority().split(":")[1].lastIndexOf("@")));
+		} else {
+			config.setUsername(uriSpec.getParameter("username"));
+			config.setPassword(uriSpec.getParameter("password"));
+		}
+		uriSpec.getParameters().forEach(config::addDataSourceProperty);
+		try {
+			InputStream in = JdbcConnection.class.getClassLoader().getResourceAsStream("ssl.properties");
+			if (null != in) {
+				logger.info("Connect to jdbc with ssl model");
+				Properties props = new Properties();
+				props.load(in);
+				for (String key : props.stringPropertyNames()) {
+					System.setProperty(key, props.getProperty(key));
+				}
+			}
+		} catch (IOException e) {
+			logger.error("load ssl.properties error", e);
+		}
+		return config;
 	}
 }

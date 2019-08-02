@@ -39,7 +39,7 @@ public class JdbcConnection extends DataConnection<DataSource> {
 	protected DataSource initialize(URISpec uri) {
 		Dialect dialect = Dialect.of(uri.getSchema());
 		try {
-			HikariDataSource h = new HikariDataSource(toConfig(dialect, uri));
+			HikariDataSource h = new HikariDataSource(dialect.toConfig(dialect, uri));
 			return h;
 		} catch (Throwable t) {
 			logger().error("jdbc connection fail on [" + uri.toString() + "]");
@@ -139,47 +139,6 @@ public class JdbcConnection extends DataConnection<DataSource> {
 			}
 		}
 		return false;
-	}
-
-	private static HikariConfig toConfig(Dialect dialect, URISpec uriSpec) {
-		HikariConfig config = new HikariConfig();
-		DialectFor d = dialect.getClass().getAnnotation(DialectFor.class);
-		config.setPoolName(d.subSchema() + "-Hikari-Pool");
-		if (!"".equals(d.jdbcClassname())) {
-			try {
-				Class.forName(d.jdbcClassname());
-			} catch (ClassNotFoundException e) {
-				throw new RuntimeException(
-						"JDBC driver class [" + d.jdbcClassname() + "] not found, need driver lib jar file?");
-			}
-			config.setDriverClassName(d.jdbcClassname());
-		}
-		String jdbcconn = dialect.jdbcConnStr(uriSpec);
-		logger.info("Connect to jdbc with connection string: \n\t" + jdbcconn);
-		config.setJdbcUrl(jdbcconn.split("\\?")[0]);
-		if (null == uriSpec.getParameter("user")) {
-			config.setUsername(uriSpec.getAuthority().split(":")[0].toString());
-			config.setPassword(uriSpec.getAuthority().split(":")[1].substring(0,
-					uriSpec.getAuthority().split(":")[1].lastIndexOf("@")));
-		} else {
-			config.setUsername(uriSpec.getParameter("username"));
-			config.setPassword(uriSpec.getParameter("password"));
-		}
-		uriSpec.getParameters().forEach(config::addDataSourceProperty);
-		try {
-			InputStream in = JdbcConnection.class.getClassLoader().getResourceAsStream("ssl.properties");
-			if (null != in) {
-				logger.info("Connect to jdbc with ssl model");
-				Properties props = new Properties();
-				props.load(in);
-				for (String key : props.stringPropertyNames()) {
-					System.setProperty(key, props.getProperty(key));
-				}
-			}
-		} catch (IOException e) {
-			logger.error("load ssl.properties error", e);
-		}
-		return config;
 	}
 
 	@Override

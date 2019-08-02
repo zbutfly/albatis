@@ -13,22 +13,35 @@ import static net.butfly.albatis.ddl.vals.ValType.Flags.SHORT;
 import static net.butfly.albatis.ddl.vals.ValType.Flags.STR;
 import static net.butfly.albatis.ddl.vals.ValType.Flags.UNKNOWN;
 
-import java.sql.*;
+import java.io.IOException;
+import java.io.InputStream;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
+import com.zaxxer.hikari.HikariConfig;
+
 import net.butfly.albacore.io.URISpec;
+import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.io.Rmap;
 import net.butfly.albatis.io.utils.JsonUtils;
+import net.butfly.albatis.jdbc.JdbcConnection;
 
 @DialectFor(subSchema = "oracle:thin", jdbcClassname = "oracle.jdbc.OracleDriver")
 public class OracleDialect extends Dialect {
+	private static final Logger logger = Logger.getLogger(OracleDialect.class);
 	private static final String UPSERT_SQL_TEMPLATE = "MERGE INTO %s USING DUAL ON (%s = ?) WHEN NOT MATCHED THEN INSERT (%s) VALUES (%s) WHEN MATCHED THEN UPDATE SET %s";
 	private static final String INSERT_SQL_TEMPLATE = "INSERT INTO %s (%s) VALUES (%s)";
 
@@ -57,7 +70,9 @@ public class OracleDialect extends Dialect {
 			long sucessed = Arrays.stream(rs).filter(r -> r >= 0).count();
 			count.addAndGet(sucessed);
 		} catch (SQLException e) {
-			logger().warn(() -> "execute batch(size: " + records.size() + ") error, operation may not take effect. reason:", e);
+			logger().warn(
+					() -> "execute batch(size: " + records.size() + ") error, operation may not take effect. reason:",
+					e);
 		}
 	}
 
@@ -91,14 +106,17 @@ public class OracleDialect extends Dialect {
 					offset += nonKeyFields.size();
 					ps.addBatch();
 				} catch (SQLException e) {
-					logger().warn(() -> "add `" + m + "` to batch error, ignore this message and continue." + e.getSQLState());
+					logger().warn(() -> "add `" + m + "` to batch error, ignore this message and continue."
+							+ e.getSQLState());
 				}
 			});
 			int[] rs = ps.executeBatch();
 			long sucessed = Arrays.stream(rs).filter(r -> r >= 0).count();
 			count.addAndGet(sucessed);
 		} catch (SQLException e) {
-			logger().warn(() -> "execute batch(size: " + records.size() + ") error, operation may not take effect. reason:", e);
+			logger().warn(
+					() -> "execute batch(size: " + records.size() + ") error, operation may not take effect. reason:",
+					e);
 		}
 	}
 
@@ -106,7 +124,8 @@ public class OracleDialect extends Dialect {
 	@Override
 	public String jdbcConnStr(URISpec uri) {
 		String db = uri.getPath(1);
-		if ("".equals(db)) db = uri.getFile();
+		if ("".equals(db))
+			db = uri.getFile();
 		return uri.getScheme() + ":@" + uri.getHost() + (db.charAt(0) == '!' ? (":" + db.substring(1)) : ("/" + db));
 	}
 
@@ -117,7 +136,8 @@ public class OracleDialect extends Dialect {
 		for (FieldDesc field : fields)
 			fieldSql.add(buildSqlField(tableDesc, field));
 		List<Map<String, Object>> indexes = tableDesc.indexes;
-		sb.append("create table ").append(table).append("(").append(String.join(",", fieldSql.toArray(new String[0]))).append(")");
+		sb.append("create table ").append(table).append("(").append(String.join(",", fieldSql.toArray(new String[0])))
+				.append(")");
 		try (Statement statement = conn.createStatement()) {
 			statement.addBatch(sb.toString());
 			if (!indexes.isEmpty()) {
@@ -126,8 +146,8 @@ public class OracleDialect extends Dialect {
 					String type = (String) index.get("type");
 					String alias = (String) index.get("alias");
 					List<String> fieldList = JsonUtils.parseFieldsByJson(index.get("field"));
-					createIndex.append("create ").append(type).append(" ").append(alias).append(" on ").append(table).append("(").append(
-							String.join(",", fieldList.toArray(new String[0]))).append(")");
+					createIndex.append("create ").append(type).append(" ").append(alias).append(" on ").append(table)
+							.append("(").append(String.join(",", fieldList.toArray(new String[0]))).append(")");
 					statement.addBatch(createIndex.toString());
 				}
 			}
@@ -144,7 +164,7 @@ public class OracleDialect extends Dialect {
 		try {
 			dbm = conn.getMetaData();
 		} catch (SQLException e) {
-			logger().error("Getting metadata is failure",e);
+			logger().error("Getting metadata is failure", e);
 		}
 		try (ResultSet rs = dbm.getTables(null, null, table, null)) {
 			return rs.next();
@@ -184,7 +204,8 @@ public class OracleDialect extends Dialect {
 		default:
 			break;
 		}
-		if (tableDesc.keys.get(0).contains(field.name)) sb.append(" not null primary key");
+		if (tableDesc.keys.get(0).contains(field.name))
+			sb.append(" not null primary key");
 		return sb.toString();
 	}
 
@@ -194,7 +215,8 @@ public class OracleDialect extends Dialect {
 		List<String> fieldSql = new ArrayList<>();
 		for (FieldDesc f : fields)
 			fieldSql.add(buildField(f));
-		sql.append("create table ").append(table).append("(").append(String.join(",", fieldSql.toArray(new String[0]))).append(")");
+		sql.append("create table ").append(table).append("(").append(String.join(",", fieldSql.toArray(new String[0])))
+				.append(")");
 		return sql.toString();
 	}
 
@@ -216,7 +238,50 @@ public class OracleDialect extends Dialect {
 		default:
 			break;
 		}
-		if (field.rowkey) sb.append(" not null primary key");
+		if (field.rowkey)
+			sb.append(" not null primary key");
 		return sb.toString();
+	}
+
+	@Override
+	public HikariConfig toConfig(Dialect dialect, URISpec uriSpec) {
+		HikariConfig config = new HikariConfig();
+		DialectFor d = dialect.getClass().getAnnotation(DialectFor.class);
+		config.setPoolName(d.subSchema() + "-Hikari-Pool");
+		if (!"".equals(d.jdbcClassname())) {
+			try {
+				Class.forName(d.jdbcClassname());
+			} catch (ClassNotFoundException e) {
+				throw new RuntimeException(
+						"JDBC driver class [" + d.jdbcClassname() + "] not found, need driver lib jar file?");
+			}
+			config.setDriverClassName(d.jdbcClassname());
+		}
+		String jdbcconn = dialect.jdbcConnStr(uriSpec);
+		logger.info("Connect to jdbc with connection string: \n\t" + jdbcconn);
+		config.setJdbcUrl(jdbcconn.split("\\?")[0]);
+		if (null == uriSpec.getParameter("user")) {
+			config.setUsername(uriSpec.getAuthority().split(":")[0].toString());
+			config.setPassword(uriSpec.getAuthority().split(":")[1].substring(0,
+					uriSpec.getAuthority().split(":")[1].lastIndexOf("@")));
+		} else {
+			config.setUsername(uriSpec.getParameter("username"));
+			config.setPassword(uriSpec.getParameter("password"));
+		}
+		uriSpec.getParameters().forEach(config::addDataSourceProperty);
+		try {
+			InputStream in = JdbcConnection.class.getClassLoader().getResourceAsStream("ssl.properties");
+			if (null != in) {
+				logger.info("Connect to jdbc with ssl model");
+				Properties props = new Properties();
+				props.load(in);
+				for (String key : props.stringPropertyNames()) {
+					System.setProperty(key, props.getProperty(key));
+				}
+			}
+		} catch (IOException e) {
+			logger.error("load ssl.properties error", e);
+		}
+		return config;
 	}
 }
