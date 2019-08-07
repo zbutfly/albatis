@@ -249,15 +249,14 @@ public class Criterion implements AutoCloseable {
                     String dir = dataEName.substring(0, dataEName.indexOf("-"));
                     ftp.moveTotherFolders(zipSrc, zipDst, dir);
                     // 上传对应文件名称,MD5,数据量
-                    String bcpFileName = writeToBcp.getFileName();
-                    int index2 = bcpFileName.lastIndexOf("/");
-                    String bcpName = bcpFileName.substring(index2 + 1, writeToBcp.getFileName().length());
-                    String content = "bcpFileName:" + bcpName + "\tfileMD5:" + fileMD5 + "\tcount:" + callWriteCount;
-                    String txtname = bcpName + ".txt";
-                    Path txt = endPath.resolve(dir).resolve(txtname);
-                    ftp.addText(txt.toString(), content);
-                    ftp.uploadFile(txtname, txt);
-
+//                    String bcpFileName = writeToBcp.getFileName();
+//                    int index2 = bcpFileName.lastIndexOf("/");
+//                    String bcpName = bcpFileName.substring(index2 + 1, writeToBcp.getFileName().length());
+//                    String content = "bcpFileName:" + bcpName + "\tfileMD5:" + fileMD5 + "\tcount:" + callWriteCount;
+//                    String txtname = bcpName + ".txt";
+//                    Path txt = endPath.resolve(dir).resolve(txtname);
+//                    ftp.addText(txt.toString(), content);
+//                    ftp.uploadFile(txtname, txt);
                 } else logger.error("zip [" + zipDst + "] transfer fail.");
             }
         }

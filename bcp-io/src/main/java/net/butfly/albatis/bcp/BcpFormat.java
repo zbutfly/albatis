@@ -86,13 +86,13 @@ public class BcpFormat {
                 logger.error("BCP [" + fn + "] for [" + recs.size() + "] failed", e);
             }
         });
-        of().submit(() -> {
-            try {
-                taskDesc.fd.rec(fn, lines.size(), counts);
-            } catch (IOException e) {
-                logger.error("BCP [" + fn + "] for [" + recs.size() + "] rec log fail", e);
-            }
-        });
+//        of().submit(() -> {
+//            try {
+//                taskDesc.fd.rec(fn, lines.size(), counts);
+//            } catch (IOException e) {
+//                logger.error("BCP [" + fn + "] for [" + recs.size() + "] rec log fail", e);
+//            }
+//        });
     }
 
     protected void bcp(URISpec uri, Path fnp, String fn, List<String> lines, TaskDesc task) throws IOException {

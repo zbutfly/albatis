@@ -12,6 +12,7 @@ import org.apache.log4j.Logger;
 import java.io.*;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashMap;
 
 import static net.butfly.albatis.bcp.Props.BCP_PATH_ZIP;
 import static net.butfly.albatis.bcp.Props.CLEAN_TEMP_FILES;
@@ -21,15 +22,19 @@ public class Ftp implements Closeable {
     private static Logger logger = Logger.getLogger(Ftp.class);
     private final FTPClient client = new FTPClient();
     private final String base;
+    public final static HashMap<String, FileStatus> fileStatusMap = new HashMap<>();
+    private long localTime;
 
-	public static Ftp connect(URISpec uri) {
-		return null == uri || uri.toString().contains("///")? null : new Ftp(uri);
-	}
+
+    public static Ftp connect(URISpec uri) {
+        return null == uri || uri.toString().contains("///") ? null : new Ftp(uri);
+    }
 
     private Ftp(URISpec uri) {
         client.setControlEncoding("utf-8");
         Pair<String, Integer> s = uri.getHosts().iterator().next();
         try {
+            localTime = new java.util.Date().getTime();
             client.connect(s.v1(), s.v2());// 连接ftp服务器
             client.login(uri.getUsername(), uri.getPassword()); // 登录ftp服务器
         } catch (IOException e) {
@@ -38,7 +43,7 @@ public class Ftp implements Closeable {
         int replyCode = client.getReplyCode(); // 是否成功登录服务器
         if (!FTPReply.isPositiveCompletion(replyCode))
             logger.error("[FTP] connect [" + uri.getHost() + "] failed with code: " + replyCode);
-        else logger.trace("[FTP] connect [" + uri.getHost() + "] successed.");
+//        else logger.trace("[FTP] connect [" + uri.getHost() + "] successed.");
         base = uri.getPath();
     }
 
@@ -53,9 +58,9 @@ public class Ftp implements Closeable {
         logger.trace("[FTP] begin [" + localFile + " -> " + remoteFilename + "]");
         boolean flag = false;
         try (InputStream inputStream = new FileInputStream(localFile.toFile())) {
+            client.enterLocalPassiveMode();
             client.setFileType(FTP.BINARY_FILE_TYPE);
             CreateDirecroty(base);
-            client.enterLocalPassiveMode();
             client.makeDirectory(base);
             client.changeWorkingDirectory(base);
             flag = client.storeFile(remoteFilename, inputStream);
@@ -149,30 +154,56 @@ public class Ftp implements Closeable {
 
     /**
      * 下载所有文件并删除原有文件
+     *
      * @param localpath 下载后的文件路径
      * @return
      */
     public boolean downloadAllFiles(String localpath) {
-        logger.trace("[FTP] begin download all files [ <- " + base + "].");
-        client.enterLocalPassiveMode();
+//        logger.trace("[FTP] begin download all files [ <- " + base + "]，local directory is [ " + localpath + " ].");
         try {
-            if (!existFile(base)){
-                logger.trace("[FTP] path is not exist [ <- " + base + "].");
+            client.enterLocalPassiveMode();
+            if (!existFile(base)) {
+//                logger.trace("[FTP] path is not exist [ <- " + base + "].");
                 return false;
             }
             client.setDataTimeout(30000);
             client.setFileType(FTP.BINARY_FILE_TYPE);
             client.changeWorkingDirectory(base);
             FTPFile[] ftpFiles = client.listFiles();
+            //get ftp file status
+            FileStatus fileStatus = null;
             for (FTPFile file : ftpFiles) {
+                String fileName = file.getName();
+                fileStatus = fileStatusMap.get(fileName);
+                if (null == fileStatus) {
+                    fileStatus = new FileStatus();
+                    fileStatus.fileName = fileName;
+                    fileStatus.lastTime = localTime;
+                    fileStatus.processedFlag = 0;
+                    fileStatus.timestamp = file.getTimestamp().getTimeInMillis();
+                    fileStatus.size = file.getSize();
+                    fileStatusMap.put(fileName, fileStatus);
+                    continue;
+                } else if (fileStatus.processedFlag != 0) {
+                    continue;
+                } else if (localTime - fileStatus.lastTime < 30000) {
+                    fileStatus.timestamp = file.getTimestamp().getTimeInMillis();
+                    fileStatus.size = file.getSize();
+                    continue;
+                } else if (fileStatus.size != file.getSize() || fileStatus.timestamp != file.getTimestamp().getTimeInMillis()) {
+                    fileStatus.lastTime = localTime;
+                    fileStatus.timestamp = file.getTimestamp().getTimeInMillis();
+                    fileStatus.size = file.getSize();
+                    continue;
+                }
                 Props.confirmDir(Paths.get(localpath));
-                File localFile = new File(localpath + "/" + file.getName());
+                File localFile = new File(localpath + "/" + fileName);
                 try (OutputStream os = new FileOutputStream(localFile)) {
-                    client.retrieveFile(file.getName(), os);
-                    if(CLEAN_TEMP_FILES) client.dele(file.getName());
+                    client.retrieveFile(fileName, os);
+                    if (CLEAN_TEMP_FILES) client.dele(fileName);
+                    logger.trace("[FTP] download  file [" + fileName + "] successfully [ <- " + base + "].");
                 }
             }
-            logger.trace("[FTP] download all files successfully [ <- " + base + "].");
             return true;
         } catch (IOException e) {
             logger.error("[FTP] download all files failed [<- " + base + "].", e);
@@ -231,14 +262,14 @@ public class Ftp implements Closeable {
         }
     }
 
-	public void moveTotherFolders(Path origin, String zip, String dir) {
-		try {
-			File tmpFile = BCP_PATH_ZIP.resolve(dir).resolve(zip).toFile();// 获取文件夹路径
-			if (!origin.toFile().renameTo(tmpFile)) logger.error(zip + "File moving failed");
-		} catch (Exception e) {
-			logger.error(zip + "File moving failed", e);
-		}
-	}
+    public void moveTotherFolders(Path origin, String zip, String dir) {
+        try {
+            File tmpFile = BCP_PATH_ZIP.resolve(dir).resolve(zip).toFile();// 获取文件夹路径
+            if (!origin.toFile().renameTo(tmpFile)) logger.error(zip + "File moving failed");
+        } catch (Exception e) {
+            logger.error(zip + "File moving failed", e);
+        }
+    }
 
     public void addText(String filename, String content) {
         FileWriter writer = null;
