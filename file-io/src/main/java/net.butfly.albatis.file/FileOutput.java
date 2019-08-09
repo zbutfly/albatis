@@ -36,6 +36,7 @@ public class FileOutput extends OutputBase<Rmap> {
     public static final int FILE_FLUSH_COUNT = Integer.parseInt(get("file.flush.count", "10000"));
     public static final int FILE_FLUSH_MINS = Integer.parseInt(get("file.flush.idle.minutes", "5"));
     private Map<String, LinkedBlockingQueue<Rmap>> poolMap = Maps.of();
+    private static final AtomicLong COUNT = new AtomicLong();
 
     public FileOutput(FileConnection file) {
         super("FileOutput");
@@ -48,24 +49,30 @@ public class FileOutput extends OutputBase<Rmap> {
 
     @Override
     protected void enqsafe(Sdream<Rmap> items) {
-        items.eachs(m -> {
-            try {
-                if (poolMap.containsKey(m.table().qualifier)) {
-                    LinkedBlockingQueue<Rmap> pool = poolMap.get(m.table().qualifier);
-                    pool.put(m);
-                } else {
-                    LinkedBlockingQueue<Rmap> pool = new LinkedBlockingQueue<>(50000);
-                    pool.put(m);
-                    poolMap.put(m.table().qualifier, pool);
+        synchronized (this){
+            items.eachs(m -> {
+                try {
+                    COUNT.incrementAndGet();
+                    if (poolMap.containsKey(m.table().qualifier)) {
+                        LinkedBlockingQueue<Rmap> pool = poolMap.get(m.table().qualifier);
+                        pool.put(m);
+                        poolMap.put(m.table().qualifier, pool);
+                    } else {
+                        LinkedBlockingQueue<Rmap> pool = new LinkedBlockingQueue<>(50000);
+                        pool.put(m);
+                        poolMap.put(m.table().qualifier, pool);
+                    }
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
                 }
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-        });
+            });
+        }
     }
 
     @Override
     public void close() {
+        logger.info("total count:"+COUNT);
+        pooling.stop();
         while (count.get() > 0) {
             try {
                 Thread.sleep(1000);
@@ -73,7 +80,6 @@ public class FileOutput extends OutputBase<Rmap> {
                 e.printStackTrace();
             }
         }
-        pooling.stop();
     }
 
     private class PoolTask implements Runnable {
