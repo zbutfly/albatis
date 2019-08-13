@@ -62,7 +62,8 @@ public class KuduConnection extends KuduConnectionBase<KuduConnection, KuduClien
 			return;
 		}
 		of(v).eachs(r -> {
-			if (r.hasRowError()) error(r);
+			if (r.hasRowError())
+				error(r);
 		});
 	}
 
@@ -82,7 +83,8 @@ public class KuduConnection extends KuduConnectionBase<KuduConnection, KuduClien
 		Class<? extends KuduException> cc = null;
 		try {
 			cc = (Class<? extends KuduException>) Class.forName("org.apache.kudu.client.NonRecoverableException");
-		} catch (ClassNotFoundException e) {} finally {
+		} catch (ClassNotFoundException e) {
+		} finally {
 			c = cc;
 		}
 	}
@@ -93,7 +95,8 @@ public class KuduConnection extends KuduConnectionBase<KuduConnection, KuduClien
 
 	@Override
 	public boolean apply(Operation op, BiConsumer<Operation, Throwable> error) {
-		if (null == op) return false;
+		if (null == op)
+			return false;
 		// opCount.incrementAndGet();
 		boolean r = true;
 		OperationResponse or = null;
@@ -101,12 +104,16 @@ public class KuduConnection extends KuduConnectionBase<KuduConnection, KuduClien
 			try {
 				or = session.apply(op);
 			} catch (KuduException e) {
-				if (isNonRecoverable(e)) logger.error("Kudu apply fail non-recoverable: " + e.getMessage());
-				else error.accept(op, e);
+				if (isNonRecoverable(e))
+					logger.error("Kudu apply fail non-recoverable: " + e.getMessage());
+				else
+					error.accept(op, e);
 				return (r = false);
 			}
-			if (null == or) return (r = true);
-			if (!(r = !or.hasRowError())) error.accept(op, new IOException(or.getRowError().toString()));
+			if (null == or)
+				return (r = true);
+			if (!(r = !or.hasRowError()))
+				error.accept(op, new IOException(or.getRowError().toString()));
 			return r;
 		} finally {
 			// (r ? succCount : failCount).incrementAndGet();
@@ -116,7 +123,8 @@ public class KuduConnection extends KuduConnectionBase<KuduConnection, KuduClien
 	@Override
 	public void destruct(String name) {
 		try {
-			if (!client.tableExists(name)) logger.warn("Kudu table [" + name + "] not exised, need not dropped.");
+			if (!client.tableExists(name))
+				logger.warn("Kudu table [" + name + "] not exised, need not dropped.");
 			else {
 				logger.warn("Kudu table [" + name + "] exised and dropped.");
 				client.deleteTable(name);
@@ -137,18 +145,24 @@ public class KuduConnection extends KuduConnectionBase<KuduConnection, KuduClien
 			throw new RuntimeException(e);
 		}
 		List<String> keys = new ArrayList<>();
-		for (ColumnSchema c : cols) if (c.isKey()) keys.add(c.getName());
-		else break;
+		for (ColumnSchema c : cols)
+			if (c.isKey())
+				keys.add(c.getName());
+			else
+				break;
 
 		int buckets = Integer.parseInt(System.getProperty(KuduProps.TABLE_BUCKETS, "24"));
 		String v = Configs.get(KuduProps.TABLE_REPLICAS);
 		int replicas = null == v ? -1 : Integer.parseInt(v);
-		String info = "with bucket [" + buckets + "], can be defined by [-D" + KuduProps.TABLE_BUCKETS + "=8(default value)]";
-		if (replicas > 0) info = info + ", with replicas [" + replicas + "], can be defined by [-D" + KuduProps.TABLE_REPLICAS
-				+ "=xx(no default value)]";
+		String info = "with bucket [" + buckets + "], can be defined by [-D" + KuduProps.TABLE_BUCKETS
+				+ "=8(default value)]";
+		if (replicas > 0)
+			info = info + ", with replicas [" + replicas + "], can be defined by [-D" + KuduProps.TABLE_REPLICAS
+					+ "=xx(no default value)]";
 		logger.info("Kudu table [" + table + "] will be created with keys: [" + String.join(",", keys) + "], " + info);
 		CreateTableOptions opts = new CreateTableOptions().addHashPartitions(keys, buckets);
-		if (replicas > 0) opts = opts.setNumReplicas(replicas);
+		if (replicas > 0)
+			opts = opts.setNumReplicas(replicas);
 		try {
 			client.createTable(table, new Schema(Arrays.asList(cols)), opts);
 		} catch (KuduException e) {
@@ -161,9 +175,12 @@ public class KuduConnection extends KuduConnectionBase<KuduConnection, KuduClien
 	public void construct(String table, TableDesc tableDesc, List<FieldDesc> fields) {
 		String tableName;
 		String[] tables = table.split("\\.");
-		if (tables.length == 1) tableName = tables[0];
-		else if (tables.length == 2) tableName = tables[1];
-		else throw new RuntimeException("Please type in correct kudu table format: db.table !");
+		if (tables.length == 1)
+			tableName = tables[0];
+		else if (tables.length == 2)
+			tableName = tables[1];
+		else
+			throw new RuntimeException("Please type in correct kudu table format: db.table !");
 		List<ColumnSchema> columns = Colls.list();
 		List<ColumnSchema> columns2 = Colls.list();
 		List<String> keys = new ArrayList<>();
@@ -172,16 +189,22 @@ public class KuduConnection extends KuduConnectionBase<KuduConnection, KuduClien
 			// 创建列
 			if (tableDesc.keys.get(0).contains(field.name)) {
 				Type type = buildKuduFieldType(field);
-				ColumnSchema.ColumnSchemaBuilder keyBuilder = new ColumnSchema.ColumnSchemaBuilder(field.name, type).encoding(type.equals(
-						Type.STRING) ? ColumnSchema.Encoding.DICT_ENCODING : ColumnSchema.Encoding.BIT_SHUFFLE).compressionAlgorithm(
-								ColumnSchema.CompressionAlgorithm.LZ4).nullable(false).key(true);
+				ColumnSchema.ColumnSchemaBuilder keyBuilder = new ColumnSchema.ColumnSchemaBuilder(field.name, type)
+						.encoding((type.equals(Type.STRING) || type.equals(Type.BINARY))
+								? ColumnSchema.Encoding.DICT_ENCODING
+								: (type.equals(Type.BOOL) ? ColumnSchema.Encoding.PLAIN_ENCODING
+										: ColumnSchema.Encoding.BIT_SHUFFLE))
+						.compressionAlgorithm(ColumnSchema.CompressionAlgorithm.LZ4).nullable(false).key(true);
 				columns2.add(keyBuilder.build());
 				keys.add(field.name);
 			} else {
 				Type type = buildKuduFieldType(field);
-				ColumnSchema.ColumnSchemaBuilder builder = new ColumnSchema.ColumnSchemaBuilder(field.name, type).encoding(type.equals(
-						Type.STRING) ? ColumnSchema.Encoding.DICT_ENCODING : ColumnSchema.Encoding.BIT_SHUFFLE).compressionAlgorithm(
-								ColumnSchema.CompressionAlgorithm.LZ4).nullable(true).key(false);
+				ColumnSchema.ColumnSchemaBuilder builder = new ColumnSchema.ColumnSchemaBuilder(field.name, type)
+						.encoding((type.equals(Type.STRING) || type.equals(Type.BINARY))
+								? ColumnSchema.Encoding.DICT_ENCODING
+								: (type.equals(Type.BOOL) ? ColumnSchema.Encoding.PLAIN_ENCODING
+										: ColumnSchema.Encoding.BIT_SHUFFLE))
+						.compressionAlgorithm(ColumnSchema.CompressionAlgorithm.LZ4).nullable(true).key(false);
 				columns.add(builder.build());
 			}
 		}
@@ -248,9 +271,12 @@ public class KuduConnection extends KuduConnectionBase<KuduConnection, KuduClien
 		String tableName;
 		boolean exists = false;
 		String[] tables = table.split("\\.");
-		if (tables.length == 1) tableName = tables[0];
-		else if ((tables.length == 2)) tableName = tables[1];
-		else throw new RuntimeException("Please type in correct kudu table format: db.table !");
+		if (tables.length == 1)
+			tableName = tables[0];
+		else if ((tables.length == 2))
+			tableName = tables[1];
+		else
+			throw new RuntimeException("Please type in correct kudu table format: db.table !");
 		try {
 			exists = client.tableExists(tableName);
 		} catch (KuduException e) {
