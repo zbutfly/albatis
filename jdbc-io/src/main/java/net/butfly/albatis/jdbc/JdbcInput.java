@@ -38,6 +38,7 @@ public class JdbcInput extends net.butfly.albacore.base.Namedly implements OddIn
 		super(name);
 		this.tableName = tableName;
 		this.jdbc = conn;
+		query("select * from " + tableName);
 		opening(this::openJdbc);
 		closing(this::closeJdbc);
 	}
@@ -45,6 +46,7 @@ public class JdbcInput extends net.butfly.albacore.base.Namedly implements OddIn
 	public void query(String sql, Object... params) throws SQLException {
 		logger().debug("[" + name + "] query begin...");
 		conn = jdbc.client.getConnection();
+		conn.setAutoCommit(false);
 		stat = conn.prepareStatement(sql);
 		stat.setFetchDirection(ResultSet.FETCH_FORWARD);
 		stat.setFetchSize(100);

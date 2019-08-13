@@ -159,7 +159,6 @@ public class JdbcConnection extends DataConnection<DataSource> {
 		JdbcInput i;
 		try {
 			i = new JdbcInput("JdbcInput", this, sql[0].qualifier.name);
-			i.query("select * from " + sql[0].qualifier.name); // XXX: ??why not in constructor?
 		} catch (SQLException e) {
 			throw new IOException(e);
 		}
