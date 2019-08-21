@@ -14,6 +14,7 @@ import com.zaxxer.hikari.HikariConfig;
 import net.butfly.albacore.exception.NotImplementedException;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.paral.Exeter;
+import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.Reflections;
 import net.butfly.albacore.utils.logger.Loggable;
 import net.butfly.albacore.utils.logger.Logger;
@@ -100,6 +101,10 @@ public class Dialect implements Loggable {
 
 	public HikariConfig toConfig(Dialect dialect, URISpec uriSpec) {
 		HikariConfig config = new HikariConfig();
+		if (null != Configs.gets("albatis.jdbc.maximumpoolsize")
+				&& !"".equals(Configs.gets("albatis.jdbc.maximumpoolsize"))) {
+			config.setMaximumPoolSize(Integer.parseInt(Configs.gets("albatis.jdbc.maximumpoolsize")));
+		}
 		DialectFor d = dialect.getClass().getAnnotation(DialectFor.class);
 		config.setPoolName(d.subSchema() + "-Hikari-Pool");
 		if (!"".equals(d.jdbcClassname())) {

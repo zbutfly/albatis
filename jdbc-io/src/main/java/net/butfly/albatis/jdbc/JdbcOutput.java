@@ -20,10 +20,8 @@ public class JdbcOutput extends OutputBase<Rmap> {
 	/**
 	 * constructor with default upsert = true
 	 * 
-	 * @param name
-	 *            output name
-	 * @param conn
-	 *            standard jdbc connection
+	 * @param name output name
+	 * @param conn standard jdbc connection
 	 */
 	public JdbcOutput(String name, JdbcConnection conn) {
 		super(name);

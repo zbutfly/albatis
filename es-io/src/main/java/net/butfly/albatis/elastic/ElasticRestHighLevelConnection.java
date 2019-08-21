@@ -112,8 +112,7 @@ public class ElasticRestHighLevelConnection extends DataConnection<RestHighLevel
 				+ JsonSerder.JSON_MAPPER.ser(mapping));
 		boolean aliasExists;
 		try {
-			aliasExists = client.indices().exists(new GetIndexRequest().indices(index), RequestOptions.DEFAULT) 
-					&& !client.indices().existsAlias(new GetAliasesRequest(alias), RequestOptions.DEFAULT);
+			aliasExists = client.indices().exists(new GetIndexRequest().indices(index), RequestOptions.DEFAULT);
 		} catch (IOException e) {
 			throw new RuntimeException("Check alias " + alias + " failed", e);
 		}

@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
 import com.zaxxer.hikari.HikariConfig;
 
 import net.butfly.albacore.io.URISpec;
+import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.ddl.TableDesc;
@@ -303,6 +304,10 @@ public class MysqlDialect extends Dialect {
 	@Override
 	public HikariConfig toConfig(Dialect dialect, URISpec uriSpec) {
 		HikariConfig config = new HikariConfig();
+		if (null != Configs.gets("albatis.jdbc.maximumpoolsize")
+				&& !"".equals(Configs.gets("albatis.jdbc.maximumpoolsize"))) {
+			config.setMaximumPoolSize(Integer.parseInt(Configs.gets("albatis.jdbc.maximumpoolsize")));
+		}
 		DialectFor d = dialect.getClass().getAnnotation(DialectFor.class);
 		config.setPoolName(d.subSchema() + "-Hikari-Pool");
 		if (!"".equals(d.jdbcClassname())) {
