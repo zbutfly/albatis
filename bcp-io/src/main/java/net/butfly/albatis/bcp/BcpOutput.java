@@ -121,12 +121,22 @@ public class BcpOutput extends OutputBase<Rmap> {
         }
 
         public void stop() {
-            flag = false;
-            poolMap.forEach((k, v) -> {
-                while (!v.isEmpty()) bcp(null);
-            });
+        	while (!isEmpty()) {
+        		try {
+					Thread.sleep(1000);
+				} catch (InterruptedException e) {
+				}
+        	}
+    		flag = false;
+    		poolMap.forEach((k, v) -> {
+    			while (!v.isEmpty()) bcp(null);
+    		});
         }
 
+        public boolean isEmpty() {
+        	return poolMap.values().stream().map(q -> q.isEmpty()).reduce((p, q) -> q && p).orElse(false);
+        }
+        
         private void bcp(String taskName) {
             if (null == taskName) {
                 poolMap.forEach((k, v) -> {
