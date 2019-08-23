@@ -1,12 +1,9 @@
 package net.butfly.albatis.odps;
 
 import com.aliyun.odps.Odps;
-import com.aliyun.odps.PartitionSpec;
-import com.aliyun.odps.TableSchema;
 import com.aliyun.odps.account.Account;
 import com.aliyun.odps.account.AliyunAccount;
 import com.aliyun.odps.tunnel.TableTunnel;
-import com.aliyun.odps.tunnel.TunnelException;
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.logger.Logger;
@@ -23,12 +20,15 @@ public class OdpsConnection extends DataConnection<Connection> {
     private static String accessId ;
     private static String accessKey ;
     private static String odpsUrl ;
+    //默认情况下，使用公网进行传输。如果需要通过内网进行数据传输，必须设置tunnelUrl变量。
     private static String tunnelUrl ;
-    private static String project ;
-//    private static String partition ;
+    static String project ;
+    private static String partition ;
+    TableTunnel tunnel;
+    String tableName;
 
     private Odps odps;
-    TableTunnel.UploadSession uploadSession;
+//    TableTunnel.UploadSession uploadSession;
 
     public OdpsConnection(URISpec uri) throws IOException {
         super(uri, "odps:http");
@@ -46,26 +46,14 @@ public class OdpsConnection extends DataConnection<Connection> {
         odps = new Odps(account);
         odps.setEndpoint(odpsUrl);
         odps.setDefaultProject(project);
+        tunnel = new TableTunnel(odps);
+        tunnel.setEndpoint(tunnelUrl);
     }
 
-    private void getUploadSession(String table){
-        try {
-            TableTunnel tunnel = new TableTunnel(odps);
-            tunnel.setEndpoint(tunnelUrl);
-//            PartitionSpec partitionSpec = new PartitionSpec(partition);
-//            uploadSession = tunnel.createUploadSession(project, table, partitionSpec);
-            uploadSession = tunnel.createUploadSession(project, table);
-            logger.info("Session Status is : " + uploadSession.getStatus().toString());
-        } catch (TunnelException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
 
     @Override
     public OdpsOutput outputRaw(TableDesc... table) throws IOException {
-        getUploadSession(table[0].qualifier.name);
+        tableName = table[0].qualifier.name;
         return new OdpsOutput("OdpsOutput",this);
     }
 
