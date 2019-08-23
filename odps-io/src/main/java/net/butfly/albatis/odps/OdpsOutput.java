@@ -26,12 +26,10 @@ public class OdpsOutput extends OutputBase<Rmap> {
     private RecordWriter writer;
     private TableTunnel.UploadSession uploadSession;
     AtomicInteger count = new AtomicInteger();
-    long last = System.currentTimeMillis();
     static {
         Configs.of(System.getProperty("dpcu.conf", "dpcu.properties"), "dataggr.migrate");
     }
-    public static final int ODPS_FLUSH_COUNT = Integer.parseInt(get("odps.flush.count", "10000"));
-    public static final int ODPS_FLUSH_MINS = Integer.parseInt(get("odps.flush.minutes", "5"));
+    public static final int ODPS_FLUSH_COUNT = Integer.parseInt(get("odps.flush.count", "1000"));
 
     protected OdpsOutput(String name, OdpsConnection connection) {
         super(name);
@@ -62,6 +60,21 @@ public class OdpsOutput extends OutputBase<Rmap> {
     @Override
     protected void enqsafe(Sdream<Rmap> items) {
         items.eachs(m -> {
+            if(count.intValue()%ODPS_FLUSH_COUNT==0){
+                try {
+                    if(null!=writer)writer.close();
+                    this.uploadSession.commit();
+                logger.trace("Session Status is : " + uploadSession.getStatus().toString());
+                    uploadSession = conn.tunnel.createUploadSession(conn.project, conn.tableName);
+                    this.schema = uploadSession.getSchema();
+                    this.writer = uploadSession.openBufferedWriter();
+                logger.trace("Session2 Status is : " + uploadSession.getStatus().toString());
+                } catch (TunnelException e) {
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
             Record record = format(m);
             try {
                 writer.write(record);
