@@ -29,6 +29,7 @@ public abstract class Desc<D extends Desc<D>> implements Serializable {
 	public static final String TABLE_KEY_ROW = "rowkey";
 	public static final String TABLE_KEY_COL = "colkey";
 	public static final String TABLE_QUERYPARAM = "queryparam";
+	public static final String TABLE_QUERYPARAM_FIELD = "table_queryparam_field";
 	// public static final String TABLE_KEYS = "keys";
 	// public static final String TABLE_CONSTRUCT = "construct";
 	// public static final String TABLE_DESTRUCT = "destruct";

@@ -23,8 +23,10 @@
 		<!-- <version.kafka>0.11.0.3</version.kafka> --><!-- for scala_2.11 only -->
 		<version.mongodb.thin>2.14.3</version.mongodb.thin>
 		<version.mongodb.fat>3.9.1</version.mongodb.fat>
-		<version.elastic>6.8.1</version.elastic>
-		<version.kudu>1.10.0</version.kudu>
+		<version.mongo.spark>2.3.0</version.mongo.spark>
+		<version.kudu.spark>1.8.0</version.kudu.spark>
+		<version.elastic>6.5.3</version.elastic>
+		<version.kudu>1.8.0</version.kudu>
 		<!-- <version.hbase>2.1.1</version.hbase> -->
 		<!-- <version.hbase>1.2.0-cdh${version.cdh}</version.hbase> -->
 		<version.hbase>2.1.0-cdh${version.cdh}</version.hbase>
