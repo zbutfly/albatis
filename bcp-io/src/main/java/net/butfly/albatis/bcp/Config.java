@@ -3,17 +3,34 @@ package net.butfly.albatis.bcp;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import org.apache.log4j.Logger;
 
 import java.io.Closeable;
+import java.io.IOException;
+import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Properties;
 
 public class Config implements Closeable {
 	private final HikariDataSource ds;
+	private static final Logger LOGGER = Logger.getLogger(Config.class);
+	private static Properties pro = new Properties();
+
+	static {
+		InputStream is = Config.class.getClassLoader().getResourceAsStream("bcpsql.properties");
+		if (null != is) {
+			try {
+				pro.load(is);
+			} catch (IOException e) {
+				LOGGER.error("Loading config is failure", e);
+			}
+		}
+	}
 
 	public Config(String url, String usr, String psd) {
 		HikariConfig config = new HikariConfig();
@@ -35,9 +52,12 @@ public class Config implements Closeable {
 
 	public List<TaskDesc> getTaskConfig(String taskname) throws SQLException {
 		List<TaskDesc> configs = new LinkedList<>();
-		try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(SQL.SQL_TASK);) {
+		String taskSql = pro.getProperty("dataggr.migrate.bcp.sql.task");
+		LOGGER.trace("task sql is "+taskSql);
+		try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(taskSql)) {
 			ps.setString(1, taskname);
-			try (ResultSet rs = ps.executeQuery();) {
+			ps.setString(2,taskname);
+			try (ResultSet rs = ps.executeQuery()) {
 				while (rs.next()) configs.add(new TaskDesc(rs));
 			}
 		}
@@ -46,7 +66,9 @@ public class Config implements Closeable {
 
 	public List<TaskDesc.FieldDesc> getTaskStatistics(String taskId) throws SQLException {
 		List<TaskDesc.FieldDesc> fields = new LinkedList<>();
-		try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(SQL.SQL_FIELDS);) {
+		String fieldSql = pro.getProperty("dataggr.migrate.bcp.sql.fields");
+		LOGGER.trace("fields sql is "+fieldSql);
+		try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(fieldSql)) {
 			ps.setObject(1, taskId);
 			try (ResultSet rs = ps.executeQuery();) {
 				while (rs.next()) fields.add(new TaskDesc.FieldDesc(rs));

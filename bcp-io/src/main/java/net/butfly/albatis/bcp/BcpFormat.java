@@ -127,11 +127,11 @@ public class BcpFormat {
             Map<String, Object> fs = Maps.of(); // future or value
             for (TaskDesc.FieldDesc fd : task.fields) {
                 Object v;
-                if (null == fd.dstExpr) v = m.get(fd.fieldName);
-                else v = of().submit(() -> {
-                    Engine.eval(fd.dstExpr, m);
-                });
-                if (null != v) fs.put(fd.dstName, v);
+//                if (null == fd.dstExpr) v = m.get(fd.fieldName);
+//                else v = of().submit(() -> {
+//                    Engine.eval(fd.dstExpr, m);
+//                });
+//                if (null != v) fs.put(fd.dstName, v);
             }
             List<String> vs = new ArrayList<>();
             fs.forEach((k, r) -> count(k, future(r), vs, counts));

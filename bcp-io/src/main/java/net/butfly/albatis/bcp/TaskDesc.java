@@ -39,27 +39,27 @@ public class TaskDesc {
         this.srcDsURI = rs.getString("SRC_DS_URI");
         this.dstDsUri = rs.getString("DST_DS_URI");
         this.tableName = rs.getString("SRC_TABLE_NAME");
-        this.tableDesc = rs.getString("TABLE_NAME");
+        this.tableDesc = rs.getString("DST_TABLE_NAME");
         this.fd = new FileDesc();
     }
 
     public static class FieldDesc {
         public final String fieldName;
         public final String dstName;
-        public final String dstExpr;
+//        public final String dstExpr;
         public final String comment;
 
         FieldDesc(ResultSet rs) throws SQLException {
             super();
             this.fieldName = rs.getString("SRC_NAME");
             this.dstName = rs.getString("DST_NAME");
-            this.dstExpr = rs.getString("DST_EXPR");
-            this.comment = rs.getString("COLUMN_NAME");
+//            this.dstExpr = rs.getString("DST_EXPR");
+            this.comment = rs.getString("DST_NAME");
         }
 
         @Override
         public String toString() {
-            return fieldName + ":name=" + dstName + ";expr=" + dstExpr + ";comment:" + comment;
+            return fieldName + ":name=" + dstName + ";comment:" + comment;
         }
     }
 
