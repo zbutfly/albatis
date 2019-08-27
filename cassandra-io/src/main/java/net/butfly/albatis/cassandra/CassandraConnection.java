@@ -14,10 +14,12 @@ import static net.butfly.albatis.ddl.vals.ValType.Flags.STR;
 import static net.butfly.albatis.ddl.vals.ValType.Flags.UNKNOWN;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.Session;
+import com.datastax.driver.core.Cluster.Builder;
+
 import net.butfly.albacore.io.URISpec;
 
 import net.butfly.albacore.utils.collection.Colls;
@@ -47,10 +49,13 @@ public class CassandraConnection extends DataConnection<Cluster> {
 	
 	@Override
 	protected Cluster initialize(URISpec uri) {
-		// TODO Auto-generated method stub	
+		// TODO Auto-generated method stub
+		Builder builder = Cluster.builder();
 		try {
-			String[] host = uri.getHost().split(":");	
-			return  Cluster.builder().addContactPoint(host[0]).withPort(uri.getDefaultPort()).build();
+			for(InetSocketAddress addres : uri.getInetAddrs()) {
+				builder.addContactPoint(addres.getHostName()).withPort(addres.getPort());
+			}
+			return builder.build();
 			
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
