@@ -38,6 +38,8 @@ public abstract class ValType implements Serializable {
 		public static final String LOCATION_RPT = "srpt";
 		public static final String JSON_STR = "json_str";
 		public static final String JSONARRAY_STR="jsonarray_str";
+		public static final String GEO_POINT="geo_point";
+		public static final String GEO_SHAPE="geo_shape";
 	}
 
 	@Deprecated
@@ -68,6 +70,8 @@ public abstract class ValType implements Serializable {
 	public static final ListValType LOCATION_RPT = new ListValType(new String[] { Flags.LOCATION_RPT, "string_srpt" }, STR);
 	public static final ListValType JSON_STR = new ListValType(new String[] { Flags.JSON_STR, "json", "j" }, STR);
 	public static final ListValType JSONARRAY_STR=new ListValType(new String[] { Flags.JSONARRAY_STR, "json", "j" }, STR);
+	public static final ListValType GEO_POINT=new ListValType(new String[] { Flags.GEO_POINT, "geo_point", "g" }, STR);
+	public static final ListValType GEO_SHAPE=new ListValType(new String[] { Flags.GEO_SHAPE, "geo_shape", "g" }, STR);
 	
 	public final Class<?> rawClass;
 	public final Class<?> boxedClass;
