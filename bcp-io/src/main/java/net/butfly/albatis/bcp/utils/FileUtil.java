@@ -1,5 +1,6 @@
 package net.butfly.albatis.bcp.utils;
 
+import net.butfly.albatis.ddl.Qualifier;
 import net.butfly.albatis.io.Rmap;
 
 import java.io.*;
@@ -56,7 +57,7 @@ public class FileUtil {
     private static Rmap integratedBcpData(String dataLine, List<String> fields, String separator,String table){
         if(null != dataLine && !dataLine.isEmpty()){
             String[] datas = dataLine.split(separator);
-            Rmap m = new Rmap(table);
+            Rmap m = new Rmap(new Qualifier(table));
             for(int i=0;i<fields.size();i++){
                 if(i < datas.length) {
                     if(null!=datas[i] && !datas[i].isEmpty()){

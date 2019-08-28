@@ -1,15 +1,14 @@
 package net.butfly.albatis.bcp;
 
-import net.butfly.albacore.expr.Engine;
-import net.butfly.albacore.io.URISpec;
-import net.butfly.albacore.utils.collection.Colls;
-import net.butfly.albacore.utils.collection.Maps;
-import net.butfly.albacore.utils.logger.Logger;
-import net.butfly.albatis.bcp.imports.trans.TransToZIP;
-import net.butfly.albatis.bcp.imports.trans.WriteToNb;
-import net.butfly.albatis.bcp.imports.trans.WriteToXml;
-import net.butfly.albatis.io.Rmap;
-import org.dom4j.DocumentException;
+import static net.butfly.albacore.paral.Exeter.get;
+import static net.butfly.albacore.paral.Exeter.getn;
+import static net.butfly.albacore.paral.Exeter.of;
+import static net.butfly.albacore.utils.logger.StatsUtils.formatKilo;
+import static net.butfly.albacore.utils.logger.StatsUtils.formatMillis;
+import static net.butfly.albatis.bcp.Props.ENCODING;
+import static net.butfly.albatis.bcp.Props.FIELD_SPLIT;
+import static net.butfly.albatis.bcp.Props.confirmDir;
+import static net.butfly.albatis.ddl.FieldDesc.SPLIT_ZWNJ_CH;
 
 import java.io.File;
 import java.io.IOException;
@@ -23,13 +22,17 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
-import static net.butfly.albacore.paral.Exeter.*;
-import static net.butfly.albacore.utils.logger.StatsUtils.formatKilo;
-import static net.butfly.albacore.utils.logger.StatsUtils.formatMillis;
-import static net.butfly.albatis.bcp.Props.*;
-import static net.butfly.albatis.ddl.FieldDesc.SPLIT_ZWNJ_CH;
+import org.dom4j.DocumentException;
+
+import net.butfly.albacore.io.URISpec;
+import net.butfly.albacore.utils.collection.Colls;
+import net.butfly.albacore.utils.collection.Maps;
+import net.butfly.albacore.utils.logger.Logger;
+import net.butfly.albatis.bcp.imports.trans.TransToZIP;
+import net.butfly.albatis.bcp.imports.trans.WriteToNb;
+import net.butfly.albatis.bcp.imports.trans.WriteToXml;
+import net.butfly.albatis.io.Rmap;
 
 public class BcpFormat {
     public static Logger logger = Logger.getLogger(BcpFormat.class);
@@ -79,13 +82,17 @@ public class BcpFormat {
             logger.debug("BCP [" + fn + "] for [" + recs.size() + "] rendered, spent: " + formatMillis(ms) + " ms");
         }
         if (lines.isEmpty()) return;
-        of().submit(() -> {
-            try {
-                bcp(uri, fnp, fn, lines, taskDesc);
-            } catch (IOException e) {
-                logger.error("BCP [" + fn + "] for [" + recs.size() + "] failed", e);
-            }
-        });
+        try {
+        	of().submit(() -> {
+        		try {
+        			bcp(uri, fnp, fn, lines, taskDesc);
+        		} catch (IOException e) {
+        			logger.error("BCP [" + fn + "] for [" + recs.size() + "] failed", e);
+        		}
+        	}).get();
+        } catch (Exception e) {
+        	logger.error("error!", e);
+        }
 //        of().submit(() -> {
 //            try {
 //                taskDesc.fd.rec(fn, lines.size(), counts);

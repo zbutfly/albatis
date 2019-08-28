@@ -1,7 +1,5 @@
 package net.butfly.albatis.bcp.utils;
 
-import net.butfly.albacore.utils.logger.Logger;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;

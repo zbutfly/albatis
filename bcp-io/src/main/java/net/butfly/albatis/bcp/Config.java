@@ -1,8 +1,10 @@
 package net.butfly.albatis.bcp;
 
-
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+
+import net.butfly.albacore.utils.Configs;
+
 import org.apache.log4j.Logger;
 
 import java.io.Closeable;
@@ -20,6 +22,7 @@ public class Config implements Closeable {
 	private final HikariDataSource ds;
 	private static final Logger LOGGER = Logger.getLogger(Config.class);
 	private static Properties pro = new Properties();
+	private static String MODE = Configs.gets("dataggr.migrate.config.prefix", "uniq");
 
 	static {
 		InputStream is = Config.class.getClassLoader().getResourceAsStream("bcpsql.properties");
@@ -54,9 +57,10 @@ public class Config implements Closeable {
 		List<TaskDesc> configs = new LinkedList<>();
 		String taskSql = pro.getProperty("dataggr.migrate.bcp.sql.task");
 		LOGGER.trace("task sql is "+taskSql);
-		try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(taskSql)) {
+		try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement("uniq".equals(MODE) ? taskSql : SQL.SQL_TASK)) {
 			ps.setString(1, taskname);
-			ps.setString(2,taskname);
+			if ("uniq".equals(MODE))
+				ps.setString(2,taskname);
 			try (ResultSet rs = ps.executeQuery()) {
 				while (rs.next()) configs.add(new TaskDesc(rs));
 			}
@@ -68,7 +72,7 @@ public class Config implements Closeable {
 		List<TaskDesc.FieldDesc> fields = new LinkedList<>();
 		String fieldSql = pro.getProperty("dataggr.migrate.bcp.sql.fields");
 		LOGGER.trace("fields sql is "+fieldSql);
-		try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(fieldSql)) {
+		try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement("uniq".equals(MODE) ? fieldSql : SQL.SQL_FIELDS)) {
 			ps.setObject(1, taskId);
 			try (ResultSet rs = ps.executeQuery();) {
 				while (rs.next()) fields.add(new TaskDesc.FieldDesc(rs));

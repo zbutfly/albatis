@@ -4,6 +4,7 @@ import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Statistic;
+import net.butfly.albatis.ddl.Qualifier;
 import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.io.OutputBase;
 import net.butfly.albatis.io.Rmap;
@@ -35,6 +36,7 @@ public class BcpOutput extends OutputBase<Rmap> {
     private boolean inc;
     private List<TaskDesc> tasks = new ArrayList<>();
     private URISpec uriSpec, uri;
+    AtomicLong totalCount = new AtomicLong();
     AtomicLong count = new AtomicLong();
 
     public BcpOutput(String name, URISpec uri, TableDesc... tables) throws IOException {
@@ -82,26 +84,18 @@ public class BcpOutput extends OutputBase<Rmap> {
     @Override
     protected void enqsafe(Sdream<Rmap> msgs) {
         msgs.eachs(m -> {
+        	
             try {
-                if (poolMap.containsKey(m.table().qualifier)) {
-                    LinkedBlockingQueue<Rmap> pool = poolMap.get(m.table().qualifier);
-                    Map<String, Object> map = m.containsKey("value") ? (Map<String, Object>) m.get("value") : m.map();
-                    Rmap rmap = new Rmap(m.table().qualifier, map);
-                    if(null == m.keyField()) return;
-                    if (rmap.containsKey(m.keyField()))
-                        if (null != rmap.get(m.keyField()) && Props.BCP_KEY_FIELD_EXCLUDE)
-                            pool.put(rmap);
-                } else {
-                    LinkedBlockingQueue<Rmap> pool = new LinkedBlockingQueue<>(50000);
-                    Map<String, Object> map = m.containsKey("value") ? (Map<String, Object>) m.get("value") : m.map();
-                    Rmap rmap = new Rmap(m.table().qualifier, map);
-                    if(null == m.keyField()) return;
-                    if (rmap.containsKey(m.keyField()))
-                        if (null != rmap.get(m.keyField()) && Props.BCP_KEY_FIELD_EXCLUDE) {
-                            pool.put(rmap);
-                            poolMap.put(m.table().qualifier, pool);
-                        }
-                }
+            	poolMap.putIfAbsent(m.table().qualifier, new LinkedBlockingQueue<>(50000));
+                LinkedBlockingQueue<Rmap> pool = poolMap.get(m.table().qualifier);
+                Map<String, Object> map = m.containsKey("value") ? (Map<String, Object>) m.get("value") : m.map();
+                Rmap rmap = new Rmap(new Qualifier(m.table().qualifier), map);
+                if(null == m.keyField()) return;
+                if (rmap.containsKey(m.keyField()))
+                    if (null != rmap.get(m.keyField()) && Props.BCP_KEY_FIELD_EXCLUDE) {
+                    	pool.put(rmap);
+                    	totalCount.incrementAndGet();
+                    }
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
@@ -121,7 +115,7 @@ public class BcpOutput extends OutputBase<Rmap> {
         }
 
         public void stop() {
-        	while (!isEmpty()) {
+			while (!isEmpty() || count.get() > 0 || (totalCount.get() > 0) ) {
         		try {
 					Thread.sleep(1000);
 				} catch (InterruptedException e) {
@@ -131,6 +125,7 @@ public class BcpOutput extends OutputBase<Rmap> {
     		poolMap.forEach((k, v) -> {
     			while (!v.isEmpty()) bcp(null);
     		});
+    		EXPOOL_BCP.shutdown();
         }
 
         public boolean isEmpty() {
@@ -143,27 +138,42 @@ public class BcpOutput extends OutputBase<Rmap> {
                     while (null != v.poll()) {
                         List<Rmap> l = new ArrayList<>();
                         poolMap.get(k).drainTo(l, BCP_FLUSH_COUNT);
-                        count.incrementAndGet();
-                        EXPOOL_BCP.submit(() -> {
-                            bcp.bcp(l, uri, k);
-                            count.decrementAndGet();
-                        });
+                        if (!l.isEmpty()) {
+                        	count.incrementAndGet();
+                        	EXPOOL_BCP.submit(() -> {
+                        		try {
+                        			bcp.bcp(l, uri, k);
+                        		} catch (Exception e) {
+                        			logger().error("BCP ERROR!", e);
+                        		} finally {
+                        			count.decrementAndGet();
+                        			totalCount.addAndGet(l.size() * -1);
+                        		}
+                        	});
+                        }
                     }
                 });
             } else {
                 List<Rmap> l = new ArrayList<>();
                 poolMap.get(taskName).drainTo(l, BCP_FLUSH_COUNT);
-                count.incrementAndGet();
-                EXPOOL_BCP.submit(() -> {
-                    bcp.bcp(l, uri, taskName);
-                    count.decrementAndGet();
-                });
+                if (!l.isEmpty()) {
+                	count.incrementAndGet();
+                	EXPOOL_BCP.submit(() -> {
+                		try {
+                			bcp.bcp(l, uri, taskName);
+                		} catch (Exception e) {
+                			logger().error("BCP ERROR!", e);
+                		} finally {
+                			count.decrementAndGet();
+                			totalCount.addAndGet(l.size() * -1);
+                		}
+                	});
+                }
             }
             while (count.get() > 0) {
                 try {
                     Thread.sleep(5000);
                 } catch (InterruptedException e) {
-                    e.printStackTrace();
                 }
             }
         }
@@ -171,12 +181,20 @@ public class BcpOutput extends OutputBase<Rmap> {
         @Override
         public void run() {
             long last = System.currentTimeMillis();
-            while (flag)
-                for (Map.Entry<String, LinkedBlockingQueue<Rmap>> entry : poolMap.entrySet()) {
-                    if (entry.getValue().size() >= BCP_FLUSH_COUNT || System.currentTimeMillis() - last > ms) {
-                        bcp(entry.getKey());
-                    }
-                }
+            while (flag) {
+            	long now = System.currentTimeMillis();
+            	for (Map.Entry<String, LinkedBlockingQueue<Rmap>> entry : poolMap.entrySet()) {
+            		if (entry.getValue().size() >= BCP_FLUSH_COUNT || now - last > ms) {
+            			bcp(entry.getKey());
+            			last = now;
+            		} else {
+            			try {
+							Thread.sleep(1000);
+						} catch (InterruptedException e) {
+						}
+            		}
+            	}
+            }
         }
     }
 }
