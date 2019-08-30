@@ -121,10 +121,10 @@ public interface IOFactory extends Formatable {
 		} else {
 			for (String f : m.keySet()) {
 				QualifierField fq = QualifierField.of(m.table, f).table(m.table);
-				if (!fq.name.equals(f)) {
-					m.put(fq.name, m.remove(f));
-					if (f.equals(m.keyField())) m.keyField(fq.name);
-				}
+//				if (!fq.name.equals(f)) {
+//					m.put(fq.name, m.remove(f));
+//					if (f.equals(m.keyField())) m.keyField(fq.name);
+//				}
 			}
 			return Sdream.of1(m);
 		}

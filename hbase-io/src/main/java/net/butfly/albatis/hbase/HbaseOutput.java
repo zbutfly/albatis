@@ -32,6 +32,7 @@ public class HbaseOutput extends OutputBase<Rmap> {
 	public static final @HbaseProps String MAX_CONCURRENT_OP_PROP_NAME = HbaseProps.OUTPUT_CONCURRENT_OPS;
 	public static final int MAX_CONCURRENT_OP_DEFAULT = Integer.MAX_VALUE;
 	public static final int SUGGEST_BATCH_SIZE = 200;
+	public String defaultNamespace;
 
 	private transient HbaseConnection conn;
 	private final URISpec target;
@@ -40,6 +41,13 @@ public class HbaseOutput extends OutputBase<Rmap> {
 		super(name);
 		this.target = hconn.uri();
 		this.conn = hconn;
+	}
+
+	public HbaseOutput(String name, String defaultNamespace, HbaseConnection hconn) throws IOException {
+		super(name);
+		this.target = hconn.uri();
+		this.conn = hconn;
+		this.defaultNamespace = defaultNamespace;
 	}
 
 	@Override
@@ -106,7 +114,7 @@ public class HbaseOutput extends OutputBase<Rmap> {
 		List<Rmap> failed = Colls.list();
 		AtomicInteger succs = new AtomicInteger();
 		try {
-			Result[] rs = conn.put(table, ops.toArray(new Mutation[0]));
+			Result[] rs = conn.put(null == defaultNamespace || defaultNamespace.isEmpty() ? table : defaultNamespace + ":" + table, ops.toArray(new Mutation[0]));
 			for (int i = 0; i < rs.length; i++) {
 				if (null == rs[i]) failed.add(origins.get(i));// error
 				else succs.incrementAndGet();

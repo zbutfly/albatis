@@ -99,6 +99,10 @@ public class HbaseInput extends Namedly implements Input<Rmap> {
 		new TableScaner(this, table, families, prefixes, null, range(startAndStopRow));
 	}
 
+	public void table(String namespace, String table, Collection<String> families, Collection<String> prefixes, byte[]... startAndStopRow) throws IOException {
+		new TableScaner(this, namespace, table, families, prefixes, null, range(startAndStopRow));
+	}
+
 	@Override
 	public Statistic statistic() {
 		return new Statistic(this).sizing(Result::getTotalSizeOfCells).<Result> infoing(r -> Bytes.toString(r.getRow()));

@@ -82,6 +82,7 @@ import net.butfly.albatis.hbase.utils.HbaseScan.Range;
 import net.butfly.albatis.hbase.utils.HbaseSkip;
 import net.butfly.albatis.hbase.utils.HbaseSkip.SkipMode;
 import net.butfly.albatis.hbase.utils.Hbases;
+import net.butfly.albatis.hbase.utils.ZkUtils;
 import net.butfly.albatis.io.IOFactory;
 import net.butfly.albatis.io.IOStats;
 import net.butfly.albatis.io.Rmap;
@@ -89,6 +90,7 @@ import net.butfly.albatis.io.utils.JsonUtils;
 import net.butfly.albatis.io.vfs.VfsConnection;
 import net.butfly.alserdes.SerDes;
 
+@SuppressWarnings("deprecation")
 @SerDes.As("hbase")
 public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.client.Connection> implements IOFactory, IOStats {
 	protected final static Logger logger = Logger.getLogger(HbaseConnection.class);
@@ -109,6 +111,7 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 	private final int GET_MAX_RETRIES = propI(this, "get.retry", 2);
 	protected final long GET_DUMP_MIN_SIZE = propL(this, "get.dump.min.bytes", 2097152); // 2M
 	private final Map<String, Table> tables;
+	private String defaultNamespace;
 	// private final LinkedBlockingQueue<Scan> scans = new LinkedBlockingQueue<>(GET_SCAN_OBJS);
 	// RmapSubMode subtableMode;
 
@@ -131,6 +134,13 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 		}
 
 		Map<String, String> params = params();
+		if (defaultNamespace == null) {
+			String fullPath = uri.getPath();
+			if (fullPath.startsWith("/")) fullPath = fullPath.substring(1);
+			if (fullPath.endsWith("/")) fullPath = fullPath.substring(0, fullPath.length() - 1);
+			String[] paths = fullPath.split("/");
+			defaultNamespace = paths == null || paths[paths.length - 1] == null || paths[paths.length - 1].isEmpty() ? null : paths[paths.length - 1];
+		}
 		params.putAll(uri.getParameters());
 		String confuri = params.remove(VFS_CONF_URI);
 		if (null == confuri) try {
@@ -163,6 +173,7 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 	private Map<String, String> params() {
 		if (null != uri) {
 			// params.remove("df");
+//			defaultNamespace = uri.fetchParameter("namespace");
 			String[] s = uri.getSchemas();
 			int i = 0;
 			if ("hbase".equals(s[0]) && s.length > 1) i = 1;
@@ -187,7 +198,10 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 					}
 					params.put(HConstants.ZOOKEEPER_QUORUM, zq.toString());
 					if (port > 0) params.put(HConstants.ZOOKEEPER_CLIENT_PORT, Integer.toString(port));
-					if (!"/".equals(uri.getPath())) params.put(HConstants.ZOOKEEPER_ZNODE_PARENT, uri.getPath());
+
+					Pair<String, String> pathAndNamespace = ZkUtils.getHbaseZkPath(uri.getHost(), uri.getPath());
+					defaultNamespace = pathAndNamespace.v2();
+					if (!"/".equals(pathAndNamespace.v1())) params.put(HConstants.ZOOKEEPER_ZNODE_PARENT, pathAndNamespace.v1());
 				}
 				return params;
 			default: // other, try to load by vfs
@@ -454,15 +468,15 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 		}
 		String rowkey;
 		for (String t : tbls.keySet()) if (null != (rowkey = rowkeys.get(t))) // row key mode
-			input.table(t, tbls.get(t).v1(), tbls.get(t).v2(), Bytes.toBytes(rowkey));
-		else input.table(t, tbls.get(t).v1(), tbls.get(t).v2());
+			input.table(defaultNamespace, t, tbls.get(t).v1(), tbls.get(t).v2(), Bytes.toBytes(rowkey));
+		else input.table(defaultNamespace, t, tbls.get(t).v1(), tbls.get(t).v2());
 		return input;
 	}
 
 	@SuppressWarnings("unchecked")
 	@Override
 	public HbaseOutput outputRaw(TableDesc... table) throws IOException {
-		return new HbaseOutput("HbaseOutput", this);
+		return new HbaseOutput("HbaseOutput", defaultNamespace, this);
 	}
 
 	@Override
@@ -484,7 +498,6 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 		}
 	}
 
-	@SuppressWarnings("deprecation")
 	public static void createHbaseTable(Connection client, String tableName, Object startKey, Object endKey, Object splitKey, Object numRegions,
 			Object families) throws IOException {
 		byte[] startKeys = null;
@@ -610,7 +623,6 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 		}
 	}
 
-	@SuppressWarnings("deprecation")
 	public Range[] ranges(String table) {
 		StringBuilder sb = new StringBuilder("Hbase region found:");
 		try (RegionLocator rl = client.getRegionLocator(TableName.valueOf(table));) {

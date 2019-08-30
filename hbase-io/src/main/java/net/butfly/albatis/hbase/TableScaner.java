@@ -56,6 +56,19 @@ class TableScaner {
 		scaner = input.hconn.table(table).getScanner(sc);
 	}
 
+	public TableScaner(HbaseInput input, String namespace, String table, Collection<String> families, Collection<String> prefixes, Filter f, Range range) throws IOException {
+		super();
+		input.SCAN_REGS.computeIfAbsent(table, t -> list()).add(this);
+		input.SCAN_POOL.offer(this);
+		this.input = input;
+		this.table = table;
+		if (null != families) this.families.addAll(families);
+		if (null != prefixes) this.prefixes.addAll(prefixes);
+		f = and(f, filterFamily(families), filterPrefix(prefixes));
+		Scan sc = opts(input.batchSize(), SCAN_COLS, SCAN_BYTES, SCAN_CACHE_BLOCKS).optimize(range.scan(f));
+		scaner = input.hconn.table(null != namespace && !namespace.isEmpty() ? namespace + ":" + table : table).getScanner(sc);
+	}
+
 	public void close() {
 		try {
 			scaner.close();
