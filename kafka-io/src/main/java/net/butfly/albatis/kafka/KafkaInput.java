@@ -147,6 +147,7 @@ public class KafkaInput extends Namedly implements KafkaIn {
 	}
 
 	private static final long EMPTY_INFO_ITV = Long.parseLong(Configs.gets("albatis.kafka.input.empty.info.interval", "10"));
+	private static final long EMPTY_SLEEP = Long.parseLong(Configs.gets("albatis.kafka.input.empty.sleep.ms", "100"));
 	private static final AtomicReference<Instant> LAST_FETCH = new AtomicReference<>(null);
 
 	@SuppressWarnings("unchecked")
@@ -154,24 +155,27 @@ public class KafkaInput extends Namedly implements KafkaIn {
 	public Rmap dequeue() {
 		ConsumerIterator<byte[], byte[]> it;
 		MessageAndMetadata<byte[], byte[]> m;
-		while (opened()) if (null != (it = consumers.poll())) {
-			try {
-				if (null == (m = it.next())) return null;
-				MessageAndMetadata<byte[], byte[]> km = (MessageAndMetadata<byte[], byte[]>) m;
-				String k = null == km.key() || km.key().length == 0 ? null : new String(km.key());
-				return new Rmap(km.topic(), k, null == k ? "km" : k, (Object) km.message());
-			} catch (ConsumerTimeoutException | NoSuchElementException ex) {
-				Instant last = LAST_FETCH.get();
-				if (null != last && Duration.between(Instant.now(), last).abs().getSeconds() > EMPTY_INFO_ITV) //
-					logger().debug("No data (kafka timeout) for more than " + EMPTY_INFO_ITV + " seconds.");
-				return null;
-			} catch (Exception ex) {
-				logger().warn("Unprocessed kafka error [" + ex.getClass().toString() + ": " + ex.getMessage() + "], ignore and continue.", ex);
-				return null;
-			} finally {
-				consumers.offer(it);
-				LAST_FETCH.set(Instant.now());
-			}
+		while (opened()) if (null != (it = consumers.poll())) try {
+			if (null == (m = it.next())) return null;
+			MessageAndMetadata<byte[], byte[]> km = (MessageAndMetadata<byte[], byte[]>) m;
+			String k = null == km.key() || km.key().length == 0 ? null : new String(km.key());
+			return new Rmap(km.topic(), k, null == k ? "km" : k, (Object) km.message());
+		} catch (ConsumerTimeoutException | NoSuchElementException ex) {
+			Instant last = LAST_FETCH.get();
+			if (null != last && Duration.between(Instant.now(), last).abs().getSeconds() > EMPTY_INFO_ITV) //
+				logger().debug("No data (kafka timeout) for more than " + EMPTY_INFO_ITV + " seconds.");
+			return null;
+		} catch (Exception ex) {
+			logger().warn("Unprocessed kafka error [" + ex.getClass().toString() + ": " + ex.getMessage() + "], ignore and continue.", ex);
+			return null;
+		} finally {
+			consumers.offer(it);
+			LAST_FETCH.set(Instant.now());
+		}
+		else if (EMPTY_SLEEP > 0) try {
+			Thread.sleep(EMPTY_SLEEP);
+		} catch (InterruptedException e) {
+			return null;
 		}
 		return null;
 	}
