@@ -1,18 +1,5 @@
 package net.butfly.albatis.jdbc.dialect;
 
-import static net.butfly.albatis.ddl.vals.ValType.Flags.BINARY;
-import static net.butfly.albatis.ddl.vals.ValType.Flags.BOOL;
-import static net.butfly.albatis.ddl.vals.ValType.Flags.BYTE;
-import static net.butfly.albatis.ddl.vals.ValType.Flags.CHAR;
-import static net.butfly.albatis.ddl.vals.ValType.Flags.DATE;
-import static net.butfly.albatis.ddl.vals.ValType.Flags.DOUBLE;
-import static net.butfly.albatis.ddl.vals.ValType.Flags.FLOAT;
-import static net.butfly.albatis.ddl.vals.ValType.Flags.INT;
-import static net.butfly.albatis.ddl.vals.ValType.Flags.LONG;
-import static net.butfly.albatis.ddl.vals.ValType.Flags.SHORT;
-import static net.butfly.albatis.ddl.vals.ValType.Flags.STR;
-import static net.butfly.albatis.ddl.vals.ValType.Flags.UNKNOWN;
-
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -27,6 +14,8 @@ import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.io.Rmap;
 import net.butfly.albatis.io.utils.JsonUtils;
+
+import static net.butfly.albatis.ddl.vals.ValType.Flags.*;
 
 @DialectFor(subSchema = "postgresql:libra", jdbcClassname = "org.postgresql.Driver")
 public class LibraDialect extends Dialect {
@@ -123,6 +112,54 @@ public class LibraDialect extends Dialect {
 	@Override
 	public String jdbcConnStr(URISpec uri) {
 		return "jdbc:postgresql://" + uri.toString().substring(uri.toString().indexOf("//") + 2);
+	}
+
+	@Override
+	public String buildCreateTableSql(String table, FieldDesc... fields) {
+		StringBuilder sql = new StringBuilder();
+		List<String> fieldSql = new ArrayList<>();
+		for (FieldDesc f : fields)
+			fieldSql.add(buildPostgreField(f));
+		sql.append("create table ").append(table).append("(").append(String.join(",", fieldSql.toArray(new String[0])))
+				.append(")");
+		return sql.toString();
+	}
+
+	private String buildPostgreField(FieldDesc field) {
+		StringBuilder sb = new StringBuilder();
+		switch (field.type.flag) {
+			case INT:
+			case SHORT:
+			case BINARY:
+				sb.append(field.name).append(" int4");
+				break;
+			case LONG:
+				sb.append(field.name).append(" int8");
+				break;
+			case FLOAT:
+			case DOUBLE:
+				sb.append(field.name).append(" numeric");
+				break;
+			case BYTE:
+			case BOOL:
+				sb.append(field.name).append(" bool");
+				break;
+			case STR:
+			case CHAR:
+			case UNKNOWN:
+				sb.append(field.name).append(" varchar");
+				break;
+			case DATE:
+				sb.append(field.name).append(" date");
+				break;
+			case GEO_PG_GEOMETRY:
+				sb.append(field.name).append(" geometry");
+			default:
+				break;
+		}
+		if (field.rowkey)
+			sb.append(" not null primary key");
+		return sb.toString();
 	}
 
 	@Override
