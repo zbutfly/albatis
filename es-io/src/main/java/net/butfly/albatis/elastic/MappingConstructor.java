@@ -2,18 +2,7 @@ package net.butfly.albatis.elastic;
 
 import static net.butfly.albacore.utils.Configs.gets;
 import static net.butfly.albacore.utils.collection.Maps.of;
-import static net.butfly.albatis.ddl.vals.ValType.Flags.BINARY;
-import static net.butfly.albatis.ddl.vals.ValType.Flags.BOOL;
-import static net.butfly.albatis.ddl.vals.ValType.Flags.CHAR;
-import static net.butfly.albatis.ddl.vals.ValType.Flags.DATE;
-import static net.butfly.albatis.ddl.vals.ValType.Flags.DOUBLE;
-import static net.butfly.albatis.ddl.vals.ValType.Flags.FLOAT;
-import static net.butfly.albatis.ddl.vals.ValType.Flags.GEO;
-import static net.butfly.albatis.ddl.vals.ValType.Flags.INT;
-import static net.butfly.albatis.ddl.vals.ValType.Flags.JSON_STR;
-import static net.butfly.albatis.ddl.vals.ValType.Flags.LONG;
-import static net.butfly.albatis.ddl.vals.ValType.Flags.STR;
-import static net.butfly.albatis.ddl.vals.ValType.Flags.UNKNOWN;
+import static net.butfly.albatis.ddl.vals.ValType.Flags.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -106,6 +95,8 @@ public class MappingConstructor {
 			return fieldAnalyzer(f.attr(Desc.SEGMODE));
 		case GEO:
 			return of("type", "geo_point");
+		case GEO_SHAPE:
+			return of("type", "geo_shape");
 		case BINARY:
 			return of("type", "binary");
 		}
