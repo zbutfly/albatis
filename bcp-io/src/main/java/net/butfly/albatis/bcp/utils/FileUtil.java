@@ -2,31 +2,36 @@ package net.butfly.albatis.bcp.utils;
 
 import net.butfly.albatis.ddl.Qualifier;
 import net.butfly.albatis.io.Rmap;
+import org.apache.log4j.Logger;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import static net.butfly.albatis.bcp.Props.CLEAN_TEMP_FILES;
 
 public class FileUtil {
 
+    private static final Logger LOGGER = Logger.getLogger(FileUtil.class);
+
     public static List<String> getFileNames(String fileSuffix, String tableName, String path) {
         File file = new File(path);
         File[] array = file.listFiles();
+        if(null == array) LOGGER.warn("current user have no read auth of file");
         List<String> names = new ArrayList<>();
-        for (int i = 0; i < array.length; i++) {
-            if (array[i].isFile()) {
-                String[] strs = array[i].getName().split("\\-");
-                String[] strArray = array[i].getName().split("\\.");
-                int suffixIndex = strArray.length -1;
-                if(fileSuffix.equals(strArray[suffixIndex]) && tableName.equals(strs[4])){
-                    names.add(array[i].getPath());
+        for (File file1 : Objects.requireNonNull(array)) {
+            if (file1.isFile()) {
+                String[] strs = file1.getName().split("-");
+                String[] strArray = file1.getName().split("\\.");
+                int suffixIndex = strArray.length - 1;
+                if (fileSuffix.equals(strArray[suffixIndex]) && tableName.equals(strs[4])) {
+                    names.add(file1.getPath());
                 }
-            } else if (array[i].isDirectory()) {
-                getFileNames(fileSuffix,tableName,array[i].getPath());
+            } else if (file1.isDirectory()) {
+                getFileNames(fileSuffix, tableName, file1.getPath());
             }
         }
         return names;
