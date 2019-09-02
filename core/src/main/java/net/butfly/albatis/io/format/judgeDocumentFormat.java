@@ -13,7 +13,7 @@ import net.butfly.alserdes.SerDes.MapSerDes;
 
 @SerDes.As("text")
 @SerDes.As(value = "texts", list = true)
-public class textFormat implements MapSerDes<Rmap>{
+public class judgeDocumentFormat implements MapSerDes<Rmap>{
 	
 	
 	private  final String contentField = Configs.get("input.contentField");
@@ -22,6 +22,7 @@ public class textFormat implements MapSerDes<Rmap>{
 	private  final String xmField = Configs.get("text.xmField");
 	private  final String crsqField = Configs.get("text.crsqField");
 	
+
 	@Override
 	public  List<Map<String, Object>> desers(Rmap rmap) {
 		List<Map<String, Object>> RMaps = new ArrayList<Map<String,Object>>();
@@ -75,5 +76,7 @@ public class textFormat implements MapSerDes<Rmap>{
 
 		return RMaps;
 	}
+	
+
 
 }
