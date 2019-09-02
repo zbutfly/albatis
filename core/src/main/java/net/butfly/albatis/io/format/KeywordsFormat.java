@@ -29,7 +29,12 @@ public class KeywordsFormat implements MapSerDes<Rmap>{
 	private  final String IDsqlString= Configs.get("keywodrs.getIDsql");
 	private  final String ID= Configs.get("keywodrs.IDField");
 	private  final String WORDS= Configs.get("keywodrs.WORDSField");
-	
+
+	@Override
+	public Map<String, Object> deser(Rmap rmap) {
+		return null == rmap ? null : rmap;
+	}
+
 	@Override
 	public  List<Map<String, Object>> desers(Rmap rmap) {
 		List<Map<String, Object>> RMaps = new ArrayList<Map<String,Object>>();
@@ -37,7 +42,6 @@ public class KeywordsFormat implements MapSerDes<Rmap>{
 		List<String> words = connect(textString);
 		
 		List<Map<String, Object>> listmap =connectsql();
-		// rmap.get(Configs.gets(""))
 		for(Map<String, Object> m: listmap) {
 			if(words.contains(m.get(WORDS))) {
 				Rmap rr = new Rmap();
@@ -66,19 +70,19 @@ public class KeywordsFormat implements MapSerDes<Rmap>{
 	}
 	public List<String> connect(String testString) {
 		Connection connection = null;
-		sqlString.replace("?", testString);
+		String sql = sqlString.replace("?", "'"+testString+"'");
 		try {
 			URISpec uri = new URISpec(uriString);
 			HikariDataSource dsDataSource = DataSource(uriString, 
 					uri.getParameter("user"),uri.getParameter("password"));
 			connection = dsDataSource.getConnection();
-			PreparedStatement ps = connection.prepareStatement(sqlString);
+			PreparedStatement ps = connection.prepareStatement(sql);
 			ResultSet result = ps.executeQuery();
 			List<String> list = new ArrayList<>();
 
 			if (null != result) {
 				while (result.next()) {
-					list.add(result.getString(0));
+					list.add(result.getString(1));
 				}
 
 			}
