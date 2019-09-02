@@ -200,8 +200,10 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 					if (port > 0) params.put(HConstants.ZOOKEEPER_CLIENT_PORT, Integer.toString(port));
 
 					Pair<String, String> pathAndNamespace = ZkUtils.getHbaseZkPath(uri.getHost(), uri.getPath());
-					defaultNamespace = pathAndNamespace.v2();
-					if (!"/".equals(pathAndNamespace.v1())) params.put(HConstants.ZOOKEEPER_ZNODE_PARENT, pathAndNamespace.v1());
+					if (null != pathAndNamespace) {
+						defaultNamespace = pathAndNamespace.v2();
+						if (!"/".equals(pathAndNamespace.v1())) params.put(HConstants.ZOOKEEPER_ZNODE_PARENT, pathAndNamespace.v1());
+					}
 				}
 				return params;
 			default: // other, try to load by vfs

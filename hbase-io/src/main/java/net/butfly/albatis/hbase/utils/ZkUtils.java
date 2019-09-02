@@ -40,7 +40,7 @@ public class ZkUtils {
 			}
 			if (!pathList.isEmpty()) {
 				namespacePath.add(pathList.remove(pathList.size() - 1));
-			}
+			} else pathList = null;
 //			path = path.replaceAll("/[^/]*$", "");
 		}
 		return null;
