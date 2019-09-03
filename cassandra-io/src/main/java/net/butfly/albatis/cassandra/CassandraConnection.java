@@ -14,7 +14,7 @@ import static net.butfly.albatis.ddl.vals.ValType.Flags.STR;
 import static net.butfly.albatis.ddl.vals.ValType.Flags.UNKNOWN;
 
 import java.io.IOException;
-
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
 
 import java.util.List;
@@ -50,32 +50,16 @@ public class CassandraConnection extends DataConnection<Cluster> {
 	
 	@Override
 	protected Cluster initialize(URISpec uri) {
-		// TODO Auto-generated method stub
 		Builder builder = Cluster.builder();
-		Boolean flag = false;
 		try {
-			if (uri.getPaths().length == 0) {
-				String[] host = uri.getHost().split(":");
-				builder.addContactPoint(host[0]);
-				return builder.withPort(Integer.parseInt(host[1])).build();
-			} else {
-				flag = true;
-				if (flag) {
-					builder.addContactPoint(uri.getHost());
-				}
-				for (int i = 0; i < uri.getPaths().length - 1; i++) {
-					builder.addContactPoint(uri.getPaths()[i]);
-				}
-				String[] lastAddress = uri.getPaths()[uri.getPaths().length - 1].split(":");
-				builder.addContactPoint(lastAddress[0]);
-				return builder.withPort(Integer.parseInt(lastAddress[1])).build();
+			for (InetSocketAddress addres : uri.getInetAddrs()) {
+				builder.addContactPoint(addres.getHostName()).withPort(addres.getPort());
 			}
-
+			return builder.build();
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			return null;
+			logger.error(e.getMessage(), e);
 		}
+		return null;
 		
 	}
  	

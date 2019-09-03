@@ -35,7 +35,7 @@ public class CassandraOutput extends OutputBase<Rmap> {
 	public static boolean BATCH_INSERT = Boolean.parseBoolean(Configs.gets("albatis.cassandra.batch.insert", "true"));
 	private static final ForkJoinPool EXPOOL_CA = //
             new ForkJoinPool(Integer.parseInt(Configs.gets("albatis.cassandra.batch.insert.paral", "5")), ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
-	private int INSERT_SIZE = Integer.parseInt(Configs.gets("albatis.cassandra.batch.insert.size", "500"));
+	private int INSERT_SIZE = Integer.parseInt(Configs.gets("albatis.cassandra.batch.insert.size", "400"));
 	private long NOTENOUGH_WAIT = Long.parseLong(Configs.gets("albatis.cassandra.batch.notEnough.wait", "30000"));
 	private int EMPTY_WAIT = Integer.parseInt(Configs.gets("albatis.cassandra.batch.insert.wait", "100"));
 	private AtomicBoolean STOPPED = new AtomicBoolean(false);
