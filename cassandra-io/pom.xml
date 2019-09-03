@@ -1,22 +1,17 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
-
 	<parent>
 		<groupId>net.butfly.albatis</groupId>
 		<artifactId>albatis</artifactId>
 		<version>1.6.1-SNAPSHOT</version>
 	</parent>
-
 	<artifactId>albatis-cassandra-io</artifactId>
-
 	<dependencies>
 		<dependency>
 			<groupId>net.butfly.albatis</groupId>
 			<artifactId>albatis-core</artifactId>
-			<version>1.6.1-SNAPSHOT</version>
-
+			<version>${project.version}</version>
 			<exclusions>
 				<exclusion>
 					<groupId>org.slf4j</groupId>
@@ -24,32 +19,30 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+<!-- 		<dependency> -->
+<!-- 			<groupId>com.datastax.oss</groupId> -->
+<!-- 			<artifactId>java-driver-core</artifactId> -->
+<!-- 			<version>4.2.0</version> -->
+<!-- 		</dependency> -->
 		<dependency>
-            <groupId>com.datastax.cassandra</groupId>
-            <artifactId>cassandra-driver-core</artifactId>
-            <version>3.7.1</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.datastax.cassandra</groupId>
-            <artifactId>cassandra-driver-mapping</artifactId>
-            <version>3.7.1</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.datastax.cassandra</groupId>
-            <artifactId>cassandra-driver-extras</artifactId>
-            <version>3.7.1</version>
-        </dependency>
+			<groupId>com.datastax.cassandra</groupId>
+			<artifactId>cassandra-driver-core</artifactId>
+			<version>${version.cassandra}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.datastax.cassandra</groupId>
+			<artifactId>cassandra-driver-mapping</artifactId>
+			<version>${version.cassandra}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.datastax.cassandra</groupId>
+			<artifactId>cassandra-driver-extras</artifactId>
+			<version>${version.cassandra}</version>
+		</dependency>
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
-
 			<scope>test</scope>
 		</dependency>
-
-
-		<!-- <dependency> <groupId>com.datastax.cassandra</groupId> <artifactId>cassandra-driver-core</artifactId> 
-			<version>3.0.0</version> </dependency> -->
 	</dependencies>
 </project>
