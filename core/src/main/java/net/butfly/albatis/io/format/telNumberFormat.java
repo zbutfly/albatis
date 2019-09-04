@@ -13,7 +13,7 @@ import net.butfly.alserdes.SerDes.MapSerDes;
 
 @SerDes.As("tel")
 @SerDes.As(value = "tels", list = true)
-public class telNumberFormat implements MapSerDes<Rmap>{
+public class TelNumberFormat implements MapSerDes<Rmap>{
 	
 	private  final String jqField = Configs.get("input.jqField");
 	private  final String telField = Configs.get("telNumber.telField");

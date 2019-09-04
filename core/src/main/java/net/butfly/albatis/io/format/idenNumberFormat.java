@@ -13,7 +13,7 @@ import net.butfly.alserdes.SerDes.MapSerDes;
 
 @SerDes.As("idNum")
 @SerDes.As(value = "idNums", list = true)
-public class idenNumberFormat implements MapSerDes<Rmap>{
+public class IdenNumberFormat implements MapSerDes<Rmap>{
 	private  final String jqField = Configs.get("input.jqField");
 	private  final String idNumField = Configs.get("idNumber.idNumField");
 	

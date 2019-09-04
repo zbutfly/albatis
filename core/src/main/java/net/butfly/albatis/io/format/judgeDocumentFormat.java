@@ -13,7 +13,7 @@ import net.butfly.alserdes.SerDes.MapSerDes;
 
 @SerDes.As("text")
 @SerDes.As(value = "texts", list = true)
-public class judgeDocumentFormat implements MapSerDes<Rmap>{
+public class JudgeDocumentFormat implements MapSerDes<Rmap>{
 	
 	
 	private  final String contentField = Configs.get("input.contentField");
