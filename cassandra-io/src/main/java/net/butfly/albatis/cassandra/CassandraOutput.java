@@ -1,22 +1,27 @@
 package net.butfly.albatis.cassandra;
 
-import static com.datastax.driver.core.querybuilder.QueryBuilder.eq;
-import static com.datastax.driver.core.querybuilder.QueryBuilder.set;
+import static com.datastax.oss.driver.api.querybuilder.QueryBuilder.literal;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.ResultSetFuture;
-import com.datastax.driver.core.Session;
-import com.datastax.driver.core.querybuilder.Batch;
-import com.datastax.driver.core.querybuilder.Insert;
-import com.datastax.driver.core.querybuilder.QueryBuilder;
-import com.datastax.driver.core.querybuilder.Update;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.cql.AsyncResultSet;
+import com.datastax.oss.driver.api.core.cql.BatchStatement;
+import com.datastax.oss.driver.api.core.cql.DefaultBatchType;
+import com.datastax.oss.driver.api.core.cql.ResultSet;
+import com.datastax.oss.driver.api.core.cql.SimpleStatement;
+import com.datastax.oss.driver.api.core.session.Session;
+import com.datastax.oss.driver.api.querybuilder.QueryBuilder;
+import com.datastax.oss.driver.api.querybuilder.insert.InsertInto;
+import com.datastax.oss.driver.api.querybuilder.update.Assignment;
+import com.datastax.oss.driver.api.querybuilder.update.UpdateStart;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.paral.Sdream;
@@ -31,7 +36,7 @@ public class CassandraOutput extends OutputBase<Rmap> {
 	private final CassandraConnection Caconn;
 	private final String keyspace;
 //	private final String table_name;
-	private Session session;
+	private CqlSession session;
 	public static boolean BATCH_INSERT = Boolean.parseBoolean(Configs.gets("albatis.cassandra.batch.insert", "true"));
 	private static final ForkJoinPool EXPOOL_CA = //
             new ForkJoinPool(Integer.parseInt(Configs.gets("albatis.cassandra.batch.insert.paral", "5")), ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
@@ -47,7 +52,7 @@ public class CassandraOutput extends OutputBase<Rmap> {
 		this.Caconn = Caconn;
 		this.keyspace = keyspace;
 //		this.table_name = table_name;
-		this.session = Caconn.client.connect();
+		this.session = Caconn.client;
 		Thread thread = new Thread(new InsertTask());
 		thread.start();
 		closing(this::close);
@@ -110,21 +115,22 @@ public class CassandraOutput extends OutputBase<Rmap> {
 	}
 	
 	public void upsert(Rmap rmap) {
-		Update update = QueryBuilder.update(keyspace, rmap.table().name);
-		rmap.map().forEach((k, v) -> {
-			update.with(set(k, v));
-		});
-		update.where(eq(rmap.keyField(), rmap.key()));
-		ResultSet ur = session.execute(update);
+		UpdateStart updateBuilder = QueryBuilder.update(keyspace, rmap.table().name);
+		List<Assignment> assignmentList = new ArrayList<>();
+		for (String k : rmap.keySet()) {
+			assignmentList.add(Assignment.setColumn(k, literal(rmap.get(k))));
+		}
+		SimpleStatement statement = updateBuilder.set(assignmentList).whereColumn(rmap.keyField()).isEqualTo(literal(rmap.key())).build();
+		ResultSet ur = session.execute(statement);
 		boolean applied = ur.wasApplied();
 		System.out.print(ur);
 		if (!applied) {
-			Insert insert = QueryBuilder.insertInto(keyspace, rmap.table().name);
-			rmap.map().forEach((k, v) -> {
-				insert.value(k, v);
-			});
-			System.out.println(insert);
-			ResultSet ir = session.execute(insert);
+			InsertInto insert = QueryBuilder.insertInto(keyspace, rmap.table().name);
+			for (String k : rmap.keySet()) {
+				insert.value(k, literal(rmap.get(k)));
+			}
+//			System.out.println(insert);
+			ResultSet ir = session.execute(insert.value(rmap.keyField(), literal(rmap.key())).build());
 			System.out.print(ir);
 		}
 	}
@@ -141,21 +147,20 @@ public class CassandraOutput extends OutputBase<Rmap> {
 					lastTime = now;
 					lbq.drainTo(l, INSERT_SIZE);
 					EXPOOL_CA.submit(() -> {
-						Batch localBatch = QueryBuilder.unloggedBatch();
-						l.forEach(i -> {
-							Insert qb = QueryBuilder.insertInto(keyspace, i.table().name);
-							i.forEach((k, v) -> qb.value(k, v));
-							localBatch.add(qb);
+						BatchStatement batch = BatchStatement.newInstance(DefaultBatchType.UNLOGGED, l.stream().map(r -> {
+							InsertInto insert = QueryBuilder.insertInto(keyspace, r.table().name);
+							for (String k : r.keySet()) {
+								insert.value(k, literal(r.get(k)));
+							}
+							return insert.value(r.keyField(), literal(r.key())).build();
+						}).collect(Collectors.toList()));
+						CompletionStage<AsyncResultSet> cs = session.executeAsync(batch);
+						cs.whenComplete((rs, err) -> {
+							if (err != null) {
+								err.printStackTrace();
+							}
 						});
-						ResultSetFuture rs = session.executeAsync(localBatch);
-						try {
-							rs.get();
-							System.out.println("count" + count.addAndGet(l.size()));
-						} catch (InterruptedException e) {
-							e.printStackTrace();
-						} catch (ExecutionException e) {
-							e.printStackTrace();
-						}
+						System.out.println("count" + count.addAndGet(l.size()));
 					});
 				} else {
 					try {

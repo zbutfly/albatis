@@ -18,8 +18,9 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 
 import java.util.List;
-import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.Cluster.Builder;
+
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.CqlSessionBuilder;
 
 import net.butfly.albacore.io.URISpec;
 
@@ -31,7 +32,7 @@ import net.butfly.albatis.ddl.Qualifier;
 import net.butfly.albatis.ddl.TableDesc;
 
 
-public class CassandraConnection extends DataConnection<Cluster> {
+public class CassandraConnection extends DataConnection<CqlSession> {
 	
 	protected final static Logger logger = Logger.getLogger(CassandraConnection.class);
 	
@@ -49,11 +50,11 @@ public class CassandraConnection extends DataConnection<Cluster> {
 	
 	
 	@Override
-	protected Cluster initialize(URISpec uri) {
-		Builder builder = Cluster.builder();
+	protected CqlSession initialize(URISpec uri) {
+		CqlSessionBuilder builder = CqlSession.builder();
 		try {
 			for (InetSocketAddress addres : uri.getInetAddrs()) {
-				builder.addContactPoint(addres.getHostName()).withPort(addres.getPort());
+				builder.addContactPoint(addres);
 			}
 			return builder.build();
 		} catch (Exception e) {
@@ -165,7 +166,7 @@ public class CassandraConnection extends DataConnection<Cluster> {
 		try {
 			String cql = buildCreateTableCql(table.name, fields);
 			if(null!= client) {
-				client.connect().execute(cql);
+				client.execute(cql);
 			}
 			 
 		} catch (Exception e) {
