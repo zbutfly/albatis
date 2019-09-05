@@ -14,6 +14,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import static net.butfly.albatis.bcp.Props.CLEAN_TEMP_FILES;
+
 
 public class BcpInput extends Namedly implements Input<Rmap> {
     private static final long serialVersionUID = -8772607845694039875L;
@@ -159,8 +161,8 @@ public class BcpInput extends Namedly implements Input<Rmap> {
 
         private void close() {
             count--;
-//            FileUtil.deleteDirectory(tempPath.toString());
             FileUtil.deleteZip(dataPath.toString());
+            if (CLEAN_TEMP_FILES) FileUtil.deleteDirectory(tempPath.getParent().toString());
         }
     }
 
