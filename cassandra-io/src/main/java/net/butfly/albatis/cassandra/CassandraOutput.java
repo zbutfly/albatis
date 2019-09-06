@@ -4,7 +4,9 @@ import static com.datastax.oss.driver.api.querybuilder.QueryBuilder.literal;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -22,6 +24,7 @@ import com.datastax.oss.driver.api.querybuilder.QueryBuilder;
 import com.datastax.oss.driver.api.querybuilder.insert.InsertInto;
 import com.datastax.oss.driver.api.querybuilder.update.Assignment;
 import com.datastax.oss.driver.api.querybuilder.update.UpdateStart;
+import com.datastax.oss.driver.api.querybuilder.term.Term;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.paral.Sdream;
@@ -149,17 +152,21 @@ public class CassandraOutput extends OutputBase<Rmap> {
 					EXPOOL_CA.submit(() -> {
 						BatchStatement batch = BatchStatement.newInstance(DefaultBatchType.UNLOGGED, l.stream().map(r -> {
 							InsertInto insert = QueryBuilder.insertInto(keyspace, r.table().name);
-							for (String k : r.keySet()) {
-								insert.value(k, literal(r.get(k)));
-							}
-							return insert.value(r.keyField(), literal(r.key())).build();
+							return insert.values(r.entrySet().stream().collect(Collectors.toMap(e -> e.getKey(), e -> literal(e.getValue())))).build();
 						}).collect(Collectors.toList()));
 						CompletionStage<AsyncResultSet> cs = session.executeAsync(batch);
-						cs.whenComplete((rs, err) -> {
-							if (err != null) {
-								err.printStackTrace();
-							}
-						});
+						try {
+							cs.toCompletableFuture().get();
+						} catch (InterruptedException e) {
+							logger().error(e.getMessage(), e);
+						} catch (ExecutionException e) {
+							logger().error(e.getMessage(), e);
+						}
+//						cs.whenComplete((rs, err) -> {
+//							if (err != null) {
+//								err.printStackTrace();
+//							}
+//						});
 						System.out.println("count" + count.addAndGet(l.size()));
 					});
 				} else {

@@ -27,6 +27,7 @@ import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.DataConnection;
+import net.butfly.albatis.cassandra.config.CassandraConfig;
 import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.ddl.Qualifier;
 import net.butfly.albatis.ddl.TableDesc;
@@ -35,7 +36,6 @@ import net.butfly.albatis.ddl.TableDesc;
 public class CassandraConnection extends DataConnection<CqlSession> {
 	
 	protected final static Logger logger = Logger.getLogger(CassandraConnection.class);
-	
 	protected final String defaultKeyspace;
 	
 	public  CassandraConnection(URISpec uri) throws IOException {
@@ -48,7 +48,6 @@ public class CassandraConnection extends DataConnection<CqlSession> {
 		
 	}
 	
-	
 	@Override
 	protected CqlSession initialize(URISpec uri) {
 		CqlSessionBuilder builder = CqlSession.builder();
@@ -56,7 +55,7 @@ public class CassandraConnection extends DataConnection<CqlSession> {
 			for (InetSocketAddress addres : uri.getInetAddrs()) {
 				builder.addContactPoint(addres);
 			}
-			return builder.build();
+			return builder.withConfigLoader(CassandraConfig.buildConfig(uri)).build();
 		} catch (Exception e) {
 			logger.error(e.getMessage(), e);
 		}
