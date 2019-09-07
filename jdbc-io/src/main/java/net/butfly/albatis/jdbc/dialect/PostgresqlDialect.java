@@ -42,6 +42,7 @@ public class PostgresqlDialect extends Dialect {
 				try {
 					for (int i = 0; i < allFields.size(); i++) {
 						Object value = m.get(allFields.get(i));
+                        if (value instanceof CharSequence) value = value.toString().replaceAll("[^\u0020-\u9FA5]", "");
 						Dialects.setObject(ps, i + 1, value);
 					}
 					ps.addBatch();
@@ -84,6 +85,7 @@ public class PostgresqlDialect extends Dialect {
 				try {
 					for (int i = 0; i < allFields.size(); i++) {
 						Object value = m.get(allFields.get(i));
+                        if (value instanceof CharSequence) value = value.toString().replaceAll("[^\u0020-\u9FA5]", "");
 						Dialects.setObject(ps, i + 1, value);
 					}
 					ps.addBatch();
