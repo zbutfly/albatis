@@ -5,6 +5,8 @@ import net.butfly.alserdes.SerDes;
 
 import java.util.UUID;
 
+import static net.butfly.albacore.utils.collection.Colls.empty;
+
 @SerDes.As("desers")
 public class RmapDesersFormat extends RmapFormat {
 
@@ -16,7 +18,7 @@ public class RmapDesersFormat extends RmapFormat {
 
     @Override
     public Rmap deser(Rmap rmap) {
-        if(null == rmap)return null;
+        if (empty(rmap)) return null;
         Rmap rmap1 = new Rmap();
         rmap1.put(UUID.randomUUID().toString(),rmap);
         rmap1.table(rmap.table()).key(rmap.key());

@@ -20,7 +20,7 @@ public class JudgeDocumentFormat implements MapSerDes<Rmap>{
 	private  final String demandantField = Configs.get("input.demandantField");
 	private  final String defendantField = Configs.get("input.defendantField");
 	private  final String xmField = Configs.get("text.xmField");
-	private  final String crsqField = Configs.get("text.crsqField");
+	private  final String crsqField = Configs.get("text.csrqField");
 	
 
 	@Override
@@ -61,6 +61,7 @@ public class JudgeDocumentFormat implements MapSerDes<Rmap>{
         	for(int i = 0; i<xm_list.size(); i++) {
         		String xmString = xm_list.get(i);
         		String crsq = crsq_list.get(i).replace("出生", "");
+        		if("".equals(xmString)||null==xmString||"".equals(crsq)||null==crsq){continue;}
         		Rmap rr = new Rmap();
     			rr.table(rmap.table());
     			rr.key(rmap.key());
