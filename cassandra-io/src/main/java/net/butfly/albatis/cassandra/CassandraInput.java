@@ -1,10 +1,10 @@
 package net.butfly.albatis.cassandra;
 
 import java.util.Iterator;
-import java.util.Objects;
 
-import com.datastax.oss.driver.api.core.cql.*;
-
+import com.datastax.oss.driver.api.core.cql.ColumnDefinition;
+import com.datastax.oss.driver.api.core.cql.ResultSet;
+import com.datastax.oss.driver.api.core.cql.Row;
 
 import net.butfly.albacore.utils.logger.Loggable;
 import net.butfly.albatis.ddl.Qualifier;
@@ -18,11 +18,12 @@ public class CassandraInput extends net.butfly.albacore.base.Namedly implements 
     private String tableName;
     private ResultSet rs;
     private Iterator<Row> it;
+    private boolean next;
 
     public CassandraInput(String name, CassandraConnection caConn) {
         super(name);
         this.caConn = caConn;
-        closing(this::closeCassandra);
+        closing(this::close);
     }
 
     public CassandraInput(final String name, CassandraConnection caConn, String tableName) {
@@ -30,7 +31,7 @@ public class CassandraInput extends net.butfly.albacore.base.Namedly implements 
         this.tableName = tableName;
         this.caConn = caConn;
         openCassandra();
-        closing(this::closeCassandra);
+        closing(this::close);
     }
 
     @Override
@@ -38,11 +39,19 @@ public class CassandraInput extends net.butfly.albacore.base.Namedly implements 
         Row row = null;
         Rmap msg;
         synchronized (it) {
-            if (!it.hasNext() || null == (row = it.next())) return null;
+            if (it.hasNext())  {
+            	if (null == (row = it.next())) return null;
+            } else {
+            	next = false;
+            	return null;
+            }
         }
         msg = new Rmap(new Qualifier(tableName));
-        for (ColumnDefinition key : row.getColumnDefinitions())
-            msg.put(key.getName().toString(), Objects.requireNonNull(row.getObject(key.getName())));
+        for (ColumnDefinition key : row.getColumnDefinitions()) {
+        	Object o = row.getObject(key.getName());
+        	if (null != o) 
+        		msg.put(key.getName().toString(), o);
+        }
         return msg;
     }
 
@@ -51,13 +60,20 @@ public class CassandraInput extends net.butfly.albacore.base.Namedly implements 
             String cql = "select * from " + caConn.defaultKeyspace + "." + tableName;
             rs = caConn.client.execute(cql);
             it = rs.iterator();
+            next = it.hasNext();
         } catch (Exception e) {
-            logger().error("open cassandra error", e);
+            throw new RuntimeException("Open cassandra error", e);
         }
         rs = null;
     }
 
-    private void closeCassandra() {
+    @Override
+    public boolean empty() {
+    	return !next;
+    }
+
+    @Override
+    public void close() {
         try {
             caConn.close();
         } catch (Exception e) {

@@ -16,14 +16,12 @@ import static net.butfly.albatis.ddl.vals.ValType.Flags.UNKNOWN;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
-
 import java.util.List;
 
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.CqlSessionBuilder;
 
 import net.butfly.albacore.io.URISpec;
-
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.DataConnection;
@@ -31,8 +29,9 @@ import net.butfly.albatis.cassandra.config.CassandraConfig;
 import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.ddl.Qualifier;
 import net.butfly.albatis.ddl.TableDesc;
+import net.butfly.alserdes.SerDes;
 
-
+@SerDes.As("cassandra")
 public class CassandraConnection extends DataConnection<CqlSession> {
 
     protected final static Logger logger = Logger.getLogger(CassandraConnection.class);
