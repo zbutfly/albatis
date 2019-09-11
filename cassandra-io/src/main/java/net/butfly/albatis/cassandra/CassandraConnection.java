@@ -18,21 +18,21 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.datastax.oss.driver.api.core.CqlSession;
-import com.datastax.oss.driver.api.core.CqlSessionBuilder;
+import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.Cluster.Builder;
+import com.datastax.driver.core.Session;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.DataConnection;
-import net.butfly.albatis.cassandra.config.CassandraConfig;
+//import net.butfly.albatis.cassandra.config.CassandraConfig;
 import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.ddl.Qualifier;
 import net.butfly.albatis.ddl.TableDesc;
-import net.butfly.alserdes.SerDes;
 
-@SerDes.As("cassandra")
-public class CassandraConnection extends DataConnection<CqlSession> {
+//@SerDes.As("cassandra")
+public class CassandraConnection extends DataConnection<Cluster> {
 
     protected final static Logger logger = Logger.getLogger(CassandraConnection.class);
     protected final String defaultKeyspace;
@@ -43,15 +43,17 @@ public class CassandraConnection extends DataConnection<CqlSession> {
     }
 
     @Override
-    protected CqlSession initialize(URISpec uri) {
-        CqlSessionBuilder builder = CqlSession.builder();
+    protected Cluster initialize(URISpec uri) {
+        
+        Builder builder = Cluster.builder();
         try {
-            for (InetSocketAddress address : uri.getInetAddrs()) builder.addContactPoint(address);
-            return builder.withConfigLoader(CassandraConfig.buildConfig(uri)).build();
+            for (InetSocketAddress address : uri.getInetAddrs()) {
+            	builder.addContactPoint(address.getHostName()).withPort(address.getPort());
+            }
+            return builder.build();
         } catch (Exception e) {
-            logger.error(e.getMessage(), e);
+            throw new RuntimeException(e);
         }
-        return null;
 
     }
 
@@ -146,7 +148,12 @@ public class CassandraConnection extends DataConnection<CqlSession> {
     public void construct(Qualifier table, FieldDesc... fields) {
         try {
             String cql = buildCreateTableCql(table.name, fields);
-            if (null != client) client.execute(cql);
+            if (null != client) {
+            	try (Session session = client.connect();) {
+            		
+            		session.execute(cql);
+            	}
+            }
         } catch (Exception e) {
             logger().error("construct table failure", e);
         }
