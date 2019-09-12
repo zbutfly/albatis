@@ -23,12 +23,10 @@ public class OdpsConnection extends DataConnection<Connection> {
     //默认情况下，使用公网进行传输。如果需要通过内网进行数据传输，必须设置tunnelUrl变量。
     private static String tunnelUrl ;
     static String project ;
-    private static String partition ;
+    String partition ;
     TableTunnel tunnel;
     String tableName;
-
     private Odps odps;
-//    TableTunnel.UploadSession uploadSession;
 
     public OdpsConnection(URISpec uri) throws IOException {
         super(uri, "odps:http");
@@ -38,6 +36,7 @@ public class OdpsConnection extends DataConnection<Connection> {
         accessKey = uri.getParameter("accessKey");
         project = uri.getParameter("project");
         tunnelUrl = uri.getParameter("tunnelUrl");
+        partition = uri.getParameter("partition");
         init();
     }
 
