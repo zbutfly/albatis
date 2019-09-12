@@ -201,8 +201,12 @@ public class PostgresqlDialect extends Dialect {
 		case DATE:
 			sb.append(field.name).append(" date");
 			break;
+		case TIMESTAMP:
+			sb.append(field.name).append(" timestamp");
+			break;
 		case GEO_PG_GEOMETRY:
 			sb.append(field.name).append(" geometry");
+			break;
 		default:
 			break;
 		}

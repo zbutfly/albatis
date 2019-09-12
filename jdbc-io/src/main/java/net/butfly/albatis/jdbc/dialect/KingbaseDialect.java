@@ -1,18 +1,5 @@
 package net.butfly.albatis.jdbc.dialect;
 
-import static net.butfly.albatis.ddl.vals.ValType.Flags.BINARY;
-import static net.butfly.albatis.ddl.vals.ValType.Flags.BOOL;
-import static net.butfly.albatis.ddl.vals.ValType.Flags.BYTE;
-import static net.butfly.albatis.ddl.vals.ValType.Flags.CHAR;
-import static net.butfly.albatis.ddl.vals.ValType.Flags.DATE;
-import static net.butfly.albatis.ddl.vals.ValType.Flags.DOUBLE;
-import static net.butfly.albatis.ddl.vals.ValType.Flags.FLOAT;
-import static net.butfly.albatis.ddl.vals.ValType.Flags.INT;
-import static net.butfly.albatis.ddl.vals.ValType.Flags.LONG;
-import static net.butfly.albatis.ddl.vals.ValType.Flags.SHORT;
-import static net.butfly.albatis.ddl.vals.ValType.Flags.STR;
-import static net.butfly.albatis.ddl.vals.ValType.Flags.UNKNOWN;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.Connection;
@@ -34,6 +21,8 @@ import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.io.Rmap;
 import net.butfly.albatis.jdbc.JdbcConnection;
+
+import static net.butfly.albatis.ddl.vals.ValType.Flags.*;
 
 @DialectFor(subSchema = "kingbaseanalyticsdb", jdbcClassname = "com.kingbase.kingbaseanalyticsdb.Driver")
 public class KingbaseDialect extends Dialect {
@@ -201,6 +190,9 @@ public class KingbaseDialect extends Dialect {
 			break;
 		case DATE:
 			sb.append(field.name).append(" date");
+			break;
+		case TIMESTAMP:
+			sb.append(field.name).append(" timestamp");
 			break;
 		default:
 			break;
