@@ -1,7 +1,9 @@
 package net.butfly.albatis.io.ext;
 
 import java.util.List;
-import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+//import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -16,8 +18,9 @@ public class BatchOutput<M> extends WrapOutput<M, M> {
 	private static final long serialVersionUID = -3223283732451449278L;
 	private LinkedBlockingQueue<M> lbq = new LinkedBlockingQueue<>(50000);
 	private int size;
-	private static final ForkJoinPool EXECUTE_POOL_CA = //
-            new ForkJoinPool(Integer.parseInt(Configs.gets("albatis.batch.output.paral", "5")), ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
+//	private static final ForkJoinPool EXECUTE_POOL_CA = //
+//            new ForkJoinPool(Integer.parseInt(Configs.gets("albatis.batch.output.paral", "5")), ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
+	private static final ExecutorService CACHED_THREAD_POOL = Executors.newFixedThreadPool(Integer.parseInt(Configs.gets("albatis.batch.output.paral", String.valueOf(Runtime.getRuntime().availableProcessors()))));
 	private long timeout = Long.parseLong(Configs.gets("albatis.output.batch.timeout", "30000"));
 	private AtomicBoolean stopped = new AtomicBoolean(false);
 	private AtomicBoolean bool = new AtomicBoolean(false);
@@ -56,7 +59,7 @@ public class BatchOutput<M> extends WrapOutput<M, M> {
 				}
 				lbq.drainTo(batch, size);
 				if (batch.size() > 0) {
-					EXECUTE_POOL_CA.submit(() -> base.enqueue(Sdream.of(batch)));
+					CACHED_THREAD_POOL.submit(() -> base.enqueue(Sdream.of(batch)));
 					count.getAndAdd(batch.size() * -1);
 				}
 			}
@@ -99,7 +102,7 @@ public class BatchOutput<M> extends WrapOutput<M, M> {
 			} catch (InterruptedException e) {
 			}
 		}
-		EXECUTE_POOL_CA.shutdown();
+		CACHED_THREAD_POOL.shutdown();
 		stopped.set(true);
 		base.close();
 	}
