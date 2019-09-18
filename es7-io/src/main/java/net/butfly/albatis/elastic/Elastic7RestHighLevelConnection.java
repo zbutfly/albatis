@@ -6,15 +6,17 @@ import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albatis.DataConnection;
 import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.ddl.TableDesc;
+
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest.AliasActions;
-import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
-import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
-import org.elasticsearch.action.admin.indices.get.GetIndexRequest;
-import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
+import org.elasticsearch.action.admin.indices.alias.get.GetAliasesRequest;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.client.indices.CreateIndexRequest;
+import org.elasticsearch.client.indices.CreateIndexResponse;
+import org.elasticsearch.client.indices.GetIndexRequest;
+import org.elasticsearch.client.indices.PutMappingRequest;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -81,7 +83,7 @@ public class Elastic7RestHighLevelConnection extends DataConnection<RestHighLeve
 		logger().debug(() -> "Mapping constructing: \n\t" + JsonSerder.JSON_MAPPER.ser(mapping));
 		boolean indexExists;
 		try {
-			indexExists = client.indices().exists(new GetIndexRequest().indices(index), RequestOptions.DEFAULT);
+			indexExists = client.indices().exists(new GetIndexRequest(index), RequestOptions.DEFAULT);
 		} catch (IOException e) {
 			throw new RuntimeException("check index " + index + " failed", e);
 		}
@@ -90,7 +92,7 @@ public class Elastic7RestHighLevelConnection extends DataConnection<RestHighLeve
 			req.source(mapping);
 			AcknowledgedResponse r;
 			try {
-				r = client.indices().putMapping(req.type(type), RequestOptions.DEFAULT);
+				r = client.indices().putMapping(req, RequestOptions.DEFAULT);
 			} catch (IOException e) {
 				throw new RuntimeException("Mapping failed on type [" + type + "]" + req.toString(), e);
 			}
@@ -100,8 +102,8 @@ public class Elastic7RestHighLevelConnection extends DataConnection<RestHighLeve
 		}
 		CreateIndexResponse r;
 		try {
-			if (indexConfig.isEmpty()) r = client.indices().create(new CreateIndexRequest(index).mapping(type, mapping), RequestOptions.DEFAULT);
-			else r = client.indices().create(new CreateIndexRequest(index).settings(indexConfig).mapping(type, mapping), RequestOptions.DEFAULT);
+			if (indexConfig.isEmpty()) r = client.indices().create(new CreateIndexRequest(index).mapping(mapping), RequestOptions.DEFAULT);
+			else r = client.indices().create(new CreateIndexRequest(index).settings(indexConfig).mapping(mapping), RequestOptions.DEFAULT);
 		} catch (IOException e) {
 			throw new RuntimeException("Mapping failed on index [" + index + "] type [" + type + "]", e);
 		}
@@ -110,7 +112,7 @@ public class Elastic7RestHighLevelConnection extends DataConnection<RestHighLeve
 				+ JsonSerder.JSON_MAPPER.ser(mapping));
 		boolean aliasExists;
 		try {
-			aliasExists = client.indices().exists(new GetIndexRequest().indices(index), RequestOptions.DEFAULT);
+			aliasExists = client.indices().existsAlias(new GetAliasesRequest(index), RequestOptions.DEFAULT);
 		} catch (IOException e) {
 			throw new RuntimeException("Check alias " + alias + " failed", e);
 		}

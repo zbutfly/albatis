@@ -16,17 +16,17 @@ public class Elastics {
 		if (null == m.key()) return null;
 		switch (m.op()) {
 		case UPDATE:
-			UpdateRequest update = new UpdateRequest(it.v1(), it.v2(), m.key().toString());
+			UpdateRequest update = new UpdateRequest(it.v1(), m.key().toString());
 			update.doc(m).docAsUpsert(false);
 			return update;
 		case UPSERT:
-			UpdateRequest upsert = new UpdateRequest(it.v1(), it.v2(), m.key().toString());
+			UpdateRequest upsert = new UpdateRequest(it.v1(), m.key().toString());
 			upsert.doc(m).docAsUpsert(true);
 			return upsert;
 		case INSERT:
-			return new IndexRequest(it.v1(), it.v2(), m.key().toString()).source(m);
+			return new IndexRequest(it.v1()).id(m.key().toString()).source(m);
 		case DELETE:
-			return new DeleteRequest(it.v1(), it.v2(), m.key().toString());
+			return new DeleteRequest(it.v1(), m.key().toString());
 		default:
 			return null;
 		}
@@ -38,18 +38,18 @@ public class Elastics {
 		if (null == m.key()) return null;
 		switch (m.op()) {
 		case UPDATE:
-			UpdateRequest update = new UpdateRequest(it.v1(), it.v2(), m.key().toString());
+			UpdateRequest update = new UpdateRequest(it.v1(), m.key().toString());
 			update.script(m.script);
 			return update;
 		case UPSERT:
-			UpdateRequest upsert = new UpdateRequest(it.v1(), it.v2(), m.key().toString());
+			UpdateRequest upsert = new UpdateRequest(it.v1(), m.key().toString());
 			upsert.script(m.script);
-			if (!m.isEmpty()) upsert.upsert(new IndexRequest(it.v1(), it.v2(), m.key().toString()).source(m));
+			if (!m.isEmpty()) upsert.upsert(new IndexRequest(it.v1()).id(m.key().toString()).source(m));
 			return upsert;
 		case INSERT:
 			throw new IllegalArgumentException("Script should only in UpdateRequest");
 		case DELETE:
-			return new DeleteRequest(it.v1(), it.v2(), m.key().toString());
+			return new DeleteRequest(it.v1(), m.key().toString());
 		default:
 			return null;
 		}
