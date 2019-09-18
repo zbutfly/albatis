@@ -15,6 +15,7 @@ public class Kafka2OutputConfig extends KafkaConfigBase {
 	public final Integer batchSize;
 	public final Boolean batchBlock;
 	public final Long bufferBytes;
+	public final String version;
 
 	public Kafka2OutputConfig(URISpec uri) {
 		super(uri);
@@ -26,6 +27,7 @@ public class Kafka2OutputConfig extends KafkaConfigBase {
 		batchSize = props.containsKey(Connection.PARAM_KEY_BATCH) ? Integer.parseInt(props.get(Connection.PARAM_KEY_BATCH)) : null;
 		batchBlock = props.containsKey("block") ? Boolean.parseBoolean(props.get("block")) : null;
 		bufferBytes = props.containsKey("buffer") ? Long.parseLong(props.get("buffer")) : null;
+		version = props.get("version");
 	}
 
 	/**
@@ -44,6 +46,7 @@ public class Kafka2OutputConfig extends KafkaConfigBase {
 		batchBlock = props.containsKey(PROP_PREFIX + "batch.block") ? //
 				Boolean.parseBoolean(props.getProperty(PROP_PREFIX + "batch.block")) : null;
 		bufferBytes = props.containsKey(PROP_PREFIX + "buffer") ? Long.parseLong(props.getProperty(PROP_PREFIX + "buffer")) : null;
+		version = props.containsKey(PROP_PREFIX + "version") ? props.getProperty(PROP_PREFIX + "version") : null;
 	}
 
 	@Override
@@ -66,7 +69,7 @@ public class Kafka2OutputConfig extends KafkaConfigBase {
 			props.setProperty("retry.backoff.ms", Long.toString(backoffMs));
 			props.setProperty("reconnect.backoff.ms", Long.toString(backoffMs));
 		}
-
+		if (null != version) props.setProperty("inter.broker.protocol.version", version);
 		// props.setProperty("max.request.size", );
 		// props.setProperty("block.on.buffer.full", );
 		// props.setProperty("metrics.sample.window.ms", );
