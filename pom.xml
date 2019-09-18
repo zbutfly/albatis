@@ -26,7 +26,7 @@
 		<version.mongo.spark>2.3.0</version.mongo.spark>
 		<version.kudu.spark>1.8.0</version.kudu.spark>
 		<!-- <version.elastic>6.5.3</version.elastic> -->
-		<version.elastic>6.8.0</version.elastic>
+		<version.elastic>6.8.3</version.elastic>
 		<version.kudu>1.8.0</version.kudu>
 		<!-- <version.hbase>2.1.1</version.hbase> -->
 		<!-- <version.hbase>1.2.0-cdh${version.cdh}</version.hbase> -->
