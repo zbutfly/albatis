@@ -68,7 +68,7 @@ public abstract class Elastic7OutputBase<T extends DataConnection<?> & Elastic7C
 
 	protected abstract Function<BulkRequest, BulkResponse> request();
 
-	private void go(Map<Object, Rmap> remains) {
+	protected void go(Map<Object, Rmap> remains) {
 		int retry = 0;
 		try {
 			while (!remains.isEmpty() && retry++ <= MAX_RETRY) {
