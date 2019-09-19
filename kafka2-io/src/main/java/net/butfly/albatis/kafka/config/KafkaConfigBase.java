@@ -47,7 +47,7 @@ public abstract class KafkaConfigBase implements Serializable {
 	protected String valueSerializerClass;
 	protected String keyDeserializerClass;
 	protected String valueDeserializerClass;
-
+	protected final String version;
 	protected String kerberosConfigPath;
 	
 	protected String tbdsConfigPath;
@@ -85,6 +85,7 @@ public abstract class KafkaConfigBase implements Serializable {
 		topics = Texts.split(props.getProperty(PROP_PREFIX + "topic", ""), ",");
 		backoffMs = props.containsKey(PROP_PREFIX + "backoff.ms") ? //
 				Long.parseLong(props.getProperty(PROP_PREFIX + "backoff.ms")) : null;
+		version = props.containsKey(PROP_PREFIX + "version") ? props.getProperty(PROP_PREFIX + "version") : null;
 	}
 
 	protected String bootstrapFromZk(String zookeeperConnect) {
@@ -135,7 +136,7 @@ public abstract class KafkaConfigBase implements Serializable {
 		valueSerializerClass = props.getOrDefault("vserial", ByteArraySerializer.class.getName());
 		keyDeserializerClass = props.getOrDefault("kdeserial", ByteArrayDeserializer.class.getName());
 		valueDeserializerClass = props.getOrDefault("vdeserial", ByteArrayDeserializer.class.getName());
-
+		version = props.get("version");
 		topics = props.containsKey("topics") ? Colls.list(new HashSet<>(Texts.split(props.get("topics") + "," + props.get("topic"), ",")))
 				: Colls.list();
 		kerberosConfigPath = Configs.gets(PROP_PREFIX + "kerberos");
@@ -152,7 +153,7 @@ public abstract class KafkaConfigBase implements Serializable {
 		if (null != keyDeserializerClass) props.setProperty("key.deserializer", keyDeserializerClass);
 		if (null != valueDeserializerClass) props.setProperty("value.deserializer", valueDeserializerClass);
 		// props.setProperty("connections.max.idle.ms", Long.toString(Long.MAX_VALUE));
-
+		if (null != version) props.setProperty("inter.broker.protocol.version", version);
 		return props;
 	}
 
