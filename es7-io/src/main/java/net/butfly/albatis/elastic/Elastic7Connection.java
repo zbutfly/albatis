@@ -8,7 +8,6 @@ import net.butfly.albatis.DataConnection;
 import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.ddl.Qualifier;
 import net.butfly.albatis.ddl.TableDesc;
-import net.butfly.albatis.io.Rmap;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
@@ -80,7 +79,7 @@ public class Elastic7Connection extends DataConnection<TransportClient> implemen
             index = tables[0];
             type = tables[1];
         } else throw new RuntimeException("Please type in correct es table format: index/type or index.type !");
-        Map<String, Object> mapping = new MappingConstructor(indexConfig).construct(fields);
+        Map<String, Object> mapping = new Elastic7MappingConstructor(indexConfig).construct(fields);
         logger().debug(() -> "Mapping constructing: \n\t" + JsonSerder.JSON_MAPPER.ser(mapping));
         if (client.admin().indices().prepareExists(index).execute().actionGet().isExists()) {
             PutMappingRequest req = new PutMappingRequest(index);

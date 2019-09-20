@@ -2,12 +2,10 @@ package net.butfly.albatis.elastic;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.serder.JsonSerder;
-import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.Utils;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.Connection;
-import net.butfly.albatis.ddl.Qualifier;
 import net.butfly.albatis.ddl.vals.GeoPointVal;
 import net.butfly.albatis.io.Rmap;
 import org.apache.http.HttpHost;
@@ -35,12 +33,8 @@ public interface Elastic7Connect extends Connection {
 	String getDefaultType();
 
 	public default Rmap fixTable(Rmap m) {
-		Pair<String, String> p = Elastics.dessemble(m.table().name);
-		if (null == p.v1()) p.v1(getDefaultIndex());
-		if (null == p.v2()) p.v2(getDefaultType());
-		m.table(new Qualifier(Elastics.assembly(p.v1(), p.v2())));
 		Object v;
-		for (String k : m.keySet()) // process value type not supported by es
+		for (String k : m.keySet())
 			if ((v = m.get(k)) instanceof GeoPointVal) m.put(k, v.toString());
 		return m;
 	}

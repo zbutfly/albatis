@@ -5,6 +5,7 @@ import net.butfly.albacore.serder.JsonSerder;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albatis.DataConnection;
 import net.butfly.albatis.ddl.FieldDesc;
+import net.butfly.albatis.ddl.Qualifier;
 import net.butfly.albatis.ddl.TableDesc;
 
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
@@ -56,9 +57,9 @@ public class Elastic7RestHighLevelConnection extends DataConnection<RestHighLeve
 	}
 
 	@Override
-	public void construct(String indexType, FieldDesc... fields) {
+	public void construct(Qualifier qualifier, FieldDesc... fields) {
 		Map<String, Object> indexConfig = new HashMap<>();
-		indexConfig.put("index/type", indexType);
+		indexConfig.put("index", qualifier.name);
 		construct(indexConfig, fields);
 	}
 
@@ -68,18 +69,8 @@ public class Elastic7RestHighLevelConnection extends DataConnection<RestHighLeve
 		String alias = String.valueOf(indexConfig.get("alias"));
 		indexConfig.remove("alias");
 		assert null != alias;
-		String table = String.valueOf(indexConfig.remove("index/type"));
-		String[] tables;
-		if (table.contains(".")) tables = table.split("\\.");
-		else if (table.contains("/")) tables = table.split("/");
-		else throw new RuntimeException("es not support other split ways!");
-		String index, type;
-		if (tables.length == 1) index = type = tables[0];
-		else if (tables.length == 2) {
-			index = tables[0];
-			type = tables[1];
-		} else throw new RuntimeException("Please type in correct es table format: index/type or index.type !");
-		Map<String, Object> mapping = new MappingConstructor(indexConfig).construct(fields);
+		String index = String.valueOf(indexConfig.remove("index"));
+		Map<String, Object> mapping = new Elastic7MappingConstructor(indexConfig).construct(fields);
 		logger().debug(() -> "Mapping constructing: \n\t" + JsonSerder.JSON_MAPPER.ser(mapping));
 		boolean indexExists;
 		try {
@@ -94,10 +85,10 @@ public class Elastic7RestHighLevelConnection extends DataConnection<RestHighLeve
 			try {
 				r = client.indices().putMapping(req, RequestOptions.DEFAULT);
 			} catch (IOException e) {
-				throw new RuntimeException("Mapping failed on type [" + type + "]" + req.toString(), e);
+				throw new RuntimeException("Mapping failed" + req.toString(), e);
 			}
-			if (!r.isAcknowledged()) logger().error("Mapping failed on type [" + type + "]" + req.toString());
-			else logger().info(() -> "Mapping on [" + type + "] construced sussesfully.");
+			if (!r.isAcknowledged()) logger().error("Mapping failed" + req.toString());
+			else logger().info(() -> "Mapping construced sussesfully.");
 			return;
 		}
 		CreateIndexResponse r;
@@ -105,10 +96,10 @@ public class Elastic7RestHighLevelConnection extends DataConnection<RestHighLeve
 			if (indexConfig.isEmpty()) r = client.indices().create(new CreateIndexRequest(index).mapping(mapping), RequestOptions.DEFAULT);
 			else r = client.indices().create(new CreateIndexRequest(index).settings(indexConfig).mapping(mapping), RequestOptions.DEFAULT);
 		} catch (IOException e) {
-			throw new RuntimeException("Mapping failed on index [" + index + "] type [" + type + "]", e);
+			throw new RuntimeException("Mapping failed on index [" + index + "]", e);
 		}
-		if (!r.isAcknowledged()) logger().error("Mapping failed on index [" + index + "] type [" + type + "]" + r.toString());
-		else logger().info(() -> "Mapping on index [" + index + "] type [" + type + "] construct successfully: \n\t"
+		if (!r.isAcknowledged()) logger().error("Mapping failed on index [" + index + "] " + r.toString());
+		else logger().info(() -> "Mapping on index [" + index + "] construct successfully: \n\t"
 				+ JsonSerder.JSON_MAPPER.ser(mapping));
 		boolean aliasExists;
 		try {

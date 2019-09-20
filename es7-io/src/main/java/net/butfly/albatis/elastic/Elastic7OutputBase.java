@@ -73,7 +73,7 @@ public abstract class Elastic7OutputBase<T extends DataConnection<?> & Elastic7C
 		try {
 			while (!remains.isEmpty() && retry++ <= MAX_RETRY) {
 				List<DocWriteRequest<?>> reqs = Colls.list();
-				remains.values().forEach(r -> reqs.add(Elastics.forWrite(r)));
+				remains.values().forEach(r -> reqs.add(Elastics7.forWrite(r)));
 				if (reqs.isEmpty()) return;
 				BulkRequest bulk = new BulkRequest().add(reqs);
 				process(remains, request().apply(bulk));

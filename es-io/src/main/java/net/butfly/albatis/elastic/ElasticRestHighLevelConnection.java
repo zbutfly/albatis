@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import net.butfly.albatis.ddl.Qualifier;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest.AliasActions;
 import org.elasticsearch.action.admin.indices.alias.get.GetAliasesRequest;
@@ -56,9 +57,9 @@ public class ElasticRestHighLevelConnection extends DataConnection<RestHighLevel
 	}
 
 	@Override
-	public void construct(String indexType, FieldDesc... fields) {
+	public void construct(Qualifier qualifier, FieldDesc... fields) {
 		Map<String, Object> indexConfig = new HashMap<>();
-		indexConfig.put("index/type", indexType);
+		indexConfig.put("index/type", qualifier.name);
 		construct(indexConfig, fields);
 	}
 

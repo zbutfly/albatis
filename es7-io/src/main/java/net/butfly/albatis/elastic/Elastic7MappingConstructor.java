@@ -14,8 +14,8 @@ import static net.butfly.albacore.utils.Configs.gets;
 import static net.butfly.albacore.utils.collection.Maps.of;
 import static net.butfly.albatis.ddl.vals.ValType.Flags.*;
 
-public class MappingConstructor {
-	protected final Logger logger = Logger.getLogger(MappingConstructor.class);
+public class Elastic7MappingConstructor {
+	protected final Logger logger = Logger.getLogger(Elastic7MappingConstructor.class);
 	public static final String DEFAULT_FULLTEXT_NAME = "fullText";
 	public static final String CONFIG_PREFIX = "albatis.es.mapping.";
 
@@ -23,11 +23,11 @@ public class MappingConstructor {
 	public final String analyzer;
 	public final boolean dynamic;
 
-	public MappingConstructor() {
+	public Elastic7MappingConstructor() {
 		this(Maps.of());
 	}
 
-	public MappingConstructor(Map<String, Object> options) {
+	public Elastic7MappingConstructor(Map<String, Object> options) {
 		this.includeAll = Boolean.valueOf(options.getOrDefault("includeAll", gets(CONFIG_PREFIX + "include.all", "false")).toString());
 		this.dynamic = Boolean.valueOf(options.getOrDefault("dynamic", gets(CONFIG_PREFIX + "dynamic", "true")).toString());
 		this.analyzer = options.getOrDefault("analyzer", gets(CONFIG_PREFIX + "text.analyzer", "standard")).toString();
