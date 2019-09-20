@@ -64,7 +64,7 @@ public class Elastic7Connection extends DataConnection<TransportClient> implemen
 
     @Override
     public void construct(Map<String, Object> indexConfig, FieldDesc... fields) {
-        if (Colls.empty(indexConfig)) throw new RuntimeException("Please at least put index/type into indexConfig!");
+        if (Colls.empty(indexConfig)) throw new RuntimeException("Please at least put index into indexConfig!");
         String alias = String.valueOf(indexConfig.get("alias"));
         indexConfig.remove("alias");
         assert null != alias;
