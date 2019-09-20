@@ -89,7 +89,7 @@ public class WriteToXml {
 			logger.debug("please call addDataSourceInfo first.");
 			return;
 		}
-		element = addDataSetNode(element, "WA_COMMON_010015", "BCP数据文件信息");
+		element = addDataSetNode(element, "WA_COMMON_010014", "BCP数据文件信息");
 		Element item1 = element.addElement("ITEM");
 		item1.addAttribute("key", "H040003");
 		item1.addAttribute("val", path);
