@@ -10,7 +10,7 @@
     </parent>
     <artifactId>albatis-es7-io</artifactId>
     <properties>
-        <version.elastic>7.1.1</version.elastic>
+        <version.elastic>7.3.2</version.elastic>
     </properties>
     <dependencies>
         <dependency>
