@@ -1,10 +1,10 @@
 package net.butfly.albatis.io.ext;
 
 import java.util.List;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 //import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -20,15 +20,16 @@ public class BatchOutput<M> extends WrapOutput<M, M> {
 	private int size;
 //	private static final ForkJoinPool EXECUTE_POOL_CA = //
 //            new ForkJoinPool(Integer.parseInt(Configs.gets("albatis.batch.output.paral", "5")), ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
-	private static final ExecutorService CACHED_THREAD_POOL = Executors.newFixedThreadPool(Integer.parseInt(Configs.gets("albatis.batch.output.paral", String.valueOf(Runtime.getRuntime().availableProcessors()))));
-	private long timeout = Long.parseLong(Configs.gets("albatis.output.batch.timeout", "30000"));
+	private static final ThreadPoolExecutor CACHED_THREAD_POOL = (ThreadPoolExecutor) Executors.newFixedThreadPool(Integer.parseInt(Configs.gets("albatis.batch.output.paral", String.valueOf(Runtime.getRuntime().availableProcessors()))));
+	private long timeout = Long.parseLong(Configs.gets("albatis.batch.output.timeout", "30000"));
+	private long threadPoolWaitNum = Long.parseLong(Configs.gets("albatis.batch.output.wait.num.max", "-1"));
 	private AtomicBoolean stopped = new AtomicBoolean(false);
 	private AtomicBoolean bool = new AtomicBoolean(false);
 	private AtomicLong count = new AtomicLong();
 
 	public BatchOutput(Output<M> base, int size) {
 		super(base, "_BATCH");
-		this.size = Integer.parseInt(Configs.gets("albatis.output.batch.size", String.valueOf(size)));
+		this.size = Integer.parseInt(Configs.gets("albatis.batch.output.size", String.valueOf(size)));
 		new Thread(new TimeTask()).start();
 		new Thread(new WorkTask()).start();
 	}
@@ -59,14 +60,19 @@ public class BatchOutput<M> extends WrapOutput<M, M> {
 				}
 				lbq.drainTo(batch, size);
 				if (batch.size() > 0) {
+					while (threadPoolWaitNum >= 0 && CACHED_THREAD_POOL.getQueue().size() >= threadPoolWaitNum) {
+						logger().debug("Waiting tasks are too many, waiting!");
+						try {
+							Thread.sleep(100);
+						} catch (InterruptedException e) {}
+					}
 					CACHED_THREAD_POOL.submit(() -> base.enqueue(Sdream.of(batch)));
 					count.getAndAdd(batch.size() * -1);
 				}
 			}
 		}
-		
 	}
-	
+
 	public class TimeTask implements Runnable {
 		private long last = 0l;
 		public TimeTask() {
