@@ -125,6 +125,21 @@ public class Elastic7RestHighLevelConnection extends DataConnection<RestHighLeve
 		} else logger().info("es aliases also index duplicate names.");
 	}
 
+	public void construct(Map<String, Object> mapping, String index) {
+//		PutMappingRequest req = new PutMappingRequest(index);
+        CreateIndexRequest req = new CreateIndexRequest(index);
+		req.source(mapping);
+		AcknowledgedResponse r;
+		try {
+//			r = client.indices().putMapping(req, RequestOptions.DEFAULT);
+            r = client.indices().create(req, RequestOptions.DEFAULT);
+		} catch (IOException e) {
+			throw new RuntimeException("Mapping failed " + req.toString(), e);
+		}
+		if (!r.isAcknowledged()) logger().error("Mapping failed " + req.toString());
+		else logger().info(() -> "Mapping on " + index + " construced sussesfully.");
+	}
+
 	public static class Driver implements net.butfly.albatis.Connection.Driver<Elastic7RestHighLevelConnection> {
 		static {
 			DriverManager.register(new Driver());

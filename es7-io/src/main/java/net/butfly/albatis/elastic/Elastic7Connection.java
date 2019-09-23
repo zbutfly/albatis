@@ -2,7 +2,6 @@ package net.butfly.albatis.elastic;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.serder.JsonSerder;
-import net.butfly.albacore.serder.json.Jsons;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albatis.DataConnection;
 import net.butfly.albatis.ddl.FieldDesc;
@@ -20,9 +19,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import static net.butfly.albacore.utils.collection.Colls.empty;
-
 public class Elastic7Connection extends DataConnection<TransportClient> implements Elastic7Connect{
+
+    private static final String DEFAULT_TYPE = "_doc";
 
     public Elastic7Connection(URISpec uri, Map<String, String> props) throws IOException {
         super(uri.extra(props), 39300, "es7", "elastic7", "elasticsearch7");
@@ -58,7 +57,7 @@ public class Elastic7Connection extends DataConnection<TransportClient> implemen
     @Override
     public void construct(Qualifier qualifier, FieldDesc... fields) {
         Map<String, Object> indexConfig = new HashMap<>();
-        indexConfig.put("index/type", qualifier.name);
+        indexConfig.put("index", qualifier.name);
         construct(indexConfig, fields);
     }
 
@@ -68,32 +67,22 @@ public class Elastic7Connection extends DataConnection<TransportClient> implemen
         String alias = String.valueOf(indexConfig.get("alias"));
         indexConfig.remove("alias");
         assert null != alias;
-        String table = String.valueOf(indexConfig.remove("index/type"));
-        String[] tables;
-        if (table.contains(".")) tables = table.split("\\.");
-        else if (table.contains("/")) tables = table.split("/");
-        else throw new RuntimeException("es not support other split ways!");
-        String index, type;
-        if (tables.length == 1) index = type = tables[0];
-        else if (tables.length == 2) {
-            index = tables[0];
-            type = tables[1];
-        } else throw new RuntimeException("Please type in correct es table format: index/type or index.type !");
+        String index = String.valueOf(indexConfig.remove("index"));
         Map<String, Object> mapping = new Elastic7MappingConstructor(indexConfig).construct(fields);
         logger().debug(() -> "Mapping constructing: \n\t" + JsonSerder.JSON_MAPPER.ser(mapping));
         if (client.admin().indices().prepareExists(index).execute().actionGet().isExists()) {
             PutMappingRequest req = new PutMappingRequest(index);
             req.source(mapping);
-            AcknowledgedResponse r = client.admin().indices().putMapping(req.type(type)).actionGet();
-            if (!r.isAcknowledged()) logger().error("Mapping failed on type [" + type + "]" + req.toString());
-            else logger().info(() -> "Mapping on [" + type + "] construced sussesfully.");
+            AcknowledgedResponse r = client.admin().indices().putMapping(req).actionGet();
+            if (!r.isAcknowledged()) logger().error("Mapping failed " + req.toString());
+            else logger().info(() -> "Mapping construced sussesfully.");
             return;
         }
         CreateIndexResponse r;
-        if (indexConfig.isEmpty()) r = client.admin().indices().prepareCreate(index).addMapping(type, mapping).get();
-        else r = client.admin().indices().prepareCreate(index).setSettings(indexConfig).addMapping(type, mapping).get();
-        if (!r.isAcknowledged()) logger().error("Mapping failed on index [" + index + "] type [" + type + "]" + r.toString());
-        else logger().info(() -> "Mapping on index [" + index + "] type [" + type + "] construct successfully: \n\t"
+        if (indexConfig.isEmpty()) r = client.admin().indices().prepareCreate(index).addMapping(DEFAULT_TYPE, mapping).get();
+        else r = client.admin().indices().prepareCreate(index).setSettings(indexConfig).addMapping(DEFAULT_TYPE, mapping).get();
+        if (!r.isAcknowledged()) logger().error("Mapping failed on index [" + index + "] " + r.toString());
+        else logger().info(() -> "Mapping on index [" + index + "] construct successfully: \n\t"
                 + JsonSerder.JSON_MAPPER.ser(mapping));
         IndicesExistsRequest indexExists = new IndicesExistsRequest(index);
         if (client.admin().indices().exists(indexExists).actionGet().isExists()) {
@@ -103,17 +92,17 @@ public class Elastic7Connection extends DataConnection<TransportClient> implemen
         } else logger().info("es aliases also index duplicate names.");
     }
 
+    public void construct(Map<String, Object> mapping, String index) {
+        PutMappingRequest req = new PutMappingRequest(index);
+        req.source(mapping);
+        AcknowledgedResponse r = client.admin().indices().putMapping(req).actionGet();
+        if (!r.isAcknowledged()) logger().error("Mapping failed " + req.toString());
+        else logger().info(() -> "Mapping on " + index + " construced sussesfully.");
+    }
+
     @Override
-    public boolean judge(String table) {
+    public boolean judge(String index) {
         boolean exists = false;
-        String[] tables;
-        if (table.contains(".")) tables = table.split("\\.");
-        else if (table.contains("/")) tables = table.split("/");
-        else throw new RuntimeException("es not support other split ways!");
-        String index;
-        if (tables.length == 1) index = tables[0];
-        else if (tables.length == 2) index = tables[0];
-        else throw new RuntimeException("Please type in correct es table format: index/type or index.type !");
         try (Elastic7Connection elastic7Connection = new Elastic7Connection(new URISpec(uri.toString()))) {
             IndicesExistsRequest existsRequest = new IndicesExistsRequest(index);
             exists = elastic7Connection.client.admin().indices().exists(existsRequest).actionGet().isExists();
@@ -166,20 +155,5 @@ public class Elastic7Connection extends DataConnection<TransportClient> implemen
     @Override
     public Elastic7Output outputRaw(TableDesc... table) throws IOException {
         return new Elastic7Output("Elastic7Output", this);
-    }
-
-    public void construct(Map<String, Object> mapping, String indexAndType) {
-        String[] it = indexAndType.split("/", 2);
-        String[] its = 2 == it.length ? it : new String[] { it[0], null };
-        if (empty(its[0])) its[0] = getDefaultIndex();
-        if (empty(its[1])) its[1] = getDefaultType();
-        if (empty(its[1])) its[1] = "_doc";
-        logger().debug("Mapping constructing on " + String.join("/", its) + ": \n\t" + Jsons.pretty(mapping));
-
-        PutMappingRequest req = new PutMappingRequest(its[0]);
-        req.source(mapping);
-        AcknowledgedResponse r = client.admin().indices().putMapping(req.type(its[1])).actionGet();
-        if (!r.isAcknowledged()) logger().error("Mapping failed on type [" + its[1] + "]" + req.toString());
-        else logger().info(() -> "Mapping on " + its + " construced sussesfully.");
     }
 }

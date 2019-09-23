@@ -1,14 +1,15 @@
 package net.butfly.albatis.elastic;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import net.butfly.albacore.serder.json.Jsons;
 import net.butfly.albatis.ddl.Qualifier;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest.AliasActions;
-import org.elasticsearch.action.admin.indices.alias.get.GetAliasesRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.get.GetIndexRequest;
@@ -23,6 +24,8 @@ import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albatis.DataConnection;
 import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.ddl.TableDesc;
+
+import static net.butfly.albacore.utils.collection.Colls.empty;
 
 public class ElasticRestHighLevelConnection extends DataConnection<RestHighLevelClient> implements ElasticConnect {
 	public ElasticRestHighLevelConnection(URISpec uri, Map<String, String> props) throws IOException {
@@ -135,7 +138,28 @@ public class ElasticRestHighLevelConnection extends DataConnection<RestHighLevel
 		} else logger().info("es aliases also index duplicate names.");
 	}
 
-	public static class Driver implements net.butfly.albatis.Connection.Driver<ElasticRestHighLevelConnection> {
+    public void construct(Map<String, Object> mapping, String indexAndType) {
+        String[] it = indexAndType.split("/", 2);
+        String[] its = 2 == it.length ? it : new String[]{it[0], null};
+        if (empty(its[0])) its[0] = getDefaultIndex();
+        if (empty(its[1])) its[1] = getDefaultType();
+        if (empty(its[1])) its[1] = "_doc";
+        logger().debug("Mapping constructing on " + String.join("/", its) + ": \n\t" + Jsons.pretty(mapping));
+
+        PutMappingRequest req = new PutMappingRequest(its[0]);
+        req.source(mapping);
+        AcknowledgedResponse r;
+        try {
+            r = client.indices().putMapping(req.type(it[1]), RequestOptions.DEFAULT);
+        } catch (IOException e) {
+            throw new RuntimeException("Mapping failed on type [" + it[1] + "]" + req.toString(), e);
+        }
+        if (!r.isAcknowledged()) logger().error("Mapping failed on type [" + its[1] + "]" + req.toString());
+        else logger().info(() -> "Mapping on " + Arrays.toString(its) + " construced sussesfully.");
+    }
+
+
+    public static class Driver implements net.butfly.albatis.Connection.Driver<ElasticRestHighLevelConnection> {
 		static {
 			DriverManager.register(new Driver());
 		}
