@@ -26,7 +26,7 @@ public class Props {
 	public static final int BCP_PARAL = Integer.valueOf(get("bcp.parallelism", "50"));
 	public static final boolean BCP_KEY_FIELD_EXCLUDE = Boolean.valueOf(get("bcp.key.field.exclude","false"));
 	public static int BCP_STOP_FLAG = Integer.valueOf(get("bcp.stop.flag","0")) ;
-
+	public static final boolean FTP_LOCAL_MODEL = Boolean.valueOf(get("ftp.local.model","false"));
 	public static final URISpec FTP_URI;
 	static {
 		String f = get("ftp");

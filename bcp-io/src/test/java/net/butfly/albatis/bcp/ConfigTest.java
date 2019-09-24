@@ -1,3 +1,5 @@
+package net.butfly.albatis.bcp;
+
 import net.butfly.albacore.utils.Configs;
 
 public class ConfigTest {

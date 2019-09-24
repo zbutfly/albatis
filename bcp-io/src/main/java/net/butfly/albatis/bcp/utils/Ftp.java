@@ -58,9 +58,10 @@ public class Ftp implements Closeable {
         logger.trace("[FTP] begin [" + localFile + " -> " + remoteFilename + "]");
         boolean flag = false;
         try (InputStream inputStream = new FileInputStream(localFile.toFile())) {
-            client.enterLocalPassiveMode();
+            if (Props.FTP_LOCAL_MODEL) client.enterLocalActiveMode();
+            else client.enterLocalPassiveMode();
             client.setFileType(FTP.BINARY_FILE_TYPE);
-            CreateDirecroty(base);
+            createDirectory(base);
             client.makeDirectory(base);
             client.changeWorkingDirectory(base);
             flag = client.storeFile(remoteFilename, inputStream);
@@ -83,8 +84,10 @@ public class Ftp implements Closeable {
     public boolean uploadFile(String localPath, String remoteFilename, InputStream inputStream) {
         logger.trace("[FTP] begin [" + remoteFilename + " -> " + localPath + "].");
         try {
+            if (Props.FTP_LOCAL_MODEL) client.enterLocalActiveMode();
+            else client.enterLocalPassiveMode();
             client.setFileType(FTP.BINARY_FILE_TYPE);
-            CreateDirecroty(localPath);
+            createDirectory(localPath);
             client.makeDirectory(localPath);
             client.changeWorkingDirectory(localPath);
             client.storeFile(remoteFilename, inputStream);
@@ -103,7 +106,7 @@ public class Ftp implements Closeable {
     }
 
     // 创建多层目录文件，如果有ftp服务器已存在该文件，则不创建，如果无，则创建
-    public boolean CreateDirecroty(String remote) throws IOException {
+    public boolean createDirectory(String remote) throws IOException {
         boolean success = true;
         String directory = remote + "/";
         // 如果远程目录不存在，则递归创建远程服务器目录
@@ -161,7 +164,8 @@ public class Ftp implements Closeable {
     public boolean downloadAllFiles(String localpath) {
 //        logger.trace("[FTP] begin download all files [ <- " + base + "]，local directory is [ " + localpath + " ].");
         try {
-            client.enterLocalPassiveMode();
+            if (Props.FTP_LOCAL_MODEL) client.enterLocalActiveMode();
+            else client.enterLocalPassiveMode();
             if (!existFile(base)) {
 //                logger.trace("[FTP] path is not exist [ <- " + base + "].");
                 return false;
