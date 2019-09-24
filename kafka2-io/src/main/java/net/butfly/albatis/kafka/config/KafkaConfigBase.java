@@ -43,6 +43,7 @@ public abstract class KafkaConfigBase implements Serializable {
 	protected final Long backoffMs; // input: rebalance, output: retry
 	protected final Long zookeeperConnectionTimeoutMs;
 	protected final Long transferBufferBytes;
+	protected final String metadataBrokerList;
 	protected String keySerializerClass;
 	protected String valueSerializerClass;
 	protected String keyDeserializerClass;
@@ -74,6 +75,7 @@ public abstract class KafkaConfigBase implements Serializable {
 		} else if (bstrp == null) throw new ConfigException("Neither [" + PROP_PREFIX + "zookeeper] nor [" + PROP_PREFIX
 				+ "bootstrap.servers] found");
 		bootstrapServers = bstrp;
+		metadataBrokerList = bootstrapServers;
 		zookeeperConnectionTimeoutMs = props.containsKey(PROP_PREFIX + "zookeeper.connection.timeout.ms") ? //
 				Long.parseLong(props.getProperty(PROP_PREFIX + "zookeeper.connection.timeout.ms")) : null;
 		transferBufferBytes = props.containsKey(PROP_PREFIX + "socket.buffer.bytes") ? //
@@ -131,7 +133,7 @@ public abstract class KafkaConfigBase implements Serializable {
 		transferBufferBytes = props.containsKey("socketBuffer") ? Long.parseLong(props.get("socketBuffer")) : null;
 		poolSize = props.containsKey("pool") ? Long.parseLong(props.get("pool")) : null;
 		backoffMs = props.containsKey("backoff") ? Long.parseLong(props.get("backoff")) : null;
-
+		metadataBrokerList = bootstrapServers != null ? bootstrapServers : null;
 		keySerializerClass = props.getOrDefault("kserial", ByteArraySerializer.class.getName());
 		valueSerializerClass = props.getOrDefault("vserial", ByteArraySerializer.class.getName());
 		keyDeserializerClass = props.getOrDefault("kdeserial", ByteArrayDeserializer.class.getName());
@@ -152,6 +154,7 @@ public abstract class KafkaConfigBase implements Serializable {
 		if (null != valueSerializerClass) props.setProperty("value.serializer", valueSerializerClass);
 		if (null != keyDeserializerClass) props.setProperty("key.deserializer", keyDeserializerClass);
 		if (null != valueDeserializerClass) props.setProperty("value.deserializer", valueDeserializerClass);
+		if (null != metadataBrokerList) props.setProperty("metadata.broker.list", metadataBrokerList);
 		// props.setProperty("connections.max.idle.ms", Long.toString(Long.MAX_VALUE));
 		if (null != version) props.setProperty("inter.broker.protocol.version", version);
 		return props;
