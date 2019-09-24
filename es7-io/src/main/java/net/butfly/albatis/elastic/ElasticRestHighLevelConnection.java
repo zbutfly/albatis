@@ -126,13 +126,13 @@ public class ElasticRestHighLevelConnection extends DataConnection<RestHighLevel
 	}
 
 	public void construct(Map<String, Object> mapping, String index) {
-//		PutMappingRequest req = new PutMappingRequest(index);
-        CreateIndexRequest req = new CreateIndexRequest(index);
+		PutMappingRequest req = new PutMappingRequest(index);
+//        CreateIndexRequest req = new CreateIndexRequest(index);
 		req.source(mapping);
 		AcknowledgedResponse r;
 		try {
-//			r = client.indices().putMapping(req, RequestOptions.DEFAULT);
-            r = client.indices().create(req, RequestOptions.DEFAULT);
+			r = client.indices().putMapping(req, RequestOptions.DEFAULT);
+//            r = client.indices().create(req, RequestOptions.DEFAULT);
 		} catch (IOException e) {
 			throw new RuntimeException("Mapping failed " + req.toString(), e);
 		}
