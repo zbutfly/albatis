@@ -9,7 +9,7 @@ import org.elasticsearch.action.update.UpdateRequest;
 
 import static net.butfly.albatis.io.Rmap.Op.*;
 
-public class Elastics7 {
+public class Elastics {
 	public static DocWriteRequest<?> forWrite(Rmap m) {
 		if (null == m.key()) return null;
 		switch (m.op()) {

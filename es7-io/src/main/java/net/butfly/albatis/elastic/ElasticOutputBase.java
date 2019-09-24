@@ -23,13 +23,13 @@ import net.butfly.albatis.DataConnection;
 import net.butfly.albatis.io.OutputBase;
 import net.butfly.albatis.io.Rmap;
 
-public abstract class Elastic7OutputBase<T extends DataConnection<?> & Elastic7Connect> extends OutputBase<Rmap> {
+public abstract class ElasticOutputBase<T extends DataConnection<?> & ElasticConnect> extends OutputBase<Rmap> {
 	private static final long serialVersionUID = 1874320396863861434L;
-	private static final Logger logger = Logger.getLogger(Elastic7Output.class);
+	private static final Logger logger = Logger.getLogger(ElasticOutput.class);
 	public static final int MAX_RETRY = 3;
 	protected final T conn;
 
-	public Elastic7OutputBase(String name, T conn) throws IOException {
+	public ElasticOutputBase(String name, T conn) throws IOException {
 		super(name);
 		this.conn = conn;
 	}
@@ -73,7 +73,7 @@ public abstract class Elastic7OutputBase<T extends DataConnection<?> & Elastic7C
 		try {
 			while (!remains.isEmpty() && retry++ <= MAX_RETRY) {
 				List<DocWriteRequest<?>> reqs = Colls.list();
-				remains.values().forEach(r -> reqs.add(Elastics7.forWrite(r)));
+				remains.values().forEach(r -> reqs.add(Elastics.forWrite(r)));
 				if (reqs.isEmpty()) return;
 				BulkRequest bulk = new BulkRequest().add(reqs);
 				process(remains, request().apply(bulk));

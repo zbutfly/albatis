@@ -11,10 +11,10 @@ import java.util.function.Function;
 
 import static net.butfly.albacore.utils.Exceptions.unwrap;
 
-public class Elastic7RestOutput extends Elastic7OutputBase<Elastic7RestHighLevelConnection> {
+public class ElasticRestOutput extends ElasticOutputBase<ElasticRestHighLevelConnection> {
 	private static final long serialVersionUID = 3882692296354935800L;
 
-	protected Elastic7RestOutput(String name, Elastic7RestHighLevelConnection conn) throws IOException {
+	protected ElasticRestOutput(String name, ElasticRestHighLevelConnection conn) throws IOException {
 		super(name, conn);
 	}
 

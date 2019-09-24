@@ -25,8 +25,8 @@ import java.util.Properties;
 
 import static net.butfly.albacore.paral.Sdream.of;
 
-public interface Elastic7Connect extends Connection {
-	static final Logger LOGGER = Logger.getLogger(Elastic7Connection.class);
+public interface ElasticConnect extends Connection {
+	static final Logger LOGGER = Logger.getLogger(ElasticConnection.class);
 
 	String getDefaultIndex();
 
@@ -40,16 +40,16 @@ public interface Elastic7Connect extends Connection {
 	}
 
 	@SuppressWarnings("unchecked")
-	static <C extends Elastic7Connect> C connect(URISpec uri) throws IOException {
+	static <C extends ElasticConnect> C connect(URISpec uri) throws IOException {
 		switch (uri.getScheme().toLowerCase()) {
-		case "es7:rest":
-		case "elasticsearch7:rest":
-			return (C) new Elastic7RestHighLevelConnection(uri);
-		case "es7":
-		case "elasticsearch7":
+		case "es:rest":
+		case "elasticsearch:rest":
+			return (C) new ElasticRestHighLevelConnection(uri);
+		case "es":
+		case "elasticsearch":
 		case "es:transport":
 		case "elasticsearch:transport":
-			return (C) new Elastic7Connection(uri);
+			return (C) new ElasticConnection(uri);
 		default:
 			throw new IllegalArgumentException("schema not supported: " + uri.getSchema());
 		}
@@ -138,7 +138,7 @@ public interface Elastic7Connect extends Connection {
 		private static void kerberosAuth() {
 			Properties p = new Properties();
 			try {
-				InputStream is = Elastic7Connect.class.getResourceAsStream("/albatis-es.properties");
+				InputStream is = ElasticConnect.class.getResourceAsStream("/albatis-es.properties");
 				if (null != is) p.load(is);
 				else return;
 			} catch (IOException e) {

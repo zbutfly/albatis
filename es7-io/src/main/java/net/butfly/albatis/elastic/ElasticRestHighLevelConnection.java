@@ -24,20 +24,20 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class Elastic7RestHighLevelConnection extends DataConnection<RestHighLevelClient> implements Elastic7Connect {
-	public Elastic7RestHighLevelConnection(URISpec uri, Map<String, String> props) throws IOException {
-		super(uri.extra(props), 39200, "es7:rest", "elasticsearch7:rest");
+public class ElasticRestHighLevelConnection extends DataConnection<RestHighLevelClient> implements ElasticConnect {
+	public ElasticRestHighLevelConnection(URISpec uri, Map<String, String> props) throws IOException {
+		super(uri.extra(props), 39200, "es:rest", "elasticsearch:rest");
 	}
 
-	public Elastic7RestHighLevelConnection(URISpec uri) throws IOException {
+	public ElasticRestHighLevelConnection(URISpec uri) throws IOException {
 		this(uri, null);
 	}
 
-	public Elastic7RestHighLevelConnection(String url, Map<String, String> props) throws IOException {
+	public ElasticRestHighLevelConnection(String url, Map<String, String> props) throws IOException {
 		this(new URISpec(url), props);
 	}
 
-	public Elastic7RestHighLevelConnection(String url) throws IOException {
+	public ElasticRestHighLevelConnection(String url) throws IOException {
 		this(new URISpec(url));
 	}
 
@@ -70,7 +70,7 @@ public class Elastic7RestHighLevelConnection extends DataConnection<RestHighLeve
 		indexConfig.remove("alias");
 		assert null != alias;
 		String index = String.valueOf(indexConfig.remove("index"));
-		Map<String, Object> mapping = new Elastic7MappingConstructor(indexConfig).construct(fields);
+		Map<String, Object> mapping = new MappingConstructor(indexConfig).construct(fields);
 		logger().debug(() -> "Mapping constructing: \n\t" + JsonSerder.JSON_MAPPER.ser(mapping));
 		boolean indexExists;
 		try {
@@ -140,26 +140,26 @@ public class Elastic7RestHighLevelConnection extends DataConnection<RestHighLeve
 		else logger().info(() -> "Mapping on " + index + " construced sussesfully.");
 	}
 
-	public static class Driver implements net.butfly.albatis.Connection.Driver<Elastic7RestHighLevelConnection> {
+	public static class Driver implements net.butfly.albatis.Connection.Driver<ElasticRestHighLevelConnection> {
 		static {
 			DriverManager.register(new Driver());
 		}
 
 		@Override
-		public Elastic7RestHighLevelConnection connect(URISpec uriSpec) throws IOException {
-			return new Elastic7RestHighLevelConnection(uriSpec);
+		public ElasticRestHighLevelConnection connect(URISpec uriSpec) throws IOException {
+			return new ElasticRestHighLevelConnection(uriSpec);
 		}
 
 		@Override
 		public List<String> schemas() {
-			return Colls.list("es7:rest", "elasticsearch7:rest");
+			return Colls.list("es:rest", "elasticsearch:rest");
 		}
 	}
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public Elastic7RestOutput outputRaw(TableDesc... table) throws IOException {
-		return new Elastic7RestOutput("Elastic7RestOutput", this);
+	public ElasticRestOutput outputRaw(TableDesc... table) throws IOException {
+		return new ElasticRestOutput("ElasticRestOutput", this);
 	}
 
 	@Override

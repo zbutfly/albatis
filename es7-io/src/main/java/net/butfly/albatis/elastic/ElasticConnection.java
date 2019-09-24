@@ -19,23 +19,23 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-public class Elastic7Connection extends DataConnection<TransportClient> implements Elastic7Connect{
+public class ElasticConnection extends DataConnection<TransportClient> implements ElasticConnect {
 
     private static final String DEFAULT_TYPE = "_doc";
 
-    public Elastic7Connection(URISpec uri, Map<String, String> props) throws IOException {
-        super(uri.extra(props), 39300, "es7", "elastic7", "elasticsearch7");
+    public ElasticConnection(URISpec uri, Map<String, String> props) throws IOException {
+        super(uri.extra(props), 39300, "es", "elastic", "elasticsearch");
     }
 
-    public Elastic7Connection(URISpec uri) throws IOException {
+    public ElasticConnection(URISpec uri) throws IOException {
         this(uri, null);
     }
 
-    public Elastic7Connection(String url, Map<String, String> props) throws IOException {
+    public ElasticConnection(String url, Map<String, String> props) throws IOException {
         this(new URISpec(url), props);
     }
 
-    public Elastic7Connection(String url) throws IOException {
+    public ElasticConnection(String url) throws IOException {
         this(new URISpec(url));
     }
 
@@ -68,7 +68,7 @@ public class Elastic7Connection extends DataConnection<TransportClient> implemen
         indexConfig.remove("alias");
         assert null != alias;
         String index = String.valueOf(indexConfig.remove("index"));
-        Map<String, Object> mapping = new Elastic7MappingConstructor(indexConfig).construct(fields);
+        Map<String, Object> mapping = new MappingConstructor(indexConfig).construct(fields);
         logger().debug(() -> "Mapping constructing: \n\t" + JsonSerder.JSON_MAPPER.ser(mapping));
         if (client.admin().indices().prepareExists(index).execute().actionGet().isExists()) {
             PutMappingRequest req = new PutMappingRequest(index);
@@ -103,7 +103,7 @@ public class Elastic7Connection extends DataConnection<TransportClient> implemen
     @Override
     public boolean judge(String index) {
         boolean exists = false;
-        try (Elastic7Connection elastic7Connection = new Elastic7Connection(new URISpec(uri.toString()))) {
+        try (ElasticConnection elastic7Connection = new ElasticConnection(new URISpec(uri.toString()))) {
             IndicesExistsRequest existsRequest = new IndicesExistsRequest(index);
             exists = elastic7Connection.client.admin().indices().exists(existsRequest).actionGet().isExists();
         } catch (IOException e) {
@@ -135,25 +135,25 @@ public class Elastic7Connection extends DataConnection<TransportClient> implemen
         logger().debug("ES connection thread pool terminated...");
     }
 
-    public static class Driver implements net.butfly.albatis.Connection.Driver<Elastic7Connection> {
+    public static class Driver implements net.butfly.albatis.Connection.Driver<ElasticConnection> {
         static {
             DriverManager.register(new Driver());
         }
 
         @Override
-        public Elastic7Connection connect(URISpec uriSpec) throws IOException {
-            return new Elastic7Connection(uriSpec);
+        public ElasticConnection connect(URISpec uriSpec) throws IOException {
+            return new ElasticConnection(uriSpec);
         }
 
         @Override
         public List<String> schemas() {
-            return Colls.list("es7");
+            return Colls.list("es");
         }
     }
 
     @SuppressWarnings("unchecked")
     @Override
-    public Elastic7Output outputRaw(TableDesc... table) throws IOException {
-        return new Elastic7Output("Elastic7Output", this);
+    public ElasticOutput outputRaw(TableDesc... table) throws IOException {
+        return new ElasticOutput("ElasticOutput", this);
     }
 }
