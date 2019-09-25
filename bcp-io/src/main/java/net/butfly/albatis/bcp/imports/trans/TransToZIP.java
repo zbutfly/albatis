@@ -1,6 +1,7 @@
 package net.butfly.albatis.bcp.imports.trans;
 
 import net.butfly.albacore.io.URISpec;
+import net.butfly.albatis.bcp.TaskDesc;
 import net.butfly.albatis.bcp.imports.frame.HandleFrame;
 import net.butfly.albatis.bcp.imports.frame.conf.ReadConfs;
 import net.butfly.albatis.bcp.imports.frame.struct.KernelInfo;
@@ -16,11 +17,11 @@ import java.util.List;
  * @code : @since : Created in 19:26 2019/2/28
  */
 public class TransToZIP {
-	public static void ZIP(String path, URISpec uri) throws DocumentException {
-		List<KernelInfo> kernelInfos = ReadConfs.getKernelInfos(path);
-		for (KernelInfo kernelInfo : kernelInfos) {
-			HandleFrame handleFrame = new HandleFrame(kernelInfo, false, uri);
-			new Thread(handleFrame).start();
-		}
-	}
+    public static void ZIP(String path, URISpec uri, String taskName, String table) throws DocumentException {
+        List<KernelInfo> kernelInfoList = ReadConfs.getKernelInfos(path);
+        for (KernelInfo kernelInfo : kernelInfoList) {
+            HandleFrame handleFrame = new HandleFrame(kernelInfo, false, uri, taskName, table);
+            new Thread(handleFrame).start();
+        }
+    }
 }

@@ -58,12 +58,13 @@ public class BcpFormat {
     public void bcp(List<Rmap> recs, URISpec uri, String taskName) {
         if (recs.isEmpty()) return;
         TaskDesc taskDesc = tasks.stream().filter(task -> taskName.equals(task.name)).collect(Collectors.toList()).get(0);
-        String fn = taskDesc.tableName + "-" + fileIndex.incrementAndGet();
+        String table = taskDesc.tableName;
+        String fn = table + "-" + fileIndex.incrementAndGet();
         logger.trace("BCP [" + fn + "] for [" + recs.size() + "] recs beginning... ");
         Map<String, Integer> counts = Maps.of();
-        Path fnp ;
-        if(uri.toString().contains("///"))
-            fnp = confirmDir(Paths.get(uri.getPath()).resolve(taskDesc.tableName)).resolve(fn);
+        Path fnp;
+        if (uri.toString().contains("///"))
+            fnp = confirmDir(Paths.get(uri.getPath()).resolve(table)).resolve(fn);
         else
             fnp = taskDesc.fd.base.resolve(fn);
 
@@ -83,15 +84,15 @@ public class BcpFormat {
         }
         if (lines.isEmpty()) return;
         try {
-        	of().submit(() -> {
-        		try {
-        			bcp(uri, fnp, fn, lines, taskDesc);
-        		} catch (IOException e) {
-        			logger.error("BCP [" + fn + "] for [" + recs.size() + "] failed", e);
-        		}
-        	}).get();
+            of().submit(() -> {
+                try {
+                    bcp(uri, fnp, fn, lines, taskDesc);
+                } catch (IOException e) {
+                    logger.error("BCP [" + fn + "] for [" + recs.size() + "] failed", e);
+                }
+            }).get();
         } catch (Exception e) {
-        	logger.error("error!", e);
+            logger.error("error!", e);
         }
 //        of().submit(() -> {
 //            try {
@@ -111,7 +112,7 @@ public class BcpFormat {
             nb(fnp, fn, lines);
         });
         get(f1, f2);
-        zip(fnp, uri);
+        zip(fnp, uri, task.name, task.tableName);
         if (logger.isDebugEnabled()) {
             long ms = System.currentTimeMillis() - START;
             long ms0 = System.currentTimeMillis() - now;
@@ -193,10 +194,10 @@ public class BcpFormat {
     /**
      * zip the dir "xml" into "zip"
      */
-    private void zip(Path base, URISpec uri) throws IOException {
+    private void zip(Path base, URISpec uri, String taskName, String table) throws IOException {
         confirmDir(base.resolve("zip"));
         try {
-            TransToZIP.ZIP(base.resolve("xml").toString(), uri);
+            TransToZIP.ZIP(base.resolve("xml").toString(), uri, taskName, table);
         } catch (DocumentException e) {
             throw new IOException(e);
         }

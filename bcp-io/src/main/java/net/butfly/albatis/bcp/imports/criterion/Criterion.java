@@ -58,9 +58,13 @@ public class Criterion implements AutoCloseable {
     private int FILEMAXNUM = 10000;
     private Path endPath = Props.BCP_PATH_BASE.resolve("zip");
     private URISpec uri;
+    private String taskName;
+    private String table;
 
-    public Criterion(KernelInfo kernelInfo, URISpec uri) {
+    public Criterion(KernelInfo kernelInfo, URISpec uri, String taskName, String table) {
         this.uri = uri;
+        this.taskName = taskName;
+        this.table = table;
         lineSplit = kernelInfo.getIntputLineSplit();
         fieldSplit = kernelInfo.getIntputFiledSplit();
 
@@ -115,8 +119,8 @@ public class Criterion implements AutoCloseable {
             writeToXml.flush();
         } else {
             writeToXml = new WriteToXml(outputDirTmp + "/" + XML_NAME);
-            writeToXml.addDataSourceInfo("fenghuo", "330000", "999", "UTF-8", lineSplit, fieldSplit);
-            writeToXml.addFileds(fieldAndComments);
+            writeToXml.addDataSourceInfo("fenghuo", "330000", "999", "UTF-8", lineSplit, fieldSplit, taskName, table);
+            writeToXml.addFields(fieldAndComments);
         }
     }
 
