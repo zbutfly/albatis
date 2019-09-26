@@ -28,6 +28,7 @@ public class Props {
 	public static int BCP_STOP_FLAG = Integer.valueOf(get("bcp.stop.flag","0")) ;
 	public static final boolean FTP_LOCAL_MODEL = Boolean.valueOf(get("ftp.local.model","false"));
 	public static final URISpec FTP_URI;
+	public static Path ftpPath;
 	static {
 		String f = get("ftp");
 		FTP_URI = null == f ? null : new URISpec(f);

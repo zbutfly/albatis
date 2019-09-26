@@ -47,14 +47,12 @@ public class HandleFrame implements Runnable {
 
     private long lastLogTime = 0;
     private URISpec uri;
-    private String taskName;
     private String table;
 
-    public HandleFrame(KernelInfo kernelInfo, boolean loopFlag, URISpec uri, String taskName, String table) {
+    public HandleFrame(KernelInfo kernelInfo, boolean loopFlag, URISpec uri, String table) {
         this.kernelInfo = kernelInfo;
         this.loopFlag = loopFlag;
         this.uri = uri;
-        this.taskName = taskName;
         this.table = table;
         init();
     }
@@ -83,9 +81,8 @@ public class HandleFrame implements Runnable {
 
     @Override
     public void run() {
-        // logger.debug("HandleFrame is start.");
         LOGGER.debug("Starting to handle DataEName:" + this.kernelInfo.getInputDataEName());
-        try (Criterion criterion = new Criterion(this.kernelInfo, uri, taskName, table)) {
+        try (Criterion criterion = new Criterion(this.kernelInfo, uri, table)) {
             do { // 框架代码
                 List<String> files = rfd.getFiles(this.kernelInfo.getInputPath());
                 if (files.size() != 0) {

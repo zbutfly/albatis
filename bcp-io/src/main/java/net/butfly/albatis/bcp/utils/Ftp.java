@@ -61,9 +61,10 @@ public class Ftp implements Closeable {
             if (Props.FTP_LOCAL_MODEL) client.enterLocalActiveMode();
             else client.enterLocalPassiveMode();
             client.setFileType(FTP.BINARY_FILE_TYPE);
-            createDirectory(base);
-            client.makeDirectory(base);
-            client.changeWorkingDirectory(base);
+            String remotePath = Paths.get(remoteFilename).getParent().toString();
+            createDirectory(remotePath);
+            client.makeDirectory(remotePath);
+            client.changeWorkingDirectory(remotePath);
             flag = client.storeFile(remoteFilename, inputStream);
             if (flag) logger.trace("[FTP] successfully [" + localFile + " -> " + remoteFilename + "].");
             else logger.error("[FTP] failed [" + localFile + " -> " + remoteFilename + "].");

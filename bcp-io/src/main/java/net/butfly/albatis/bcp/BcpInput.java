@@ -33,9 +33,9 @@ public class BcpInput extends Namedly implements Input<Rmap> {
 
     public BcpInput(final String name, URISpec uri, String dataPath, String tableName) {
         super(name);
-        this.tableName = tableName;
-        this.dataPath = getDataPath(dataPath);
-        this.bcpPath = this.dataPath.resolve(tableName);
+        this.tableName = getTableName(tableName);
+        this.dataPath = getDataPath(dataPath ,tableName);
+        this.bcpPath = this.dataPath.resolve(getTableName(tableName));
         FileUtil.confirmDir(this.bcpPath);
         this.uri = uri;
         FtpDownloadThread thread = new FtpDownloadThread();
@@ -43,12 +43,18 @@ public class BcpInput extends Namedly implements Input<Rmap> {
         closing(this::closeBcp);
     }
 
-    private Path getDataPath(String dataPath) {
-        File directory = new File(this.getClass().getResource("/").getPath());
-        String parent = directory.getParent();
-        return Paths.get(parent + dataPath);
+    private String getTableName(String tableName) {
+        if(tableName.contains("/")) return tableName.substring(tableName.lastIndexOf("/") + 1);
+        else return tableName;
     }
 
+    private Path getDataPath(String dataPath, String tableName) {
+        File directory = new File(this.getClass().getResource("/").getPath());
+        String varPath = "";
+        if(tableName.contains("/")) varPath = tableName.substring(0, tableName.lastIndexOf("/") + 1);
+        String parent = directory.getParent();
+        return Paths.get(parent + dataPath + varPath);
+    }
 
     private void download() {
         try (Ftp ftp = Ftp.connect(uri)) {

@@ -17,6 +17,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -55,24 +56,30 @@ public class BcpFormat {
     private static final AtomicLong COUNT_CHARS = new AtomicLong();
     private static final long START = System.currentTimeMillis();
 
-    public void bcp(List<Rmap> recs, URISpec uri, String taskName) {
+    public void bcp(List<Rmap> recs, URISpec uri, String pathTable) {
         if (recs.isEmpty()) return;
-        TaskDesc taskDesc = tasks.stream().filter(task -> taskName.equals(task.name)).collect(Collectors.toList()).get(0);
-        String table = taskDesc.tableName;
-        String fn = table + "-" + fileIndex.incrementAndGet();
+        String tableName = "";
+        String varPath = "";
+        if (pathTable.contains("/")) {
+            tableName = pathTable.substring(pathTable.lastIndexOf("/") + 1);
+            varPath = pathTable.substring(0, pathTable.lastIndexOf("/") + 1);
+        }
+        String finalTable = tableName;
+        TaskDesc taskDesc = tasks.stream().filter(task -> finalTable.equals(task.dstTableName)).collect(Collectors.toList()).get(0);
+        String dstTableName = taskDesc.dstTableName;
+        String fn = dstTableName + "-" + fileIndex.incrementAndGet();
         logger.trace("BCP [" + fn + "] for [" + recs.size() + "] recs beginning... ");
         Map<String, Integer> counts = Maps.of();
-        Path fnp;
+        Path localPath;
         if (uri.toString().contains("///"))
-            fnp = confirmDir(Paths.get(uri.getPath()).resolve(table)).resolve(fn);
-        else
-            fnp = taskDesc.fd.base.resolve(fn);
-
-        confirmDir(fnp);
-
+            localPath = confirmDir(Paths.get(uri.getPath() + varPath).resolve(dstTableName)).resolve(fn);
+        else {
+            localPath = Paths.get(taskDesc.fd.base.toString()).resolve(fn);
+            Props.ftpPath = Paths.get(uri.getPath() + varPath).resolve(dstTableName);
+        }
+        confirmDir(localPath);
         List<String> lines;
         long now = System.currentTimeMillis();
-
         try {
             lines = Colls.list();
             getn(Colls.list(recs, r -> of().submit(() -> {
@@ -86,7 +93,7 @@ public class BcpFormat {
         try {
             of().submit(() -> {
                 try {
-                    bcp(uri, fnp, fn, lines, taskDesc);
+                    bcp(uri, localPath, fn, lines, taskDesc);
                 } catch (IOException e) {
                     logger.error("BCP [" + fn + "] for [" + recs.size() + "] failed", e);
                 }
@@ -103,16 +110,16 @@ public class BcpFormat {
 //        });
     }
 
-    protected void bcp(URISpec uri, Path fnp, String fn, List<String> lines, TaskDesc task) throws IOException {
+    protected void bcp(URISpec uri, Path localPath, String fn, List<String> lines, TaskDesc task) throws IOException {
         long now = System.currentTimeMillis();
         Future<?> f1 = of().submit(() -> {
-            xml(fnp, fn, task);
+            xml(localPath, fn, task);
         });
         Future<?> f2 = of().submit(() -> {
-            nb(fnp, fn, lines);
+            nb(localPath, fn, lines);
         });
         get(f1, f2);
-        zip(fnp, uri, task.name, task.tableName);
+        zip(localPath, uri, task.dstTableName + "_" + UUID.randomUUID().toString());
         if (logger.isDebugEnabled()) {
             long ms = System.currentTimeMillis() - START;
             long ms0 = System.currentTimeMillis() - now;
@@ -194,10 +201,10 @@ public class BcpFormat {
     /**
      * zip the dir "xml" into "zip"
      */
-    private void zip(Path base, URISpec uri, String taskName, String table) throws IOException {
+    private void zip(Path base, URISpec uri, String table) throws IOException {
         confirmDir(base.resolve("zip"));
         try {
-            TransToZIP.ZIP(base.resolve("xml").toString(), uri, taskName, table);
+            TransToZIP.ZIP(base.resolve("xml").toString(), uri, table);
         } catch (DocumentException e) {
             throw new IOException(e);
         }
@@ -209,7 +216,7 @@ public class BcpFormat {
     private void nb(Path base, String filename, List<String> lines) {
         confirmDir(base.resolve("nb"));
         try (WriteToNb wnb = new WriteToNb(base.resolve("nb").resolve(filename + ".nb").toString(), ENCODING)) {
-            wnb.write(lines.toArray(new String[lines.size()]));
+            wnb.write(lines.toArray(new String[0]));
         } catch (IOException e) {
             throw new IllegalArgumentException(e);
         }
@@ -220,16 +227,15 @@ public class BcpFormat {
      */
     private void xml(Path base, String filename, TaskDesc task) {
         confirmDir(base.resolve("xml"));
-        String[][] fileds = new String[task.fields.size()][2];
+        String[][] fields = new String[task.fields.size()][2];
         for (int i = 0; i < task.fields.size(); i++) {
             TaskDesc.FieldDesc fd = task.fields.get(i);
-            fileds[i][0] = fd.dstName;
-            fileds[i][1] = fd.comment;
+            fields[i][0] = fd.dstName;
         }
-        try (WriteToXml wxml = new WriteToXml(base.resolve("xml").resolve(filename + ".xml").toString())) {
-            wxml.addInPutInfo(base.toString() + File.separator, filename, task.tableDesc);
-            wxml.addOutPutInfo(base.toString() + File.separator);
-            wxml.addFileds(fileds);
+        try (WriteToXml wtx = new WriteToXml(base.resolve("xml").resolve(filename + ".xml").toString())) {
+            wtx.addInPutInfo(base.toString() + File.separator, filename, task.dstTableName);
+            wtx.addOutPutInfo(base.toString() + File.separator);
+            wtx.addFileds(fields);
         } catch (IOException e) {
             throw new IllegalArgumentException(e);
         }

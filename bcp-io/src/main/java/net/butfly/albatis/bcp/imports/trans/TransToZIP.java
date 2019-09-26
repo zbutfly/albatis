@@ -17,10 +17,10 @@ import java.util.List;
  * @code : @since : Created in 19:26 2019/2/28
  */
 public class TransToZIP {
-    public static void ZIP(String path, URISpec uri, String taskName, String table) throws DocumentException {
+    public static void ZIP(String path, URISpec uri, String table) throws DocumentException {
         List<KernelInfo> kernelInfoList = ReadConfs.getKernelInfos(path);
         for (KernelInfo kernelInfo : kernelInfoList) {
-            HandleFrame handleFrame = new HandleFrame(kernelInfo, false, uri, taskName, table);
+            HandleFrame handleFrame = new HandleFrame(kernelInfo, false, uri, table);
             new Thread(handleFrame).start();
         }
     }

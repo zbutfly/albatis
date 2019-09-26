@@ -4,13 +4,13 @@ import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Statistic;
+import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.ddl.Qualifier;
 import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.io.OutputBase;
 import net.butfly.albatis.io.Rmap;
 
 import java.io.IOException;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -18,7 +18,6 @@ import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static net.butfly.albacore.utils.Configs.get;
 import static net.butfly.albatis.bcp.Props.BCP_FLUSH_COUNT;
 import static net.butfly.albatis.bcp.Props.BCP_FLUSH_MINS;
 
@@ -51,17 +50,8 @@ public class BcpOutput extends OutputBase<Rmap> {
 
     private void initBcp(TableDesc... tables) {
         for (TableDesc tableDesc : tables) {
-            inc = Boolean.parseBoolean(get("input.inc", Boolean.toString(null != tableDesc.qualifier.name && tableDesc.qualifier.name.endsWith("_inc"))));
-            uriSpec = new URISpec(get("config"));
-            try (Config ds = new Config(uriSpec.toString(), uriSpec.getParameter("user"), uriSpec.getParameter("password"))) {
-                List<TaskDesc> taskDescList = inc ? ds.getTaskConfigInc(tableDesc.qualifier.name) : ds.getTaskConfig(tableDesc.qualifier.name);
-                if (taskDescList.isEmpty()) throw new IllegalArgumentException("Task not found");
-                TaskDesc task = taskDescList.get(0);
-                task.fields.addAll(inc ? ds.getTaskStatisticsInc(task.id) : ds.getTaskStatistics(task.id));
-                tasks.add(task);
-            } catch (SQLException e) {
-                throw new IllegalArgumentException(e);
-            }
+            TaskDesc taskDesc = new TaskDesc(tableDesc);
+            tasks.add(taskDesc);
         }
     }
 
@@ -72,7 +62,6 @@ public class BcpOutput extends OutputBase<Rmap> {
 
     @Override
     public Statistic s() {
-//        return super.s().detailing(() -> "Pending records: " + pool.size() + ", thread pool: " + EXPOOL_BCP.toString());
         Statistic statistic = new Statistic(BcpOutput.class);
         for (Map.Entry<String, LinkedBlockingQueue<Rmap>> entry : poolMap.entrySet()) {
             statistic = super.s().detailing(() -> "Pending table :" + entry.getKey() + ",Pending records: " + entry.getValue().size() + ", thread pool: " + EXPOOL_BCP.toString());
@@ -84,7 +73,6 @@ public class BcpOutput extends OutputBase<Rmap> {
     @Override
     protected void enqsafe(Sdream<Rmap> msgs) {
         msgs.eachs(m -> {
-        	
             try {
             	poolMap.putIfAbsent(m.table().qualifier, new LinkedBlockingQueue<>(50000));
                 LinkedBlockingQueue<Rmap> pool = poolMap.get(m.table().qualifier);

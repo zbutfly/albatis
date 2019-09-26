@@ -56,14 +56,14 @@ public class WriteToXml {
     }
 
     public void addDataSourceInfo(String company, String collectionPlace, String dataSource, String fileCode, String lineSplit,
-                                  String fieldSplit, String taskName, String table) {
+                                  String fieldSplit, String table) {
         Element element = (Element) doc.selectSingleNode("//MESSAGE/DATASET/DATA");
         element = addDataSetNode(element, "WA_COMMON_010013", "BCP文件描述信息");
         addDataSourceItem(element, "B050016", dataSource, "数据来源");
         addDataSourceItem(element, "F010008", collectionPlace, "数据采集地");
         addDataSourceItem(element, "G020013", company, "产品厂家组织机构代码");
         addDataSourceItem(element, "I010039", fileCode, "可选项，默认为UTF-８，BCP文件编码格式（采用不带格式的编码方式，如：UTF-８无BOM）");
-        addDataSourceItem(element, "A010004", taskName + "_" + table, "数据集代码");
+        addDataSourceItem(element, "A010004", table, "数据集代码");
         addDataSourceItem(element, "I010032", fieldSplit, "列分隔符（缺少值时默认为制表符\\t）");
         addDataSourceItem(element, "I010033", lineSplit, "行分隔符（缺少值时默认为换行符\\r\\n）");
     }
@@ -127,7 +127,7 @@ public class WriteToXml {
     public static void main(String[] args) {
         WriteToXml writeToXml = new WriteToXml("test.xml");
 //		writeToXml.createBaseXml();
-        writeToXml.addDataSourceInfo("fenghuo", "330000", "144", "UTF-8", "\t", "\n", "task1", "WA_SOURCE_Z002_9967");
+        writeToXml.addDataSourceInfo("fenghuo", "330000", "144", "UTF-8", "\t", "\n", "WA_SOURCE_Z002_9967");
         String[][] fields = {{"test1", "123"}, {"test2", "234"}, {"test3", "345"}};
         writeToXml.addFields(fields);
         writeToXml.addBcpInfo("", "fileName", String.valueOf(5000));

@@ -40,6 +40,7 @@ public class Criterion implements AutoCloseable {
     private final String outputDir;
     private final String outputDirTmp;
     private String zipDst = "";
+    private String ftpPath = "";
 
     // 0 zip ； 1 bcp ；2 SystemOutput
     private final int runMode;
@@ -58,12 +59,10 @@ public class Criterion implements AutoCloseable {
     private int FILEMAXNUM = 10000;
     private Path endPath = Props.BCP_PATH_BASE.resolve("zip");
     private URISpec uri;
-    private String taskName;
     private String table;
 
-    public Criterion(KernelInfo kernelInfo, URISpec uri, String taskName, String table) {
+    public Criterion(KernelInfo kernelInfo, URISpec uri, String table) {
         this.uri = uri;
-        this.taskName = taskName;
         this.table = table;
         lineSplit = kernelInfo.getIntputLineSplit();
         fieldSplit = kernelInfo.getIntputFiledSplit();
@@ -119,7 +118,7 @@ public class Criterion implements AutoCloseable {
             writeToXml.flush();
         } else {
             writeToXml = new WriteToXml(outputDirTmp + "/" + XML_NAME);
-            writeToXml.addDataSourceInfo("fenghuo", "330000", "999", "UTF-8", lineSplit, fieldSplit, taskName, table);
+            writeToXml.addDataSourceInfo("fenghuo", "330000", "999", "UTF-8", lineSplit, fieldSplit, table);
             writeToXml.addFields(fieldAndComments);
         }
     }
@@ -239,16 +238,16 @@ public class Criterion implements AutoCloseable {
             if (null != ftp) {
                 if (uri.getSchemas().length >= 2 && !uri.getSchemas()[1].equals("ftp")) {
                     File file = zipSrc.toFile();
-                    zipDst = zipDst.replace(".zip", "." + uri.getSchemas()[1]);
+                    ftpPath = ftpPath.replace(".zip", "." + uri.getSchemas()[1]);
                     String renameFile = zipSrc.toString().replace(".zip", "." + uri.getSchemas()[1]);
                     logger.trace("renameFilePath: [" + renameFile + "]");
                     File newFile = new File(renameFile);
                     boolean b = file.renameTo(newFile);
                     logger.trace("rename File is " + b);
                     zipSrc = newFile.toPath();
-                    logger.trace("zipSrc " + zipSrc + "; zipDst: " + zipDst);
+                    logger.trace("zipSrc " + zipSrc + "; ftpPath: " + ftpPath);
                 }
-                while (!(flag = ftp.uploadFile(zipDst, zipSrc)) && n++ < 5) ;
+                while (!(flag = ftp.uploadFile(ftpPath, zipSrc)) && n++ < 5) ;
                 if (flag) {
                     String dir = dataEName.substring(0, dataEName.indexOf("-"));
                     ftp.moveTotherFolders(zipSrc, zipDst, dir);
@@ -261,7 +260,7 @@ public class Criterion implements AutoCloseable {
 //                    Path txt = endPath.resolve(dir).resolve(txtname);
 //                    ftp.addText(txt.toString(), content);
 //                    ftp.uploadFile(txtname, txt);
-                } else logger.error("zip [" + zipDst + "] transfer fail.");
+                } else logger.error("zip [" + ftpPath + "] transfer fail.");
             }
         }
         // 清理本地临时文件
@@ -276,6 +275,7 @@ public class Criterion implements AutoCloseable {
         int index = bcpFileName.lastIndexOf(".");
         int index2 = bcpFileName.lastIndexOf("/");
         zipDst = bcpFileName.substring(index2 + 1, index) + ".zip";
+        ftpPath = Props.ftpPath.resolve(zipDst).toString();
         return Paths.get(outputDir).resolve(zipDst);
     }
 
