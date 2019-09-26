@@ -8,7 +8,8 @@
 	</parent>
 	<artifactId>albatis-kafka2-io</artifactId>
 	<properties>
-		<version.kafka>2.1.0</version.kafka>
+		<!-- <version.kafka>2.1.0</version.kafka> -->
+		<version.kafka>2.2.1-cdh6.3.0</version.kafka>
 	</properties>
 	<dependencies>
 		<dependency>
