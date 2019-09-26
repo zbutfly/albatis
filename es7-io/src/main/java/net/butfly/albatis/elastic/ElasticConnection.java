@@ -73,6 +73,7 @@ public class ElasticConnection extends DataConnection<TransportClient> implement
         if (client.admin().indices().prepareExists(index).execute().actionGet().isExists()) {
             PutMappingRequest req = new PutMappingRequest(index);
             req.source(mapping);
+            req.type(DEFAULT_TYPE);
             AcknowledgedResponse r = client.admin().indices().putMapping(req).actionGet();
             if (!r.isAcknowledged()) logger().error("Mapping failed " + req.toString());
             else logger().info(() -> "Mapping construced sussesfully.");
@@ -95,6 +96,7 @@ public class ElasticConnection extends DataConnection<TransportClient> implement
     public void construct(Map<String, Object> mapping, String index) {
         PutMappingRequest req = new PutMappingRequest(index);
         req.source(mapping);
+        req.type(DEFAULT_TYPE);
         AcknowledgedResponse r = client.admin().indices().putMapping(req).actionGet();
         if (!r.isAcknowledged()) logger().error("Mapping failed " + req.toString());
         else logger().info(() -> "Mapping on " + index + " construced sussesfully.");
