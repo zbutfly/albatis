@@ -234,7 +234,7 @@ public class Criterion implements AutoCloseable {
 
         boolean flag;
         int n = 0;
-        try (Ftp ftp = Ftp.connect(uri)) {
+        try (Ftp ftp = Ftp.connect(uri,"")) {
             if (null != ftp) {
                 if (uri.getSchemas().length >= 2 && !uri.getSchemas()[1].equals("ftp")) {
                     File file = zipSrc.toFile();

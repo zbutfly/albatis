@@ -25,6 +25,7 @@ public class BcpInput extends Namedly implements Input<Rmap> {
     private static final String GAB_ZIP_INDEX = "GAB_ZIP_INDEX.xml";
     private final LinkedBlockingQueue<Bcp> BCP_POOL = new LinkedBlockingQueue<>(20000);
     private String tableName;
+    String varPath = "";
     private Path dataPath;
     private Path bcpPath;
     List<String> zipNames;
@@ -50,14 +51,13 @@ public class BcpInput extends Namedly implements Input<Rmap> {
 
     private Path getDataPath(String dataPath, String tableName) {
         File directory = new File(this.getClass().getResource("/").getPath());
-        String varPath = "";
         if(tableName.contains("/")) varPath = tableName.substring(0, tableName.lastIndexOf("/") + 1);
         String parent = directory.getParent();
-        return Paths.get(parent + dataPath + varPath);
+        return Paths.get(parent).resolve(dataPath).resolve(varPath);
     }
 
     private void download() {
-        try (Ftp ftp = Ftp.connect(uri)) {
+        try (Ftp ftp = Ftp.connect(uri, varPath)) {
             if (null != ftp) {
                 ftp.downloadAllFiles(dataPath.toString());
             }

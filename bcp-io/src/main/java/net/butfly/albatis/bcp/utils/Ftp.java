@@ -26,11 +26,11 @@ public class Ftp implements Closeable {
     private long localTime;
 
 
-    public static Ftp connect(URISpec uri) {
-        return null == uri || uri.toString().contains("///") ? null : new Ftp(uri);
+    public static Ftp connect(URISpec uri, String varPath) {
+        return null == uri || uri.toString().contains("///") ? null : new Ftp(uri, varPath);
     }
 
-    private Ftp(URISpec uri) {
+    private Ftp(URISpec uri, String varPath) {
         client.setControlEncoding("utf-8");
         Pair<String, Integer> s = uri.getHosts().iterator().next();
         try {
@@ -44,7 +44,7 @@ public class Ftp implements Closeable {
         if (!FTPReply.isPositiveCompletion(replyCode))
             logger.error("[FTP] connect [" + uri.getHost() + "] failed with code: " + replyCode);
 //        else logger.trace("[FTP] connect [" + uri.getHost() + "] successed.");
-        base = uri.getPath();
+        base = Paths.get(uri.getPath()).resolve(varPath).toString();
     }
 
     /**
