@@ -26,6 +26,7 @@ import static net.butfly.albatis.ddl.vals.ValType.Flags.DATE;
 
 public class HmppConnection extends DataConnection<DataSource> {
     ConnInfo connInfo = new ConnInfo();
+    public TableDesc[] tables;
 
     public HmppConnection(URISpec uri) throws IOException {
         super(uri, "hmpp");
@@ -41,6 +42,7 @@ public class HmppConnection extends DataConnection<DataSource> {
 
     @Override
     public HmppOutput outputRaw(TableDesc... table) throws IOException {
+        this.tables = table;
         return new HmppOutput(this);
     }
 
