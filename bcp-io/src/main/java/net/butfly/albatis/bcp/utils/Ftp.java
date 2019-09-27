@@ -44,7 +44,7 @@ public class Ftp implements Closeable {
         if (!FTPReply.isPositiveCompletion(replyCode))
             logger.error("[FTP] connect [" + uri.getHost() + "] failed with code: " + replyCode);
 //        else logger.trace("[FTP] connect [" + uri.getHost() + "] successed.");
-        base = Paths.get(uri.getPath()).resolve(varPath).toString();
+        base = Paths.get(uri.getPath() + varPath).toString();
     }
 
     /**

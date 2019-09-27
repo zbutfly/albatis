@@ -25,18 +25,18 @@ public class BcpInput extends Namedly implements Input<Rmap> {
     private static final String GAB_ZIP_INDEX = "GAB_ZIP_INDEX.xml";
     private final LinkedBlockingQueue<Bcp> BCP_POOL = new LinkedBlockingQueue<>(20000);
     private String tableName;
-    String varPath = "";
+    private String varPath = "";
     private Path dataPath;
     private Path bcpPath;
-    List<String> zipNames;
+    private List<String> zipNames;
     private int count;
     private URISpec uri;
 
-    public BcpInput(final String name, URISpec uri, String dataPath, String tableName) {
+    public BcpInput(final String name, URISpec uri, String dataPath, String table) {
         super(name);
-        this.tableName = getTableName(tableName);
-        this.dataPath = getDataPath(dataPath ,tableName);
-        this.bcpPath = this.dataPath.resolve(getTableName(tableName));
+        this.tableName = getTableName(table);
+        this.dataPath = getDataPath(dataPath, table);
+        this.bcpPath = this.dataPath.resolve(getTableName(table));
         FileUtil.confirmDir(this.bcpPath);
         this.uri = uri;
         FtpDownloadThread thread = new FtpDownloadThread();
@@ -45,15 +45,15 @@ public class BcpInput extends Namedly implements Input<Rmap> {
     }
 
     private String getTableName(String tableName) {
-        if(tableName.contains("/")) return tableName.substring(tableName.lastIndexOf("/") + 1);
+        if (tableName.contains("/")) return tableName.substring(tableName.lastIndexOf("/") + 1);
         else return tableName;
     }
 
     private Path getDataPath(String dataPath, String tableName) {
         File directory = new File(this.getClass().getResource("/").getPath());
-        if(tableName.contains("/")) varPath = tableName.substring(0, tableName.lastIndexOf("/") + 1);
+        if (tableName.contains("/")) varPath = tableName.substring(0, tableName.lastIndexOf("/") + 1);
         String parent = directory.getParent();
-        return Paths.get(parent).resolve(dataPath).resolve(varPath);
+        return Paths.get(parent + dataPath + varPath);
     }
 
     private void download() {
