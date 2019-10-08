@@ -170,7 +170,7 @@ public class BcpInput extends Namedly implements Input<Rmap> {
         private void close() {
             count--;
             FileUtil.deleteZip(dataPath.toString());
-            if (CLEAN_TEMP_FILES) FileUtil.deleteDirectory(tempPath.getParent().toString());
+            if (CLEAN_TEMP_FILES) FileUtil.deleteDirectory(tempPath.toString());
         }
     }
 
