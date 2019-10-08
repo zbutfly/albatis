@@ -4,7 +4,6 @@ import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Statistic;
-import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.ddl.Qualifier;
 import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.io.OutputBase;
@@ -29,12 +28,10 @@ public class BcpOutput extends OutputBase<Rmap> {
 //			new ForkJoinPool(Props.HTTP_PARAL, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
 
     private final BcpFormat bcp;
-    //    private final LinkedBlockingQueue<Map<String, Object>> pool = new LinkedBlockingQueue<>(50000);// data
     private Map<String, LinkedBlockingQueue<Rmap>> poolMap = Maps.of();
     private final PoolTask pooling;
-    private boolean inc;
     private List<TaskDesc> tasks = new ArrayList<>();
-    private URISpec uriSpec, uri;
+    private URISpec  uri;
     AtomicLong totalCount = new AtomicLong();
     AtomicLong count = new AtomicLong();
 
@@ -162,6 +159,7 @@ public class BcpOutput extends OutputBase<Rmap> {
                 try {
                     Thread.sleep(5000);
                 } catch (InterruptedException e) {
+                    logger().error("Thread sleep error");
                 }
             }
         }
@@ -179,6 +177,7 @@ public class BcpOutput extends OutputBase<Rmap> {
             			try {
 							Thread.sleep(1000);
 						} catch (InterruptedException e) {
+            			    logger().error("Thread sleep error");
 						}
             		}
             	}

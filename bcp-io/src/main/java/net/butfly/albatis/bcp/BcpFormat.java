@@ -75,7 +75,7 @@ public class BcpFormat {
             localPath = confirmDir(Paths.get(uri.getPath() + varPath).resolve(dstTableName)).resolve(fn);
         else {
             localPath = Paths.get(taskDesc.fd.base.toString()).resolve(fn);
-            Props.ftpPath = Paths.get(uri.getPath() + varPath).resolve(dstTableName);
+            Props.ftpPath = Paths.get(uri.getPath() + varPath);
         }
         confirmDir(localPath);
         List<String> lines;

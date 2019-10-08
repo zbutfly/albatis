@@ -24,6 +24,7 @@ public class BcpInput extends Namedly implements Input<Rmap> {
     private static final String BCP = "bcp";
     private static final String GAB_ZIP_INDEX = "GAB_ZIP_INDEX.xml";
     private final LinkedBlockingQueue<Bcp> BCP_POOL = new LinkedBlockingQueue<>(20000);
+    private String pathTable;
     private String tableName;
     private String varPath = "";
     private Path dataPath;
@@ -34,8 +35,9 @@ public class BcpInput extends Namedly implements Input<Rmap> {
 
     public BcpInput(final String name, URISpec uri, String dataPath, String table) {
         super(name);
-        this.tableName = getTableName(table);
-        this.dataPath = getDataPath(dataPath, table);
+        this.pathTable = table;
+        this.tableName = getTableName(table); // path + tableName
+        this.dataPath = getDataPath(dataPath, table);// varPath
         this.bcpPath = this.dataPath.resolve(getTableName(table));
         FileUtil.confirmDir(this.bcpPath);
         this.uri = uri;
@@ -134,7 +136,7 @@ public class BcpInput extends Namedly implements Input<Rmap> {
         while (Props.BCP_STOP_FLAG == 0 || (opened() && count != 0)) {
             if (null != (bcp = BCP_POOL.poll())) {
                 try {
-                    List<Rmap> rmaps = FileUtil.loadBcpData(bcp.fields, FIELD_SPLIT, bcp.bcps, tableName);
+                    List<Rmap> rmaps = FileUtil.loadBcpData(bcp.fields, FIELD_SPLIT, bcp.bcps, pathTable);
                     if (!rmaps.isEmpty()) {
                         using.accept(Sdream.of(rmaps));
                     }
