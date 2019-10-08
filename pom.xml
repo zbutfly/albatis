@@ -59,6 +59,7 @@
 		<module>file-io</module>
         <module>odps-io</module>
         <module>es7-io</module>
+		<module>hmpp-io</module>
         <!-- <module>neo4j-io</module> -->
 		<!-- ORM projects, now stay at 1.5.0 -->
 	</modules>
