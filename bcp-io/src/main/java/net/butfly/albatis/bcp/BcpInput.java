@@ -144,6 +144,7 @@ public class BcpInput extends Namedly implements Input<Rmap> {
                 } catch (IllegalStateException ex) {
                     continue;
                 }
+                return;
             }
         }
     }
