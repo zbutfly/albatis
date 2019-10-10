@@ -4,6 +4,7 @@ import static net.butfly.albatis.ddl.vals.ValType.Flags.BINARY;
 import static net.butfly.albatis.ddl.vals.ValType.Flags.BOOL;
 import static net.butfly.albatis.ddl.vals.ValType.Flags.CHAR;
 import static net.butfly.albatis.ddl.vals.ValType.Flags.DATE;
+import static net.butfly.albatis.ddl.vals.ValType.Flags.TIMESTAMP;
 import static net.butfly.albatis.ddl.vals.ValType.Flags.DOUBLE;
 import static net.butfly.albatis.ddl.vals.ValType.Flags.FLOAT;
 import static net.butfly.albatis.ddl.vals.ValType.Flags.GEO;
@@ -15,6 +16,7 @@ import static net.butfly.albatis.ddl.vals.ValType.Flags.STRL;
 import static net.butfly.albatis.ddl.vals.ValType.Flags.UNKNOWN;
 
 import java.nio.ByteBuffer;
+import java.sql.Timestamp;
 import java.util.Date;
 
 import org.apache.hadoop.hbase.util.Bytes;
@@ -82,6 +84,9 @@ public class HbaseFormat extends RmapFormat {
 			case DATE:
 				Long ms = Bytes.toLong(b);
 				return null == ms ? null : new Date(ms.longValue());
+			case TIMESTAMP:
+				Long l = Bytes.toLong(b);
+				return null == l ? null : new Timestamp(l.longValue());
 			case INT:
 				switch (b.length) {
 				case 1:
@@ -125,6 +130,8 @@ public class HbaseFormat extends RmapFormat {
 			return (byte[]) v;
 		case DATE:
 			return Bytes.toBytes(((Date) v).getTime());
+		case TIMESTAMP:
+			return Bytes.toBytes(((Timestamp) v).getTime());
 		case INT:
 			return Bytes.toBytes((Integer) v);
 		case LONG:

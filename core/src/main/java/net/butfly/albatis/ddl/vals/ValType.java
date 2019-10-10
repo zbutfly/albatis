@@ -2,11 +2,11 @@ package net.butfly.albatis.ddl.vals;
 
 import java.io.Serializable;
 import java.nio.ByteBuffer;
+import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.Date;
 import java.util.Map;
 
-import de.undercouch.bson4jackson.types.Timestamp;
 import net.butfly.albacore.utils.collection.Maps;
 
 public abstract class ValType implements Serializable {
