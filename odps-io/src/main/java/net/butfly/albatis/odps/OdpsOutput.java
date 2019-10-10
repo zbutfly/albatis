@@ -16,6 +16,7 @@ import net.butfly.albatis.io.Rmap;
 import java.io.IOException;
 import java.util.Date;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static net.butfly.albacore.utils.Configs.get;
@@ -23,10 +24,8 @@ import static net.butfly.albacore.utils.Configs.get;
 public class OdpsOutput extends OutputBase<Rmap> {
     private static final Logger logger = Logger.getLogger(OdpsOutput.class);
     private OdpsConnection conn;
-    private TableSchema schema;
-    private RecordWriter writer;
-    private TableTunnel.UploadSession uploadSession;
     AtomicInteger count = new AtomicInteger();
+    AtomicInteger totalcount = new AtomicInteger();
     long last = System.currentTimeMillis();
 
     static {
@@ -34,74 +33,84 @@ public class OdpsOutput extends OutputBase<Rmap> {
     }
 
     public static final int ODPS_FLUSH_COUNT = Integer.parseInt(get("odps.flush.count", "10000"));
-    public static final int ODPS_FLUSH_MINS = Integer.parseInt(get("odps.flush.minutes", "5"));
+    public static final int ODPS_FLUSH_MINS = Integer.parseInt(get("odps.flush.minutes", "1"));
+    ConcurrentHashMap<String,OdpsSession> odpsMap = new ConcurrentHashMap<>();
 
     protected OdpsOutput(String name, OdpsConnection connection) {
         super(name);
         this.conn = connection;
-        getSession();
         closing(this::close);
         open();
     }
 
-    private void getSession() {
-        try {
-            if (null != conn.partition) {
-                this.uploadSession = conn.tunnel.createUploadSession(conn.project, conn.tableName, new PartitionSpec(conn.partition));
-            } else {
-                this.uploadSession = conn.tunnel.createUploadSession(conn.project, conn.tableName);
+    private void upLoad(){
+        ConcurrentHashMap<String,OdpsSession> odps = new ConcurrentHashMap<>();
+        odps.putAll(odpsMap);
+        odpsMap.clear();
+        for (Map.Entry<String, OdpsSession> map : odps.entrySet()) {
+            try {
+                if (null != map.getValue().writer)map.getValue().writer.close();
+                map.getValue().uploadSession.commit();
+            } catch (IOException e) {
+                e.printStackTrace();
+            } catch (TunnelException e) {
+                e.printStackTrace();
             }
-            this.schema = uploadSession.getSchema();
-            this.writer = uploadSession.openBufferedWriter();
-        } catch (TunnelException e) {
-            logger.error("get uploadSession fail: "+e);
         }
     }
 
     @Override
     public void close() {
+        upLoad();
         try {
-            if (null != writer) writer.close();
-            this.uploadSession.commit();
-        } catch (TunnelException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
+            Thread.sleep(5000);
+        } catch (InterruptedException e) {
         }
     }
 
     @Override
     protected void enqsafe(Sdream<Rmap> items) {
-        items.eachs(m -> {
-            Record record = format(m);
-            try {
-                writer.write(record);
-                count.incrementAndGet();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            if (count.intValue() > 0 && (count.intValue() % ODPS_FLUSH_COUNT == 0 || System.currentTimeMillis() - last > ODPS_FLUSH_MINS * 60000)) {
-                count.set(0);
-                last = System.currentTimeMillis();
+            items.eachs(m -> {
+                totalcount.incrementAndGet();
+                if (null == conn.partition && !odpsMap.contains(m.table().name)) {
+                    OdpsSession odpsSession = new OdpsSession(conn.tunnel, conn.project, m.table().name, null);
+                    odpsMap.put(m.table().name, odpsSession);
+                } else if (!odpsMap.containsKey(m.get(conn.partition).toString()) && m.containsKey(conn.partition)) {
+                    conn.CreatPartition(m.get(conn.partition).toString());
+                    PartitionSpec partitionSpec = new PartitionSpec();
+                    partitionSpec.set(conn.partition, m.get(conn.partition).toString());
+                    OdpsSession odpsSession = new OdpsSession(conn.tunnel, conn.project, conn.tableName, partitionSpec);
+                    odpsMap.put(m.get(conn.partition).toString(), odpsSession);
+               }
+                OdpsSession odpsSession;
+                if (null == conn.partition) {
+                    odpsSession = odpsMap.get(m.table().name);
+                } else {
+                    odpsSession = odpsMap.get(m.get(conn.partition).toString());
+                }
+                Record record = format(m, odpsSession);
                 try {
-                    if (null != writer) writer.close();
-                    this.uploadSession.commit();
-                    logger.trace("Session Status is : " + uploadSession.getStatus().toString());
-                    getSession();
-                    logger.trace("Session2 Status is : " + uploadSession.getStatus().toString());
-                } catch (TunnelException e) {
-                    e.printStackTrace();
+                    odpsSession.writer.write(record);
+                    count.incrementAndGet();
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-            }
-        });
+                synchronized (this) {
+                    if (count.intValue() > 0 && (count.intValue() % ODPS_FLUSH_COUNT == 0 || System.currentTimeMillis() - last > ODPS_FLUSH_MINS * 60000)) {
+                        logger.info("insert records count:" + count.intValue());
+                        logger.info("total count:" + totalcount.intValue());
+                        count.set(0);
+                        last = System.currentTimeMillis();
+                        upLoad();
+                    }
+                }
+            });
     }
 
-    private Record format(Map<String, Object> map) {
-        Record record = this.uploadSession.newRecord();
-        for (int i = 0; i < schema.getColumns().size(); i++) {
-            Column column = schema.getColumn(i);
+    private Record format(Map<String, Object> map,OdpsSession odpsSession) {
+        Record record = odpsSession.uploadSession.newRecord();
+        for (int i = 0; i < odpsSession.schema.getColumns().size(); i++) {
+            Column column = odpsSession.schema.getColumn(i);
             for (Map.Entry<String, Object> m : map.entrySet()) {
                 Object obj = m.getValue();
                 if (m.getKey().equals(column.getName())) {
@@ -135,6 +144,26 @@ public class OdpsOutput extends OutputBase<Rmap> {
             }
         }
         return record;
+    }
+
+    private class OdpsSession{
+        TableSchema schema;
+        RecordWriter writer;
+        TableTunnel.UploadSession uploadSession;
+
+        OdpsSession(TableTunnel tunnel,String project,String tableName, PartitionSpec partition){
+            try {
+                if (null != partition) {
+                    uploadSession = tunnel.createUploadSession(project, tableName, partition);
+                } else {
+                    uploadSession = tunnel.createUploadSession(project, tableName);
+                }
+                schema = uploadSession.getSchema();
+                writer = uploadSession.openBufferedWriter();
+            } catch (TunnelException e) {
+                logger.error("get uploadSession fail: "+e);
+            }
+        }
     }
 
 }
