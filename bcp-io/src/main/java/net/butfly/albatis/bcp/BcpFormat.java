@@ -82,22 +82,24 @@ public class BcpFormat {
         long now = System.currentTimeMillis();
         try {
             lines = Colls.list();
-            getn(Colls.list(recs, r -> of().submit(() -> {
-                lines.add(sync(r, counts, taskDesc));
-            })));
+//            getn(Colls.list(recs, r -> of().submit(() -> {
+//                lines.add(sync(r, counts, taskDesc));
+//            })));
+            recs.parallelStream().forEach(r -> lines.add(sync(r, counts, taskDesc)));
         } finally {
             long ms = System.currentTimeMillis() - now;
             logger.debug("BCP [" + fn + "] for [" + recs.size() + "] rendered, spent: " + formatMillis(ms) + " ms");
         }
         if (lines.isEmpty()) return;
         try {
-            of().submit(() -> {
-                try {
-                    bcp(uri, localPath, fn, lines, taskDesc);
-                } catch (IOException e) {
-                    logger.error("BCP [" + fn + "] for [" + recs.size() + "] failed", e);
-                }
-            }).get();
+//            of().submit(() -> {
+//                try {
+//                    bcp(uri, localPath, fn, lines, taskDesc);
+//                } catch (IOException e) {
+//                    logger.error("BCP [" + fn + "] for [" + recs.size() + "] failed", e);
+//                }
+//            }).get();
+            bcp(uri, localPath, fn, lines, taskDesc);
         } catch (Exception e) {
             logger.error("error!", e);
         }
@@ -112,13 +114,15 @@ public class BcpFormat {
 
     protected void bcp(URISpec uri, Path localPath, String fn, List<String> lines, TaskDesc task) throws IOException {
         long now = System.currentTimeMillis();
-        Future<?> f1 = of().submit(() -> {
-            xml(localPath, fn, task);
-        });
-        Future<?> f2 = of().submit(() -> {
-            nb(localPath, fn, lines);
-        });
-        get(f1, f2);
+        xml(localPath, fn, task);
+        nb(localPath, fn, lines);
+//        Future<?> f1 = of().submit(() -> {
+//            xml(localPath, fn, task);
+//        });
+//        Future<?> f2 = of().submit(() -> {
+//            nb(localPath, fn, lines);
+//        });
+//        get(f1, f2);
         zip(localPath, uri, task.dstTableName + "_" + UUID.randomUUID().toString());
         if (logger.isDebugEnabled()) {
             long ms = System.currentTimeMillis() - START;

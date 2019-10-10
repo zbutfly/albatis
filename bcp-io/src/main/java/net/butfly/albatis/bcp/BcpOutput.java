@@ -4,6 +4,7 @@ import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Statistic;
+import net.butfly.albatis.bcp.imports.trans.TransToZIP;
 import net.butfly.albatis.ddl.Qualifier;
 import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.io.OutputBase;
@@ -111,6 +112,7 @@ public class BcpOutput extends OutputBase<Rmap> {
     			while (!v.isEmpty()) bcp(null);
     		});
     		EXPOOL_BCP.shutdown();
+    		TransToZIP.CACHED_THREAD_POOL.shutdown();
         }
 
         public boolean isEmpty() {
