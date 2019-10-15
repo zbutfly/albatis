@@ -85,7 +85,8 @@ public class PostgresqlDialect extends Dialect {
 				try {
 					for (int i = 0; i < allFields.size(); i++) {
 						Object value = m.get(allFields.get(i));
-                        if (value instanceof CharSequence) value = value.toString().replaceAll("[^\u0020-\u9FA5]", "");
+//                        if (value instanceof CharSequence) value = value.toString().replaceAll("[^\u0020-\u9FA5]", "");
+                        if (value instanceof CharSequence) value = value.toString().replaceAll("[\u0000]", "");
 						Dialects.setObject(ps, i + 1, value);
 					}
 					ps.addBatch();
@@ -96,7 +97,7 @@ public class PostgresqlDialect extends Dialect {
 			int[] rs = ps.executeBatch();
 			long sucessed = Arrays.stream(rs).filter(r -> r >= 0).count();
 			count.addAndGet(sucessed);
-		} catch (SQLException e) {
+		} catch (Exception e) {
 			logger().warn(
 					() -> "execute batch(size: " + records.size() + ") error, operation may not take effect. reason:",
 					e);
