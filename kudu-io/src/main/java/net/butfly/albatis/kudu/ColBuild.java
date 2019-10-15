@@ -4,6 +4,7 @@ import static net.butfly.albatis.ddl.vals.ValType.Flags.BINARY;
 import static net.butfly.albatis.ddl.vals.ValType.Flags.BOOL;
 import static net.butfly.albatis.ddl.vals.ValType.Flags.CHAR;
 import static net.butfly.albatis.ddl.vals.ValType.Flags.DATE;
+import static net.butfly.albatis.ddl.vals.ValType.Flags.TIMESTAMP;
 import static net.butfly.albatis.ddl.vals.ValType.Flags.DOUBLE;
 import static net.butfly.albatis.ddl.vals.ValType.Flags.FLOAT;
 import static net.butfly.albatis.ddl.vals.ValType.Flags.GEO;
@@ -33,6 +34,9 @@ interface ColBuild {
 		if (f.type == null) type = Type.STRING;
 		else switch (f.type.flag) {
 		case DATE:
+			type = Type.INT64;
+			break;
+		case TIMESTAMP:
 			type = Type.INT64;
 			break;
 		case INT:

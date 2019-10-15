@@ -43,6 +43,7 @@ public class KuduCommon {
 				break;
 			case INT64:
 				if (o instanceof Number) row.addLong(index, ((Number) o).longValue());
+				else if (o instanceof Timestamp) row.addLong(index, ((Timestamp) o).getTime());
 				else if (o instanceof Date) row.addLong(index, ((Date) o).getTime());
 				else if (o instanceof CharSequence) row.addLong(index, Long.parseLong(((CharSequence) o).toString()));
 				break;
