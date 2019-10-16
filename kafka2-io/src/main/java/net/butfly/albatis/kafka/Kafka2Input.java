@@ -79,7 +79,7 @@ public class Kafka2Input extends Namedly implements Input<Rmap> {
 	public void dequeue(net.butfly.albacore.io.lambda.Consumer<Sdream<Rmap>> using) {
 		ConsumerRecords<byte[], byte[]> it;
 		while (opened()) {
-			synchronized(connect) {
+			synchronized (connect) {
 				try {
 					it = connect.poll(TIMEOUT);
 				} catch (IllegalStateException e) {
@@ -89,15 +89,16 @@ public class Kafka2Input extends Namedly implements Input<Rmap> {
 			}
 			if (Colls.empty(it)) continue;
 			using.accept(Sdream.of(list(it, km -> {
-				String k = null == km.key() || km.key().length == 0 ? null : new String(km.key());
-				return new Rmap(km.topic(), k, null == k ? "km" : k, (Object) km.value());
+				ConsumerRecord<byte[], byte[]> kmm = s().stats(km);
+				String k = null == kmm.key() || kmm.key().length == 0 ? null : new String(kmm.key());
+				return new Rmap(kmm.topic(), k, null == k ? "km" : k, (Object) kmm.value());
 			})));
 			return;
 		}
 	}
 
 	private void closeKafka() {
-		synchronized(connect) {
+		synchronized (connect) {
 			try {
 				connect.commitSync();
 			} catch (Exception e) {
