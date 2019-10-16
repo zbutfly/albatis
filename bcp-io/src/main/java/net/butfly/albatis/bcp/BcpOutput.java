@@ -33,11 +33,13 @@ public class BcpOutput extends OutputBase<Rmap> {
     private final PoolTask pooling;
     private List<TaskDesc> tasks = new ArrayList<>();
     private URISpec  uri;
+    private final String tmpDir;
     AtomicLong totalCount = new AtomicLong();
     AtomicLong count = new AtomicLong();
 
     public BcpOutput(String name, URISpec uri, TableDesc... tables) throws IOException {
         super(name);
+        tmpDir = uri.getParameter("tmpDir", "tmpDir");
         initBcp(tables);
         this.uri = uri;
         this.bcp = new BcpFormat(tasks);
@@ -129,7 +131,7 @@ public class BcpOutput extends OutputBase<Rmap> {
                         	count.incrementAndGet();
                         	EXPOOL_BCP.submit(() -> {
                         		try {
-                        			bcp.bcp(l, uri, k);
+                        			bcp.bcp(l, uri, k, tmpDir);
                         		} catch (Exception e) {
                         			logger().error("BCP ERROR!", e);
                         		} finally {
@@ -147,7 +149,7 @@ public class BcpOutput extends OutputBase<Rmap> {
                 	count.incrementAndGet();
                 	EXPOOL_BCP.submit(() -> {
                 		try {
-                			bcp.bcp(l, uri, taskName);
+                			bcp.bcp(l, uri, taskName, tmpDir);
                 		} catch (Exception e) {
                 			logger().error("BCP ERROR!", e);
                 		} finally {

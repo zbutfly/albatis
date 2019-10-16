@@ -60,10 +60,12 @@ public class Criterion implements AutoCloseable {
     private Path endPath = Props.BCP_PATH_BASE.resolve("zip");
     private URISpec uri;
     private String table;
+    private final String tmpDir;
 
     public Criterion(KernelInfo kernelInfo, URISpec uri, String table) {
         this.uri = uri;
         this.table = table;
+        tmpDir = uri.getParameter("tmpDir", "tmpDir");
         lineSplit = kernelInfo.getIntputLineSplit();
         fieldSplit = kernelInfo.getIntputFiledSplit();
 
@@ -266,8 +268,8 @@ public class Criterion implements AutoCloseable {
         // 清理本地临时文件
         if (CLEAN_TEMP_FILES) {
             String deName = dataEName;
-            FileUtils.deleteDirectory(Props.BCP_PATH_BASE + File.separator + deName.substring(0, dataEName.lastIndexOf("-")) + File.separator + deName);
-            logger.info("清理本地临时文件:" + Props.BCP_PATH_BASE + File.separator + deName.substring(0, dataEName.lastIndexOf("-")) + File.separator + deName);
+            FileUtils.deleteDirectory(Props.BCP_PATH_BASE + File.separator + deName.substring(0, dataEName.lastIndexOf("-")) + File.separator + deName + File.separator + tmpDir);
+            logger.info("清理本地临时文件:" + Props.BCP_PATH_BASE + File.separator + deName.substring(0, dataEName.lastIndexOf("-")) + File.separator + deName + File.separator + tmpDir);
         }
     }
 

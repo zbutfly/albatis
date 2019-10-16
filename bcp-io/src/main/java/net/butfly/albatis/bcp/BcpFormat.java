@@ -56,7 +56,7 @@ public class BcpFormat {
     private static final AtomicLong COUNT_CHARS = new AtomicLong();
     private static final long START = System.currentTimeMillis();
 
-    public void bcp(List<Rmap> recs, URISpec uri, String pathTable) {
+    public void bcp(List<Rmap> recs, URISpec uri, String pathTable, String tmpDir) {
         if (recs.isEmpty()) return;
         String tableName = "";
         String varPath = "";
@@ -72,9 +72,9 @@ public class BcpFormat {
         Map<String, Integer> counts = Maps.of();
         Path localPath;
         if (uri.toString().contains("///"))
-            localPath = confirmDir(Paths.get(uri.getPath() + varPath).resolve(dstTableName)).resolve(fn);
+            localPath = confirmDir(confirmDir(Paths.get(uri.getPath() + varPath).resolve(dstTableName)).resolve(fn)).resolve(tmpDir);
         else {
-            localPath = Paths.get(taskDesc.fd.base.toString()).resolve(fn);
+            localPath = confirmDir(Paths.get(taskDesc.fd.base.toString()).resolve(fn)).resolve(tmpDir);
             Props.ftpPath = Paths.get(uri.getPath() + varPath);
         }
         confirmDir(localPath);
