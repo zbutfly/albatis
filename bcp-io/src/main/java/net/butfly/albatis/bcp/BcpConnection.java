@@ -40,7 +40,7 @@ public class BcpConnection extends DataConnection<Connection> {
 	@Override
 	@SuppressWarnings("unchecked")
 	public Output<Rmap> outputRaw(TableDesc... table) throws IOException {
-		BcpOutput bcpOutput = new BcpOutput("BcpOutnput",uri,table);
+		BcpOutput bcpOutput = new BcpOutput("BcpOutput",uri,table);
 		return bcpOutput;
 	}
 

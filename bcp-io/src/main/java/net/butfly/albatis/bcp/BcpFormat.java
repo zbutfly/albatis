@@ -65,7 +65,9 @@ public class BcpFormat {
             varPath = pathTable.substring(0, pathTable.lastIndexOf("/") + 1);
         }
         String finalTable = tableName;
-        TaskDesc taskDesc = tasks.stream().filter(task -> finalTable.equals(task.dstTableName)).collect(Collectors.toList()).get(0);
+        List<TaskDesc> taskDescs = tasks.stream().filter(task -> finalTable.equals(task.dstTableName)).collect(Collectors.toList());
+        if(0 == taskDescs.size()) throw new RuntimeException("BcpOutput have no obtain task describe information");
+        TaskDesc taskDesc = taskDescs.get(0);
         String dstTableName = taskDesc.dstTableName;
         String fn = dstTableName + "-" + fileIndex.incrementAndGet();
         logger.trace("BCP [" + fn + "] for [" + recs.size() + "] recs beginning... ");
