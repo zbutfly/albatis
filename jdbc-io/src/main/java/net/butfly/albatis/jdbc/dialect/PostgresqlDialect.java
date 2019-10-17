@@ -5,9 +5,11 @@ import java.io.InputStream;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
@@ -69,8 +71,10 @@ public class PostgresqlDialect extends Dialect {
 
 	@Override
 	protected void doUpsert(Connection conn, String table, String keyField, List<Rmap> records, AtomicLong count) {
-		records.sort((m1, m2) -> m2.size() - m1.size());
-		List<String> allFields = new ArrayList<>(records.get(0).keySet());
+//		records.sort((m1, m2) -> m2.size() - m1.size());
+		Set<String> fieldNameSet = new HashSet<>();
+		records.forEach(r -> fieldNameSet.addAll(r.keySet()));
+		List<String> allFields = new ArrayList<>(fieldNameSet);
 		List<String> nonKeyFields = allFields.stream().filter(f -> !f.equals(keyField)).collect(Collectors.toList()); // update
 																														// fields
 
