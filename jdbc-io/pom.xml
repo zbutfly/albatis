@@ -51,6 +51,12 @@
 			<version>3.0-jdbc</version>
 			<scope>test</scope>
 		</dependency>
+		<dependency>
+			<groupId>com.aliyun.odps</groupId>
+			<artifactId>odps-jdbc</artifactId>
+			<version>1.6</version>
+			<scope>test</scope>
+		</dependency>
 		<!-- <dependency>
 			<groupId>com.hmpp</groupId>
 			<artifactId>hmppanalyticsdb</artifactId>
