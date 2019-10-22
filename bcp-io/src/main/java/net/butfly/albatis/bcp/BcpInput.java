@@ -30,7 +30,6 @@ public class BcpInput extends Namedly implements Input<Rmap> {
     private Path dataPath;
     private Path bcpPath;
     private List<String> zipNames;
-    private int count;
     private URISpec uri;
 
     public BcpInput(final String name, URISpec uri, String dataPath, String table) {
@@ -43,7 +42,7 @@ public class BcpInput extends Namedly implements Input<Rmap> {
         this.uri = uri;
         FtpDownloadThread thread = new FtpDownloadThread();
         new Thread(thread).start();
-        closing(this::closeBcp);
+//        closing(this::closeBcp);
     }
 
     private String getTableName(String tableName) {
@@ -114,26 +113,22 @@ public class BcpInput extends Namedly implements Input<Rmap> {
     }
 
 
-    private void closeBcp() {
-        Bcp bcp;
-        while (Props.BCP_STOP_FLAG == 0) {
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
-        while (count != 0) {
-            if (null != (bcp = BCP_POOL.poll())) bcp.close();
-        }
-        FileUtil.deleteDirectory(bcpPath.toString());
-    }
+//    private void closeBcp() {
+//        while (Props.BCP_STOP_FLAG == 0) {
+//            try {
+//                Thread.sleep(1000);
+//            } catch (InterruptedException e) {
+//                e.printStackTrace();
+//            }
+//        }
+//        FileUtil.deleteDirectory(bcpPath.toString());
+//    }
 
 
     @Override
     public void dequeue(net.butfly.albacore.io.lambda.Consumer<Sdream<Rmap>> using) {
         Bcp bcp;
-        while (Props.BCP_STOP_FLAG == 0 || (opened() && count != 0)) {
+        while (Props.BCP_STOP_FLAG == 0 || opened()) {
             if (null != (bcp = BCP_POOL.poll())) {
                 try {
                     List<Rmap> rmaps = FileUtil.loadBcpData(bcp.fields, FIELD_SPLIT, bcp.bcps, pathTable);
@@ -143,6 +138,12 @@ public class BcpInput extends Namedly implements Input<Rmap> {
                     bcp.close();
                 } catch (IllegalStateException ex) {
                     continue;
+                }finally {
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
                 }
                 return;
             }
@@ -169,7 +170,6 @@ public class BcpInput extends Namedly implements Input<Rmap> {
         }
 
         private void close() {
-            count--;
             FileUtil.deleteZip(dataPath.toString());
             if (CLEAN_TEMP_FILES) FileUtil.deleteDirectory(tempPath.toString());
         }
