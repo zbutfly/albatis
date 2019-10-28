@@ -146,6 +146,12 @@ public class BcpInput extends Namedly implements Input<Rmap> {
                     }
                 }
                 return;
+            }else{
+                try {
+                    Thread.sleep(Props.BCP_SLEEP_TIME);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
             }
         }
     }
