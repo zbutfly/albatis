@@ -22,6 +22,7 @@ import java.util.UUID;
 
 import org.apache.avro.Schema;
 
+import net.butfly.albacore.serder.JsonSerder;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
@@ -104,13 +105,14 @@ public class AvroFormat extends RmapFormat {
 	public static class Builder {
 		public static TableDesc schema(String table, Schema schema) {
 			TableDesc t = TableDesc.dummy(table);
-			for (Schema.Field f : schema.getFields())
-				t.field(field(t, f));
+			for (Schema.Field f : schema.getFields()) t.field(field(t, f));
 			return t;
 		}
 
 		public static Schema schema(TableDesc t) {
-			Schema s = Schema.createRecord(t.qualifier.name, null, null, false);
+			Map<String, Object> m = Maps.of("DISP_NAME", t.attr("dispName"), "COMMENT", t.attr("comment"));
+			String doc = Colls.empty(m) ? null : JsonSerder.JSON_MAPPER.ser(m);
+			Schema s = Schema.createRecord(t.qualifier.name, doc, null, false);
 			s.setFields(Colls.list(Builder::field, t.fields()));
 			logger.info("Schema build from field list: \n\t" + s.toString());
 			return s;
@@ -199,29 +201,33 @@ public class AvroFormat extends RmapFormat {
 
 		public static Schema.Field field(FieldDesc f) {
 			if (null == f) return null;
+			Map<String, Object> m = Maps.of("DISP_NAME", f.attr("dispName"), "COMMENT", f.attr("comment"));
+			String doc = Colls.empty(m) ? null : JsonSerder.JSON_MAPPER.ser(m);
+
 			switch (f.type.flag) {
 			case BINARY:
-				return new Schema.Field(f.name, createOptional(Schema.create(Schema.Type.BYTES)), null, new byte[0]);
+				return new Schema.Field(f.name, createOptional(Schema.create(Schema.Type.BYTES)), doc, new byte[0]);
 			case INT:
-				return new Schema.Field(f.name, createOptional(Schema.create(Schema.Type.INT)), null, 0);
+				return new Schema.Field(f.name, createOptional(Schema.create(Schema.Type.INT)), doc, 0);
 			case LONG:
 			case DATE:
-				return new Schema.Field(f.name, createOptional(Schema.create(Schema.Type.LONG)), null, 0);
+				return new Schema.Field(f.name, createOptional(Schema.create(Schema.Type.LONG)), doc, 0);
 			case FLOAT:
-				return new Schema.Field(f.name, createOptional(Schema.create(Schema.Type.FLOAT)), null, 0.0);
+				return new Schema.Field(f.name, createOptional(Schema.create(Schema.Type.FLOAT)), doc, 0.0);
 			case DOUBLE:
-				return new Schema.Field(f.name, createOptional(Schema.create(Schema.Type.DOUBLE)), null, 0.0);
+				return new Schema.Field(f.name, createOptional(Schema.create(Schema.Type.DOUBLE)), doc, 0.0);
 			case BOOL:
-				return new Schema.Field(f.name, createOptional(Schema.create(Schema.Type.BOOLEAN)), null, false);
+				return new Schema.Field(f.name, createOptional(Schema.create(Schema.Type.BOOLEAN)), doc, false);
 			case CHAR:
 			case STR:
 			case STRL:
 			case GEO:
 			case JSON_STR:
 			case UNKNOWN:
-				return new Schema.Field(f.name, createOptional(Schema.create(Schema.Type.STRING)), null, "");
+				return new Schema.Field(f.name, createOptional(Schema.create(Schema.Type.STRING)), doc, "");
+			default:
+				return null;
 			}
-			return null;
 		}
 
 		private static Schema createOptional(Schema schema) {
