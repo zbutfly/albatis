@@ -26,14 +26,15 @@ public class ActivemqConnection extends DataConnection<Connection> {
 	public ActivemqConnection(URISpec uri) throws IOException {
 		this(uri, "activemq", "tcp");
 	}
-	
+
 	@Override
     protected Connection initialize(URISpec uri) {
 		
 		String username = uri.getUsername();
 		String password = uri.getPassword();
 		String url = "tcp://" + uri.getHost();
-		ActiveMQConnectionFactory connectionFactory = username == null && password == null ? new ActiveMQConnectionFactory(url) : new ActiveMQConnectionFactory(username, password, url);
+		ActiveMQConnectionFactory connectionFactory = (username == null && password == null) ? new ActiveMQConnectionFactory(url) : new ActiveMQConnectionFactory(username, password, url);
+		ActivemqConfig.config(connectionFactory, uri);
         Connection conn;
         try {
         	conn = connectionFactory.createConnection();
