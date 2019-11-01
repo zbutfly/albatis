@@ -12,6 +12,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import static net.butfly.albatis.bcp.Props.CLEAN_TEMP_FILES;
@@ -24,6 +27,7 @@ public class BcpInput extends Namedly implements Input<Rmap> {
     private static final String BCP = "bcp";
     private static final String GAB_ZIP_INDEX = "GAB_ZIP_INDEX.xml";
     private final LinkedBlockingQueue<Bcp> BCP_POOL = new LinkedBlockingQueue<>(20000);
+    private ExecutorService executorService = Executors.newFixedThreadPool(5);
     private String pathTable;
     private String tableName;
     private String varPath = "";
@@ -40,9 +44,12 @@ public class BcpInput extends Namedly implements Input<Rmap> {
         this.bcpPath = this.dataPath.resolve(getTableName(table));
         FileUtil.confirmDir(this.bcpPath);
         this.uri = uri;
-        FtpDownloadThread thread = new FtpDownloadThread();
-        new Thread(thread).start();
-//        closing(this::closeBcp);
+        executorService.execute(new FtpDownloadThread());
+        closing(this::closeBcp);
+    }
+
+    private void closeBcp() {
+        executorService.shutdownNow();
     }
 
     private String getTableName(String tableName) {
@@ -128,7 +135,7 @@ public class BcpInput extends Namedly implements Input<Rmap> {
     @Override
     public void dequeue(net.butfly.albacore.io.lambda.Consumer<Sdream<Rmap>> using) {
         Bcp bcp;
-        while (Props.BCP_STOP_FLAG == 0 || opened()) {
+        while (opened()) {
             if (null != (bcp = BCP_POOL.poll())) {
                 try {
                     List<Rmap> rmaps = FileUtil.loadBcpData(bcp.fields, FIELD_SPLIT, bcp.bcps, pathTable);
@@ -184,7 +191,7 @@ public class BcpInput extends Namedly implements Input<Rmap> {
     private class FtpDownloadThread implements Runnable {
         @Override
         public void run() {
-            while (Props.BCP_STOP_FLAG == 0) {
+            while (opened()) {
                 download();
                 openBcp();
                 try {
