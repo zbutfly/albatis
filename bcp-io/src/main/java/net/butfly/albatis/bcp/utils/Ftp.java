@@ -191,7 +191,7 @@ public class Ftp implements Closeable {
                     continue;
                 } else if (fileStatus.processedFlag != 0) {
                     continue;
-                } else if (localTime - fileStatus.lastTime < 30000) {
+                } else if (localTime - fileStatus.lastTime < Props.BCP_FILE_LISTEN_TIME) {
                     fileStatus.timestamp = file.getTimestamp().getTimeInMillis();
                     fileStatus.size = file.getSize();
                     continue;

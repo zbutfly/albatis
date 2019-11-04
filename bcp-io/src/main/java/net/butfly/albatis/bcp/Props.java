@@ -25,7 +25,8 @@ public class Props {
 	public static final Path BCP_PATH_ZIP = confirmDir(BCP_PATH_BASE.resolve("zip"));
 	public static final int BCP_PARAL = Integer.valueOf(get("bcp.parallelism", "50"));
 	public static final boolean BCP_KEY_FIELD_EXCLUDE = Boolean.valueOf(get("bcp.key.field.exclude","false"));
-	public static long BCP_SLEEP_TIME = Long.valueOf(get("bcp.sleep.time","10000")) ;
+	public static long BCP_FILE_LISTEN_TIME = Long.valueOf(get("bcp.file.listen.time","30000")) ;
+	public static long BCP_SLEEP_TIME = Long.valueOf(get("bcp.sleep.time","1000")) ;
 	public static final boolean FTP_LOCAL_MODEL = Boolean.valueOf(get("ftp.local.model","false"));
 	public static final URISpec FTP_URI;
 	public static Path ftpPath;

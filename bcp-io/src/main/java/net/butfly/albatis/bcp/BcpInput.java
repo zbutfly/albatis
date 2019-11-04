@@ -92,7 +92,7 @@ public class BcpInput extends Namedly implements Input<Rmap> {
                     continue;
                 } else if (fileStatus.processedFlag != 0) {
                     continue;
-                } else if (localTime - fileStatus.lastTime < 30000) {
+                } else if (localTime - fileStatus.lastTime < Props.BCP_FILE_LISTEN_TIME) {
                     fileStatus.timestamp = file.lastModified();
                     fileStatus.size = file.length();
                     continue;
