@@ -82,7 +82,6 @@ public class ActivemqOutput extends OutputBase<Rmap> {
 				session.close();
 			}
 		} catch (JMSException e) {
-			e.printStackTrace();
 		}
 	}
 }

@@ -107,6 +107,10 @@ public abstract class ValType implements Serializable {
 	public static ValType obj(Object obj) {
 		if (null == obj) return VOID;
 		Class<?> cls = obj.getClass();
+		return cls(cls);
+	}
+
+	public static ValType cls(Class<?> cls) {
 		if (Boolean.class.isAssignableFrom(cls) || boolean.class.isAssignableFrom(cls)) return BOOL;
 		if (Character.class.isAssignableFrom(cls) || char.class.isAssignableFrom(cls)) return CHAR;
 		if (Byte.class.isAssignableFrom(cls) || byte.class.isAssignableFrom(cls)) return BYTE;

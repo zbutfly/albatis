@@ -82,4 +82,16 @@ public class ActivemqInput extends net.butfly.albacore.base.Namedly implements O
 		}
 		return null;
 	}
+
+	@Override
+	public void close() {
+		MessageConsumer consumer = null;
+		try {
+			while ((consumer = consumers.poll()) != null) {
+				consumer.close();
+			}
+			session.close();
+		} catch (JMSException e) {
+		}
+	}
 }
