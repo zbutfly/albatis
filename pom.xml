@@ -32,6 +32,7 @@
 		<!-- <version.hbase>1.2.0-cdh${version.cdh}</version.hbase> -->
 		<version.hbase>2.1.0-cdh${version.cdh}</version.hbase>
 		<version.hadoop>3.0.0-cdh${version.cdh}</version.hadoop>
+		<version.zookeeper>3.5.6</version.zookeeper>
 		<!-- <version.hadoop>3.1.1</version.hadoop> -->
 		<!-- <version.hadoop>2.6.0-cdh${version.cdh}</version.hadoop> -->
 		<version.solr>7.6.0</version.solr>
@@ -51,6 +52,7 @@
 		<module>solr-io</module>
 		<module>es-io</module>
 		<module>hbase-io</module>
+		<module>parquet-io</module>
 		<module>kudu-io</module>
 		<module>kafka2-io</module>
 		<module>kafka-io</module>

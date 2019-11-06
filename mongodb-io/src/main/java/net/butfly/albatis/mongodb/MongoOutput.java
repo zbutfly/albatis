@@ -8,6 +8,7 @@ import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 import com.mongodb.MongoCommandException;
+import com.mongodb.MongoWaitQueueFullException;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.paral.Exeter;
@@ -66,15 +67,21 @@ public class MongoOutput extends OutputBase<Rmap> {
 	}
 
 	private boolean upsert(Rmap m, String keyField, Object keyValue, List<Rmap> retries) {
+		boolean retry;
 		if (null == keyField && null != keyValue) conn.collection(m.table().name).save(MongoConnection.dbobj(m)).getN();
-		else try {
-			conn.collection(m.table().name).findAndModify(new BasicDBObject(keyField, keyValue), //
-					null, null, false, MongoConnection.dbobj(m), false, true);
-		} catch (MongoCommandException e) {
-			if (11000 == e.getErrorCode()) retries.add(m);
-			else logger().error("upsert mongo error!", e);
-			return false;
-		}
+		else do {
+			retry = false;
+			try {
+				conn.collection(m.table().name).findAndModify(new BasicDBObject(keyField, keyValue), //
+						null, null, false, MongoConnection.dbobj(m), false, true);
+			} catch (MongoWaitQueueFullException e) {
+				retry = true;
+			} catch (MongoCommandException e) {
+				if (11000 == e.getErrorCode()) retries.add(m);
+				else logger().error("upsert mongo error!", e);
+				return false;
+			}
+		} while (retry);
 		return true;
 	}
 }
