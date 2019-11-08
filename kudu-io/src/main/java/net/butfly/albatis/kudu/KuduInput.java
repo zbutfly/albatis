@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.kudu.ColumnSchema;
 import org.apache.kudu.Type;
@@ -46,8 +47,7 @@ public class KuduInput extends Namedly implements Input<Rmap> {
 
 	private void closeKudu() {
 		TableScanner s;
-		while (!scannerMap.isEmpty())
-			if (null != (s = scanners.poll())) s.close();
+		while (!scannerMap.isEmpty()) if (null != (s = scanners.poll())) s.close();
 	}
 
 	void table(TableDesc table) {
@@ -111,48 +111,49 @@ public class KuduInput extends Namedly implements Input<Rmap> {
 	@Override
 	public void dequeue(Consumer<Sdream<Rmap>> using) {
 		TableScanner s;
-		while (opened() && !empty())
-			if (null != (s = scanners.poll())) try {
-				String keyField = s.table.keys.get(0).get(0);
-				if (!s.scanner.hasMoreRows()) {
-					s.close();
-					s = null;
-					return;
-				} else {
-					RowResultIterator rs;
-					try {
-						rs = s.scanner.nextRows().join();
-					} catch (Exception e) {
-						// logger().error("Kudu fail", e);
-						s.scanner = kuduTable.getAsyncClient().newScannerBuilder(kuduTable).setProjectedColumnNames(Colls.list(s.schema
-								.keySet())).build();
-						return;
-					}
-					if (null == rs) {
-						s.close();
-						s = null;
-						return;
-					}
-					List<Rmap> rl = Colls.list();
-					while (rs.hasNext()) {
-						RowResult row = rs.next();
-						Rmap r = new Rmap(s.table.qualifier.name);
-						s.schema.forEach((f, t) -> {
-							Object v = KuduCommon.getValue(row, f, t);
-							if (null != v) r.put(f, v);
-						});
-						if (!Colls.empty(r)) {
-							if (null != keyField) r.keyField(keyField);
-							rl.add(r);
-						}
-					}
-					if (Colls.empty(rl)) return;
-					logger().trace("Kudu fetched [" + rl.size() + "] records");
-					using.accept(Sdream.of(rl));
+		RowResultIterator rs;
+		while (opened() && !empty()) if (null != (s = scanners.poll()) && null != (rs = scan(s))) {
+			String keyField = s.table.keys.get(0).get(0);
+			List<Rmap> rl = Colls.list();
+			while (rs.hasNext()) {
+				RowResult row = rs.next();
+				Rmap r = new Rmap(s.table.qualifier);
+				s.schema.forEach((f, t) -> {
+					Object v = KuduCommon.getValue(row, f, t);
+					if (null != v) r.put(f, v);
+				});
+				if (!Colls.empty(r)) {
+					if (null != keyField) r.keyField(keyField);
+					rl.add(r);
 				}
-			} finally {
-				if (null != s) scanners.offer(s);
 			}
-
+			if (!Colls.empty(rl)) {
+				logger().trace("Kudu fetched [" + rl.size() + "] records, total [" + total.addAndGet(rl.size()) + "]");
+				using.accept(Sdream.of(rl));
+				return;
+			}
+		}
 	}
+
+	private RowResultIterator scan(TableScanner s) {
+		RowResultIterator rs = null;
+		try {
+			if (!s.scanner.hasMoreRows()) {
+				s.close();
+				s = null;
+			} else try {
+				rs = s.scanner.nextRows().join();
+				if (null == rs) s = null;
+			} catch (Exception e) {
+				logger().error("Kudu fail, reconnect.", e);
+				// s.scanner = kuduTable.getAsyncClient().newScannerBuilder(kuduTable)//
+				// .setProjectedColumnNames(Colls.list(s.schema.keySet())).build();
+			}
+		} finally {
+			if (null != s) scanners.offer(s);
+		}
+		return rs;
+	}
+
+	private static final AtomicLong total = new AtomicLong();
 }
