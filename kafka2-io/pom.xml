@@ -13,11 +13,6 @@
 	</properties>
 	<dependencies>
 		<dependency>
-			<groupId>net.butfly.alserdes</groupId>
-			<artifactId>alserdes-avro</artifactId>
-			<version>1.2.0-SNAPSHOT</version>
-		</dependency>
-		<dependency>
 			<groupId>net.butfly.albatis</groupId>
 			<artifactId>albatis-core</artifactId>
 			<version>${project.version}</version>

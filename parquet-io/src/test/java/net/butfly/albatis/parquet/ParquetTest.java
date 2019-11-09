@@ -1,9 +1,10 @@
 package net.butfly.albatis.parquet;
 
+import static net.butfly.albatis.parquet.utils.Hdfses.manualHadoopConfiguration;
 import static org.apache.avro.Schema.create;
 import static org.apache.avro.Schema.createRecord;
 import static org.apache.avro.Schema.createUnion;
-import static net.butfly.albatis.parquet.utils.Hdfses.*;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
@@ -18,7 +19,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocatedFileStatus;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.parquet.avro.AvroParquetReader;
 import org.apache.parquet.avro.AvroParquetWriter;
@@ -27,7 +27,7 @@ import org.apache.parquet.hadoop.ParquetWriter;
 
 public class ParquetTest {
 	private static final java.nio.file.Path dstFile = java.nio.file.Path.of("C:\\Temp\\test.parquet");
-	private static final Path dst = new Path(dstFile.toUri());
+	private static final org.apache.hadoop.fs.Path dst = new org.apache.hadoop.fs.Path(dstFile.toUri());
 	private static final String hdfs = "hdfs://127.0.0.1:11000/";
 
 	private static final Schema schema = createRecord("TestNap", null, null, false);
@@ -73,13 +73,13 @@ public class ParquetTest {
 
 		FileSystem fs = FileSystem.get(conf);
 		// ls
-		RemoteIterator<LocatedFileStatus> it = fs.listFiles(new Path("/"), true);
+		RemoteIterator<LocatedFileStatus> it = fs.listFiles(new org.apache.hadoop.fs.Path("/"), true);
 		while (it.hasNext()) {
 			LocatedFileStatus f = it.next();
 			System.out.println(f.toString());
 		}
 		// cat
-		try (FSDataInputStream f = fs.open(new Path("/init.cmd"));) {
+		try (FSDataInputStream f = fs.open(new org.apache.hadoop.fs.Path("/init.cmd"));) {
 			String out = org.apache.commons.io.IOUtils.toString(f, "UTF-8");
 			System.out.println(out);
 		}

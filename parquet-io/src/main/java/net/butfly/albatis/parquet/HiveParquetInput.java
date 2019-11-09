@@ -1,5 +1,5 @@
 package net.butfly.albatis.parquet;
 
-public class ParquetInput {
+public class HiveParquetInput {
 
 }

@@ -1,4 +1,4 @@
-package net.butfly.albatis.kafka.avro;
+package net.butfly.albatis.kafka;
 
 import static net.butfly.albacore.utils.collection.Colls.empty;
 import static net.butfly.albacore.utils.logger.StatsUtils.formatKilo;
@@ -17,9 +17,10 @@ import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
+import net.butfly.albatis.io.format.AvroFormat.AvroSerdes;
 import net.butfly.alserdes.avro.AvroSerDes.Builder;
 
-public class SchemaReg {
+public class SchemaReg implements AvroSerdes {
 	private static final Logger logger = Logger.getLogger(SchemaReg.class);
 	private static final String BASIC_CONF = "schema.registry.url";
 
@@ -43,6 +44,7 @@ public class SchemaReg {
 
 	private static AtomicLong count = new AtomicLong(), spent = new AtomicLong(), size = new AtomicLong();
 
+	@Override
 	public byte[] ser(String topic, Map<String, Object> m, Schema schema) {
 		if (null == ser) return Builder.ser(m, schema);
 		long now = System.currentTimeMillis();
@@ -62,6 +64,7 @@ public class SchemaReg {
 		return b;
 	}
 
+	@Override
 	public Map<String, Object> deser(String topic, byte[] v, Schema schema) {
 		if (null == deser) return Builder.deser(v, schema);
 		GenericRecord rec = (GenericRecord) deser.deserialize(topic, v);

@@ -1,4 +1,4 @@
-package net.butfly.albatis.kafka.avro;
+package net.butfly.albatis.io.format;
 
 import static net.butfly.albacore.utils.collection.Colls.empty;
 import static net.butfly.albatis.ddl.vals.ValType.Flags.BINARY;
@@ -18,11 +18,13 @@ import static net.butfly.albatis.ddl.vals.ValType.Flags.UNKNOWN;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.apache.avro.Schema;
 
 import net.butfly.albacore.serder.JsonSerder;
+import net.butfly.albacore.utils.Reflections;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
@@ -31,7 +33,6 @@ import net.butfly.albatis.ddl.Qualifier;
 import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.ddl.vals.ValType;
 import net.butfly.albatis.io.Rmap;
-import net.butfly.albatis.io.format.RmapFormat;
 import net.butfly.alserdes.SerDes;
 import net.butfly.alserdes.avro.AvroSerDes;
 
@@ -40,7 +41,7 @@ public class AvroFormat extends RmapFormat {
 	private static final long serialVersionUID = 3687957634350865452L;
 	private static final Logger logger = Logger.getLogger(AvroFormat.class);
 	private static final Map<Qualifier, Schema> SCHEMAS = Maps.of();
-	private static final SchemaReg reg = new SchemaReg();
+	private static final AvroSerdes reg = AvroSerdes.init();
 
 	@Override
 	public Rmap ser(Rmap m, TableDesc dst) {
@@ -232,6 +233,24 @@ public class AvroFormat extends RmapFormat {
 
 		private static Schema createOptional(Schema schema) {
 			return Schema.createUnion(Arrays.asList(schema, Schema.create(Schema.Type.NULL)));
+		}
+	}
+
+	public interface AvroSerdes {
+		byte[] ser(String topic, Map<String, Object> m, Schema schema);
+
+		Map<String, Object> deser(String topic, byte[] v, Schema schema);
+
+		static AvroSerdes init() {
+			Set<Class<? extends AvroSerdes>> impl = Reflections.getSubClasses(AvroSerdes.class);
+			if (impl.isEmpty()) return null;
+			else {
+				Class<? extends AvroSerdes> c = impl.iterator().next();
+				logger.debug("Avro schema registry init as: " + c.getName());
+				AvroSerdes r = Reflections.construct(c);
+				if (null == r) logger.warn("Avro schema registry init faliure: " + c.getName());
+				return r;
+			}
 		}
 	}
 }
