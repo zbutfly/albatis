@@ -35,6 +35,7 @@ public class BcpInput extends Namedly implements Input<Rmap> {
     private Path bcpPath;
     private List<String> zipNames;
     private URISpec uri;
+    private boolean flag = true;
 
     public BcpInput(final String name, URISpec uri, String dataPath, String table) {
         super(name);
@@ -49,6 +50,7 @@ public class BcpInput extends Namedly implements Input<Rmap> {
     }
 
     private void closeBcp() {
+        flag = false;
         executorService.shutdownNow();
     }
 
@@ -120,18 +122,6 @@ public class BcpInput extends Namedly implements Input<Rmap> {
     }
 
 
-//    private void closeBcp() {
-//        while (Props.BCP_STOP_FLAG == 0) {
-//            try {
-//                Thread.sleep(1000);
-//            } catch (InterruptedException e) {
-//                e.printStackTrace();
-//            }
-//        }
-//        FileUtil.deleteDirectory(bcpPath.toString());
-//    }
-
-
     @Override
     public void dequeue(net.butfly.albacore.io.lambda.Consumer<Sdream<Rmap>> using) {
         Bcp bcp;
@@ -191,7 +181,8 @@ public class BcpInput extends Namedly implements Input<Rmap> {
     private class FtpDownloadThread implements Runnable {
         @Override
         public void run() {
-            while (opened()) {
+            while (flag) {
+                logger().trace("Beginning downloading...");
                 download();
                 openBcp();
                 try {

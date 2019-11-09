@@ -236,7 +236,7 @@ public class Criterion implements AutoCloseable {
 
         boolean flag;
         int n = 0;
-        try (Ftp ftp = Ftp.connect(uri,"")) {
+        try (Ftp ftp = Ftp.connect(uri, "")) {
             if (null != ftp) {
                 if (uri.getSchemas().length >= 2 && !uri.getSchemas()[1].equals("ftp")) {
                     File file = zipSrc.toFile();
@@ -250,25 +250,28 @@ public class Criterion implements AutoCloseable {
                     logger.trace("zipSrc " + zipSrc + "; ftpPath: " + ftpPath);
                 }
                 while (!(flag = ftp.uploadFile(ftpPath, zipSrc)) && n++ < 5) ;
-                if (flag) {
-                    String dir = dataEName.substring(0, dataEName.indexOf("-"));
-                    ftp.moveTotherFolders(zipSrc, zipDst, dir);
-                    // 上传对应文件名称,MD5,数据量
-//                    String bcpFileName = writeToBcp.getFileName();
-//                    int index2 = bcpFileName.lastIndexOf("/");
-//                    String bcpName = bcpFileName.substring(index2 + 1, writeToBcp.getFileName().length());
-//                    String content = "bcpFileName:" + bcpName + "\tfileMD5:" + fileMD5 + "\tcount:" + callWriteCount;
-//                    String txtname = bcpName + ".txt";
-//                    Path txt = endPath.resolve(dir).resolve(txtname);
-//                    ftp.addText(txt.toString(), content);
-//                    ftp.uploadFile(txtname, txt);
-                } else logger.error("zip [" + ftpPath + "] transfer fail.");
+//                if (flag) {
+//                    String dir = dataEName.substring(0, dataEName.indexOf("-"));
+////                    ftp.moveTotherFolders(zipSrc, zipDst, dir);
+//                    // 上传对应文件名称,MD5,数据量
+////                    String bcpFileName = writeToBcp.getFileName();
+////                    int index2 = bcpFileName.lastIndexOf("/");
+////                    String bcpName = bcpFileName.substring(index2 + 1, writeToBcp.getFileName().length());
+////                    String content = "bcpFileName:" + bcpName + "\tfileMD5:" + fileMD5 + "\tcount:" + callWriteCount;
+////                    String txtname = bcpName + ".txt";
+////                    Path txt = endPath.resolve(dir).resolve(txtname);
+////                    ftp.addText(txt.toString(), content);
+////                    ftp.uploadFile(txtname, txt);
+//                } else logger.error("zip [" + ftpPath + "] transfer fail.");
             }
         }
         // 清理本地临时文件
         if (CLEAN_TEMP_FILES) {
             String deName = dataEName;
+//            String zip = zipSrc.toString().substring(zipSrc.toString().lastIndexOf("/")+1);
+//            logger.trace("delete local file is "+zip);
             FileUtils.deleteDirectory(Props.BCP_PATH_BASE + File.separator + deName.substring(0, dataEName.lastIndexOf("-")) + File.separator + deName + File.separator + tmpDir);
+//            FileUtils.deleteFile(Props.BCP_PATH_BASE + File.separator + "zip" + File.separator + deName.substring(0, dataEName.lastIndexOf("-")) + File.separator + zip);
             logger.info("清理本地临时文件:" + Props.BCP_PATH_BASE + File.separator + deName.substring(0, dataEName.lastIndexOf("-")) + File.separator + deName + File.separator + tmpDir);
         }
     }
