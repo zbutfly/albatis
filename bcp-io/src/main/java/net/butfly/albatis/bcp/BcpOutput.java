@@ -161,7 +161,7 @@ public class BcpOutput extends OutputBase<Rmap> {
             }
             while (count.get() > 0) {
                 try {
-                    Thread.sleep(5000);
+                    Thread.sleep(Props.BCP_WAITING_TIME);
                 } catch (InterruptedException e) {
                     logger().error("Thread sleep error");
                 }
@@ -179,7 +179,7 @@ public class BcpOutput extends OutputBase<Rmap> {
             			last = now;
             		} else {
             			try {
-							Thread.sleep(1000);
+							Thread.sleep(10);
 						} catch (InterruptedException e) {
             			    logger().error("Thread sleep error");
 						}

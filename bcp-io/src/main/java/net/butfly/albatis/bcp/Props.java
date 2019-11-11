@@ -28,6 +28,7 @@ public class Props {
 	public static long BCP_FILE_LISTEN_TIME = Long.valueOf(get("bcp.file.listen.time","30000")) ;
 	public static long BCP_SLEEP_TIME = Long.valueOf(get("bcp.sleep.time","3000")) ;
 	public static final boolean FTP_LOCAL_MODEL = Boolean.valueOf(get("ftp.local.model","false"));
+	public static final int BCP_WAITING_TIME = Integer.parseInt(get("bcp.waiting.time", "100"));
 	public static final URISpec FTP_URI;
 	public static Path ftpPath;
 	static {
