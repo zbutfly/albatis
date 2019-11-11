@@ -21,17 +21,15 @@ public class HiveParquetOutput extends OutputBase<Rmap> {
 	public HiveParquetOutput(String name, HiveConnection conn, TableDesc... table) throws IOException {
 		super(name);
 		this.conn = conn;
-		for (TableDesc t : table) rolling(t.qualifier);
-	}
-
-	private void rolling(Qualifier table) throws IOException {
-		writers.compute(table, (t, w) -> null == w ? new HiveParquetWriter(this, t) : w.rolling());
+		for (TableDesc t : table) // rolling initialization tables.
+			writers.computeIfAbsent(t.qualifier, tt -> null == conn.conf ? //
+					new HiveParquetWriterLocal(this, tt) : new HiveParquetWriterHDFS(this, tt));
 	}
 
 	@Override
 	protected void enqsafe(Sdream<Rmap> items) {
 		Map<Qualifier, List<Rmap>> split = Maps.of();
 		items.eachs(r -> split.computeIfAbsent(r.table(), t -> Colls.list()));
-		split.forEach((t, l) -> writers.computeIfAbsent(t, tt -> new HiveParquetWriter(this, tt)).write(l));
+		split.forEach((t, l) -> writers.computeIfAbsent(t, tt -> new HiveParquetWriterHDFS(this, tt)).write(l));
 	}
 }

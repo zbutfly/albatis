@@ -9,27 +9,22 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.hadoop.fs.Path;
-import org.apache.parquet.avro.AvroParquetWriter;
 import org.apache.parquet.hadoop.ParquetWriter;
-import org.apache.parquet.hadoop.util.HadoopOutputFile;
-import org.apache.parquet.io.OutputFile;
 
 import net.butfly.albatis.ddl.Qualifier;
 import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.io.Rmap;
 import net.butfly.albatis.io.format.AvroFormat;
-import net.butfly.alserdes.avro.AvroSerDes.Builder;
 
-class HiveParquetWriter {
-	private final HiveParquetOutput out;
-	private final Schema avroSchema;
-	private final AtomicLong count = new AtomicLong();
-	private final long threshold;
+abstract class HiveParquetWriter {
+	protected final HiveParquetOutput out;
+	protected final Schema avroSchema;
+	protected final AtomicLong count = new AtomicLong();
+	protected final long threshold;
 	private final Path base;
 
-	private Path current;
-	private OutputFile outfile;
-	private ParquetWriter<GenericRecord> writer;
+	protected Path current;
+	protected ParquetWriter<GenericRecord> writer;
 
 	public HiveParquetWriter(HiveParquetOutput out, Qualifier table) {
 		super();
@@ -41,33 +36,25 @@ class HiveParquetWriter {
 		rolling();
 	}
 
-	public synchronized void write(List<Rmap> l) {
-		for (Rmap r : l) {
-			try {
-				writer.write(Builder.rec(r, avroSchema));
-			} catch (IOException e) {
-				out.logger().error("Parquet fail on record: \n\t" + r.toString(), e);
-			}
-			if (count.incrementAndGet() >= threshold) rolling();
-		}
-	}
+	abstract void write(List<Rmap> l);
 
-	public HiveParquetWriter rolling() {
+	protected HiveParquetWriter rolling() {
+		current = new Path(base, filename());
 		if (null != writer) try {
 			writer.close();
 		} catch (IOException e) {
 			out.logger().error("Parquet file close failed.", e);
 		}
-		current = new Path(base, filename());
-		out.logger().info("Parquet file rolled: " + current.toString());
 		try {
-			outfile = HadoopOutputFile.fromPath(current, out.conn.conf);
-			writer = AvroParquetWriter.<GenericRecord> builder(outfile).withSchema(avroSchema).build();
+			writer = w();
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
+		out.logger().info("Parquet file rolled: " + current.toString());
 		return this;
 	}
+
+	protected abstract ParquetWriter<GenericRecord> w() throws IOException;
 
 	private static final SimpleDateFormat f = new SimpleDateFormat(//
 			"yyyy" + Path.SEPARATOR_CHAR + "MM" + Path.SEPARATOR_CHAR + "dd" + Path.SEPARATOR_CHAR + "hhmmssSSS");

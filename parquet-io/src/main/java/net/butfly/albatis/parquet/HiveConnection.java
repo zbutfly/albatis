@@ -41,29 +41,51 @@ public class HiveConnection extends DataConnection<FileSystem> {
 		String sub = schs.isEmpty() ? "parquet" : schs.remove(0);
 		switch (sub) {
 		case "parquet":
-			break;
-		default:
-			throw new IllegalArgumentException(sub + " not support in uri [" + uri + "] schema");
-		}
-		sub = schs.isEmpty() ? "file" : schs.remove(0);
-		String path = uri.getPath();
-		switch (sub) {
-		case "file":
-			this.base = new org.apache.hadoop.fs.Path(path);
-			this.conf = null;
-			break;
-		case "hdfs":
-			if (schs.isEmpty()) {// no hdfs position spec
+			sub = schs.isEmpty() ? "file" : schs.remove(0);
+			String path = uri.getPath();
+			switch (sub) {
+			case "file":
 				this.base = new org.apache.hadoop.fs.Path(path);
-				this.conf = new Configuration();
-				String host = uri.getHost();
-				switch (host) {
-				case "":// classpath
-					logger.debug("HDFS configuration load from classpath.");
-					conf.setClassLoader(HiveConnection.class.getClassLoader());
-					break;
-				case ".":// system
-					logger.debug("HDFS configuration load from system environment/property.");
+				this.conf = null;
+				break;
+			case "hdfs":
+				if (schs.isEmpty()) {// no hdfs position spec
+					this.base = new org.apache.hadoop.fs.Path(path);
+					this.conf = new Configuration();
+					String host = uri.getHost();
+					switch (host) {
+					case "":// classpath
+						logger.debug("HDFS configuration load from classpath.");
+						conf.setClassLoader(HiveConnection.class.getClassLoader());
+						break;
+					case ".":// system
+						logger.debug("HDFS configuration load from system environment/property.");
+						String env = System.getProperty("hadoop.home.dir");
+						if (null == env) env = System.getenv("HADOOP_HOME");
+						if (null != env) {
+							java.nio.file.Path etc = java.nio.file.Path.of(env).resolve("etc").resolve("hadoop");
+							File etcf = etc.toFile();
+							if (etcf.exists() && etcf.isDirectory()) for (String f : etcf.list()) {
+								File ff = etc.resolve(f).toFile();
+								int i = f.lastIndexOf('.');
+								String ext = i >= 0 ? f.substring(i).toLowerCase() : null;
+								if (ff.isFile() && ".xml".equals(ext)) conf.addResource(ff.getPath());
+							}
+						}
+						break;
+					default:
+						logger.debug("HDFS configuration connect to server: " + host);
+						conf.set("fs.defaultFS", "hdfs://" + host + "/");
+						conf.set("fs.hdfs.impl", org.apache.hadoop.hdfs.DistributedFileSystem.class.getName());
+						conf.set("fs.file.impl", org.apache.hadoop.fs.LocalFileSystem.class.getName());
+					}
+				} else switch (sub = schs.remove(0)) {
+				case "file":
+					String[] paths = path.split("-", 2);
+					String confPath = paths[0];
+					this.base = new org.apache.hadoop.fs.Path(paths.length > 1 ? paths[1] : "/");
+					this.conf = new Configuration();
+					logger.debug("HDFS configuration load from file: " + confPath);
 					String env = System.getProperty("hadoop.home.dir");
 					if (null == env) env = System.getenv("HADOOP_HOME");
 					if (null != env) {
@@ -78,29 +100,7 @@ public class HiveConnection extends DataConnection<FileSystem> {
 					}
 					break;
 				default:
-					logger.debug("HDFS configuration connect to server: " + host);
-					conf.set("fs.defaultFS", "hdfs://" + host + "/");
-					conf.set("fs.hdfs.impl", org.apache.hadoop.hdfs.DistributedFileSystem.class.getName());
-					conf.set("fs.file.impl", org.apache.hadoop.fs.LocalFileSystem.class.getName());
-				}
-			} else switch (sub = schs.remove(0)) {
-			case "file":
-				String[] paths = path.split("-", 2);
-				String confPath = paths[0];
-				this.base = new org.apache.hadoop.fs.Path(paths.length > 1 ? paths[1] : "/");
-				this.conf = new Configuration();
-				logger.debug("HDFS configuration load from file: " + confPath);
-				String env = System.getProperty("hadoop.home.dir");
-				if (null == env) env = System.getenv("HADOOP_HOME");
-				if (null != env) {
-					java.nio.file.Path etc = java.nio.file.Path.of(env).resolve("etc").resolve("hadoop");
-					File etcf = etc.toFile();
-					if (etcf.exists() && etcf.isDirectory()) for (String f : etcf.list()) {
-						File ff = etc.resolve(f).toFile();
-						int i = f.lastIndexOf('.');
-						String ext = i >= 0 ? f.substring(i).toLowerCase() : null;
-						if (ff.isFile() && ".xml".equals(ext)) conf.addResource(ff.getPath());
-					}
+					throw new IllegalArgumentException(sub + " not support in uri [" + uri + "] schema");
 				}
 				break;
 			default:
@@ -112,7 +112,7 @@ public class HiveConnection extends DataConnection<FileSystem> {
 		}
 
 		try {
-			return FileSystem.get(conf);
+			return null == conf ? null : FileSystem.get(conf);
 		} catch (IOException e) {
 			throw new IllegalArgumentException("fs connection failed.", e);
 		}
@@ -120,7 +120,7 @@ public class HiveConnection extends DataConnection<FileSystem> {
 
 	@Override
 	public void close() throws IOException {
-		fs.close();
+		if (null != fs) fs.close();
 		super.close();
 	}
 
