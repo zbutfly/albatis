@@ -26,7 +26,7 @@ public class ParquetOutputTest {
 		TableDesc td = TableDesc.dummy("test_table")//
 				.attw(HiveParquetWriter.ROLLING_RECORD_COUNT_PARAM, 1000)//
 				.attw(HiveParquetWriter.HASHING_FIELD_NAME_PARAM, "BIRTHDAY")//
-				.attw(HiveParquetWriter.HASHING_STRATEGY_DESC_PARAM, "DATE:yyyy/MM/dd");
+				.attw(HiveParquetWriter.HASHING_STRATEGY_DESC_PARAM, "DATE:yyyy/MM/dd/hh");
 		new FieldDesc(td, "NAME", ValType.STR);
 		new FieldDesc(td, "AGE", ValType.INT);
 		new FieldDesc(td, "BIRTHDAY", ValType.INT);

@@ -30,7 +30,7 @@ public abstract class HiveParquetWriter implements AutoCloseable {
 	public static final String HASHING_STRATEGY_DESC_PARAM = "hive.parquet.hashing.strategy";
 	public static final String HASHING_STRATEGY_IMPL_PARAM = "hive.parquet.hashing.strategy.impl";
 	public static final String HASHING_FIELD_NAME_PARAM = "hive.parquet.hashing.field";
-//	public static final String HASHING_FIELD_PARSE_FORMAT_PARAM = "yyyy-MM-dd hh:mm:ss";
+	public static final String HASHING_FIELD_PARSE_FORMAT_PARAM = "yyyy-MM-dd hh:mm:ss";
 
 	public final AtomicLong lastWriten;
 	public final long timeout;
