@@ -119,13 +119,13 @@ public interface IOFactory extends Formatable {
 			List<Rmap> lms = Colls.list(subs.entrySet(), e -> new Rmap(e.getKey(), rowkey, e.getValue()));
 			return Sdream.of(lms);
 		} else {
-			for (String f : m.keySet()) {
-				QualifierField fq = QualifierField.of(m.table, f).table(m.table);
-//				if (!fq.name.equals(f)) {
-//					m.put(fq.name, m.remove(f));
-//					if (f.equals(m.keyField())) m.keyField(fq.name);
-//				}
-			}
+			// for (String f : m.keySet()) {
+			// QualifierField fq = QualifierField.of(m.table, f).table(m.table);
+			// if (!fq.name.equals(f)) {
+			// m.put(fq.name, m.remove(f));
+			// if (f.equals(m.keyField())) m.keyField(fq.name);
+			// }
+			// }
 			return Sdream.of1(m);
 		}
 	}
@@ -133,7 +133,9 @@ public interface IOFactory extends Formatable {
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	default <M extends Rmap> Output<M> output(List<TableDesc> tables, List<? extends Format> fotmats) throws IOException {
 		Map<Qualifier, TableDesc> tbls = Maps.distinct(tables, t -> t.qualifier);
-		Output o = outputRaw(tables.toArray(new TableDesc[0]));
+		TableDesc[] tds = tables.toArray(new TableDesc[0]);
+		Output o = outputRaw(tds);
+		o.schema(tds);
 		// serializing
 		if (null != fotmats) for (Format f : fotmats) o = f.as().list() //
 				? o.prior(r -> empty((Rmap) r) ? null : f.sers(Colls.list((Rmap) r), (TableDesc) tbls.get(((Rmap) r).table())))

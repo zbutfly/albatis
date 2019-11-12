@@ -1,6 +1,6 @@
 package net.butfly.albatis.parquet;
 
-import static net.butfly.albatis.parquet.utils.Hdfses.manualHadoopConfiguration;
+import static net.butfly.albatis.parquet.impl.Hdfses.manualHadoopConfiguration;
 import static org.apache.avro.Schema.create;
 import static org.apache.avro.Schema.createRecord;
 import static org.apache.avro.Schema.createUnion;
