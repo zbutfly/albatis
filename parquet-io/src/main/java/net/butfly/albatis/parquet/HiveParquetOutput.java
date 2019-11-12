@@ -3,6 +3,9 @@ package net.butfly.albatis.parquet;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
+
+import org.apache.hadoop.fs.Path;
 
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.collection.Colls;
@@ -20,22 +23,27 @@ public class HiveParquetOutput extends OutputBase<Rmap> {
 	private static final long serialVersionUID = 4543231903669455241L;
 
 	final HiveConnection conn;
-	private Map<Qualifier, HiveParquetWriter> writers = Maps.of();
+	private Map<Path, HiveParquetWriter> writers = Maps.of();
+	private final Thread monitor;
 
 	public HiveParquetOutput(String name, HiveConnection conn, TableDesc... table) throws IOException {
 		super(name);
 		this.conn = conn;
 		for (TableDesc t : table) {
-			HashingStrategy s = HashingStrategy.get(t.attr(HiveParquetWriter.HASHING_STRATEGY_DESC_PARAM, "DATE:yyyy/MM/dd"));
+			HashingStrategy s = HashingStrategy.get(t.attr(HiveParquetWriter.HASHING_STRATEGY_DESC_PARAM));
 			if (null != s) t.attw(HiveParquetWriter.HASHING_STRATEGY_IMPL_PARAM, s);
 			// w(t);// rolling initialization tables.
 		}
+		monitor = new Thread(() -> clear(), "HiveParquetFileWriterMonitor");
+		monitor.setDaemon(true);
 	}
 
-	private HiveParquetWriter w(Qualifier t, String hashing) {
-		return writers.computeIfAbsent(t, tt -> null == conn.conf ? //
-				new HiveParquetWriterLocal(this, tt, conn.conf, conn.base) : //
-				new HiveParquetWriterHDFS(this, tt, conn.conf, conn.base));
+	private HiveParquetWriter w(Qualifier table, String hashing) {
+		Path path = new Path(new Path(conn.base, table.name), hashing);
+		TableDesc td = schema(table);
+		return writers.computeIfAbsent(path, p -> null == conn.conf ? //
+				new HiveParquetWriterLocal(td, conn.conf, p, logger()) : //
+				new HiveParquetWriterHDFS(td, conn.conf, p, logger()));
 	}
 
 	@Override
@@ -56,5 +64,31 @@ public class HiveParquetOutput extends OutputBase<Rmap> {
 			}
 		}
 		return "";
+	}
+
+	@Override
+	public void close() {
+		super.close();
+		Path p;
+		HiveParquetWriter w;
+		while (true) {
+			try {
+				p = writers.keySet().iterator().next();
+			} catch (NoSuchElementException e) {
+				return;
+			} ;
+			if (null != (w = writers.remove(p))) w.close();
+		}
+	}
+
+	private void clear() {
+		long now = System.currentTimeMillis();
+		while (true) {
+			writers.forEach((p, w) -> {
+				if (w.timeout > now - w.lastWriten.get())
+					w.rolling();
+
+			});
+		}
 	}
 }

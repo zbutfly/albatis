@@ -149,7 +149,7 @@ public class HiveConnection extends DataConnection<FileSystem> {
 	@SuppressWarnings("unchecked")
 	@Override
 	public HiveParquetOutput outputRaw(TableDesc... table) throws IOException {
-		return new HiveParquetOutput("HiveParquetOutput", this);
+		return new HiveParquetOutput("HiveParquetOutput", this, table);
 	}
 
 	@Override

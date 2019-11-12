@@ -9,12 +9,12 @@ import org.apache.hadoop.fs.Path;
 import org.apache.parquet.avro.AvroParquetWriter;
 import org.apache.parquet.hadoop.ParquetWriter;
 
-import net.butfly.albatis.ddl.Qualifier;
-import net.butfly.albatis.parquet.HiveParquetOutput;
+import net.butfly.albacore.utils.logger.Logger;
+import net.butfly.albatis.ddl.TableDesc;
 
 public class HiveParquetWriterLocal extends HiveParquetWriter {
-	public HiveParquetWriterLocal(HiveParquetOutput out, Qualifier table, Configuration conf, Path base) {
-		super(out, table, conf, base);
+	public HiveParquetWriterLocal(TableDesc table, Configuration conf, Path base, Logger logger) {
+		super(table, conf, base, logger);
 	}
 
 	@Override

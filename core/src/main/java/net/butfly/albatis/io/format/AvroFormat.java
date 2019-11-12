@@ -103,14 +103,14 @@ public class AvroFormat extends RmapFormat {
 		return byte[].class;
 	}
 
-	public static class Builder {
-		public static TableDesc schema(String table, Schema schema) {
+	public static interface Builder {
+		static TableDesc schema(String table, Schema schema) {
 			TableDesc t = TableDesc.dummy(table);
 			for (Schema.Field f : schema.getFields()) t.field(field(t, f));
 			return t;
 		}
 
-		public static Schema schema(TableDesc t) {
+		static Schema schema(TableDesc t) {
 			Map<String, Object> m = Maps.of("DISP_NAME", t.attr("dispName"), "COMMENT", t.attr("comment"));
 			String doc = Colls.empty(m) ? null : JsonSerder.JSON_MAPPER.ser(m);
 			Schema s = Schema.createRecord(t.qualifier.name, doc, null, false);
@@ -120,7 +120,7 @@ public class AvroFormat extends RmapFormat {
 		}
 
 		@SuppressWarnings("deprecation")
-		public static FieldDesc field(TableDesc table, Schema.Field f) {
+		static FieldDesc field(TableDesc table, Schema.Field f) {
 			Schema.Type t;
 			try {
 				t = restrictType(f);
@@ -155,7 +155,7 @@ public class AvroFormat extends RmapFormat {
 			return null;
 		}
 
-		public static Schema.Type restrictType(Schema.Field f) {
+		static Schema.Type restrictType(Schema.Field f) {
 			Schema.Type t = f.schema().getType();
 			switch (t) {
 			case RECORD:
@@ -200,7 +200,7 @@ public class AvroFormat extends RmapFormat {
 			throw new IllegalArgumentException(f.toString());
 		}
 
-		public static Schema.Field field(FieldDesc f) {
+		static Schema.Field field(FieldDesc f) {
 			if (null == f) return null;
 			Map<String, Object> m = Maps.of("DISP_NAME", f.attr("dispName"), "COMMENT", f.attr("comment"));
 			String doc = Colls.empty(m) ? null : JsonSerder.JSON_MAPPER.ser(m);
@@ -231,7 +231,7 @@ public class AvroFormat extends RmapFormat {
 			}
 		}
 
-		private static Schema createOptional(Schema schema) {
+		static Schema createOptional(Schema schema) {
 			return Schema.createUnion(Arrays.asList(schema, Schema.create(Schema.Type.NULL)));
 		}
 	}
