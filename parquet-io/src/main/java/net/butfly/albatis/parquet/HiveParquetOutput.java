@@ -14,7 +14,7 @@ import net.butfly.albatis.ddl.Qualifier;
 import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.io.OutputBase;
 import net.butfly.albatis.io.Rmap;
-import net.butfly.albatis.parquet.impl.HashingStrategy;
+import net.butfly.albatis.parquet.impl.PartitionStrategy;
 import net.butfly.albatis.parquet.impl.HiveParquetWriter;
 import net.butfly.albatis.parquet.impl.HiveParquetWriterHDFS;
 import net.butfly.albatis.parquet.impl.HiveParquetWriterLocal;
@@ -30,16 +30,16 @@ public class HiveParquetOutput extends OutputBase<Rmap> {
 		super(name);
 		this.conn = conn;
 		for (TableDesc t : table) {
-			HashingStrategy s = HashingStrategy.get(t.attr(HiveParquetWriter.HASHING_STRATEGY_DESC_PARAM));
-			if (null != s) t.attw(HiveParquetWriter.HASHING_STRATEGY_IMPL_PARAM, s);
+			PartitionStrategy s = PartitionStrategy.get(t.attr(HiveParquetWriter.PARTITION_STRATEGY_DESC_PARAM));
+			if (null != s) t.attw(HiveParquetWriter.PARTITION_STRATEGY_IMPL_PARAM, s);
 			// w(t);// rolling initialization tables.
 		}
 		monitor = new Thread(() -> clear(), "HiveParquetFileWriterMonitor");
 		monitor.setDaemon(true);
 	}
 
-	private HiveParquetWriter w(Qualifier table, String hashing) {
-		Path path = new Path(new Path(conn.base, table.name), hashing);
+	private HiveParquetWriter w(Qualifier table, String subdir) {
+		Path path = new Path(new Path(conn.base, table.name), subdir);
 		TableDesc td = schema(table);
 		return writers.computeIfAbsent(path, p -> null == conn.conf ? //
 				new HiveParquetWriterLocal(td, conn.conf, p, logger()) : //
@@ -50,17 +50,17 @@ public class HiveParquetOutput extends OutputBase<Rmap> {
 	protected void enqsafe(Sdream<Rmap> items) {
 		Map<Qualifier, Map<String, List<Rmap>>> split = Maps.of();
 		items.eachs(r -> split.computeIfAbsent(r.table(), t -> Maps.of())//
-				.computeIfAbsent(hashing(r, schema(r.table())), h -> Colls.list()).add(r));
+				.computeIfAbsent(partition(r, schema(r.table())), h -> Colls.list()).add(r));
 		split.forEach((t, m) -> m.forEach((h, l) -> w(t, h).write(l)));
 	}
 
-	private String hashing(Rmap r, TableDesc td) {
-		HashingStrategy s = td.attr(HiveParquetWriter.HASHING_STRATEGY_IMPL_PARAM);
+	private String partition(Rmap r, TableDesc td) {
+		PartitionStrategy s = td.attr(HiveParquetWriter.PARTITION_STRATEGY_IMPL_PARAM);
 		if (null != s) {
-			String hashingField = td.attr(HiveParquetWriter.HASHING_FIELD_NAME_PARAM);
-			if (null != hashingField) {
-				Object value = r.get(hashingField);
-				if (null != value) return s.hashing(value);
+			String partitionField = td.attr(HiveParquetWriter.PARTITION_FIELD_NAME_PARAM);
+			if (null != partitionField) {
+				Object value = r.get(partitionField);
+				if (null != value) return s.partition(value);
 			}
 		}
 		return "";

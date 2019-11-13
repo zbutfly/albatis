@@ -27,10 +27,10 @@ public abstract class HiveParquetWriter implements AutoCloseable {
 
 	public static final String ROLLING_RECORD_COUNT_PARAM = "hive.parquet.rolling.records";
 	public static final String ROLLING_DURATION_SEC_PARAM = "hive.parquet.rolling.seconds";
-	public static final String HASHING_STRATEGY_DESC_PARAM = "hive.parquet.hashing.strategy";
-	public static final String HASHING_STRATEGY_IMPL_PARAM = "hive.parquet.hashing.strategy.impl";
-	public static final String HASHING_FIELD_NAME_PARAM = "hive.parquet.hashing.field";
-	public static final String HASHING_FIELD_PARSE_FORMAT_PARAM = "yyyy-MM-dd hh:mm:ss";
+	public static final String PARTITION_STRATEGY_DESC_PARAM = "hive.parquet.partition.strategy";
+	public static final String PARTITION_STRATEGY_IMPL_PARAM = "hive.parquet.partition.strategy.impl";
+	public static final String PARTITION_FIELD_NAME_PARAM = "hive.parquet.partition.field";
+	public static final String PARTITION_FIELD_PARSE_FORMAT_PARAM = "yyyy-MM-dd hh:mm:ss";
 
 	public final AtomicLong lastWriten;
 	public final long timeout;
