@@ -79,8 +79,7 @@ public class HiveParquetOutput extends OutputBase<Rmap> {
 		long now = System.currentTimeMillis();
 		while (true) {
 			writers.forEach((p, w) -> {
-				if (w.timeout > now - w.lastWriten.get()) w.rolling();
-
+				if (w.strategy.rollingMS() > now - w.lastWriten.get()) w.rolling(false);
 			});
 		}
 	}

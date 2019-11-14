@@ -25,4 +25,9 @@ public class HiveParquetWriterHDFS extends HiveParquetWriter {
 		outfile = HadoopOutputFile.fromPath(current, conf);
 		return AvroParquetWriter.<GenericRecord> builder(outfile).withSchema(avroSchema).build();
 	}
+
+	@Override
+	protected long currentBytes() {
+		return writer.getDataSize();
+	}
 }

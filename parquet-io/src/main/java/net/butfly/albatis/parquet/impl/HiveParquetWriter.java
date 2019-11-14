@@ -33,10 +33,8 @@ public abstract class HiveParquetWriter implements AutoCloseable {
 	// public static final String PARTITION_FIELD_PARSE_FORMAT_PARAM = "yyyy-MM-dd hh:mm:ss";
 
 	public final AtomicLong lastWriten;
-	public final long timeout;
 
 	private final AtomicLong count = new AtomicLong();
-	private final long threshold;
 	private final Path base;
 	private final Logger logger;
 	private final ReentrantLock lock = new ReentrantLock();
@@ -46,18 +44,24 @@ public abstract class HiveParquetWriter implements AutoCloseable {
 	protected Path current;
 	protected ParquetWriter<GenericRecord> writer;
 
+	public final PartitionStrategy strategy;
+
 	public HiveParquetWriter(TableDesc table, Configuration conf, Path base, Logger logger) {
 		super();
 		this.conf = conf;
-		PartitionStrategy s = table.attr(PARTITION_STRATEGY_IMPL_PARAM);
-		this.threshold = s.rollingRecord;
-		this.timeout = s.rollingMS;
+		this.strategy = table.attr(PARTITION_STRATEGY_IMPL_PARAM);
+		// this.threshold = s.rollingRecord;
+		// this.timeout = s.rollingMS;
 		this.avroSchema = AVRO_SCHEMAS.computeIfAbsent(table.qualifier, q -> AvroFormat.Builder.schema(table));
 		this.base = base;
 		this.logger = logger;
 		this.lastWriten = new AtomicLong(System.currentTimeMillis());
-		rolling();
+		rolling(true);
 	}
+
+	protected abstract ParquetWriter<GenericRecord> w() throws IOException;
+
+	protected abstract long currentBytes();
 
 	public void write(List<Rmap> l) {
 		while (!lock.tryLock()) try {
@@ -80,13 +84,24 @@ public abstract class HiveParquetWriter implements AutoCloseable {
 
 	private long check(long c) {
 		c++;
-		if (threshold <= 0 || c < threshold) return c;
-		rolling();
+		if (strategy.rollingRecord <= 0 || c < strategy.rollingRecord) return c;
+		if (currentBytes() > strategy.rollingByte) return c;
+		rolling(true);
 		return 0;
 	}
 
-	public HiveParquetWriter rolling() {
-		boolean locked = lock.tryLock();
+	/**
+	 * @param internal:
+	 *            rolling by writing, if not, rolling by monitor.
+	 * @return
+	 */
+	public HiveParquetWriter rolling(boolean writing) {
+		boolean locked;
+		if (writing) locked = lock.tryLock();
+		else while (!(locked = lock.tryLock())) try {
+			Thread.sleep(10);
+		} catch (InterruptedException e) {}
+
 		try {
 			current = new Path(base, filename());
 			if (null != writer) try {
@@ -105,8 +120,6 @@ public abstract class HiveParquetWriter implements AutoCloseable {
 			if (locked) lock.unlock();
 		}
 	}
-
-	protected abstract ParquetWriter<GenericRecord> w() throws IOException;
 
 	private static final SimpleDateFormat FILENAME_FORMAT = new SimpleDateFormat("hhmmssSSS");
 

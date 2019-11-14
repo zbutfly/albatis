@@ -81,7 +81,7 @@ public class HiveConnection extends DataConnection<FileSystem> {
 					}
 				} else switch (sub = schs.remove(0)) {
 				case "file":
-					String[] paths = path.split("-", 2);
+					String[] paths = path.split("~", 2);
 					String confPath = paths[0];
 					this.base = new org.apache.hadoop.fs.Path(paths.length > 1 ? paths[1] : "/");
 					this.conf = new Configuration();

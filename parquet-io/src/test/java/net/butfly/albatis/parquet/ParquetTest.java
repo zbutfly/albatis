@@ -16,7 +16,6 @@ import org.apache.avro.Schema.Type;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.RemoteIterator;
@@ -79,10 +78,9 @@ public class ParquetTest {
 			System.out.println(f.toString());
 		}
 		// cat
-		try (FSDataInputStream f = fs.open(new org.apache.hadoop.fs.Path("/init.cmd"));) {
-			String out = org.apache.commons.io.IOUtils.toString(f, "UTF-8");
-			System.out.println(out);
-		}
-
+//		try (FSDataInputStream f = fs.open(new org.apache.hadoop.fs.Path("/init.cmd"));) {
+//			String out = org.apache.commons.io.IOUtils.toString(f, "UTF-8");
+//			System.out.println(out);
+//		}
 	}
 }
