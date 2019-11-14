@@ -25,8 +25,8 @@ public class HiveConnection extends DataConnection<FileSystem> {
 	private static final Logger logger = Logger.getLogger(HiveConnection.class);
 	final static String schema = "hive";
 
-	Configuration conf;
-	org.apache.hadoop.fs.FileSystem fs;
+	public Configuration conf;
+	public org.apache.hadoop.fs.FileSystem fs;
 	org.apache.hadoop.fs.Path base;
 
 	public HiveConnection(URISpec urispec) throws IOException {

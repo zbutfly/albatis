@@ -4,17 +4,16 @@ import java.io.File;
 import java.io.IOException;
 
 import org.apache.avro.generic.GenericRecord;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.parquet.avro.AvroParquetWriter;
 import org.apache.parquet.hadoop.ParquetWriter;
 
-import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.ddl.TableDesc;
+import net.butfly.albatis.parquet.HiveConnection;
 
 public class HiveParquetWriterLocal extends HiveParquetWriter {
-	public HiveParquetWriterLocal(TableDesc table, Configuration conf, Path base, Logger logger) {
-		super(table, conf, base, logger);
+	public HiveParquetWriterLocal(TableDesc table, HiveConnection conn, Path base) {
+		super(table, conn, base);
 	}
 
 	@Override

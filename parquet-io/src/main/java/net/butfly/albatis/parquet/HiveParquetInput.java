@@ -33,7 +33,6 @@ public class HiveParquetInput extends net.butfly.albacore.base.Namedly implement
 			String ext = fn.substring(fn.lastIndexOf('.'));
 			if (!"parquet".equals(ext)) continue;
 			ScanTask task = new ScanTask(p);
-
 		}
 	}
 
