@@ -1,6 +1,7 @@
 package net.butfly.albatis.ddl;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import net.butfly.albacore.io.URISpec;
@@ -70,6 +71,10 @@ public final class DBDesc extends Desc<DBDesc> {
 	@Deprecated
 	public DBDesc(String uri) {
 		this(null, uri);
+	}
+
+	public Set<Qualifier> tables() {
+		return tables.keySet();
 	}
 
 	@Deprecated

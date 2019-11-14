@@ -1,23 +1,27 @@
 package net.butfly.albatis.parquet.impl;
 
-import java.util.Date;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Map;
 
-public class PartitionByDateStrategy implements PartitionStrategy {
+public class PartitionStrategySingleField extends PartitionStrategy {
+	private final String partitionField;
 	private final String parsingFormat;
 	private final SimpleDateFormat parsing;
 	private final SimpleDateFormat partition;
 
-	public PartitionByDateStrategy(String partitionFormat, String parsingFormat) {
+	public PartitionStrategySingleField(String partitionField, String partitionFormat, String parsingFormat) {
 		super();
+		this.partitionField = partitionField;
 		this.parsingFormat = parsingFormat;
 		this.parsing = null == parsingFormat ? null : new SimpleDateFormat(parsingFormat);
 		this.partition = new SimpleDateFormat(partitionFormat);
 	}
 
 	@Override
-	public String partition(Object value) {
+	public String partition(Map<String, Object> rec) {
+		Object value = rec.get(partitionField);
 		if (null == value) throw new IllegalArgumentException("Partition failed on value null.");
 		Class<? extends Object> c = value.getClass();
 		if (Date.class.isAssignableFrom(c)) return partition.format(value);

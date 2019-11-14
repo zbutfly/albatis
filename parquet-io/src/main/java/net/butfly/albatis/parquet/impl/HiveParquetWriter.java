@@ -25,12 +25,12 @@ import net.butfly.alserdes.avro.AvroSerDes.Builder;
 public abstract class HiveParquetWriter implements AutoCloseable {
 	private static Map<Qualifier, Schema> AVRO_SCHEMAS = Maps.of();
 
-	public static final String ROLLING_RECORD_COUNT_PARAM = "hive.parquet.rolling.records";
-	public static final String ROLLING_DURATION_SEC_PARAM = "hive.parquet.rolling.seconds";
-	public static final String PARTITION_STRATEGY_DESC_PARAM = "hive.parquet.partition.strategy";
+	// public static final String ROLLING_RECORD_COUNT_PARAM = "hive.parquet.rolling.records";
+	// public static final String ROLLING_DURATION_SEC_PARAM = "hive.parquet.rolling.seconds";
+	// public static final String PARTITION_STRATEGY_DESC_PARAM = "hive.parquet.partition.strategy";
 	public static final String PARTITION_STRATEGY_IMPL_PARAM = "hive.parquet.partition.strategy.impl";
-	public static final String PARTITION_FIELD_NAME_PARAM = "hive.parquet.partition.field";
-	public static final String PARTITION_FIELD_PARSE_FORMAT_PARAM = "yyyy-MM-dd hh:mm:ss";
+	// public static final String PARTITION_FIELD_NAME_PARAM = "hive.parquet.partition.field";
+	// public static final String PARTITION_FIELD_PARSE_FORMAT_PARAM = "yyyy-MM-dd hh:mm:ss";
 
 	public final AtomicLong lastWriten;
 	public final long timeout;
@@ -49,8 +49,9 @@ public abstract class HiveParquetWriter implements AutoCloseable {
 	public HiveParquetWriter(TableDesc table, Configuration conf, Path base, Logger logger) {
 		super();
 		this.conf = conf;
-		this.threshold = table.attr(ROLLING_RECORD_COUNT_PARAM, -1);
-		this.timeout = table.attr(ROLLING_DURATION_SEC_PARAM, -1) * 1000;
+		PartitionStrategy s = table.attr(PARTITION_STRATEGY_IMPL_PARAM);
+		this.threshold = s.rollingRecord;
+		this.timeout = s.rollingMS;
 		this.avroSchema = AVRO_SCHEMAS.computeIfAbsent(table.qualifier, q -> AvroFormat.Builder.schema(table));
 		this.base = base;
 		this.logger = logger;
@@ -61,7 +62,9 @@ public abstract class HiveParquetWriter implements AutoCloseable {
 	public void write(List<Rmap> l) {
 		while (!lock.tryLock()) try {
 			Thread.sleep(10);
-		} catch (InterruptedException e) {}
+		} catch (InterruptedException e) {
+			return;
+		}
 		try {
 			for (Rmap r : l) try {
 				writer.write(Builder.rec(r, avroSchema));

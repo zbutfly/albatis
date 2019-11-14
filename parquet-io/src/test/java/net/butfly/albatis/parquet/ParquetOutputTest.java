@@ -14,7 +14,6 @@ import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.ddl.vals.ValType;
 import net.butfly.albatis.io.Output;
 import net.butfly.albatis.io.Rmap;
-import net.butfly.albatis.parquet.impl.HiveParquetWriter;
 
 public class ParquetOutputTest {
 	private static final Random rd = new Random(); // creating Random object
@@ -24,9 +23,12 @@ public class ParquetOutputTest {
 		// org.apache.hadoop.fs.Path hbase = new org.apache.hadoop.fs.Path(jbase.toUri());
 
 		TableDesc td = TableDesc.dummy("test_table")//
-				.attw(HiveParquetWriter.ROLLING_RECORD_COUNT_PARAM, 1000)//
-				.attw(HiveParquetWriter.PARTITION_FIELD_NAME_PARAM, "BIRTHDAY")//
-				.attw(HiveParquetWriter.PARTITION_STRATEGY_DESC_PARAM, "DATE:yyyy/MM/dd/hh");
+		// .attw(HiveParquetWriter.ROLLING_RECORD_COUNT_PARAM, 1000)//
+		// .attw(HiveParquetWriter.PARTITION_STRATEGY_DESC_PARAM, "DATE:yyyy/MM/dd/hh")//
+		// .attw(HiveParquetWriter.PARTITION_FIELD_NAME_PARAM, "BIRTHDAY")//
+		// TODO .attw(HiveParquetWriter.PARTITION_STRATEGY_IMPL_PARAM, new PartitionStrategyMultipleField("BIRTHDAY", "yyyy/MM/dd/hh", null))
+		;
+
 		new FieldDesc(td, "NAME", ValType.STR);
 		new FieldDesc(td, "AGE", ValType.INT);
 		new FieldDesc(td, "BIRTHDAY", ValType.INT);

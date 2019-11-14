@@ -29,17 +29,18 @@ public class HiveParquetOutput extends OutputBase<Rmap> {
 	public HiveParquetOutput(String name, HiveConnection conn, TableDesc... table) throws IOException {
 		super(name);
 		this.conn = conn;
-		for (TableDesc t : table) {
-			PartitionStrategy s = PartitionStrategy.get(t.attr(HiveParquetWriter.PARTITION_STRATEGY_DESC_PARAM));
-			if (null != s) t.attw(HiveParquetWriter.PARTITION_STRATEGY_IMPL_PARAM, s);
-			// w(t);// rolling initialization tables.
-		}
+		// for (TableDesc t : table) {
+		// PartitionStrategy s = PartitionStrategy.strategy(t.attr(HiveParquetWriter.PARTITION_STRATEGY_DESC_PARAM));
+		// if (null != s) t.attw(HiveParquetWriter.PARTITION_STRATEGY_IMPL_PARAM, s);
+		// // w(t);// rolling initialization tables.
+		// }
 		monitor = new Thread(() -> clear(), "HiveParquetFileWriterMonitor");
 		monitor.setDaemon(true);
 	}
 
 	private HiveParquetWriter w(Qualifier table, String subdir) {
-		Path path = new Path(new Path(conn.base, table.name), subdir);
+		Path path = new Path(conn.base, table.name);
+		if (null != subdir && !subdir.isEmpty()) path = new Path(path, subdir);
 		TableDesc td = schema(table);
 		return writers.computeIfAbsent(path, p -> null == conn.conf ? //
 				new HiveParquetWriterLocal(td, conn.conf, p, logger()) : //
@@ -56,14 +57,7 @@ public class HiveParquetOutput extends OutputBase<Rmap> {
 
 	private String partition(Rmap r, TableDesc td) {
 		PartitionStrategy s = td.attr(HiveParquetWriter.PARTITION_STRATEGY_IMPL_PARAM);
-		if (null != s) {
-			String partitionField = td.attr(HiveParquetWriter.PARTITION_FIELD_NAME_PARAM);
-			if (null != partitionField) {
-				Object value = r.get(partitionField);
-				if (null != value) return s.partition(value);
-			}
-		}
-		return "";
+		return null == s ? "" : s.partition(r);
 	}
 
 	@Override
@@ -85,8 +79,7 @@ public class HiveParquetOutput extends OutputBase<Rmap> {
 		long now = System.currentTimeMillis();
 		while (true) {
 			writers.forEach((p, w) -> {
-				if (w.timeout > now - w.lastWriten.get())
-					w.rolling();
+				if (w.timeout > now - w.lastWriten.get()) w.rolling();
 
 			});
 		}
