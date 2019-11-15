@@ -17,7 +17,7 @@ public class HiveParquetWriterLocal extends HiveParquetWriter {
 	}
 
 	@Override
-	protected ParquetWriter<GenericRecord> w() throws IOException {
+	protected ParquetWriter<GenericRecord> createWriter() throws IOException {
 		File local = java.nio.file.Path.of(current.toString()).toFile();
 		if (!local.getParentFile().exists() && !local.getParentFile().mkdirs()) //
 			throw new IOException("Parents dirs create fail on: " + local);

@@ -66,6 +66,7 @@ public final class DBDesc extends Desc<DBDesc> {
 	private DBDesc(String name, String uri) {
 		this.name = name;
 		this.uri = new URISpec(uri);
+		this.attw(".rawuri", uri);
 	}
 
 	@Deprecated

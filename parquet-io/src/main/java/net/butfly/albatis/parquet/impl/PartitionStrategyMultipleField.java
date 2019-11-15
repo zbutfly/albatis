@@ -23,7 +23,10 @@ public class PartitionStrategyMultipleField extends PartitionStrategy {
 		rollingMS = config.containsKey("maxTimeHour") ? (long) (((Number) config.get("maxTimeHour")).doubleValue() * 3600 * 1000) : 0;
 		rollingRecord = config.containsKey("maxRecordSize") ? ((Number) config.get("maxRecordSize")).intValue() : 0;
 		rollingByte = config.containsKey("maxFileSize") ? ((Number) config.get("maxFileSize")).longValue() * 1024 * 1024 : 0;
-		refreshMS = config.containsKey("refreshHour") ? (long) (((Number) config.get("refreshHour")).doubleValue() * 3600 * 1000) : 0;
+		refreshMS = config.containsKey("refreshIntervalHour") ? //
+				(long) (((Number) config.get("refreshIntervalHour")).doubleValue() * 3600 * 1000) : 0;
+		hdfsUri = (String) config.get("hdfsUrl");
+		// "incMaxTimeIntervalHour"
 		if (json.containsKey("partitionColumnList")) //
 			for (Map<String, Object> col : (List<Map<String, Object>>) json.get("partitionColumnList")) //
 				segments.add(new Segment(col));
@@ -75,12 +78,12 @@ public class PartitionStrategyMultipleField extends PartitionStrategy {
 		public Segment(Map<String, Object> json) {
 			super();
 			level = ((Number) json.get("level")).intValue();
+			parseFormat = (String) json.get("parseFormat");;
 			partitionFieldName = (String) json.get("partitionFieldName");
 			partitionFieldType = FieldType.valueOf(((String) json.get("partitionFieldType")).toUpperCase());
 			partitionFormat = (String) json.get("partitionFormat");
 			srcFieldName = (String) json.get("srcFieldName");
 			srcFieldType = FieldType.valueOf(((String) json.get("srcFieldType")).toUpperCase());
-			parseFormat = (String) json.get("parseFormat");;
 		}
 	}
 

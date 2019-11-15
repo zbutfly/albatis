@@ -33,11 +33,6 @@ public class HiveParquetOutput extends OutputBase<Rmap> {
 	public HiveParquetOutput(String name, HiveConnection conn, TableDesc... table) throws IOException {
 		super(name);
 		this.conn = conn;
-		// for (TableDesc t : table) {
-		// PartitionStrategy s = PartitionStrategy.strategy(t.attr(HiveParquetWriter.PARTITION_STRATEGY_DESC_PARAM));
-		// if (null != s) t.attw(HiveParquetWriter.PARTITION_STRATEGY_IMPL_PARAM, s);
-		// // w(t);// rolling initialization tables.
-		// }
 		monitor = new Thread(() -> check(), "HiveParquetFileWriterMonitor");
 		monitor.setDaemon(true);
 		monitor.start();
@@ -81,15 +76,15 @@ public class HiveParquetOutput extends OutputBase<Rmap> {
 	}
 
 	private void check() {
-		long now = System.currentTimeMillis();
 		while (true) {
 			for (Path p : writers.keySet()) {
 				writers.compute(p, (pp, w) -> {
-					if (w.strategy.rollingMS() > now - w.lastWriten.get()) return w.rolling(false);
-					if (w.strategy.refreshMS() > now - w.lastRefresh.get()) refresh();
+					if (w.strategy.rollingMS() < System.currentTimeMillis() - w.lastWriten.get() && w.count.get() > 0) return w.rolling(false);
+					if (w.strategy.refreshMS() < System.currentTimeMillis() - w.lastRefresh.get()) refresh();
 					return w;
 				});
 			}
+			new java.util.Date(1573823780527L);
 			try {
 				Thread.sleep(100);
 			} catch (InterruptedException e) {}
@@ -103,11 +98,12 @@ public class HiveParquetOutput extends OutputBase<Rmap> {
 			String sql = "msck repair table ";
 			Map<String, List<String>> dbs = Maps.of();
 			writers.forEach((p, w) -> {
-				String jdbc = w.table.attr(HiveParquetWriter.HIVE_JDBC_PARAM);
-				if (null == jdbc) return;
-				dbs.computeIfAbsent(jdbc, j -> Colls.list()).add(w.table.toString());
+				PartitionStrategy s = w.table.attr(HiveParquetWriter.PARTITION_STRATEGY_IMPL_PARAM);
+				String jdbc = s.jdbcUri;
+				if (null != jdbc) dbs.computeIfAbsent(jdbc, j -> Colls.list()).add(w.table.qualifier.toString());
 			});
 			dbs.forEach((jdbc, tables) -> {
+				logger().info("Refresh hive table " + tables.toString() + " on: " + jdbc);
 				try (Connection c = DriverManager.getConnection(jdbc)) {
 					tables.forEach(t -> {
 						try (Statement ps = c.createStatement();) {
@@ -122,7 +118,6 @@ public class HiveParquetOutput extends OutputBase<Rmap> {
 			});
 		} finally {
 			logger().info("Refreshing ended in " + (System.currentTimeMillis() - now) + " ms.");
-
 		}
 	}
 }

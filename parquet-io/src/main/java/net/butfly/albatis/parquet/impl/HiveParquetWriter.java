@@ -10,6 +10,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.parquet.hadoop.ParquetWriter;
 
@@ -25,7 +26,6 @@ import net.butfly.alserdes.avro.AvroSerDes.Builder;
 
 public abstract class HiveParquetWriter implements AutoCloseable {
 	public static final String PARTITION_STRATEGY_IMPL_PARAM = "hive.parquet.partition.strategy.impl";
-	public static final String HIVE_JDBC_PARAM = "hive.parquet.jdbc.connect.str";
 	private final Logger logger;
 	private static Map<Qualifier, Schema> AVRO_SCHEMAS = Maps.of();
 
@@ -36,8 +36,8 @@ public abstract class HiveParquetWriter implements AutoCloseable {
 	protected ParquetWriter<GenericRecord> writer;
 
 	public final AtomicLong lastWriten;
-	private final AtomicLong count = new AtomicLong();
-	public final AtomicLong lastRefresh = new AtomicLong();
+	public final AtomicLong count = new AtomicLong();
+	public final AtomicLong lastRefresh = new AtomicLong(System.currentTimeMillis());
 	private final ReentrantLock lock = new ReentrantLock();
 
 	private final Path base;
@@ -57,7 +57,7 @@ public abstract class HiveParquetWriter implements AutoCloseable {
 		rolling(true);
 	}
 
-	protected abstract ParquetWriter<GenericRecord> w() throws IOException;
+	protected abstract ParquetWriter<GenericRecord> createWriter() throws IOException;
 
 	protected abstract long currentBytes();
 
@@ -72,7 +72,7 @@ public abstract class HiveParquetWriter implements AutoCloseable {
 				writer.write(Builder.rec(r, avroSchema));
 				lastWriten.set(System.currentTimeMillis());
 				count.accumulateAndGet(1, (c, one) -> check(c));
-			} catch (IOException e) {
+			} catch (Exception e) {
 				logger.error("Parquet fail on record: \n\t" + r.toString(), e);
 			}
 		} finally {
@@ -114,7 +114,7 @@ public abstract class HiveParquetWriter implements AutoCloseable {
 				return count.get() <= 0 ? null : this;
 			}
 			try {
-				writer = w();
+				writer = createWriter();
 			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}
@@ -128,8 +128,8 @@ public abstract class HiveParquetWriter implements AutoCloseable {
 	private void rename(Path old) {
 		String fn = old.getName();
 		fn = fn.substring(0, fn.lastIndexOf('.'));
-		try {
-			conn.fs.rename(old, new Path(old.getParent(), fn));
+		try (FileSystem fs = FileSystem.get(conn.conf)) {
+			fs.rename(old, new Path(old.getParent(), fn));
 		} catch (IOException e) {
 			logger.error("Parquet file rename failed (after being closed): " + old, e);
 		}
@@ -147,6 +147,8 @@ public abstract class HiveParquetWriter implements AutoCloseable {
 			writer.close();
 		} catch (IOException e) {
 			logger.error("Parquet writer close failed on: " + current);
+		} finally {
+			rolling(false);
 		}
 	}
 }

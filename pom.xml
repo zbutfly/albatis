@@ -31,6 +31,7 @@
 		<!-- <version.hbase>2.1.1</version.hbase> -->
 		<!-- <version.hbase>1.2.0-cdh${version.cdh}</version.hbase> -->
 		<version.hbase>2.1.0-cdh${version.cdh}</version.hbase>
+		<version.hive>1.2.2</version.hive><!-- 2.3.6,3.1.2,1.2.2 -->
 		<version.hadoop>3.0.0-cdh${version.cdh}</version.hadoop>
 		<version.zookeeper>3.5.6</version.zookeeper>
 		<!-- <version.hadoop>3.1.1</version.hadoop> -->

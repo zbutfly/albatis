@@ -10,6 +10,8 @@ public abstract class PartitionStrategy implements ExtraTableDesc {
 	protected long rollingByte;
 	protected long rollingMS;
 	protected long refreshMS;
+	public String hdfsUri;
+	public String jdbcUri;
 
 	public PartitionStrategy() {
 		super();

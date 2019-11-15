@@ -20,7 +20,7 @@ public class HiveParquetWriterHDFS extends HiveParquetWriter {
 	}
 
 	@Override
-	protected ParquetWriter<GenericRecord> w() throws IOException {
+	protected ParquetWriter<GenericRecord> createWriter() throws IOException {
 		outfile = HadoopOutputFile.fromPath(current, conn.conf);
 		return AvroParquetWriter.<GenericRecord> builder(outfile).withSchema(avroSchema).build();
 	}
