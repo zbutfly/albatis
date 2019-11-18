@@ -12,7 +12,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Date;
 import java.util.List;
-import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -67,9 +66,13 @@ public class BcpInput extends Namedly implements Input<Rmap> {
     }
 
     private void download() {
-        try (Ftp ftp = Ftp.connect(uri, varPath)) {
-            if (null != ftp) {
-                ftp.downloadAllFiles(dataPath.toString());
+        if ((uri.getSchemas().length == 2 && uri.getSchemas()[1].equals("sftp")) || (uri.getSchemas().length > 2 && uri.getSchemas()[2].equals("sftp"))) {
+            try (SFtp sftp = SFtp.connect(uri, varPath)) {
+                if (null != sftp) sftp.downloadAllFiles(dataPath.toString());
+            }
+        } else {
+            try (Ftp ftp = Ftp.connect(uri, varPath)) {
+                if (null != ftp) ftp.downloadAllFiles(dataPath.toString());
             }
         }
     }
@@ -82,7 +85,9 @@ public class BcpInput extends Namedly implements Input<Rmap> {
             for (File file : files) {
                 String fileName = file.getName();
                 long localTime = new Date().getTime();
-                fileStatus = Ftp.fileStatusMap.get(fileName);
+                if ((uri.getSchemas().length == 2 && uri.getSchemas()[1].equals("sftp")) || (uri.getSchemas().length > 2 && uri.getSchemas()[2].equals("sftp")))
+                    fileStatus = SFtp.fileStatusMap.get(fileName);
+                else fileStatus = Ftp.fileStatusMap.get(fileName);
                 if (null == fileStatus) {
                     fileStatus = new FileStatus();
                     fileStatus.fileName = fileName;
@@ -90,7 +95,9 @@ public class BcpInput extends Namedly implements Input<Rmap> {
                     fileStatus.processedFlag = 0;
                     fileStatus.timestamp = file.lastModified();
                     fileStatus.size = file.length();
-                    Ftp.fileStatusMap.put(fileName, fileStatus);
+                    if ((uri.getSchemas().length == 2 && uri.getSchemas()[1].equals("sftp")) || (uri.getSchemas().length > 2 && uri.getSchemas()[2].equals("sftp")))
+                        SFtp.fileStatusMap.put(fileName, fileStatus);
+                    else Ftp.fileStatusMap.put(fileName, fileStatus);
                     continue;
                 } else if (fileStatus.processedFlag != 0) {
                     continue;
@@ -106,12 +113,12 @@ public class BcpInput extends Namedly implements Input<Rmap> {
                 }
             }
         }
-        if (uri.getSchemas().length >= 2 && !uri.getSchemas()[1].equals("ftp"))
+        if (uri.getSchemas().length >= 2 && !uri.getSchemas()[1].equals("ftp") && !uri.getSchemas()[1].equals("sftp"))
             zipNames = FileUtil.getFileNames(uri.getSchemas()[1], tableName, dataPath.toString());
         else
             zipNames = FileUtil.getFileNames(ZIP, tableName, dataPath.toString());
         zipNames.forEach(zipName -> {
-            if (uri.getSchemas().length >= 2 && !uri.getSchemas()[1].equals("ftp")) {
+            if (uri.getSchemas().length >= 2 && !uri.getSchemas()[1].equals("ftp") && !uri.getSchemas()[1].equals("sftp")) {
                 File file = new File(zipName);
                 String renameFile = zipName.replace("." + uri.getSchemas()[1], ".zip");
                 file.renameTo(new File(renameFile));
@@ -135,15 +142,15 @@ public class BcpInput extends Namedly implements Input<Rmap> {
                     bcp.close();
                 } catch (IllegalStateException ex) {
                     continue;
-                }finally {
+                } finally {
                     try {
-                        Thread.sleep(1000);
+                        Thread.sleep(100);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
                 }
                 return;
-            }else{
+            } else {
                 try {
                     Thread.sleep(Props.BCP_SLEEP_TIME);
                 } catch (InterruptedException e) {
@@ -182,11 +189,10 @@ public class BcpInput extends Namedly implements Input<Rmap> {
         @Override
         public void run() {
             while (flag) {
-                logger().trace("Beginning downloading...");
                 download();
                 openBcp();
                 try {
-                    Thread.sleep(1000);
+                    Thread.sleep(100);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }

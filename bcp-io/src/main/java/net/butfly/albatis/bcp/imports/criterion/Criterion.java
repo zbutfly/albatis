@@ -8,7 +8,7 @@ import net.butfly.albatis.bcp.imports.criterion.writer.WriteToBcp;
 import net.butfly.albatis.bcp.imports.criterion.writer.WriteToXml;
 import net.butfly.albatis.bcp.imports.frame.struct.KernelInfo;
 import net.butfly.albatis.bcp.utils.Ftp;
-import net.butfly.albatis.bcp.utils.MD5Util;
+import net.butfly.albatis.bcp.utils.SFtp;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -225,7 +225,6 @@ public class Criterion implements AutoCloseable {
         compressToZip.addFileToZip(writeToXml.getOutputFileName());
         compressToZip.addFileToZip(writeToBcp.getFileName());
         compressToZip.flush();
-        String fileMD5 = MD5Util.getFileMd5(writeToBcp.getFileName());
         if (CLEAN_TEMP_FILES) {
             FileUtils.cleanDir(outputDirTmp);
         }
@@ -233,36 +232,40 @@ public class Criterion implements AutoCloseable {
             long zs = zipSrc.toFile().length();
             logger.trace("zip: [" + zipSrc + "][" + zs + " bytes] generated.");
         }
-
-        boolean flag;
         int n = 0;
-        try (Ftp ftp = Ftp.connect(uri, "")) {
-            if (null != ftp) {
-                if (uri.getSchemas().length >= 2 && !uri.getSchemas()[1].equals("ftp")) {
-                    File file = zipSrc.toFile();
-                    ftpPath = ftpPath.replace(".zip", "." + uri.getSchemas()[1]);
-                    String renameFile = zipSrc.toString().replace(".zip", "." + uri.getSchemas()[1]);
-                    logger.trace("renameFilePath: [" + renameFile + "]");
-                    File newFile = new File(renameFile);
-                    boolean b = file.renameTo(newFile);
-                    logger.trace("rename File is " + b);
-                    zipSrc = newFile.toPath();
-                    logger.trace("zipSrc " + zipSrc + "; ftpPath: " + ftpPath);
+        if ((uri.getSchemas().length == 2 && uri.getSchemas()[1].equals("sftp")) || (uri.getSchemas().length > 2 && uri.getSchemas()[2].equals("sftp"))) {
+            try (SFtp sftp = SFtp.connect(uri, "")) {
+                if (null != sftp) {
+                    if (uri.getSchemas().length >= 2 && !uri.getSchemas()[1].equals("sftp")) {
+                        File file = zipSrc.toFile();
+                        ftpPath = ftpPath.replace(".zip", "." + uri.getSchemas()[1]);
+                        String renameFile = zipSrc.toString().replace(".zip", "." + uri.getSchemas()[1]);
+                        logger.trace("sftp renameFilePath: [" + renameFile + "]");
+                        File newFile = new File(renameFile);
+                        boolean b = file.renameTo(newFile);
+                        logger.trace("sftp rename File is " + b);
+                        zipSrc = newFile.toPath();
+                        logger.trace("sftp zipSrc " + zipSrc + "; ftpPath: " + ftpPath);
+                    }
+                    while (!sftp.uploadFile(ftpPath, zipSrc) && n++ < 5) ;
                 }
-                while (!(flag = ftp.uploadFile(ftpPath, zipSrc)) && n++ < 5) ;
-//                if (flag) {
-//                    String dir = dataEName.substring(0, dataEName.indexOf("-"));
-////                    ftp.moveTotherFolders(zipSrc, zipDst, dir);
-//                    // 上传对应文件名称,MD5,数据量
-////                    String bcpFileName = writeToBcp.getFileName();
-////                    int index2 = bcpFileName.lastIndexOf("/");
-////                    String bcpName = bcpFileName.substring(index2 + 1, writeToBcp.getFileName().length());
-////                    String content = "bcpFileName:" + bcpName + "\tfileMD5:" + fileMD5 + "\tcount:" + callWriteCount;
-////                    String txtname = bcpName + ".txt";
-////                    Path txt = endPath.resolve(dir).resolve(txtname);
-////                    ftp.addText(txt.toString(), content);
-////                    ftp.uploadFile(txtname, txt);
-//                } else logger.error("zip [" + ftpPath + "] transfer fail.");
+            }
+        } else {
+            try (Ftp ftp = Ftp.connect(uri, "")) {
+                if (null != ftp) {
+                    if (uri.getSchemas().length >= 2 && !uri.getSchemas()[1].equals("ftp")) {
+                        File file = zipSrc.toFile();
+                        ftpPath = ftpPath.replace(".zip", "." + uri.getSchemas()[1]);
+                        String renameFile = zipSrc.toString().replace(".zip", "." + uri.getSchemas()[1]);
+                        logger.trace("ftp renameFilePath: [" + renameFile + "]");
+                        File newFile = new File(renameFile);
+                        boolean b = file.renameTo(newFile);
+                        logger.trace("ftp rename File is " + b);
+                        zipSrc = newFile.toPath();
+                        logger.trace("ftp zipSrc " + zipSrc + "; ftpPath: " + ftpPath);
+                    }
+                    while (!ftp.uploadFile(ftpPath, zipSrc) && n++ < 5) ;
+                }
             }
         }
         // 清理本地临时文件
