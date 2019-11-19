@@ -10,11 +10,9 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.parquet.hadoop.ParquetWriter;
 
-import net.butfly.albacore.paral.Exeter;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.ddl.Qualifier;
@@ -26,7 +24,7 @@ import net.butfly.alserdes.avro.AvroSerDes.Builder;
 
 public abstract class HiveParquetWriter implements AutoCloseable {
 	public static final String PARTITION_STRATEGY_IMPL_PARAM = "hive.parquet.partition.strategy.impl";
-	private final Logger logger;
+	protected final Logger logger;
 	private static Map<Qualifier, Schema> AVRO_SCHEMAS = Maps.of();
 
 	protected final HiveConnection conn;
@@ -102,13 +100,18 @@ public abstract class HiveParquetWriter implements AutoCloseable {
 
 		try {
 			Path old = current;
-			current = new Path(base, filename());
+			current = new Path(base, ".current/current.parquet");
 			if (null != writer) try {
 				writer.close();
 			} catch (IOException e) {
 				logger.error("Parquet file close failed.", e);
 			} finally {
-				Exeter.of().submit(() -> rename(old));
+				try {
+					conn.client.rename(old, new Path(old.getParent().getParent(), filename()));
+				} catch (IOException e) {
+					logger.error("Parquet file rename failed (after being closed): " + old, e);
+				}
+				// Exeter.of().submit(() -> rename(old));
 			}
 			if (!writing) { // from refreshing, file timeout, if empty, close self.
 				return count.get() <= 0 ? null : this;
@@ -125,20 +128,10 @@ public abstract class HiveParquetWriter implements AutoCloseable {
 		}
 	}
 
-	private void rename(Path old) {
-		String fn = old.getName();
-		fn = fn.substring(0, fn.lastIndexOf('.'));
-		try (FileSystem fs = FileSystem.get(conn.conf)) {
-			fs.rename(old, new Path(old.getParent(), fn));
-		} catch (IOException e) {
-			logger.error("Parquet file rename failed (after being closed): " + old, e);
-		}
-	}
-
 	private static final SimpleDateFormat FILENAME_FORMAT = new SimpleDateFormat("hhmmssSSS");
 
-	private String filename() {
-		return FILENAME_FORMAT.format(new Date()) + ".parquet.current";
+	private synchronized String filename() {
+		return FILENAME_FORMAT.format(new Date()) + ".parquet";
 	}
 
 	@Override

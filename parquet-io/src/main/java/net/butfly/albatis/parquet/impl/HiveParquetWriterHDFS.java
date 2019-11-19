@@ -22,6 +22,15 @@ public class HiveParquetWriterHDFS extends HiveParquetWriter {
 	@Override
 	protected ParquetWriter<GenericRecord> createWriter() throws IOException {
 		outfile = HadoopOutputFile.fromPath(current, conn.conf);
+		try {
+			if (conn.client.exists(current) && conn.client.getFileStatus(current).isFile()) {
+				logger.warn("Working parquet file " + current.toString() + " existed, clean and recreate it maybe cause data losing.");
+				conn.client.delete(current, true);
+			}
+		} catch (IOException e) {
+			logger.error("Working parquet file " + current.toString() + " cleaning fail.", e);
+		}
+
 		return AvroParquetWriter.<GenericRecord> builder(outfile).withSchema(avroSchema).build();
 	}
 

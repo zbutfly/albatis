@@ -84,7 +84,6 @@ public class HiveParquetOutput extends OutputBase<Rmap> {
 					return w;
 				});
 			}
-			new java.util.Date(1573823780527L);
 			try {
 				Thread.sleep(100);
 			} catch (InterruptedException e) {}

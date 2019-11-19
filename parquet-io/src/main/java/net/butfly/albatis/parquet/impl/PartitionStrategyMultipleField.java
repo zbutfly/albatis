@@ -23,8 +23,8 @@ public class PartitionStrategyMultipleField extends PartitionStrategy {
 		rollingMS = config.containsKey("maxTimeHour") ? (long) (((Number) config.get("maxTimeHour")).doubleValue() * 3600 * 1000) : 0;
 		rollingRecord = config.containsKey("maxRecordSize") ? ((Number) config.get("maxRecordSize")).intValue() : 0;
 		rollingByte = config.containsKey("maxFileSize") ? ((Number) config.get("maxFileSize")).longValue() * 1024 * 1024 : 0;
-		refreshMS = config.containsKey("refreshIntervalHour") ? //
-				(long) (((Number) config.get("refreshIntervalHour")).doubleValue() * 3600 * 1000) : 0;
+		refreshMS = 10;// config.containsKey("refreshIntervalHour") ?
+		// (long) (((Number) config.get("refreshIntervalHour")).doubleValue() * 3600 * 1000) : 0;
 		hdfsUri = (String) config.get("hdfsUrl");
 		// "incMaxTimeIntervalHour"
 		if (json.containsKey("partitionColumnList")) //

@@ -26,7 +26,6 @@ public class HiveConnection extends DataConnection<FileSystem> {
 	final static String schema = "hive";
 
 	public Configuration conf;
-	public org.apache.hadoop.fs.FileSystem fs;
 	org.apache.hadoop.fs.Path base;
 
 	public HiveConnection(URISpec urispec) throws IOException {
@@ -75,7 +74,7 @@ public class HiveConnection extends DataConnection<FileSystem> {
 						break;
 					default:
 						logger.debug("HDFS configuration connect to server: " + host);
-						conf.set("fs.defaultFS", "hdfs://" + host + "/");
+						conf.set("fs.defaultFS", "hdfs://" + host + this.base.toString());
 						conf.set("fs.hdfs.impl", org.apache.hadoop.hdfs.DistributedFileSystem.class.getName());
 						conf.set("fs.file.impl", org.apache.hadoop.fs.LocalFileSystem.class.getName());
 					}
@@ -120,7 +119,7 @@ public class HiveConnection extends DataConnection<FileSystem> {
 
 	@Override
 	public void close() throws IOException {
-		if (null != fs) fs.close();
+		if (null != client) client.close();
 		super.close();
 	}
 

@@ -1,6 +1,6 @@
 package net.butfly.albatis.parquet;
 
-import static net.butfly.albatis.parquet.impl.Hdfses.manualHadoopConfiguration;
+import net.butfly.albatis.parquet.impl.Hdfses;
 import static org.apache.avro.Schema.create;
 import static org.apache.avro.Schema.createRecord;
 import static org.apache.avro.Schema.createUnion;
@@ -24,10 +24,14 @@ import org.apache.parquet.avro.AvroParquetWriter;
 import org.apache.parquet.hadoop.ParquetReader;
 import org.apache.parquet.hadoop.ParquetWriter;
 
+import net.butfly.albacore.io.URISpec;
+import org.apache.hadoop.fs.Path;
+
+@SuppressWarnings("deprecation")
 public class ParquetTest {
 	private static final java.nio.file.Path dstFile = java.nio.file.Path.of("C:\\Temp\\test.parquet");
-	private static final org.apache.hadoop.fs.Path dst = new org.apache.hadoop.fs.Path(dstFile.toUri());
-	private static final String hdfs = "hdfs://127.0.0.1:11000/";
+	private static final Path dst = new Path(dstFile.toUri());
+	private static final String hdfs = "hdfs://10.19.120.99:8020/user/hive/warehouse";
 
 	private static final Schema schema = createRecord("TestNap", null, null, false);
 	static {
@@ -40,13 +44,14 @@ public class ParquetTest {
 
 	public static void main(String[] args) throws IOException {
 		// write();
-		// read();
-		basic();
+		read("hive_test_20191112/year=2019/month=201910/day=20191017/061633793.parquet");
+		read("hive_test_20191112/year=2019/month=201910/day=20191017/061639166.parquet");
+		// basic();
 	}
 
-	static void read() throws IOException {
-		try (ParquetReader<GenericRecord> r = AvroParquetReader.<GenericRecord> builder(dst).build();) {
-			GenericRecord rr;
+	static void read(String file) throws IOException {
+		GenericRecord rr;
+		try (ParquetReader<GenericRecord> r = AvroParquetReader.<GenericRecord> builder(new Path(hdfs, file)).build();) {
 			while (null != (rr = r.read())) System.err.println(rr);
 		}
 	}
@@ -68,19 +73,20 @@ public class ParquetTest {
 	}
 
 	static void basic() throws IOException {
-		Configuration conf = manualHadoopConfiguration(hdfs);
+		Configuration conf = Hdfses.autoHadoopConfiguration();// Hdfses.manualHadoopConfiguration(hdfs);
 
 		FileSystem fs = FileSystem.get(conf);
 		// ls
-		RemoteIterator<LocatedFileStatus> it = fs.listFiles(new org.apache.hadoop.fs.Path("/"), true);
+		RemoteIterator<LocatedFileStatus> it = fs.listFiles(new Path(new URISpec(hdfs).getPath()).getParent(), true);
 		while (it.hasNext()) {
 			LocatedFileStatus f = it.next();
-			System.out.println(f.toString());
+			System.out.println(f.getPath());
+			// fs.delete(f.getPath(), false);
 		}
 		// cat
-//		try (FSDataInputStream f = fs.open(new org.apache.hadoop.fs.Path("/init.cmd"));) {
-//			String out = org.apache.commons.io.IOUtils.toString(f, "UTF-8");
-//			System.out.println(out);
-//		}
+		// try (FSDataInputStream f = fs.open(new Path("/init.cmd"));) {
+		// String out = org.apache.commons.io.IOUtils.toString(f, "UTF-8");
+		// System.out.println(out);
+		// }
 	}
 }
