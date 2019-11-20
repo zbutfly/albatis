@@ -24,7 +24,7 @@ public class HiveParquetInput extends net.butfly.albacore.base.Namedly implement
 	public HiveParquetInput(String name, HiveConnection conn) throws IOException {
 		super(name);
 		this.conn = conn;
-		RemoteIterator<LocatedFileStatus> flist = conn.fs.listFiles(conn.base, true);
+		RemoteIterator<LocatedFileStatus> flist = conn.client.listFiles(conn.base, true);
 		while (flist.hasNext()) {
 			LocatedFileStatus f = flist.next();
 			if (!f.isFile()) continue;

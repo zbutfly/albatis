@@ -3,6 +3,7 @@ package net.butfly.albatis.parquet.impl;
 import java.io.IOException;
 
 import org.apache.avro.generic.GenericRecord;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.parquet.avro.AvroParquetWriter;
 import org.apache.parquet.hadoop.ParquetWriter;
@@ -22,9 +23,11 @@ public class HiveParquetWriterHDFS extends HiveParquetWriter {
 	@Override
 	protected ParquetWriter<GenericRecord> createWriter() throws IOException {
 		outfile = HadoopOutputFile.fromPath(current, conn.conf);
+		FileStatus f;
 		try {
-			if (conn.client.exists(current) && conn.client.getFileStatus(current).isFile()) {
-				logger.warn("Working parquet file " + current.toString() + " existed, clean and recreate it maybe cause data losing.");
+			if (conn.client.exists(current) && (f = conn.client.getFileStatus(current)).isFile()) {
+				if (f.getLen() > 0) logger.warn("Parquet working file " + current.toString()
+						+ " existed and not zero, clean and recreate it maybe cause data losing.");
 				conn.client.delete(current, true);
 			}
 		} catch (IOException e) {

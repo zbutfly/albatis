@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import org.apache.avro.LogicalTypes;
 import org.apache.avro.Schema;
 
 import net.butfly.albacore.serder.JsonSerder;
@@ -212,7 +213,8 @@ public class AvroFormat extends RmapFormat {
 				return new Schema.Field(f.name, createOptional(Schema.create(Schema.Type.INT)), doc, 0);
 			case LONG:
 			case DATE:
-				return new Schema.Field(f.name, createOptional(Schema.create(Schema.Type.LONG)), doc, 0);
+				return new Schema.Field(f.name, createOptional(LogicalTypes.timestampMillis().addToSchema(Schema.create(Schema.Type.LONG))),
+						doc, 0);
 			case FLOAT:
 				return new Schema.Field(f.name, createOptional(Schema.create(Schema.Type.FLOAT)), doc, 0.0);
 			case DOUBLE:

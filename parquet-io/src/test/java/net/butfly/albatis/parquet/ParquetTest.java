@@ -44,15 +44,16 @@ public class ParquetTest {
 
 	public static void main(String[] args) throws IOException {
 		// write();
-		read("hive_test_20191112/year=2019/month=201910/day=20191017/061633793.parquet");
-		read("hive_test_20191112/year=2019/month=201910/day=20191017/061639166.parquet");
+		read("hive_test_20191112/year=2019/month=201910/day=20191017/043400555.parquet");
+		read("hive_test_20191112/year=2019/month=201910/day=20191017/043400787.parquet");
 		// basic();
 	}
 
 	static void read(String file) throws IOException {
 		GenericRecord rr;
 		try (ParquetReader<GenericRecord> r = AvroParquetReader.<GenericRecord> builder(new Path(hdfs, file)).build();) {
-			while (null != (rr = r.read())) System.err.println(rr);
+			while (null != (rr = r.read())) // rr.get("ETL_TIMESTAMP_dt");
+				System.err.println(rr);//
 		}
 	}
 

@@ -78,6 +78,10 @@
 		<level value="debug" />
 		<appender-ref ref="log-main" />
 	</logger>
+	<logger additivity="false" name="net.butfly.albatis.parquet">
+		<level value="trace" />
+		<appender-ref ref="log-main" />
+	</logger>
 	<!-- -->
 
 	<logger additivity="false" name="com.leansoft.bigqueue">

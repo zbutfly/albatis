@@ -24,7 +24,7 @@ import net.butfly.alserdes.avro.AvroSerDes.Builder;
 
 public abstract class HiveParquetWriter implements AutoCloseable {
 	public static final String PARTITION_STRATEGY_IMPL_PARAM = "hive.parquet.partition.strategy.impl";
-	protected final Logger logger;
+	protected static final Logger logger = Logger.getLogger(HiveParquetWriter.class);
 	private static Map<Qualifier, Schema> AVRO_SCHEMAS = Maps.of();
 
 	protected final HiveConnection conn;
@@ -50,7 +50,7 @@ public abstract class HiveParquetWriter implements AutoCloseable {
 		// this.timeout = s.rollingMS;
 		this.avroSchema = AVRO_SCHEMAS.computeIfAbsent(table.qualifier, q -> AvroFormat.Builder.schema(table));
 		this.base = base;
-		this.logger = Logger.getLogger(HiveParquetWriter.class + "#" + base.toString());
+		// this.logger = Logger.getLogger(HiveParquetWriter.class + "#" + base.toString());
 		this.lastWriten = new AtomicLong(System.currentTimeMillis());
 		rolling(true);
 	}
@@ -65,16 +65,20 @@ public abstract class HiveParquetWriter implements AutoCloseable {
 		} catch (InterruptedException e) {
 			return;
 		}
+		long now = System.currentTimeMillis();
+		long total = 0;
 		try {
 			for (Rmap r : l) try {
 				writer.write(Builder.rec(r, avroSchema));
 				lastWriten.set(System.currentTimeMillis());
-				count.accumulateAndGet(1, (c, one) -> check(c));
+				total = count.accumulateAndGet(1, (c, one) -> check(c));
 			} catch (Exception e) {
 				logger.error("Parquet fail on record: \n\t" + r.toString(), e);
 			}
 		} finally {
 			lock.unlock();
+			if (logger.isTraceEnabled()) logger.trace("Parquet writen [" + l.size() + "] records, "//
+					+ "spent [" + (System.currentTimeMillis() - now) + "] ms, total " + total);
 		}
 	}
 
