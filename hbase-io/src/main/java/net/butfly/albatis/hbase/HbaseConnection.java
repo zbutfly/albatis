@@ -15,11 +15,9 @@ import static net.butfly.albatis.io.IOProps.propI;
 import static net.butfly.albatis.io.IOProps.propL;
 
 import java.io.BufferedWriter;
-import java.io.ByteArrayInputStream;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.PrintWriter;
 import java.net.InetSocketAddress;
 import java.util.Arrays;
@@ -33,7 +31,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.commons.vfs2.FileObject;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
@@ -68,7 +65,6 @@ import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.io.lambda.Function;
 import net.butfly.albacore.paral.Exeter;
 import net.butfly.albacore.paral.Sdream;
-import net.butfly.albacore.utils.IOs;
 import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.Texts;
 import net.butfly.albacore.utils.collection.Colls;
@@ -150,25 +146,13 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 			return null;
 		}
 		else try {
-			return Hbases.connect(params, read(confuri));
+			return Hbases.connect(params, VfsConnection.readAll(confuri));
 		} catch (IOException e) {
 			logger.error("Connect failed", e);
 			return null;
 		}
 	}
 
-	private InputStream[] read(String vfs) throws IOException {
-		List<InputStream> fs = Colls.list();
-		try (FileObject conf = VfsConnection.vfs(vfs);) {
-			if (!conf.exists()) throw new IllegalArgumentException("Hbase configuration [" + vfs + "] not existed.");
-			if (!conf.isFolder()) throw new IllegalArgumentException("Hbase configuration [" + vfs + "] is not folder.");
-			for (FileObject f : conf.getChildren()) if (f.isFile() && "xml".equals(f.getName().getExtension())) {//
-				logger.debug("Hbase configuration resource adding: " + f.getName());
-				fs.add(new ByteArrayInputStream(IOs.readAll(f.getContent().getInputStream())));
-			}
-			return fs.toArray(new InputStream[0]);
-		}
-	}
 
 	private Map<String, String> params() {
 		if (null != uri) {

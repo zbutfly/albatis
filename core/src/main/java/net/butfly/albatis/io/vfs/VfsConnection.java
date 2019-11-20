@@ -2,7 +2,9 @@ package net.butfly.albatis.io.vfs;
 
 import static net.butfly.albacore.utils.collection.Colls.empty;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Arrays;
 import java.util.List;
 
@@ -12,6 +14,7 @@ import org.apache.commons.vfs2.FileSystemManager;
 import org.apache.commons.vfs2.VFS;
 
 import net.butfly.albacore.io.URISpec;
+import net.butfly.albacore.utils.IOs;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.Connection;
@@ -142,4 +145,20 @@ public class VfsConnection extends DataConnection<Connection> {
 		if (null == FS_MANAGER) FS_MANAGER = init();
 		return FS_MANAGER.resolveFile(vfs);
 	}
+
+	public static InputStream[] readAll(String vfs) {
+		List<InputStream> fs = Colls.list();
+		try (FileObject conf = VfsConnection.vfs(vfs);) {
+			if (!conf.exists()) throw new IllegalArgumentException("Hbase configuration [" + vfs + "] not existed.");
+			if (!conf.isFolder()) throw new IllegalArgumentException("Hbase configuration [" + vfs + "] is not folder.");
+			for (FileObject f : conf.getChildren()) if (f.isFile() && "xml".equals(f.getName().getExtension())) {//
+				logger.debug("Hbase configuration resource adding: " + f.getName());
+				fs.add(new ByteArrayInputStream(IOs.readAll(f.getContent().getInputStream())));
+			}
+			return fs.toArray(new InputStream[0]);
+		} catch (IOException e) {
+			throw new IllegalArgumentException("Hbase configuration [" + vfs + "] read fail.", e);
+		}
+	}
+
 }

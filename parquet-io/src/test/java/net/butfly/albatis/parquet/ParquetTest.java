@@ -32,6 +32,7 @@ public class ParquetTest {
 	private static final java.nio.file.Path dstFile = java.nio.file.Path.of("C:\\Temp\\test.parquet");
 	private static final Path dst = new Path(dstFile.toUri());
 	private static final String hdfs = "hdfs://10.19.120.99:8020/user/hive/warehouse";
+	
 
 	private static final Schema schema = createRecord("TestNap", null, null, false);
 	static {
@@ -44,9 +45,9 @@ public class ParquetTest {
 
 	public static void main(String[] args) throws IOException {
 		// write();
-		read("hive_test_20191112/year=2019/month=201910/day=20191017/043400555.parquet");
-		read("hive_test_20191112/year=2019/month=201910/day=20191017/043400787.parquet");
-		// basic();
+		// read("hive_test_20191112/year=2019/month=201910/day=20191017/043400555.parquet");
+		// read("hive_test_20191112/year=2019/month=201910/day=20191017/043400787.parquet");
+		basic();
 	}
 
 	static void read(String file) throws IOException {
