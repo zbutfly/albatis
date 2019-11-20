@@ -185,6 +185,7 @@ public abstract class KafkaConfigBase implements Serializable {
 				LoginUtil.setJaasFile(KERBEROS_PROPS.getProperty("albatis.kafka.kerberos.kafka.principal"), kerberosConfigPath
 						+ HUAWEI_KEYTAB);
 				LoginUtil.setKrb5Config(kerberosConfigPath + KRB5_CONF);
+				KRB5_CONF_EXIST = true;
 				LoginUtil.setZookeeperServerPrincipal(KERBEROS_PROPS.getProperty("albatis.kafka.kerberos.zk.principal"));
 			} catch (IOException e) {
 				throw new RuntimeException("Load huawei kerberos config error!", e);
@@ -204,7 +205,10 @@ public abstract class KafkaConfigBase implements Serializable {
 				logger.info("Enable normal kerberos!");
 				try {
 					LoginUtil.setKrb5Config(kerberosConfigPath + KRB5_CONF);
-					LoginUtil.setZookeeperServerPrincipal(KERBEROS_PROPS.getProperty("albatis.kafka.kerberos.zk.principal"));
+					if (null != KERBEROS_PROPS.getProperty("albatis.kafka.kerberos.zk.principal"))
+						LoginUtil.setZookeeperServerPrincipal(KERBEROS_PROPS.getProperty("albatis.kafka.kerberos.zk.principal"));
+					if (null != KERBEROS_PROPS.getProperty("albatis.kafka.kerberos.kafka.principal"))
+						System.setProperty("albatis.kafka.kerberos.kafka.principal", KERBEROS_PROPS.getProperty("albatis.kafka.kerberos.kafka.principal"));
 					System.setProperty("java.security.auth.login.config", kerberosConfigPath + JAAS_CONF);
 				} catch (IOException e) {
 					throw new RuntimeException("Load normal kerberos config error!", e);
