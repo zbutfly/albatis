@@ -11,6 +11,7 @@ import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.AppConfigurationEntry.LoginModuleControlFlag;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
 
 import net.butfly.albacore.utils.Configs;
@@ -22,11 +23,13 @@ public class Kerberoses {
 	private static final Logger logger = Logger.getLogger(Kerberoses.class);
 	private static final String LINE_SEPARATOR = System.getProperty("line.separator");
 	private static final boolean IS_IBM_JDK = System.getProperty("java.vendor").contains("IBM");
-	private static final String KERBEROS_PROP_PATH = "albatis-hbase.properties";
+	private static final String KERBEROS_PROP_PATH = "kerberos.properties";
 	private static final Properties KERBEROS_PROPS = new Properties();
 	// kerberos configs
 	private static final String JAAS_CONF = "jaas.conf";
 	private static final String KRB5_CONF = "krb5.conf";
+	private static final String HADOOP_AUTH = "hadoop.security.authentication";
+	private static final String SSL_CLIENT = "ssl-client.xml";
 	private static final String HUAWEI_KEYTAB = "user.keytab";
 	private static final String IBM_LOGIN_MODULE = "com.ibm.security.auth.module.Krb5LoginModule required";
 	private static final String SUN_LOGIN_MODULE = "com.sun.security.auth.module.Krb5LoginModule required";
@@ -62,11 +65,12 @@ public class Kerberoses {
 		}
 		String jaasFile = kerberosConfigPath + JAAS_CONF;
 		String krb5ConfPath = kerberosConfigPath + KRB5_CONF;
-		String keytabPath = kerberosConfigPath + HUAWEI_KEYTAB;
-		String userPrincipal = KERBEROS_PROPS.getProperty("albatis.hbase.kerberos.hbase.principal");// user
-		String zkServerPrincipal = KERBEROS_PROPS.getProperty("albatis.hbase.kerberos.zk.principal");
+		String keytabPath = kerberosConfigPath + KERBEROS_PROPS.getProperty("kerberos.keytab");
+		String userPrincipal = KERBEROS_PROPS.getProperty("albatis.hbase.kerberos.hbase.principal") != null ? KERBEROS_PROPS.getProperty("albatis.hbase.kerberos.hbase.principal") : null;// user
+		String zkServerPrincipal = KERBEROS_PROPS.getProperty("albatis.hbase.kerberos.zk.principal") != null ? KERBEROS_PROPS.getProperty("albatis.hbase.kerberos.zk.principal") : null;
 		try {
-			Kerberoses.setZookeeperServerPrincipal(zkServerPrincipal);
+			if (null != zkServerPrincipal)
+				Kerberoses.setZookeeperServerPrincipal(zkServerPrincipal);
 			if (Colls.list(new File(kerberosConfigPath).list()).contains(HUAWEI_KEYTAB)) {
 				logger.info("Enable huawei kerberos!");
 				Kerberoses.setJaasFile(userPrincipal, keytabPath);
@@ -75,6 +79,10 @@ public class Kerberoses {
 				logger.info("Enable normal kerberos!");
 				Kerberoses.setKrb5Config(krb5ConfPath);
 				System.setProperty("java.security.auth.login.config", jaasFile);
+				conf.addResource(new Path(kerberosConfigPath + SSL_CLIENT));
+				conf.set(HADOOP_AUTH, KERBEROS_PROPS.getProperty(HADOOP_AUTH, "Kerberos"));
+				UserGroupInformation.loginUserFromKeytab(KERBEROS_PROPS.getProperty("hbase.user"), keytabPath);
+				UserGroupInformation.setConfiguration(conf);
 			}
 		} catch (IOException e) {
 			logger.error("Loading kerberos properties is failure", e);
