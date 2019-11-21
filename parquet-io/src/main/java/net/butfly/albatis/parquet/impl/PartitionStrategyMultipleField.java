@@ -41,6 +41,7 @@ public class PartitionStrategyMultipleField extends PartitionStrategy {
 			if (null == v) throw new IllegalArgumentException("Partition failed on value null for field: " + seg.partitionFieldName);
 			switch (seg.srcFieldType) {
 			case DATE:
+			case LONG:
 				ss.add(seg.partitionFieldName + "=" + seg(v, seg.partitionFormat, seg.parseFormat));
 				break;
 			default:
@@ -88,6 +89,6 @@ public class PartitionStrategyMultipleField extends PartitionStrategy {
 	}
 
 	private enum FieldType {
-		STRING, DATE
+		STRING, DATE, LONG
 	}
 }

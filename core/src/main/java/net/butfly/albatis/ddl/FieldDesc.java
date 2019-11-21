@@ -23,6 +23,7 @@ public final class FieldDesc extends Desc<FieldDesc> {
 	public FieldDesc(TableDesc table, String name, ValType type, boolean rowkey, boolean unique, boolean nullable) {
 		super();
 		this.name = name;
+		if (null == type) throw new IllegalArgumentException("Field [" + table.qualifier.toString() + "." + name + "] type not found.");
 		this.type = type;
 		this.rowkey = rowkey;
 		this.unique = unique;

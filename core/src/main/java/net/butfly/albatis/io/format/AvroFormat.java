@@ -205,7 +205,6 @@ public class AvroFormat extends RmapFormat {
 			if (null == f) return null;
 			Map<String, Object> m = Maps.of("DISP_NAME", f.attr("dispName"), "COMMENT", f.attr("comment"));
 			String doc = Colls.empty(m) ? null : JsonSerder.JSON_MAPPER.ser(m);
-
 			switch (f.type.flag) {
 			case BINARY:
 				return new Schema.Field(f.name, createOptional(Schema.create(Schema.Type.BYTES)), doc, new byte[0]);
