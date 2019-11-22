@@ -36,17 +36,11 @@ public class PartitionStrategyMultipleField extends PartitionStrategy {
 	public String partition(Map<String, Object> rec) {
 		if (null == rec || rec.isEmpty()) throw new IllegalArgumentException("Partition failed on value null.");
 		List<String> ss = new ArrayList<>();
+		Object v;
 		for (Segment seg : segments) {
-			Object v = rec.get(seg.srcFieldName);
-			if (null == v) throw new IllegalArgumentException("Partition failed on value null for field: " + seg.partitionFieldName);
-			switch (seg.srcFieldType) {
-			case DATE:
-			case LONG:
-				ss.add(seg.partitionFieldName + "=" + seg(v, seg.partitionFormat, seg.parseFormat));
-				break;
-			default:
-				throw new IllegalArgumentException();
-			}
+			if (null == (v = rec.get(seg.srcFieldName))) //
+				throw new IllegalArgumentException("Partition failed on value null for field: " + seg.partitionFieldName);
+			ss.add(seg.partitionFieldName + "=" + seg(v, seg.partitionFormat, seg.parseFormat));
 		}
 		return String.join(Path.SEPARATOR, ss);
 	}
@@ -79,7 +73,7 @@ public class PartitionStrategyMultipleField extends PartitionStrategy {
 		public Segment(Map<String, Object> json) {
 			super();
 			level = ((Number) json.get("level")).intValue();
-			parseFormat = (String) json.get("parseFormat");;
+			parseFormat = (String) json.get("parseFormat");
 			partitionFieldName = (String) json.get("partitionFieldName");
 			partitionFieldType = FieldType.valueOf(((String) json.get("partitionFieldType")).toUpperCase());
 			partitionFormat = (String) json.get("partitionFormat");

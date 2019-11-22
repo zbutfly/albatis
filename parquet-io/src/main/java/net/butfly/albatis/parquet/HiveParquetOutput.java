@@ -5,9 +5,11 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Set;
 
 import org.apache.hadoop.fs.Path;
 
@@ -29,6 +31,7 @@ public class HiveParquetOutput extends OutputBase<Rmap> {
 	final HiveConnection conn;
 	private Map<Path, HiveParquetWriter> writers = Maps.of();
 	private final Thread monitor;
+	private final Map<TableDesc, Long> nextRefreshs = Maps.of();
 
 	public HiveParquetOutput(String name, HiveConnection conn, TableDesc... table) throws IOException {
 		super(name);
@@ -36,6 +39,9 @@ public class HiveParquetOutput extends OutputBase<Rmap> {
 		monitor = new Thread(() -> check(), "HiveParquetFileWriterMonitor");
 		monitor.setDaemon(true);
 		monitor.start();
+		long now = System.currentTimeMillis();
+		for (TableDesc td : table) nextRefreshs.computeIfAbsent(td, t -> now + ((PartitionStrategy) td.attr(
+				HiveParquetWriter.PARTITION_STRATEGY_IMPL_PARAM)).refreshMS());
 	}
 
 	private HiveParquetWriter w(Qualifier table, String subdir) {
@@ -77,44 +83,43 @@ public class HiveParquetOutput extends OutputBase<Rmap> {
 
 	private void check() {
 		while (true) {
-			for (Path p : writers.keySet()) {
-				writers.compute(p, (pp, w) -> {
-					if (w.strategy.rollingMS() < System.currentTimeMillis() - w.lastWriten.get() && w.count.get() > 0) return w.rolling(false);
-					if (w.strategy.refreshMS() < System.currentTimeMillis() - w.lastRefresh.get()) refresh();
-					return w;
-				});
-			}
+			Set<TableDesc> toRefresh = new HashSet<>();;
+			long now = System.currentTimeMillis();
+			for (Path p : writers.keySet()) writers.compute(p, (pp, w) -> {
+				HiveParquetWriter ww = w.strategy.rollingMS() < System.currentTimeMillis() - w.lastWriten.get() && w.count.get() > 0 //
+						? w.rolling(false)
+						: w;
+				if (now > nextRefreshs.get(w.table)) toRefresh.add(w.table);
+				return ww;
+			});
+			refresh(toRefresh.toArray(new TableDesc[0]));
 			try {
 				Thread.sleep(100);
 			} catch (InterruptedException e) {}
 		}
 	}
 
-	private void refresh() {
+	private synchronized void refresh(TableDesc... tables) {
+		if (tables.length == 0) return;
 		long now = System.currentTimeMillis();
-		logger().info("Refreshing begin.");
 		try {
 			String sql = "msck repair table ";
-			Map<String, List<String>> dbs = Maps.of();
-			writers.forEach((p, w) -> {
-				PartitionStrategy s = w.table.attr(HiveParquetWriter.PARTITION_STRATEGY_IMPL_PARAM);
+			for (TableDesc t : tables) {
+				PartitionStrategy s = t.attr(HiveParquetWriter.PARTITION_STRATEGY_IMPL_PARAM);
 				String jdbc = s.jdbcUri;
-				if (null != jdbc) dbs.computeIfAbsent(jdbc, j -> Colls.list()).add(w.table.qualifier.toString());
-			});
-			dbs.forEach((jdbc, tables) -> {
-				logger().info("Refresh hive table " + tables.toString() + " on: " + jdbc);
+				logger().info("Refresh hive table " + t.qualifier + " on: " + jdbc);
 				try (Connection c = DriverManager.getConnection(jdbc)) {
-					tables.forEach(t -> {
-						try (Statement ps = c.createStatement();) {
-							ps.execute(sql + t);
-						} catch (SQLException e) {
-							logger().error("Refresh failed on table: " + t, e);
-						}
-					});
+					try (Statement ps = c.createStatement();) {
+						ps.execute(sql + t.qualifier.toString());
+					} catch (SQLException e) {
+						logger().error("Refresh failed on table: " + t, e);
+					}
 				} catch (SQLException e) {
 					logger().error("Refresh connection failed on jdbc: " + jdbc, e);
+				} finally {
+					nextRefreshs.put(t, System.currentTimeMillis() + s.refreshMS());
 				}
-			});
+			}
 		} finally {
 			logger().info("Refreshing ended in " + (System.currentTimeMillis() - now) + " ms.");
 		}

@@ -30,16 +30,15 @@ public abstract class HiveParquetWriter implements AutoCloseable {
 	protected final HiveConnection conn;
 	public final TableDesc table;
 	protected final Schema avroSchema;
+	private final Path partitionBase;
 	protected Path current;
 	protected ParquetWriter<GenericRecord> writer;
+	public final PartitionStrategy strategy;
 
 	public final AtomicLong lastWriten;
 	public final AtomicLong count = new AtomicLong();
-	public final AtomicLong lastRefresh = new AtomicLong(System.currentTimeMillis());
-	private final ReentrantLock lock = new ReentrantLock();
 
-	private final Path base;
-	public final PartitionStrategy strategy;
+	private final ReentrantLock lock = new ReentrantLock();
 
 	public HiveParquetWriter(TableDesc table, HiveConnection conn, Path base) {
 		super();
@@ -49,7 +48,7 @@ public abstract class HiveParquetWriter implements AutoCloseable {
 		// this.threshold = s.rollingRecord;
 		// this.timeout = s.rollingMS;
 		this.avroSchema = AVRO_SCHEMAS.computeIfAbsent(table.qualifier, q -> AvroFormat.Builder.schema(table));
-		this.base = base;
+		this.partitionBase = base;
 		// this.logger = Logger.getLogger(HiveParquetWriter.class + "#" + base.toString());
 		this.lastWriten = new AtomicLong(System.currentTimeMillis());
 		rolling(true);
@@ -77,9 +76,9 @@ public abstract class HiveParquetWriter implements AutoCloseable {
 			}
 		} finally {
 			lock.unlock();
-			if (logger.isTraceEnabled()) logger.trace("Parquet writen [" + l.size() + "] records, "//
-					+ "spent [" + (System.currentTimeMillis() - now) + "] ms, total " + total);
 		}
+		if (logger.isTraceEnabled()) logger.trace("Parquet [" + this.partitionBase.toString() + "] writen [" + l.size() + "] records, "//
+				+ "spent [" + (System.currentTimeMillis() - now) + "] ms, total " + total);
 	}
 
 	private long check(long c) {
@@ -104,14 +103,16 @@ public abstract class HiveParquetWriter implements AutoCloseable {
 
 		try {
 			Path old = current;
-			current = new Path(base, ".current/current.parquet");
+			current = new Path(partitionBase, ".current/current.parquet");
 			if (null != writer) try {
 				writer.close();
 			} catch (IOException e) {
 				logger.error("Parquet file close failed.", e);
 			} finally {
 				try {
-					conn.client.rename(old, new Path(old.getParent().getParent(), filename()));
+					String fn = filename();
+					conn.client.rename(old, new Path(old.getParent().getParent(), fn));
+					logger.info("Parquet file " + partitionBase.toString() + " rolled into: " + fn);
 				} catch (IOException e) {
 					logger.error("Parquet file rename failed (after being closed): " + old, e);
 				}
@@ -125,7 +126,6 @@ public abstract class HiveParquetWriter implements AutoCloseable {
 			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}
-			logger.info("Parquet file rolled into: " + current.toString());
 			return this;
 		} finally {
 			if (locked) lock.unlock();
