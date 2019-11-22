@@ -13,6 +13,8 @@ import java.util.Properties;
 import org.apache.http.HttpHost;
 import org.elasticsearch.client.Response;
 import org.elasticsearch.client.RestClient;
+import org.elasticsearch.client.RestClientBuilder;
+import org.elasticsearch.client.RestClientBuilder.HttpClientConfigCallback;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.settings.Settings;
@@ -76,6 +78,24 @@ public interface ElasticConnect extends Connection {
 
 	static final class Parser extends Utils {
 		private Parser() {}
+
+		@SuppressWarnings({ "unchecked", "deprecation" })
+		static Map<String, Object> fetchMetadata(HttpClientConfigCallback callback, InetSocketAddress... rest) {
+			if (_logger.isDebugEnabled()) _logger.debug("Fetch transport nodes meta from: " + of(rest).joinAsString(InetSocketAddress::toString,
+					","));
+			HttpHost[] v = Arrays.stream(rest).map(a -> new HttpHost(a.getHostName(), a.getPort())).toArray(i -> new HttpHost[i]);
+			try (RestClient client = RestClient.builder(v).build();) {
+				Response rep;
+				rep = client.performRequest("GET", "_nodes");
+				if (rep.getStatusLine().getStatusCode() != 200) //
+					throw new IOException("Elastic transport meta parsing failed, connect directly\n\t" //
+							+ rep.getStatusLine().getReasonPhrase());
+				return JsonSerder.JSON_MAPPER.der(new InputStreamReader(rep.getEntity().getContent()), Map.class);
+			} catch (UnsupportedOperationException | IOException e) {
+				_logger.warn("Elastic transport meta parsing failed, connect directly", e);
+				return null;
+			}
+		}
 
 		@SuppressWarnings({ "unchecked", "deprecation" })
 		static Map<String, Object> fetchMetadata(InetSocketAddress... rest) {
@@ -212,6 +232,16 @@ public interface ElasticConnect extends Connection {
 					i -> new HttpHost[i]);
 			else addrs = Arrays.stream(Parser.getNodes(meta)).map(n -> n.rest).toArray(i -> new HttpHost[i]);
 			return new RestHighLevelClient(RestClient.builder(addrs).setMaxRetryTimeoutMillis(6*1000*60));
+		}
+
+		static RestHighLevelClient buildRestHighLevelClientWithKerberos(URISpec u) {
+			RestClientBuilder.HttpClientConfigCallback httpClientConfigCallback = new CustomHttpClientConfigCallbackHandler(u.getUsername(), null);
+			Map<String, Object> meta = Parser.fetchMetadata(httpClientConfigCallback, u.getInetAddrs());
+			HttpHost[] addrs;
+			if (meta == null) addrs = Arrays.stream(u.getInetAddrs()).map(a -> new HttpHost(a.getHostName(), a.getPort())).toArray(
+					i -> new HttpHost[i]);
+			else addrs = Arrays.stream(Parser.getNodes(meta)).map(n -> n.rest).toArray(i -> new HttpHost[i]);
+			return new RestHighLevelClient(RestClient.builder(addrs).setHttpClientConfigCallback(httpClientConfigCallback));
 		}
 	}
 

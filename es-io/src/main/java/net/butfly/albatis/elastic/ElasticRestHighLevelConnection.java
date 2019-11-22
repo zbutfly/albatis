@@ -20,6 +20,7 @@ import org.elasticsearch.client.RestHighLevelClient;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.serder.JsonSerder;
+import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albatis.DataConnection;
 import net.butfly.albatis.ddl.FieldDesc;
@@ -28,6 +29,9 @@ import net.butfly.albatis.ddl.TableDesc;
 import static net.butfly.albacore.utils.collection.Colls.empty;
 
 public class ElasticRestHighLevelConnection extends DataConnection<RestHighLevelClient> implements ElasticConnect {
+	public static final String KERBEROS_CONF_PATH = Configs.gets("albatis.es.kerberos.conf.path");
+	private Kerberos kerberos;
+
 	public ElasticRestHighLevelConnection(URISpec uri, Map<String, String> props) throws IOException {
 		super(uri, 39200, "es:rest", "elasticsearch:rest");
 	}
@@ -46,6 +50,16 @@ public class ElasticRestHighLevelConnection extends DataConnection<RestHighLevel
 
 	@Override
 	protected RestHighLevelClient initialize(URISpec uri) {
+		kerberos = new Kerberos(KERBEROS_CONF_PATH);
+		try {
+			kerberos.load();
+		} catch (IOException e) {
+			logger().info("kerberos disabled", e);
+		}
+		if (kerberos.kerberosEnable()) {
+			uri.reauth(kerberos.getUser());
+			return Builder.buildRestHighLevelClientWithKerberos(uri);
+		}
 		return ElasticConnect.Builder.buildRestHighLevelClient(uri);
 	}
 

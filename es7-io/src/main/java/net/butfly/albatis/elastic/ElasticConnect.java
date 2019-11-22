@@ -10,6 +10,7 @@ import net.butfly.albatis.ddl.vals.GeoPointVal;
 import net.butfly.albatis.io.Rmap;
 import org.apache.http.HttpHost;
 import org.elasticsearch.client.*;
+import org.elasticsearch.client.RestClientBuilder.HttpClientConfigCallback;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
@@ -58,12 +59,30 @@ public interface ElasticConnect extends Connection {
 	static final class Parser extends Utils {
 		private Parser() {}
 
-		@SuppressWarnings({ "unchecked", "deprecation" })
+		@SuppressWarnings({ "unchecked" })
 		static Map<String, Object> fetchMetadata(InetSocketAddress... rest) {
 			if (LOGGER.isDebugEnabled()) LOGGER.debug("Fetch transport nodes meta from: " + of(rest).joinAsString(InetSocketAddress::toString,
 					","));
 			HttpHost[] v = Arrays.stream(rest).map(a -> new HttpHost(a.getHostName(), a.getPort())).toArray(i -> new HttpHost[i]);
 			try (RestClient client = RestClient.builder(v).build()) {
+				Response rep;
+				rep = client.performRequest(new Request("GET","_nodes"));
+				if (rep.getStatusLine().getStatusCode() != 200) //
+					throw new IOException("Elastic transport meta parsing failed, connect directly\n\t" //
+							+ rep.getStatusLine().getReasonPhrase());
+				return JsonSerder.JSON_MAPPER.der(new InputStreamReader(rep.getEntity().getContent()), Map.class);
+			} catch (UnsupportedOperationException | IOException e) {
+				LOGGER.warn("Elastic transport meta parsing failed, connect directly", e);
+				return null;
+			}
+		}
+
+		@SuppressWarnings("unchecked")
+		static Map<String, Object> fetchMetadata(HttpClientConfigCallback callback, InetSocketAddress... rest) {
+			if (LOGGER.isDebugEnabled()) LOGGER.debug("Fetch transport nodes meta from: " + of(rest).joinAsString(InetSocketAddress::toString,
+					","));
+			HttpHost[] v = Arrays.stream(rest).map(a -> new HttpHost(a.getHostName(), a.getPort())).toArray(i -> new HttpHost[i]);
+			try (RestClient client = RestClient.builder(v).setHttpClientConfigCallback(callback).build()) {
 				Response rep;
 				rep = client.performRequest(new Request("GET","_nodes"));
 				if (rep.getStatusLine().getStatusCode() != 200) //
@@ -181,6 +200,16 @@ public interface ElasticConnect extends Connection {
 					i -> new HttpHost[i]);
 			else addrs = Arrays.stream(Parser.getNodes(meta)).map(n -> n.rest).toArray(i -> new HttpHost[i]);
 			return new RestHighLevelClient(RestClient.builder(addrs));
+		}
+
+		static RestHighLevelClient buildRestHighLevelClientWithKerberos(URISpec u) {
+			RestClientBuilder.HttpClientConfigCallback httpClientConfigCallback = new CustomHttpClientConfigCallbackHandler(u.getUsername(), null);
+			Map<String, Object> meta = Parser.fetchMetadata(httpClientConfigCallback, u.getInetAddrs());
+			HttpHost[] addrs;
+			if (meta == null) addrs = Arrays.stream(u.getInetAddrs()).map(a -> new HttpHost(a.getHostName(), a.getPort())).toArray(
+					i -> new HttpHost[i]);
+			else addrs = Arrays.stream(Parser.getNodes(meta)).map(n -> n.rest).toArray(i -> new HttpHost[i]);
+			return new RestHighLevelClient(RestClient.builder(addrs).setHttpClientConfigCallback(httpClientConfigCallback));
 		}
 	}
 
