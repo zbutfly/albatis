@@ -21,6 +21,7 @@ import org.elasticsearch.transport.client.PreBuiltTransportClient;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.serder.JsonSerder;
+import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.Pair;
 import net.butfly.albacore.utils.Utils;
 import net.butfly.albacore.utils.collection.Maps;
@@ -29,7 +30,6 @@ import net.butfly.albatis.Connection;
 import net.butfly.albatis.ddl.Qualifier;
 import net.butfly.albatis.ddl.vals.GeoPointVal;
 import net.butfly.albatis.io.Rmap;
-
 public interface ElasticConnect extends Connection {
 	static final Logger _logger = Logger.getLogger(ElasticConnection.class);
 
@@ -37,6 +37,11 @@ public interface ElasticConnect extends Connection {
 
 	String getDefaultType();
 
+	
+    static final String KERBEROS_PROP_PATH = "kerberos.properties";
+    static final String JAAS_CONF = "jaas.conf";
+    static final String KRB5_CONF = "krb5.conf";
+	
 	public default Rmap fixTable(Rmap m) {
 		Pair<String, String> p = Elastics.dessemble(m.table().name);
 		if (null == p.v1()) p.v1(getDefaultIndex());
@@ -150,9 +155,12 @@ public interface ElasticConnect extends Connection {
 		}
 
 		private static void kerberosAuth() {
+			String kerberosConfigPath = Configs.gets("albatis.kafka.kerberos");
+			String jaasFile = kerberosConfigPath + JAAS_CONF;
+			String krb5ConfPath = kerberosConfigPath + KRB5_CONF;
 			Properties p = new Properties();
 			try {
-				InputStream is = ElasticConnect.class.getResourceAsStream("/albatis-es.properties");
+				InputStream is = ElasticConnect.class.getResourceAsStream(kerberosConfigPath + KERBEROS_PROP_PATH);
 				if (null != is) p.load(is);
 				else return;
 			} catch (IOException e) {
@@ -160,7 +168,16 @@ public interface ElasticConnect extends Connection {
 			}
 			logger.info("start normal kerberos setting!");
 			Map<String, String> props = Maps.of(p);
-			for (Map.Entry<String, String> c : props.entrySet()) System.setProperty(c.getKey(), c.getValue());
+			
+			//for (Map.Entry<String, String> c : props.entrySet()) System.setProperty(c.getKey(), c.getValue());
+			
+			
+			System.setProperty("keytab.path", kerberosConfigPath + props.get("kerberos.keytab"));
+			System.setProperty("java.security.auth.login.config", jaasFile);
+			System.setProperty("java.security.krb5.conf", krb5ConfPath);
+			System.setProperty("javax.security.auth.useSubjectCredsOnly", "false");
+			System.setProperty("es.security.indication", "true");	
+			
 		}
 
 		private static InetSocketAddress[] parseRestAddrs(String rest, InetSocketAddress... inetSocketAddresses) {
