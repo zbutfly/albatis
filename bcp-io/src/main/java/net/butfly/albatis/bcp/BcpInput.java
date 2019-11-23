@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static net.butfly.albatis.bcp.Props.CLEAN_TEMP_FILES;
 
@@ -34,7 +35,7 @@ public class BcpInput extends Namedly implements Input<Rmap> {
     private Path bcpPath;
     private List<String> zipNames;
     private URISpec uri;
-    private boolean flag = true;
+    private AtomicBoolean flag = new AtomicBoolean(true);
 
     public BcpInput(final String name, URISpec uri, String dataPath, String table) {
         super(name);
@@ -49,7 +50,7 @@ public class BcpInput extends Namedly implements Input<Rmap> {
     }
 
     private void closeBcp() {
-        flag = false;
+        flag.set(false);
         executorService.shutdownNow();
     }
 
@@ -188,7 +189,7 @@ public class BcpInput extends Namedly implements Input<Rmap> {
     private class FtpDownloadThread implements Runnable {
         @Override
         public void run() {
-            while (flag) {
+            while (flag.get()) {
                 download();
                 openBcp();
                 try {
