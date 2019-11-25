@@ -28,7 +28,7 @@
 		<!-- <version.elastic>6.5.3</version.elastic> -->
 		<!-- <version.elastic>6.5.4</version.elastic> -->
 		<version.elastic>6.6.2</version.elastic>
-		<version.kudu>1.8.0</version.kudu>
+		<version.kudu>1.11.1</version.kudu>
 		<!-- <version.hbase>2.1.1</version.hbase> -->
 		<!-- <version.hbase>1.2.0-cdh${version.cdh}</version.hbase> -->
 		<version.hbase>2.1.0-cdh${version.cdh}</version.hbase>
