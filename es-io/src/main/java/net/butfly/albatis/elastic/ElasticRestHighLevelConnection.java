@@ -152,7 +152,8 @@ public class ElasticRestHighLevelConnection extends DataConnection<RestHighLevel
 		} else logger().info("es aliases also index duplicate names.");
 	}
 
-    public void construct(Map<String, Object> mapping, String indexAndType) {
+    @Override
+	public void construct(Map<String, Object> mapping, String indexAndType) {
         String[] it = indexAndType.split("/", 2);
         String[] its = 2 == it.length ? it : new String[]{it[0], null};
         if (empty(its[0])) its[0] = getDefaultIndex();
