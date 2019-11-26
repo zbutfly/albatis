@@ -21,6 +21,7 @@ import java.util.Date;
 
 import org.apache.hadoop.hbase.util.Bytes;
 
+import net.butfly.albacore.utils.Configs;
 import net.butfly.albatis.ddl.FieldDesc;
 import net.butfly.albatis.ddl.vals.ValType;
 import net.butfly.albatis.io.Rmap;
@@ -30,6 +31,7 @@ import net.butfly.alserdes.SerDes;
 @SerDes.As("hbase")
 public class HbaseFormat extends RmapFormat {
 	private static final long serialVersionUID = 4733354000209088889L;
+	private static final String rowkeyField = Configs.gets("albatis.hbase.rowkey.field");
 
 	@Override
 	public Rmap ser(Rmap src) {
@@ -70,6 +72,7 @@ public class HbaseFormat extends RmapFormat {
 				throw e;
 			}
 		}
+		if (null != rowkeyField && !rowkeyField.isEmpty()) dst.put(rowkeyField, dst.key());
 		return dst;
 	}
 
