@@ -90,7 +90,7 @@ public abstract class HiveParquetWriter extends HiveWriter {
 		else while (!(locked = lock.tryLock())) try {
 			Thread.sleep(10);
 		} catch (InterruptedException e) {}
-
+		long now = System.currentTimeMillis();
 		try {
 			Path old = current;
 			current = new Path(partitionBase, ".current/current.parquet");
@@ -102,9 +102,11 @@ public abstract class HiveParquetWriter extends HiveWriter {
 				try {
 					String fn = filename();
 					conn.client.rename(old, new Path(old.getParent().getParent(), fn));
-					logger.info("Parquet file " + partitionBase.toString() + " rolled into: " + fn);
 				} catch (IOException e) {
 					logger.error("Parquet file rename failed (after being closed): " + old, e);
+				} finally {
+					logger.debug("Parquet file " + partitionBase.toString() + " rolled finish and spent " + (System.currentTimeMillis() - now)
+							+ " ms.");
 				}
 				// Exeter.of().submit(() -> rename(old));
 			}
