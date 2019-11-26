@@ -16,7 +16,7 @@
 		<dependency>
 			<groupId>org.mongodb</groupId>
 			<artifactId>mongo-java-driver</artifactId>
-			<version>${version.mongodb.thin}</version>
+			<version>3.11.2</version>
 		</dependency>
 	</dependencies>
 	<build>

@@ -6,16 +6,12 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import com.mongodb.*;
+import com.mongodb.client.MongoClients;
+import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.MongoIterable;
+import net.butfly.albacore.utils.Configs;
 import org.bson.BSONObject;
-
-import com.mongodb.BasicDBList;
-import com.mongodb.BasicDBObject;
-import com.mongodb.DB;
-import com.mongodb.DBCollection;
-import com.mongodb.DBCursor;
-import com.mongodb.DBObject;
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientURI;
 
 import net.butfly.albacore.io.URISpec;
 import net.butfly.albacore.utils.collection.Colls;
@@ -31,6 +27,7 @@ import net.butfly.albatis.ddl.TableDesc;
 public class MongoConnection extends DataConnection<MongoClient> {
 	final static String schema = "mongodb";
 	private static final Logger logger = Logger.getLogger(MongoConnection.class);
+	public static final String KERBEROS_CONF_PATH = Configs.gets("albatis.mongo.kerberos.conf.path");
 	private final Map<String, DB> dbs;
 	private final String defaultDB;
 	private final String defaultCollection;
@@ -53,15 +50,26 @@ public class MongoConnection extends DataConnection<MongoClient> {
 
 	@Override
 	protected MongoClient initialize(URISpec uri) {
-		try {
-			String str = uri.getScheme() + "://" + uri.getAuthority() + "/";
-			String db = uri.getPathAt(0);
-			if (null != db) str += db;
-			return new MongoClient(new MongoClientURI(str));
-		} catch (UnknownHostException e) {
-			throw new RuntimeException(e);
+		if(null != KERBEROS_CONF_PATH) {
+			Kerberos kerberos = new Kerberos(KERBEROS_CONF_PATH);
+            String[] s = uri.getHost().split(":");
+			if(s.length<2)logger.info("please check url: "+uri.toString());
+			MongoCredential credential = MongoCredential.createGSSAPICredential(kerberos.getUser());
+			credential.withMechanismProperty(MongoCredential.SERVICE_NAME_KEY, "mongodb");
+			credential.withMechanismProperty("authSource", "$external");
+			MongoClient mongoClient = null;
+			try {
+				mongoClient = new MongoClient(new ServerAddress(s[0], Integer.parseInt(s[1])), Arrays.asList(credential));
+			} catch (Exception e) {
+				logger.error("Init mongo client in kerberos module failed:"+e);
+			}
+			return mongoClient;
 		}
-	}
+        String str = uri.getScheme() + "://" + uri.getAuthority() + "/";
+        String db = uri.getPathAt(0);
+        if (null != db) str += db;
+        return new MongoClient(new MongoClientURI(str));
+    }
 
 	@Deprecated
 	public MongoConnection(String urispec) throws IOException {
