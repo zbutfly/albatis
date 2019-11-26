@@ -5,7 +5,6 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.avro.Schema;
@@ -22,35 +21,24 @@ import net.butfly.albatis.io.format.AvroFormat;
 import net.butfly.albatis.parquet.HiveConnection;
 import net.butfly.alserdes.avro.AvroSerDes.Builder;
 
-public abstract class HiveParquetWriter implements AutoCloseable {
-	public static final String PARTITION_STRATEGY_IMPL_PARAM = "hive.parquet.partition.strategy.impl";
+public abstract class HiveParquetWriter extends HiveWriter {
 	protected static final Logger logger = Logger.getLogger(HiveParquetWriter.class);
 	private static Map<Qualifier, Schema> AVRO_SCHEMAS = Maps.of();
 
-	protected final HiveConnection conn;
-	public final TableDesc table;
 	protected final Schema avroSchema;
 	private final Path partitionBase;
 	protected Path current;
 	protected ParquetWriter<GenericRecord> writer;
-	public final PartitionStrategy strategy;
-
-	public final AtomicLong lastWriten;
-	public final AtomicLong count = new AtomicLong();
 
 	private final ReentrantLock lock = new ReentrantLock();
 
 	public HiveParquetWriter(TableDesc table, HiveConnection conn, Path base) {
-		super();
-		this.conn = conn;
-		this.table = table;
-		this.strategy = table.attr(PARTITION_STRATEGY_IMPL_PARAM);
+		super(table, conn, base);
 		// this.threshold = s.rollingRecord;
 		// this.timeout = s.rollingMS;
 		this.avroSchema = AVRO_SCHEMAS.computeIfAbsent(table.qualifier, q -> AvroFormat.Builder.schema(table));
 		this.partitionBase = base;
 		// this.logger = Logger.getLogger(HiveParquetWriter.class + "#" + base.toString());
-		this.lastWriten = new AtomicLong(System.currentTimeMillis());
 		rolling(true);
 	}
 
@@ -58,6 +46,7 @@ public abstract class HiveParquetWriter implements AutoCloseable {
 
 	protected abstract long currentBytes();
 
+	@Override
 	public void write(List<Rmap> l) {
 		while (!lock.tryLock()) try {
 			Thread.sleep(10);
@@ -94,6 +83,7 @@ public abstract class HiveParquetWriter implements AutoCloseable {
 	 *            rolling by writing, if not, rolling by monitor.
 	 * @return
 	 */
+	@Override
 	public HiveParquetWriter rolling(boolean writing) {
 		boolean locked;
 		if (writing) locked = lock.tryLock();

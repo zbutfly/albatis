@@ -1,0 +1,33 @@
+package net.butfly.albatis.parquet.impl;
+
+import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
+
+import org.apache.hadoop.fs.Path;
+
+import net.butfly.albatis.ddl.TableDesc;
+import net.butfly.albatis.io.Rmap;
+import net.butfly.albatis.parquet.HiveConnection;
+
+public abstract class HiveWriter implements AutoCloseable {
+	public static final String PARTITION_STRATEGY_IMPL_PARAM = "hive.parquet.partition.strategy.impl";
+	protected final HiveConnection conn;
+	public final TableDesc table;
+	public final PartitionStrategy strategy;
+	public final AtomicLong lastWriten;
+	public final AtomicLong count = new AtomicLong();
+
+	public HiveWriter(TableDesc table, HiveConnection conn, Path base) {
+		this.conn = conn;
+		this.table = table;
+		this.strategy = table.attr(PARTITION_STRATEGY_IMPL_PARAM);
+		this.lastWriten = new AtomicLong(System.currentTimeMillis());
+	}
+
+	public abstract void write(List<Rmap> l);
+
+	@Override
+	public abstract void close();
+
+	public abstract HiveParquetWriter rolling(boolean writing);
+}

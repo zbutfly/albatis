@@ -20,16 +20,16 @@ import net.butfly.albatis.ddl.Qualifier;
 import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.io.OutputBase;
 import net.butfly.albatis.io.Rmap;
-import net.butfly.albatis.parquet.impl.HiveParquetWriter;
 import net.butfly.albatis.parquet.impl.HiveParquetWriterHDFS;
 import net.butfly.albatis.parquet.impl.HiveParquetWriterLocal;
+import net.butfly.albatis.parquet.impl.HiveWriter;
 import net.butfly.albatis.parquet.impl.PartitionStrategy;
 
 public class HiveParquetOutput extends OutputBase<Rmap> {
 	private static final long serialVersionUID = 4543231903669455241L;
 
 	final HiveConnection conn;
-	private Map<Path, HiveParquetWriter> writers = Maps.of();
+	private Map<Path, HiveWriter> writers = Maps.of();
 	private final Thread monitor;
 	private final Map<TableDesc, Long> nextRefreshs = Maps.of();
 
@@ -41,10 +41,10 @@ public class HiveParquetOutput extends OutputBase<Rmap> {
 		monitor.start();
 		long now = System.currentTimeMillis();
 		for (TableDesc td : table) nextRefreshs.computeIfAbsent(td, t -> now + ((PartitionStrategy) td.attr(
-				HiveParquetWriter.PARTITION_STRATEGY_IMPL_PARAM)).refreshMS());
+				HiveWriter.PARTITION_STRATEGY_IMPL_PARAM)).refreshMS());
 	}
 
-	private HiveParquetWriter w(Qualifier table, String subdir) {
+	private HiveWriter w(Qualifier table, String subdir) {
 		Path path = new Path(conn.base, table.name);
 		if (null != subdir && !subdir.isEmpty()) path = new Path(path, subdir);
 		TableDesc td = schema(table);
@@ -62,7 +62,7 @@ public class HiveParquetOutput extends OutputBase<Rmap> {
 	}
 
 	private String partition(Rmap r, TableDesc td) {
-		PartitionStrategy s = td.attr(HiveParquetWriter.PARTITION_STRATEGY_IMPL_PARAM);
+		PartitionStrategy s = td.attr(HiveWriter.PARTITION_STRATEGY_IMPL_PARAM);
 		return null == s ? "" : s.partition(r);
 	}
 
@@ -70,7 +70,7 @@ public class HiveParquetOutput extends OutputBase<Rmap> {
 	public void close() {
 		super.close();
 		Path p;
-		HiveParquetWriter w;
+		HiveWriter w;
 		while (true) {
 			try {
 				p = writers.keySet().iterator().next();
@@ -86,7 +86,7 @@ public class HiveParquetOutput extends OutputBase<Rmap> {
 			Set<TableDesc> toRefresh = new HashSet<>();;
 			long now = System.currentTimeMillis();
 			for (Path p : writers.keySet()) writers.compute(p, (pp, w) -> {
-				HiveParquetWriter ww = w.strategy.rollingMS() < System.currentTimeMillis() - w.lastWriten.get() && w.count.get() > 0 //
+				HiveWriter ww = w.strategy.rollingMS() < System.currentTimeMillis() - w.lastWriten.get() && w.count.get() > 0 //
 						? w.rolling(false)
 						: w;
 				if (now > nextRefreshs.get(w.table)) toRefresh.add(w.table);
@@ -105,7 +105,7 @@ public class HiveParquetOutput extends OutputBase<Rmap> {
 		try {
 			String sql = "msck repair table ";
 			for (TableDesc t : tables) {
-				PartitionStrategy s = t.attr(HiveParquetWriter.PARTITION_STRATEGY_IMPL_PARAM);
+				PartitionStrategy s = t.attr(HiveWriter.PARTITION_STRATEGY_IMPL_PARAM);
 				String jdbc = s.jdbcUri;
 				logger().info("Refresh hive table " + t.qualifier + " on: " + jdbc);
 				try (Connection c = DriverManager.getConnection(jdbc)) {

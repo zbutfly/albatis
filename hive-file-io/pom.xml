@@ -6,7 +6,7 @@
 		<artifactId>albatis</artifactId>
 		<version>1.6.1-SNAPSHOT</version>
 	</parent>
-	<artifactId>albatis-parquet-io</artifactId>
+	<artifactId>albatis-hive-file-io</artifactId>
 	<dependencies>
 		<dependency>
 			<groupId>net.butfly.albatis</groupId>
@@ -26,6 +26,11 @@
 			<groupId>org.apache.hadoop</groupId>
 			<artifactId>hadoop-mapreduce-client-core</artifactId>
 			<version>${version.hadoop}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.opencsv</groupId>
+			<artifactId>opencsv</artifactId>
+			<version>5.0</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.hive</groupId>
