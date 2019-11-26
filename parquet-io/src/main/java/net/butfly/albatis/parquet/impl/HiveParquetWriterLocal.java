@@ -18,7 +18,7 @@ public class HiveParquetWriterLocal extends HiveParquetWriter {
 
 	@Override
 	protected ParquetWriter<GenericRecord> createWriter() throws IOException {
-		File local = java.nio.file.Path.of(current.toString()).toFile();
+		File local = java.nio.file.Paths.get(current.toString()).toFile();
 		if (!local.getParentFile().exists() && !local.getParentFile().mkdirs()) //
 			throw new IOException("Parents dirs create fail on: " + local);
 		// if ((!local.exists() || local.isDirectory()) && !local.createNewFile())// local parquet write need non-existed file
@@ -28,6 +28,6 @@ public class HiveParquetWriterLocal extends HiveParquetWriter {
 
 	@Override
 	protected long currentBytes() {
-		return java.nio.file.Path.of(current.toString()).toFile().length();
+		return java.nio.file.Paths.get(current.toString()).toFile().length();
 	}
 }

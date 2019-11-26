@@ -66,7 +66,7 @@ public class HiveConnection extends DataConnection<FileSystem> {
 							String env = System.getProperty("hadoop.home.dir");
 							if (null == env) env = System.getenv("HADOOP_HOME");
 							if (null != env) {
-								java.nio.file.Path etc = java.nio.file.Path.of(env).resolve("etc").resolve("hadoop");
+								java.nio.file.Path etc = java.nio.file.Paths.get(env).resolve("etc").resolve("hadoop");
 								File etcf = etc.toFile();
 								if (etcf.exists() && etcf.isDirectory()) for (String f : etcf.list()) {
 									File ff = etc.resolve(f).toFile();

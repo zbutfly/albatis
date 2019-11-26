@@ -29,7 +29,7 @@ import org.apache.hadoop.fs.Path;
 
 @SuppressWarnings("deprecation")
 public class ParquetTest {
-	private static final java.nio.file.Path dstFile = java.nio.file.Path.of("C:\\Temp\\test.parquet");
+	private static final java.nio.file.Path dstFile = java.nio.file.Paths.get("C:\\Temp\\test.parquet");
 	private static final Path dst = new Path(dstFile.toUri());
 	private static final String hdfs = "hdfs://10.19.120.99:8020/user/hive/warehouse";
 	
