@@ -16,12 +16,15 @@ public abstract class HiveWriter implements AutoCloseable {
 	public final PartitionStrategy strategy;
 	public final AtomicLong lastWriten;
 	public final AtomicLong count = new AtomicLong();
+	protected final Path partitionBase;
+	protected Path current;
 
 	public HiveWriter(TableDesc table, HiveConnection conn, Path base) {
 		this.conn = conn;
 		this.table = table;
 		this.strategy = table.attr(PARTITION_STRATEGY_IMPL_PARAM);
 		this.lastWriten = new AtomicLong(System.currentTimeMillis());
+		this.partitionBase = base;
 	}
 
 	public abstract void write(List<Rmap> l);

@@ -26,8 +26,6 @@ public abstract class HiveParquetWriter extends HiveWriter {
 	private static Map<Qualifier, Schema> AVRO_SCHEMAS = Maps.of();
 
 	protected final Schema avroSchema;
-	private final Path partitionBase;
-	protected Path current;
 	protected ParquetWriter<GenericRecord> writer;
 
 	private final ReentrantLock lock = new ReentrantLock();
@@ -37,7 +35,6 @@ public abstract class HiveParquetWriter extends HiveWriter {
 		// this.threshold = s.rollingRecord;
 		// this.timeout = s.rollingMS;
 		this.avroSchema = AVRO_SCHEMAS.computeIfAbsent(table.qualifier, q -> AvroFormat.Builder.schema(table));
-		this.partitionBase = base;
 		// this.logger = Logger.getLogger(HiveParquetWriter.class + "#" + base.toString());
 		rolling(true);
 	}
@@ -110,9 +107,8 @@ public abstract class HiveParquetWriter extends HiveWriter {
 				}
 				// Exeter.of().submit(() -> rename(old));
 			}
-			if (!writing) { // from refreshing, file timeout, if empty, close self.
+			if (!writing) // from refreshing, file timeout, if empty, close self.
 				return count.get() <= 0 ? null : this;
-			}
 			try {
 				writer = createWriter();
 			} catch (IOException e) {
