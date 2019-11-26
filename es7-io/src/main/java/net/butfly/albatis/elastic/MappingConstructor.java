@@ -18,6 +18,7 @@ public class MappingConstructor {
 	protected final Logger logger = Logger.getLogger(MappingConstructor.class);
 	public static final String DEFAULT_FULLTEXT_NAME = "fullText";
 	public static final String CONFIG_PREFIX = "albatis.es.mapping.";
+	private static final boolean FULLTEXT_ENABLED = Boolean.parseBoolean(gets(CONFIG_PREFIX + "fulltext.enabled", "false"));
 
 	public final boolean includeAll;
 	public final String analyzer;
@@ -55,18 +56,22 @@ public class MappingConstructor {
 	}
 
 	public Map<String, Object> construct(FieldDesc... fields) {
-		Map<String, Object> props = of(DEFAULT_FULLTEXT_NAME, fieldAnalyzer());
+		Map<String, Object> fulltexts = of();
+		Map<String, Object> fa = fieldAnalyzer();
+		Map<String, Object> props = of();
 		for (FieldDesc f : fields) {
 			boolean indexed = f.attr(Desc.INDEXED);
 			Map<String, Object> fm = fieldType(f);
 			if (!indexed) fm.put("index", false);
-			String c2 = f.attr(Desc.FULLTEXT);
-			if (null != c2 && !c2.isEmpty()) {
-				String[] c2s = c2.split(",");
-				if (c2s != null && c2s.length != 0) fm.put("copy_to", c2s.length == 1 ? c2s[0] : c2s);
+
+			if (FULLTEXT_ENABLED) {
+				String[] c2s = f.attr(Desc.FULLTEXT, DEFAULT_FULLTEXT_NAME).split(",");
+				fm.put("copy_to", c2s.length == 1 ? c2s[0] : c2s);
+				for (String c : c2s) fulltexts.computeIfAbsent(c, k -> fa);
 			}
 			props.put(f.name, fm);
 		}
+		props.putAll(fulltexts);
 		Map<String, Object> all = of("include_in_all", includeAll, "dynamic", String.valueOf(dynamic), "properties", props);
 		if (dynamic) all.put("dynamic_templates", templates());
 		return all;

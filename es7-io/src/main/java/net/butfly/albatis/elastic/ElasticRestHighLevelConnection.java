@@ -138,6 +138,7 @@ public class ElasticRestHighLevelConnection extends DataConnection<RestHighLevel
 		} else logger().info("es aliases also index duplicate names.");
 	}
 
+	@Override
 	public void construct(Map<String, Object> mapping, String index) {
 		PutMappingRequest req = new PutMappingRequest(index);
 //        CreateIndexRequest req = new CreateIndexRequest(index);
