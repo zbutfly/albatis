@@ -5,6 +5,8 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.hadoop.fs.Path;
 
+import net.butfly.albacore.utils.Configs;
+import net.butfly.albacore.utils.logger.Statistic;
 import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.io.Rmap;
 import net.butfly.albatis.parquet.HiveConnection;
@@ -18,6 +20,9 @@ public abstract class HiveWriter implements AutoCloseable {
 	public final AtomicLong count = new AtomicLong();
 	protected final Path partitionBase;
 	protected Path current;
+
+	private static final long STATS_STEP = Long.parseLong(Configs.gets("net.butfly.albatis.parquet.writer.stats.step", "100000"));
+	protected static final Statistic s = new Statistic(HiveWriter.class).step(STATS_STEP);
 
 	public HiveWriter(TableDesc table, HiveConnection conn, Path base) {
 		this.conn = conn;
@@ -33,4 +38,6 @@ public abstract class HiveWriter implements AutoCloseable {
 	public abstract void close();
 
 	public abstract HiveParquetWriter rolling(boolean writing);
+
+	protected abstract long currentBytes();
 }

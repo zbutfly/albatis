@@ -7,6 +7,7 @@ import java.util.Map;
 import org.apache.hadoop.fs.Path;
 
 import net.butfly.albacore.expr.Engine;
+import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albatis.ddl.ExtraTableDesc.ExtraEnabled;
 
@@ -30,11 +31,14 @@ public class PartitionStrategyMultipleField extends PartitionStrategy {
 				segments.add(new Segment(col));
 	}
 
+	private static final int MAX_SEGS = Integer.parseInt(Configs.gets("net.butfly.albatis.parquet.output.seg.max", "-1"));
+
 	@Override
 	public String partition(Map<String, Object> rec) {
 		if (null == rec || rec.isEmpty()) throw new IllegalArgumentException("Partition failed on value null or empty.");
 		List<String> ss = new ArrayList<>();
 		for (Segment seg : segments) ss.add(seg.seg(rec));
+		if (MAX_SEGS > 0 && MAX_SEGS < ss.size()) ss = ss.subList(0, MAX_SEGS);
 		return String.join(Path.SEPARATOR, ss);
 	}
 

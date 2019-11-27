@@ -12,8 +12,11 @@ import org.apache.avro.generic.GenericRecord;
 import org.apache.hadoop.fs.Path;
 import org.apache.parquet.hadoop.ParquetWriter;
 
+import net.butfly.albacore.paral.Exeter;
+import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
+import net.butfly.albacore.utils.logger.StatsUtils;
 import net.butfly.albatis.ddl.Qualifier;
 import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.io.Rmap;
@@ -23,6 +26,7 @@ import net.butfly.alserdes.avro.AvroSerDes.Builder;
 
 public abstract class HiveParquetWriter extends HiveWriter {
 	protected static final Logger logger = Logger.getLogger(HiveParquetWriter.class);
+	protected static final long WRITER_STATS_STEP = Long.parseLong(Configs.gets("net.butfly.albatis.parquet.writer.stats.step.single", "-1"));
 	private static Map<Qualifier, Schema> AVRO_SCHEMAS = Maps.of();
 
 	protected final Schema avroSchema;
@@ -32,16 +36,12 @@ public abstract class HiveParquetWriter extends HiveWriter {
 
 	public HiveParquetWriter(TableDesc table, HiveConnection conn, Path base) {
 		super(table, conn, base);
-		// this.threshold = s.rollingRecord;
-		// this.timeout = s.rollingMS;
+		// s.detailing(() -> "current [" + current.toString() + "] writed: " + writer.getDataSize());
 		this.avroSchema = AVRO_SCHEMAS.computeIfAbsent(table.qualifier, q -> AvroFormat.Builder.schema(table));
-		// this.logger = Logger.getLogger(HiveParquetWriter.class + "#" + base.toString());
 		rolling(true);
 	}
 
 	protected abstract ParquetWriter<GenericRecord> createWriter() throws IOException;
-
-	protected abstract long currentBytes();
 
 	@Override
 	public void write(List<Rmap> l) {
@@ -50,21 +50,25 @@ public abstract class HiveParquetWriter extends HiveWriter {
 		} catch (InterruptedException e) {
 			return;
 		}
-		long now = System.currentTimeMillis();
-		long total = 0;
 		try {
-			for (Rmap r : l) try {
-				writer.write(Builder.rec(r, avroSchema));
-				lastWriten.set(System.currentTimeMillis());
-				total = count.accumulateAndGet(1, (c, one) -> check(c));
-			} catch (Exception e) {
-				logger.error("Parquet fail on record: \n\t" + r.toString(), e);
-			}
+			for (Rmap r : l) s.statsOutN(r, this::write0);
 		} finally {
 			lock.unlock();
 		}
-		if (logger.isTraceEnabled()) logger.trace("Parquet [" + this.partitionBase.toString() + "] writen [" + l.size() + "] records, "//
-				+ "spent [" + (System.currentTimeMillis() - now) + "] ms, total " + total);
+	}
+
+	private long write0(Rmap rr) {
+		long b = writer.getDataSize();
+		try {
+			writer.write(Builder.rec(rr, avroSchema));
+			lastWriten.set(System.currentTimeMillis());
+			long cc = count.accumulateAndGet(1, (c, one) -> check(c));
+			if (WRITER_STATS_STEP > 0 && cc % WRITER_STATS_STEP == 0) //
+				logger.trace(cc + " record writen, size " + writer.getDataSize() + " bytes on " + current.toString());
+		} catch (IOException e) {
+			logger.error("Parquet fail on record: \n\t" + rr.toString(), e);
+		}
+		return writer.getDataSize() - b;
 	}
 
 	private long check(long c) {
@@ -87,26 +91,29 @@ public abstract class HiveParquetWriter extends HiveWriter {
 		else while (!(locked = lock.tryLock())) try {
 			Thread.sleep(10);
 		} catch (InterruptedException e) {}
-		long now = System.currentTimeMillis();
 		try {
 			Path old = current;
-			current = new Path(partitionBase, ".current/current.parquet");
-			if (null != writer) try {
-				writer.close();
-			} catch (IOException e) {
-				logger.error("Parquet file close failed.", e);
-			} finally {
-				try {
-					String fn = filename();
-					conn.client.rename(old, new Path(old.getParent().getParent(), fn));
+			current = new Path(new Path(partitionBase, ".current"), filename());
+			Exeter.of().submit(() -> {
+				long now = System.currentTimeMillis();
+				if (null != writer) try {
+					String bytes = StatsUtils.formatKilo(writer.getDataSize(), "bytes");
+					long c = count.get();
+					logger.debug("Parquet file rolling with " + bytes + "/" + c + " records: " + old.toString());
+					writer.close();
 				} catch (IOException e) {
-					logger.error("Parquet file rename failed (after being closed): " + old, e);
+					logger.error("Parquet file close failed.", e);
 				} finally {
-					logger.debug("Parquet file " + partitionBase.toString() + " rolled finish and spent " + (System.currentTimeMillis() - now)
-							+ " ms.");
+					try {
+						if (!conn.client.rename(old, new Path(old.getParent().getParent(), old.getName()))) //
+							logger.error("Parquet file closed but move failed: " + old.toString());
+					} catch (IOException e) {
+						logger.error("Parquet file closed but move failed: " + old.toString(), e);
+					} finally {
+						logger.debug("Parquet file rolling finished, spent " + (System.currentTimeMillis() - now) + " ms: " + old.toString());
+					}
 				}
-				// Exeter.of().submit(() -> rename(old));
-			}
+			});
 			if (!writing) // from refreshing, file timeout, if empty, close self.
 				return count.get() <= 0 ? null : this;
 			try {
@@ -120,7 +127,7 @@ public abstract class HiveParquetWriter extends HiveWriter {
 		}
 	}
 
-	private static final SimpleDateFormat FILENAME_FORMAT = new SimpleDateFormat("hhmmssSSS");
+	private static final SimpleDateFormat FILENAME_FORMAT = new SimpleDateFormat("yyyyMMddHHmmssSSS");
 
 	private synchronized String filename() {
 		return FILENAME_FORMAT.format(new Date()) + ".parquet";
@@ -135,5 +142,10 @@ public abstract class HiveParquetWriter extends HiveWriter {
 		} finally {
 			rolling(false);
 		}
+	}
+
+	@Override
+	protected long currentBytes() {
+		return writer.getDataSize();
 	}
 }

@@ -25,9 +25,4 @@ public class HiveParquetWriterLocal extends HiveParquetWriter {
 		// throw new IOException("File create fail on: " + local);
 		return AvroParquetWriter.<GenericRecord> builder(current).withSchema(avroSchema).build();
 	}
-
-	@Override
-	protected long currentBytes() {
-		return java.nio.file.Paths.get(current.toString()).toFile().length();
-	}
 }

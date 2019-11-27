@@ -48,9 +48,8 @@ public class HiveParquetOutput extends OutputBase<Rmap> {
 		Path path = new Path(conn.base, table.name);
 		if (null != subdir && !subdir.isEmpty()) path = new Path(path, subdir);
 		TableDesc td = schema(table);
-		return writers.computeIfAbsent(path, p -> null == conn.conf ? //
-				new HiveParquetWriterLocal(td, conn, p) : //
-				new HiveParquetWriterHDFS(td, conn, p));
+		return writers.computeIfAbsent(path, p -> null == conn.conf ? new HiveParquetWriterLocal(td, conn, p)
+				: new HiveParquetWriterHDFS(td, conn, p));
 	}
 
 	@Override

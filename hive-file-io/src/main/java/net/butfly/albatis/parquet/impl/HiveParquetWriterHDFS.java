@@ -34,11 +34,6 @@ public class HiveParquetWriterHDFS extends HiveParquetWriter {
 			logger.error("Working parquet file " + current.toString() + " cleaning fail.", e);
 		}
 
-		return AvroParquetWriter.<GenericRecord> builder(outfile).withSchema(avroSchema).build();
-	}
-
-	@Override
-	protected long currentBytes() {
-		return writer.getDataSize();
+		return AvroParquetWriter.<GenericRecord> builder(outfile).withSchema(avroSchema).withRowGroupSize(10 * 1024 * 1024).build();
 	}
 }
