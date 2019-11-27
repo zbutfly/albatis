@@ -128,6 +128,7 @@ public abstract class KafkaConfigBase implements Serializable {
 			throw new ConfigException("Neither [zk] nor [bootstrap] found for uri [" + uri + "]");
 
 		}
+		kerberosConfigPath = uri.fetchParameter("kerberos");
 		Map<String, String> props = uri.getParameters();
 		zookeeperConnectionTimeoutMs = props.containsKey("zkconntimeout") ? Long.parseLong(props.get("zkconntimeout")) : null;
 		transferBufferBytes = props.containsKey("socketBuffer") ? Long.parseLong(props.get("socketBuffer")) : null;
@@ -141,7 +142,7 @@ public abstract class KafkaConfigBase implements Serializable {
 		version = props.get("version");
 		topics = props.containsKey("topics") ? Colls.list(new HashSet<>(Texts.split(props.get("topics") + "," + props.get("topic"), ",")))
 				: Colls.list();
-		kerberosConfigPath = Configs.gets(PROP_PREFIX + "kerberos");
+		kerberosConfigPath = (null == kerberosConfigPath) ? Configs.gets(PROP_PREFIX + "kerberos") : kerberosConfigPath;
 		tbdsConfigPath = Configs.gets(PROP_PREFIX + "tbds");
 		kerberos();
 	}
@@ -179,6 +180,7 @@ public abstract class KafkaConfigBase implements Serializable {
 			throw new RuntimeException("load KERBEROS_PROP error!", e);
 			// logger.error("load KERBEROS_PROP error!", e);
 		}
+		if (null == KERBEROS_PROPS.getProperty("albatis.kafka.kerberos.jaas.enable") || !Boolean.parseBoolean(KERBEROS_PROPS.getProperty("albatis.kafka.kerberos.jaas.enable"))) return;
 		if (fileList.contains(HUAWEI_KEYTAB)) {
 			logger.info("Enable huawei kerberos!");
 			try {
@@ -219,6 +221,24 @@ public abstract class KafkaConfigBase implements Serializable {
 
 	public void kerberosConfig(Properties props) {
 		if (null != kerberosConfigPath) {
+			if (null == KERBEROS_PROPS.getProperty("albatis.kafka.kerberos.jaas.enable") || !Boolean.parseBoolean(KERBEROS_PROPS.getProperty("albatis.kafka.kerberos.jaas.enable"))) {
+				logger.info("Enable kerberos without jaas file path!");
+				try {
+					LoginUtil.setKrb5Config(kerberosConfigPath + KRB5_CONF);
+				} catch (IOException e) {
+					logger.error("load krb5.conf error!", e);
+				}
+				System.setProperty("javax.security.auth.useSubjectCredsOnly", "false");
+				props.put("security.protocol",KERBEROS_PROPS.getProperty("security.protocol"));
+				logger.trace("security.protocol" + KERBEROS_PROPS.getProperty("security.protocol"));
+				props.put("sasl.mechanism",KERBEROS_PROPS.getProperty("sasl.mechanism"));
+				logger.trace("sasl.mechanism" + KERBEROS_PROPS.getProperty("sasl.mechanism"));
+				props.put("sasl.kerberos.service.name",KERBEROS_PROPS.getProperty("sasl.kerberos.service.name"));
+				logger.trace("sasl.kerberos.service.name" + KERBEROS_PROPS.getProperty("sasl.kerberos.service.name"));
+				props.put("sasl.jaas.config",KERBEROS_PROPS.getProperty("sasl.jaas.config"));
+				logger.trace("sasl.jaas.config" + KERBEROS_PROPS.getProperty("sasl.jaas.config"));
+				return;
+			}
 			if(!KRB5_CONF_EXIST){
 				logger.info("Enable SASL/PLAIN! Config file path:" + kerberosConfigPath);
 				props.put("security.protocol",KERBEROS_PROPS.getProperty("security.protocol"));
