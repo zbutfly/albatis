@@ -1,8 +1,10 @@
 package net.butfly.albatis.kudu;
 
 import static net.butfly.albacore.paral.Sdream.of;
+import static net.butfly.albatis.kudu.KuduConnection.KERBEROS_CONF_PATH;
 
 import java.io.IOException;
+import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -12,6 +14,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import com.stumbleupon.async.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kudu.ColumnSchema;
 import org.apache.kudu.Schema;
 import org.apache.kudu.client.AsyncKuduClient;
@@ -57,6 +60,16 @@ public class KuduConnectionAsync extends KuduConnectionBase<KuduConnectionAsync,
 
 	@Override
 	protected AsyncKuduClient initialize(URISpec uri) {
+		if(null!=KERBEROS_CONF_PATH){
+			new Kerberos(KERBEROS_CONF_PATH);
+			try {
+				return UserGroupInformation.getLoginUser().doAs((PrivilegedAction<AsyncKuduClient>) () -> {
+					return new  AsyncKuduClient.AsyncKuduClientBuilder(uri.getHost()).build();
+				});
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
 		return new AsyncKuduClient.AsyncKuduClientBuilder(uri.getHost()).build();
 	}
 

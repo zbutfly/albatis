@@ -15,10 +15,12 @@ import static net.butfly.albatis.ddl.vals.ValType.Flags.STR;
 import static net.butfly.albatis.ddl.vals.ValType.Flags.UNKNOWN;
 
 import java.io.IOException;
+import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kudu.ColumnSchema;
 import org.apache.kudu.Schema;
 import org.apache.kudu.Type;
@@ -40,6 +42,7 @@ import net.butfly.albatis.ddl.TableDesc;
 
 @SuppressWarnings("unchecked")
 public class KuduConnection extends KuduConnectionBase<KuduConnection, KuduClient, KuduSession> {
+	public static final String KERBEROS_CONF_PATH = Configs.gets("albatis.kudu.kerberos.conf.path");
 	public KuduConnection(URISpec kuduUri) throws IOException {
 		super(kuduUri);
 		session = client.newSession();
@@ -49,6 +52,16 @@ public class KuduConnection extends KuduConnectionBase<KuduConnection, KuduClien
 
 	@Override
 	protected KuduClient initialize(URISpec uri) {
+		if(null!=KERBEROS_CONF_PATH){
+			new Kerberos(KERBEROS_CONF_PATH);
+			try {
+				return UserGroupInformation.getLoginUser().doAs((PrivilegedAction<KuduClient>) () -> {
+					return new KuduClient.KuduClientBuilder(uri.getHost()).build();
+				});
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
 		return new KuduClient.KuduClientBuilder(uri.getHost()).build();
 	}
 

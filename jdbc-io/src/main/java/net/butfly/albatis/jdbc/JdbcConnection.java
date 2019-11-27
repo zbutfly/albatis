@@ -3,6 +3,7 @@ package net.butfly.albatis.jdbc;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.security.PrivilegedAction;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -17,6 +18,7 @@ import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 
 import net.butfly.albacore.io.URISpec;
+import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albatis.DataConnection;
@@ -25,9 +27,11 @@ import net.butfly.albatis.ddl.Qualifier;
 import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.jdbc.dialect.Dialect;
 import net.butfly.albatis.jdbc.dialect.DialectFor;
+import org.apache.hadoop.security.UserGroupInformation;
 
 public class JdbcConnection extends DataConnection<DataSource> {
 	private static final Logger logger = Logger.getLogger(JdbcConnection.class);
+	public static final String KERBEROS_CONF_PATH = Configs.gets("albatis.jdbc.kerberos.conf.path");
 	final Dialect dialect;
 
 	public JdbcConnection(URISpec uri) throws IOException {
@@ -38,6 +42,20 @@ public class JdbcConnection extends DataConnection<DataSource> {
 	@Override
 	protected DataSource initialize(URISpec uri) {
 		Dialect dialect = Dialect.of(uri.getSchema());
+		if(null!=KERBEROS_CONF_PATH){
+			new Kerberos(KERBEROS_CONF_PATH);
+			UserGroupInformation loginUser = null;
+			try {
+				loginUser = UserGroupInformation.getLoginUser();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			HikariDataSource h = loginUser.doAs((PrivilegedAction<HikariDataSource>) () -> {
+				HikariDataSource h2 = new HikariDataSource(dialect.toConfig(dialect, uri));
+				return h2;
+			});
+			return h;
+		}
 		try {
 			HikariDataSource h = new HikariDataSource(dialect.toConfig(dialect, uri));
 			return h;

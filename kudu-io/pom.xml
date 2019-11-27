@@ -18,5 +18,15 @@
 			<artifactId>kudu-client</artifactId>
 			<version>${version.kudu}</version>
 		</dependency>
+		<dependency>
+			<groupId>org.apache.hadoop</groupId>
+			<artifactId>hadoop-client</artifactId>
+			<version>${version.hadoop}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.hadoop</groupId>
+			<artifactId>hadoop-common</artifactId>
+			<version>${version.hadoop}</version>
+		</dependency>
 	</dependencies>
 </project>
