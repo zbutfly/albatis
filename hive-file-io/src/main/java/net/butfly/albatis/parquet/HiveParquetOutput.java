@@ -20,8 +20,8 @@ import net.butfly.albatis.ddl.Qualifier;
 import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.io.OutputBase;
 import net.butfly.albatis.io.Rmap;
-import net.butfly.albatis.parquet.impl.HiveParquetWriterHDFS;
 import net.butfly.albatis.parquet.impl.HiveParquetWriterLocal;
+import net.butfly.albatis.parquet.impl.HiveParquetWriterHDFSWithCache;
 import net.butfly.albatis.parquet.impl.HiveWriter;
 import net.butfly.albatis.parquet.impl.PartitionStrategy;
 
@@ -49,7 +49,7 @@ public class HiveParquetOutput extends OutputBase<Rmap> {
 		if (null != subdir && !subdir.isEmpty()) path = new Path(path, subdir);
 		TableDesc td = schema(table);
 		return writers.computeIfAbsent(path, p -> null == conn.conf ? new HiveParquetWriterLocal(td, conn, p)
-				: new HiveParquetWriterHDFS(td, conn, p));
+				: new HiveParquetWriterHDFSWithCache(td, conn, p));
 	}
 
 	@Override
@@ -85,9 +85,7 @@ public class HiveParquetOutput extends OutputBase<Rmap> {
 			Set<TableDesc> toRefresh = new HashSet<>();;
 			long now = System.currentTimeMillis();
 			for (Path p : writers.keySet()) writers.compute(p, (pp, w) -> {
-				HiveWriter ww = w.strategy.rollingMS() < System.currentTimeMillis() - w.lastWriten.get() && w.count.get() > 0 //
-						? w.rolling(false)
-						: w;
+				HiveWriter ww = w.strategy.rollingMS() < System.currentTimeMillis() - w.lastWriten.get() ? w.rolling(false) : w;
 				if (now > nextRefreshs.get(w.table)) toRefresh.add(w.table);
 				return ww;
 			});

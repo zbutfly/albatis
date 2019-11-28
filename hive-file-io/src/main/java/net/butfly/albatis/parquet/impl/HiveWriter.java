@@ -17,7 +17,6 @@ public abstract class HiveWriter implements AutoCloseable {
 	public final TableDesc table;
 	public final PartitionStrategy strategy;
 	public final AtomicLong lastWriten;
-	public final AtomicLong count = new AtomicLong();
 	protected final Path partitionBase;
 	protected Path current;
 
@@ -37,7 +36,7 @@ public abstract class HiveWriter implements AutoCloseable {
 	@Override
 	public abstract void close();
 
-	public abstract HiveParquetWriter rolling(boolean writing);
+	public abstract HiveWriter rolling(boolean writing);
 
 	protected abstract long currentBytes();
 }

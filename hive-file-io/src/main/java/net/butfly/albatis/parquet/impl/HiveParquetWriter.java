@@ -5,6 +5,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.avro.Schema;
@@ -29,6 +30,7 @@ public abstract class HiveParquetWriter extends HiveWriter {
 	protected static final long WRITER_STATS_STEP = Long.parseLong(Configs.gets("net.butfly.albatis.parquet.writer.stats.step.single", "-1"));
 	private static Map<Qualifier, Schema> AVRO_SCHEMAS = Maps.of();
 
+	public final AtomicLong count = new AtomicLong();
 	protected final Schema avroSchema;
 	protected ParquetWriter<GenericRecord> writer;
 
