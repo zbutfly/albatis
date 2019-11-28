@@ -60,6 +60,7 @@ public class KuduConnectionAsync extends KuduConnectionBase<KuduConnectionAsync,
 
 	@Override
 	protected AsyncKuduClient initialize(URISpec uri) {
+		if(null != uri.getParameter("kerberos")){ KERBEROS_CONF_PATH = uri.getParameter("kerberos"); }
 		if(null!=KERBEROS_CONF_PATH){
 			new Kerberos(KERBEROS_CONF_PATH);
 			try {
