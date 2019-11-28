@@ -16,6 +16,7 @@ import net.butfly.albatis.parquet.HiveConnection;
 
 public class HiveCsvWrite extends HiveWriter {
 	protected CSVWriter writer;
+	protected Path current;
 
 	public HiveCsvWrite(TableDesc table, HiveConnection conn, Path base) {
 		super(table, conn, base);

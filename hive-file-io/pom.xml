@@ -44,6 +44,11 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		<dependency>
+			<groupId>com.bluejeans</groupId>
+			<artifactId>bigqueue</artifactId>
+			<version>1.7.0.6</version>
+		</dependency>
 	</dependencies>
 	<dependencyManagement>
 		<dependencies>

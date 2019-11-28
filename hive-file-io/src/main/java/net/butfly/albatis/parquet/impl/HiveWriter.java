@@ -13,12 +13,12 @@ import net.butfly.albatis.parquet.HiveConnection;
 
 public abstract class HiveWriter implements AutoCloseable {
 	public static final String PARTITION_STRATEGY_IMPL_PARAM = "hive.parquet.partition.strategy.impl";
+	public static final long WRITER_STATS_STEP = Long.parseLong(Configs.gets("net.butfly.albatis.parquet.writer.stats.step.single", "-1"));
 	protected final HiveConnection conn;
 	public final TableDesc table;
 	public final PartitionStrategy strategy;
 	public final AtomicLong lastWriten;
 	protected final Path partitionBase;
-	protected Path current;
 
 	private static final long STATS_STEP = Long.parseLong(Configs.gets("net.butfly.albatis.parquet.writer.stats.step", "100000"));
 	protected static final Statistic s = new Statistic(HiveWriter.class).step(STATS_STEP);
@@ -38,5 +38,5 @@ public abstract class HiveWriter implements AutoCloseable {
 
 	public abstract HiveWriter rolling(boolean writing);
 
-	protected abstract long currentBytes();
+	public abstract long currentBytes();
 }

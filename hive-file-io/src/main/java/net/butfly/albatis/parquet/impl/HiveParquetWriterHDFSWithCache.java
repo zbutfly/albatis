@@ -31,7 +31,7 @@ public class HiveParquetWriterHDFSWithCache extends HiveWriter {
 	private static Map<Qualifier, Schema> AVRO_SCHEMAS = Maps.of();
 
 	protected final Schema avroSchema;
-	protected final BlockingQueue<Rmap> pool = new LinkedBlockingQueue<>();
+	private final BlockingQueue<Rmap> pool = new LinkedBlockingQueue<>();
 
 	public HiveParquetWriterHDFSWithCache(TableDesc table, HiveConnection conn, Path base) {
 		super(table, conn, base);
@@ -40,7 +40,7 @@ public class HiveParquetWriterHDFSWithCache extends HiveWriter {
 
 	@Override
 	public void write(List<Rmap> l) {
-		s.statsOuts(l, pool::addAll);
+		s.statsOuts(l, pool()::addAll);
 		rolling(true); // s.statsOutN
 	}
 
@@ -61,8 +61,8 @@ public class HiveParquetWriterHDFSWithCache extends HiveWriter {
 
 	private synchronized List<Rmap> drain(boolean force) {
 		List<Rmap> l = Colls.list();
-		if (force) pool.drainTo(l);
-		else if (pool.size() >= strategy.rollingRecord) pool.drainTo(l, strategy.rollingRecord);
+		if (force) pool().drainTo(l);
+		else if (pool().size() >= strategy.rollingRecord) pool().drainTo(l, strategy.rollingRecord);
 		return l;
 	}
 
@@ -120,7 +120,11 @@ public class HiveParquetWriterHDFSWithCache extends HiveWriter {
 	}
 
 	@Override
-	protected long currentBytes() {
+	public long currentBytes() {
 		return -1;
+	}
+
+	protected BlockingQueue<Rmap> pool() {
+		return pool;
 	}
 }

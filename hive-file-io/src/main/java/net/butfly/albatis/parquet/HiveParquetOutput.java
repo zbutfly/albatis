@@ -10,18 +10,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.hadoop.fs.Path;
 
 import net.butfly.albacore.paral.Sdream;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
+import net.butfly.albacore.utils.logger.StatsUtils;
 import net.butfly.albatis.ddl.Qualifier;
 import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.io.OutputBase;
 import net.butfly.albatis.io.Rmap;
+import net.butfly.albatis.parquet.impl.HiveParquetWriterHDFSWithCacheMM;
 import net.butfly.albatis.parquet.impl.HiveParquetWriterLocal;
-import net.butfly.albatis.parquet.impl.HiveParquetWriterHDFSWithCache;
 import net.butfly.albatis.parquet.impl.HiveWriter;
 import net.butfly.albatis.parquet.impl.PartitionStrategy;
 
@@ -32,6 +34,7 @@ public class HiveParquetOutput extends OutputBase<Rmap> {
 	private Map<Path, HiveWriter> writers = Maps.of();
 	private final Thread monitor;
 	private final Map<TableDesc, Long> nextRefreshs = Maps.of();
+	private final AtomicLong total = new AtomicLong();
 
 	public HiveParquetOutput(String name, HiveConnection conn, TableDesc... table) throws IOException {
 		super(name);
@@ -49,15 +52,24 @@ public class HiveParquetOutput extends OutputBase<Rmap> {
 		if (null != subdir && !subdir.isEmpty()) path = new Path(path, subdir);
 		TableDesc td = schema(table);
 		return writers.computeIfAbsent(path, p -> null == conn.conf ? new HiveParquetWriterLocal(td, conn, p)
-				: new HiveParquetWriterHDFSWithCache(td, conn, p));
+				: new HiveParquetWriterHDFSWithCacheMM(td, conn, p));
 	}
 
 	@Override
 	protected void enqsafe(Sdream<Rmap> items) {
 		Map<Qualifier, Map<String, List<Rmap>>> split = Maps.of();
-		items.eachs(r -> split.computeIfAbsent(r.table(), t -> Maps.of())//
-				.computeIfAbsent(partition(r, schema(r.table())), h -> Colls.list()).add(r));
+		items.eachs(r -> {
+			total.incrementAndGet();
+			split.computeIfAbsent(r.table(), t -> Maps.of())//
+					.computeIfAbsent(partition(r, schema(r.table())), h -> Colls.list()).add(r);
+		});
 		split.forEach((t, m) -> m.forEach((h, l) -> w(t, h).write(l)));
+		if (HiveWriter.WRITER_STATS_STEP > 0 && logger().isDebugEnabled() && total.get() % HiveWriter.WRITER_STATS_STEP == 0) {
+			AtomicLong bytes = new AtomicLong();
+			writers.values().forEach(w -> bytes.addAndGet(w.currentBytes()));
+			logger().debug("Parquet output " + total.get() + " records with " + StatsUtils.formatKilo(bytes.get(), "Bytes") + ", current "
+					+ writers.size() + " writers.");
+		}
 	}
 
 	private String partition(Rmap r, TableDesc td) {
@@ -82,13 +94,15 @@ public class HiveParquetOutput extends OutputBase<Rmap> {
 
 	private void check() {
 		while (true) {
-			Set<TableDesc> toRefresh = new HashSet<>();;
+			Set<TableDesc> toRefresh = new HashSet<>();
 			long now = System.currentTimeMillis();
-			for (Path p : writers.keySet()) writers.compute(p, (pp, w) -> {
-				HiveWriter ww = w.strategy.rollingMS() < System.currentTimeMillis() - w.lastWriten.get() ? w.rolling(false) : w;
-				if (now > nextRefreshs.get(w.table)) toRefresh.add(w.table);
-				return ww;
-			});
+			for (Path p : writers.keySet()) {
+				writers.compute(p, (pp, w) -> {
+					HiveWriter ww = w.strategy.rollingMS() < System.currentTimeMillis() - w.lastWriten.get() ? w.rolling(false) : w;
+					if (now > nextRefreshs.get(w.table)) toRefresh.add(w.table);
+					return ww;
+				});
+			}
 			refresh(toRefresh.toArray(new TableDesc[0]));
 			try {
 				Thread.sleep(100);

@@ -14,7 +14,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.parquet.hadoop.ParquetWriter;
 
 import net.butfly.albacore.paral.Exeter;
-import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
 import net.butfly.albacore.utils.logger.StatsUtils;
@@ -27,12 +26,12 @@ import net.butfly.alserdes.avro.AvroSerDes.Builder;
 
 public abstract class HiveParquetWriter extends HiveWriter {
 	protected static final Logger logger = Logger.getLogger(HiveParquetWriter.class);
-	protected static final long WRITER_STATS_STEP = Long.parseLong(Configs.gets("net.butfly.albatis.parquet.writer.stats.step.single", "-1"));
 	private static Map<Qualifier, Schema> AVRO_SCHEMAS = Maps.of();
 
 	public final AtomicLong count = new AtomicLong();
 	protected final Schema avroSchema;
 	protected ParquetWriter<GenericRecord> writer;
+	protected Path current;
 
 	private final ReentrantLock lock = new ReentrantLock();
 
@@ -147,7 +146,7 @@ public abstract class HiveParquetWriter extends HiveWriter {
 	}
 
 	@Override
-	protected long currentBytes() {
+	public long currentBytes() {
 		return writer.getDataSize();
 	}
 }
