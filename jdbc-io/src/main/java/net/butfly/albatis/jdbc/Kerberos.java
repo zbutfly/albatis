@@ -24,9 +24,6 @@ public class Kerberos extends KerberosLoader {
             user = KERBEROS_PROPS.getProperty(KRB5_USER);
             Configuration configuration=new Configuration();
             configuration.set("hadoop.security.authentication", "Kerberos");
-            configuration.addResource(new Path(kerberosConfPath + "hdfs-site.xml"));
-            configuration.addResource(new Path(kerberosConfPath + "core-site.xml"));
-            configuration.addResource(new Path(kerberosConfPath + "ssl-client.xml"));
             System.setProperty("java.security.krb5.conf", new File(kerberosConfPath,KRB5_CONF).getPath());
             System.setProperty("javax.security.auth.useSubjectCredsOnly", "false");
             System.setProperty("java.security.auth.login.config",new File(kerberosConfPath,JAAS_CONF).getPath());
