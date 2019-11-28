@@ -192,7 +192,8 @@ public class HbaseConnection extends DataConnection<org.apache.hadoop.hbase.clie
 				return params;
 			default: // other, try to load by vfs
 				URISpec vfs = uri.schema(Arrays.copyOfRange(s, i, s.length));
-				return Maps.of(VFS_CONF_URI, vfs.toString());
+				String vfsUri = vfs.toString();
+				return Maps.of(VFS_CONF_URI, vfsUri.indexOf("?") == -1 ? vfsUri : vfsUri.substring(0, vfsUri.indexOf("?")));
 			}
 		}
 		throw new IllegalArgumentException("Hbase uri not supported.");

@@ -54,7 +54,7 @@
 		<module>solr-io</module>
 		<module>es-io</module>
 		<module>hbase-io</module>
-		<module>parquet-io</module>
+		<module>hive-file-io</module>
 		<module>kudu-io</module>
 		<module>kafka2-io</module>
 		<module>kafka-io</module>

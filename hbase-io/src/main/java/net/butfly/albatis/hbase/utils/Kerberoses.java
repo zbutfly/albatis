@@ -75,21 +75,21 @@ public class Kerberoses {
 				logger.info("Enable huawei kerberos!");
 				Kerberoses.setJaasFile(userPrincipal, keytabPath);
 				Kerberoses.login(userPrincipal, keytabPath, krb5ConfPath, conf);
-			} else if (null == KERBEROS_PROPS.getProperty("albatis.kafka.kerberos.jaas.enable") || !Boolean.parseBoolean(KERBEROS_PROPS.getProperty("albatis.kafka.kerberos.jaas.enable"))) {
+			} else if (null == KERBEROS_PROPS.getProperty("albatis.hbase.kerberos.jaas.enable") || !Boolean.parseBoolean(KERBEROS_PROPS.getProperty("albatis.hbase.kerberos.jaas.enable"))) {
 				logger.info("Enable normal kerberos without jaas file path!");
 				Kerberoses.setKrb5Config(krb5ConfPath);
 				conf.addResource(new Path(kerberosConfigPath + SSL_CLIENT));
 				conf.set(HADOOP_AUTH, KERBEROS_PROPS.getProperty(HADOOP_AUTH, "Kerberos"));
-				UserGroupInformation.loginUserFromKeytab(KERBEROS_PROPS.getProperty("hbase.user"), keytabPath);
 				UserGroupInformation.setConfiguration(conf);
+				UserGroupInformation.loginUserFromKeytab(KERBEROS_PROPS.getProperty("hbase.user"), keytabPath);
 			} else {
 				logger.info("Enable normal kerberos!");
 				Kerberoses.setKrb5Config(krb5ConfPath);
 				System.setProperty("java.security.auth.login.config", jaasFile);
 				conf.addResource(new Path(kerberosConfigPath + SSL_CLIENT));
 				conf.set(HADOOP_AUTH, KERBEROS_PROPS.getProperty(HADOOP_AUTH, "Kerberos"));
-				UserGroupInformation.loginUserFromKeytab(KERBEROS_PROPS.getProperty("hbase.user"), keytabPath);
 				UserGroupInformation.setConfiguration(conf);
+				UserGroupInformation.loginUserFromKeytab(KERBEROS_PROPS.getProperty("hbase.user"), keytabPath);
 			}
 		} catch (IOException e) {
 			logger.error("Loading kerberos properties is failure", e);
