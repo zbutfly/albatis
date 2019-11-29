@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
@@ -16,6 +17,7 @@ import org.apache.parquet.avro.AvroParquetWriter;
 import org.apache.parquet.hadoop.ParquetWriter;
 import org.apache.parquet.hadoop.util.HadoopOutputFile;
 
+import net.butfly.albacore.utils.Configs;
 import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albacore.utils.collection.Maps;
 import net.butfly.albacore.utils.logger.Logger;
@@ -28,6 +30,9 @@ import net.butfly.alserdes.avro.AvroSerDes.Builder;
 
 public class HiveParquetWriterHDFSWithCache extends HiveWriter {
 	protected static final Logger logger = Logger.getLogger(HiveParquetWriterHDFSWithCache.class);
+	private static final int ROLLING_CONCURRENCY = Integer.parseInt(Configs.gets("net.butfly.albatis.parquet.hdfs.upload.max.concurrency",
+			"-1"));
+	private static final AtomicInteger uploadsPending = new AtomicInteger();
 	private static Map<Qualifier, Schema> AVRO_SCHEMAS = Maps.of();
 
 	protected final Schema avroSchema;
@@ -40,8 +45,12 @@ public class HiveParquetWriterHDFSWithCache extends HiveWriter {
 
 	@Override
 	public void write(List<Rmap> l) {
-		s.statsOuts(l, pool()::addAll);
-		rolling(true); // s.statsOutN
+		try {
+			s.statsOuts(l, pool()::addAll);
+		} finally {
+			lastWriten.set(System.currentTimeMillis());
+		}
+		rolling(false);
 	}
 
 	/**
@@ -50,8 +59,8 @@ public class HiveParquetWriterHDFSWithCache extends HiveWriter {
 	 * @return
 	 */
 	@Override
-	public HiveParquetWriterHDFSWithCache rolling(boolean unforce) {
-		List<Rmap> l = drain(!unforce);
+	public HiveParquetWriterHDFSWithCache rolling(boolean forcing) {
+		List<Rmap> l = drain(forcing);
 		if (l.isEmpty()) return this;
 		Path p = new Path(partitionBase, filename());
 		logger.debug("Parquet writing and putting begin in new thread on " + p);
@@ -67,24 +76,40 @@ public class HiveParquetWriterHDFSWithCache extends HiveWriter {
 	}
 
 	private void upload(Path p, List<Rmap> l) {
-		HadoopOutputFile of = open(p);
-		long now = System.currentTimeMillis();
-		long bytes = 0;
-		try (ParquetWriter<GenericRecord> writer = AvroParquetWriter.<GenericRecord> builder(of)//
-				.withRowGroupSize(10 * 1024 * 1024)//
-				.withSchema(avroSchema).build();) {
-			for (Rmap rr : l) try {
-				writer.write(Builder.rec(rr, avroSchema));
-			} catch (IOException e) {
-				logger.error("Parquet fail on " + of.toString() + " record: \n\t" + rr.toString(), e);
+		if (ROLLING_CONCURRENCY > 0) {
+			int c;
+			while (ROLLING_CONCURRENCY < (c = uploadsPending.get())) {
+				logger.trace("Parquet uploading pending " + c + " exceeds threshold " + ROLLING_CONCURRENCY
+						+ " (configurated by net.butfly.albatis.parquet.hdfs.upload.max.concurrency).");
+				try {
+					Thread.sleep(500);
+				} catch (InterruptedException e) {
+					break;
+				}
 			}
-			bytes = writer.getDataSize();
-		} catch (IOException e) {
-			logger.error("Parquet fail on writer create: " + of.toString(), e);
+		}
+		uploadsPending.incrementAndGet();
+		try {
+			HadoopOutputFile of = open(p);
+			long now = System.currentTimeMillis();
+			long bytes = 0;
+			try (ParquetWriter<GenericRecord> writer = AvroParquetWriter.<GenericRecord> builder(of)//
+					.withRowGroupSize(10 * 1024 * 1024)//
+					.withSchema(avroSchema).build();) {
+				for (Rmap rr : l) try {
+					writer.write(Builder.rec(rr, avroSchema));
+				} catch (IOException e) {
+					logger.error("Parquet fail on " + of.toString() + " record: \n\t" + rr.toString(), e);
+				}
+				bytes = writer.getDataSize();
+			} catch (IOException e) {
+				logger.error("Parquet fail on writer create: " + of.toString(), e);
+			} finally {
+				logger.debug("Parquet " + p + " put finished in " + (System.currentTimeMillis() - now) + " ms, "//
+						+ "with " + l.size() + " records and " + bytes + " bytes.");
+			}
 		} finally {
-			lastWriten.set(System.currentTimeMillis());
-			logger.debug("Parquet " + p + " put finished in " + (System.currentTimeMillis() - now) + " ms, "//
-					+ "with " + l.size() + " records and " + bytes + " bytes.");
+			uploadsPending.decrementAndGet();
 		}
 	}
 
@@ -116,7 +141,7 @@ public class HiveParquetWriterHDFSWithCache extends HiveWriter {
 
 	@Override
 	public void close() {
-		rolling(false);
+		rolling(true);
 	}
 
 	@Override

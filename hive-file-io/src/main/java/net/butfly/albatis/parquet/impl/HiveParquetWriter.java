@@ -39,7 +39,7 @@ public abstract class HiveParquetWriter extends HiveWriter {
 		super(table, conn, base);
 		// s.detailing(() -> "current [" + current.toString() + "] writed: " + writer.getDataSize());
 		this.avroSchema = AVRO_SCHEMAS.computeIfAbsent(table.qualifier, q -> AvroFormat.Builder.schema(table));
-		rolling(true);
+		rolling(false);
 	}
 
 	protected abstract ParquetWriter<GenericRecord> createWriter() throws IOException;
@@ -76,7 +76,7 @@ public abstract class HiveParquetWriter extends HiveWriter {
 		c++;
 		if (strategy.rollingRecord <= 0 || c < strategy.rollingRecord) return c;
 		if (currentBytes() > strategy.rollingByte) return c;
-		rolling(true);
+		rolling(false);
 		return 0;
 	}
 
@@ -86,9 +86,9 @@ public abstract class HiveParquetWriter extends HiveWriter {
 	 * @return
 	 */
 	@Override
-	public HiveParquetWriter rolling(boolean writing) {
+	public HiveParquetWriter rolling(boolean forcing) {
 		boolean locked;
-		if (writing) locked = lock.tryLock();
+		if (!forcing) locked = lock.tryLock();
 		else while (!(locked = lock.tryLock())) try {
 			Thread.sleep(10);
 		} catch (InterruptedException e) {}
@@ -115,7 +115,7 @@ public abstract class HiveParquetWriter extends HiveWriter {
 					}
 				}
 			});
-			if (!writing) // from refreshing, file timeout, if empty, close self.
+			if (forcing) // from refreshing, file timeout, if empty, close self.
 				return count.get() <= 0 ? null : this;
 			try {
 				writer = createWriter();
@@ -141,7 +141,7 @@ public abstract class HiveParquetWriter extends HiveWriter {
 		} catch (IOException e) {
 			logger.error("Parquet writer close failed on: " + current);
 		} finally {
-			rolling(false);
+			rolling(true);
 		}
 	}
 

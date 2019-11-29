@@ -41,7 +41,7 @@ public class HiveCsvWrite extends HiveWriter {
 	}
 
 	@Override
-	public HiveParquetWriter rolling(boolean writing) {
+	public HiveParquetWriter rolling(boolean forcing) {
 		// TODO Auto-generated method stub
 		return null;
 	}
@@ -53,7 +53,7 @@ public class HiveCsvWrite extends HiveWriter {
 	}
 
 	@Override
-	protected long currentBytes() {
+	public long currentBytes() {
 		return 0;
 	}
 }

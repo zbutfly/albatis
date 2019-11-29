@@ -36,7 +36,7 @@ public abstract class HiveWriter implements AutoCloseable {
 	@Override
 	public abstract void close();
 
-	public abstract HiveWriter rolling(boolean writing);
+	public abstract HiveWriter rolling(boolean forcing);
 
 	public abstract long currentBytes();
 }

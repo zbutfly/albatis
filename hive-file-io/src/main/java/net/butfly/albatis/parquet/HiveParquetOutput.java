@@ -82,15 +82,24 @@ public class HiveParquetOutput extends OutputBase<Rmap> {
 		super.close();
 		Path p;
 		HiveWriter w;
-		while (true) {
-			try {
-				p = writers.keySet().iterator().next();
-			} catch (NoSuchElementException e) {
-				return;
-			} ;
-			if (null != (w = writers.remove(p))) {
-				refresh(w.table);
-				w.close();
+		Set<TableDesc> tbls = new HashSet<>();
+		try {
+			while (true) {
+				logger().info("Parquet output closing, waiting for " + writers.size() + " writers...");
+				try {
+					p = writers.keySet().iterator().next();
+				} catch (NoSuchElementException e) {
+					return;
+				} ;
+				if (null != (w = writers.remove(p))) {
+					tbls.add(w.table);
+					w.close();
+				}
+			}
+		} finally {
+			if (!tbls.isEmpty()) {
+				logger().info("Parquet output closing, refreshing " + tbls.size() + " tables...");
+				refresh(tbls.toArray(new TableDesc[0]));
 			}
 		}
 	}
@@ -101,7 +110,7 @@ public class HiveParquetOutput extends OutputBase<Rmap> {
 			long now = System.currentTimeMillis();
 			for (Path p : writers.keySet()) {
 				writers.compute(p, (pp, w) -> {
-					HiveWriter ww = w.strategy.rollingMS() < System.currentTimeMillis() - w.lastWriten.get() ? w.rolling(false) : w;
+					HiveWriter ww = w.strategy.rollingMS() < System.currentTimeMillis() - w.lastWriten.get() ? w.rolling(true) : w;
 					if (now > nextRefreshs.get(w.table)) toRefresh.add(w.table);
 					return ww;
 				});
