@@ -7,9 +7,6 @@ import java.util.List;
 import java.util.Map;
 
 import com.mongodb.*;
-import com.mongodb.client.MongoClients;
-import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.MongoIterable;
 import net.butfly.albacore.utils.Configs;
 import org.bson.BSONObject;
 
@@ -55,7 +52,7 @@ public class MongoConnection extends DataConnection<MongoClient> {
             String[] s = uri.getHost().split(":");
 			if(s.length<2)logger.info("please check url: "+uri.toString());
 			MongoCredential credential = MongoCredential.createGSSAPICredential(kerberos.getUser());
-			credential.withMechanismProperty(MongoCredential.SERVICE_NAME_KEY, "mongodb");
+			credential.withMechanismProperty("SERVICE_NAME", "mongodb");
 			credential.withMechanismProperty("authSource", "$external");
 			MongoClient mongoClient = null;
 			try {
@@ -65,10 +62,14 @@ public class MongoConnection extends DataConnection<MongoClient> {
 			}
 			return mongoClient;
 		}
-        String str = uri.getScheme() + "://" + uri.getAuthority() + "/";
-        String db = uri.getPathAt(0);
-        if (null != db) str += db;
-        return new MongoClient(new MongoClientURI(str));
+		try {
+			String str = uri.getScheme() + "://" + uri.getAuthority() + "/";
+			String db = uri.getPathAt(0);
+			if (null != db) str += db;
+			return new MongoClient(new MongoClientURI(str));
+		} catch (UnknownHostException e) {
+			throw new RuntimeException(e);
+		}
     }
 
 	@Deprecated
