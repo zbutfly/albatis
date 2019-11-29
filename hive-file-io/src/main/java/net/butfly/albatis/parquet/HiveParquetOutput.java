@@ -88,7 +88,10 @@ public class HiveParquetOutput extends OutputBase<Rmap> {
 			} catch (NoSuchElementException e) {
 				return;
 			} ;
-			if (null != (w = writers.remove(p))) w.close();
+			if (null != (w = writers.remove(p))) {
+				refresh(w.table);
+				w.close();
+			}
 		}
 	}
 
