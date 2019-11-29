@@ -24,7 +24,7 @@ import net.butfly.albatis.ddl.TableDesc;
 public class MongoConnection extends DataConnection<MongoClient> {
 	final static String schema = "mongodb";
 	private static final Logger logger = Logger.getLogger(MongoConnection.class);
-	public static final String KERBEROS_CONF_PATH = Configs.gets("albatis.mongo.kerberos.conf.path");
+	public static String KERBEROS_CONF_PATH = Configs.gets("albatis.mongo.kerberos.conf.path");
 	private final Map<String, DB> dbs;
 	private final String defaultDB;
 	private final String defaultCollection;
@@ -47,6 +47,7 @@ public class MongoConnection extends DataConnection<MongoClient> {
 
 	@Override
 	protected MongoClient initialize(URISpec uri) {
+		if(null != uri.getParameter("kerberos")){ KERBEROS_CONF_PATH = uri.getParameter("kerberos"); }
 		if(null != KERBEROS_CONF_PATH) {
 			Kerberos kerberos = new Kerberos(KERBEROS_CONF_PATH);
             String[] s = uri.getHost().split(":");
