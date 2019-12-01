@@ -1,10 +1,12 @@
 package net.butfly.albatis.parquet.impl;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.concurrent.BlockingQueue;
 
 import org.apache.hadoop.fs.Path;
 
+import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.io.Rmap;
 import net.butfly.albatis.parquet.HiveConnection;
@@ -26,6 +28,29 @@ public class HiveParquetWriterHDFSWithCacheMM extends HiveParquetWriterHDFSWithC
 	}
 
 	@Override
+	public HiveParquetWriterHDFSWithCache rolling(boolean forcing) {
+		List<Rmap> l = Colls.list();
+		long now = System.currentTimeMillis();
+		try {
+			if (forcing) pool().drainTo(l);
+			else pool.drainAtLeast(l, strategy.rollingRecord);
+		} finally {
+			if (!l.isEmpty()) {
+				now = System.currentTimeMillis() - now;
+				logger.trace("Parquet data " + l.size() + " drained and deserialized from cache " + "in " + now + " ms");
+			}
+		}
+		if (l.isEmpty()) return this;
+
+		Path p = new Path(partitionBase, filename());
+		Thread t = new Thread(() -> upload(p, l), "ParquetWriting@" + p);
+		t.setDaemon(false);
+		t.setPriority(Thread.MAX_PRIORITY);
+		t.start();
+		return this;
+	}
+
+	@Override
 	public void close() {
 		super.close();
 		try {
@@ -34,7 +59,7 @@ public class HiveParquetWriterHDFSWithCacheMM extends HiveParquetWriterHDFSWithC
 			logger.error("Disk cache clean fail: " + pool.dbfile, e);
 		}
 	}
-	
+
 	@Override
 	public long currentBytes() {
 		return pool.diskSize();

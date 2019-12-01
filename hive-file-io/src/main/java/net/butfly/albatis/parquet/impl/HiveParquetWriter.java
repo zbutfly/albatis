@@ -1,8 +1,6 @@
 package net.butfly.albatis.parquet.impl;
 
 import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
@@ -126,12 +124,6 @@ public abstract class HiveParquetWriter extends HiveWriter {
 		} finally {
 			if (locked) lock.unlock();
 		}
-	}
-
-	private static final SimpleDateFormat FILENAME_FORMAT = new SimpleDateFormat("yyyyMMddHHmmssSSS");
-
-	private synchronized String filename() {
-		return FILENAME_FORMAT.format(new Date()) + ".parquet";
 	}
 
 	@Override

@@ -1,6 +1,9 @@
 package net.butfly.albatis.parquet.impl;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.hadoop.fs.Path;
@@ -39,4 +42,12 @@ public abstract class HiveWriter implements AutoCloseable {
 	public abstract HiveWriter rolling(boolean forcing);
 
 	public abstract long currentBytes();
+
+	private static final SimpleDateFormat FILENAME_FORMAT = new SimpleDateFormat("yyyyMMddHHmmssSSS");
+
+	protected String filename() {
+		synchronized (FILENAME_FORMAT) {
+			return FILENAME_FORMAT.format(new Date()) + "-" + UUID.randomUUID() + ".parquet";
+		}
+	}
 }

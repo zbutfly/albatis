@@ -1,31 +1,50 @@
 package net.butfly.albatis.parquet.utils;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
+import static net.butfly.albatis.parquet.utils.BigQueueSer.der;
+import static net.butfly.albatis.parquet.utils.BigQueueSer.ser;
+
 import java.io.File;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Iterator;
+import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Supplier;
+
+import org.apache.log4j.Logger;
 
 import com.bluejeans.bigqueue.BigQueue;
 
+import net.butfly.albacore.paral.Exeter;
 import net.butfly.albacore.utils.Configs;
+import net.butfly.albacore.utils.collection.Colls;
 import net.butfly.albatis.io.Rmap;
 
 public class BigBlockingQueue implements BlockingQueue<Rmap>, AutoCloseable {
+	static final Logger logger = Logger.getLogger(BigBlockingQueue.class);
 	private static final String BASE = Configs.gets("net.butfly.albatis.parquet.writer.cache.base.dir", "." + File.separator + "localdata");
 	private static final boolean PURGING = Boolean.parseBoolean(Configs.gets("net.butfly.albatis.parquet.writer.cache.purge", "true"));
 	public final String dbfile;
 	private final BigQueue pool;
+	private final ReadWriteLock lock = new ReentrantReadWriteLock();
+
+	public BigBlockingQueue() {
+		super();
+		dbfile = UUID.randomUUID().toString();
+		pool = new BigQueue(BASE, dbfile);
+	}
 
 	public BigBlockingQueue(String id) {
 		super();
@@ -33,21 +52,10 @@ public class BigBlockingQueue implements BlockingQueue<Rmap>, AutoCloseable {
 		pool = new BigQueue(BASE, dbfile);
 	}
 
-	public void enqueue(Rmap r) {
-		pool.enqueue(ser(r));
-	}
-
-	public long diskSize() {
-		return folderSize(Paths.get(BASE, dbfile).toFile());
-	}
-
-	private static long folderSize(File dir) {
-		long length = 0;
-		for (File file : dir.listFiles()) {
-			if (file.isFile()) length += file.length();
-			else length += folderSize(file);
-		}
-		return length;
+	@Override
+	public Rmap poll() {
+		byte[] b = lockWrite(pool::dequeue);
+		return null == b ? null : der(b);
 	}
 
 	@Override
@@ -58,8 +66,8 @@ public class BigBlockingQueue implements BlockingQueue<Rmap>, AutoCloseable {
 	}
 
 	@Override
-	public Rmap poll() {
-		byte[] b = pool.dequeue();
+	public Rmap peek() {
+		byte[] b = lockRead(pool::peek);
 		return null == b ? null : der(b);
 	}
 
@@ -71,72 +79,51 @@ public class BigBlockingQueue implements BlockingQueue<Rmap>, AutoCloseable {
 	}
 
 	@Override
-	public Rmap peek() {
-		byte[] b = pool.peek();
-		return null == b ? null : der(b);
-	}
-
-	@Override
 	public int size() {
-		return (int) pool.size();
+		return lockRead(pool::size).intValue();
 	}
 
 	@Override
-	public boolean isEmpty() { return pool.isEmpty(); }
+	public boolean isEmpty() { return lockRead(pool::isEmpty).booleanValue(); }
 
 	@Override
 	public Iterator<Rmap> iterator() {
 		return new Iterator<Rmap>() {
-
 			@Override
 			public Rmap next() {
-				return BigBlockingQueue.this.remove();
+				return lockWrite(() -> BigBlockingQueue.this.remove());
 			}
 
 			@Override
 			public boolean hasNext() {
-				return size() > 0;
+				return lockRead(() -> size()) > 0;
 			}
 		};
 	}
 
 	@Override
 	public Object[] toArray() {
-		return pool.dequeueMulti(Integer.MAX_VALUE).toArray();
+		return lockWrite(() -> der(pool.dequeueMulti(Integer.MAX_VALUE)).toArray());
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public <T> T[] toArray(T[] a) {
-		return (T[]) pool.dequeueMulti(Integer.MAX_VALUE).toArray(new Rmap[0]);
-	}
-
-	@Override
-	public boolean containsAll(Collection<?> c) {
-		throw new UnsupportedOperationException();
+		return (T[]) lockWrite(() -> der(pool.dequeueMulti(Integer.MAX_VALUE)).toArray(a));
 	}
 
 	@Override
 	public boolean addAll(Collection<? extends Rmap> c) {
 		if (null == c || c.isEmpty()) return false;
-		for (Rmap r : c) enqueue(r);
+		List<byte[]> bb = ser(c);
+		lockWrite(() -> {
+			for (byte[] b : bb) pool.enqueue(b);
+		});
 		return true;
-	}
-
-	@Override
-	public boolean removeAll(Collection<?> c) {
-		pool.removeAll();
-		return true;
-	}
-
-	@Override
-	public boolean retainAll(Collection<?> c) {
-		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public void clear() {
-		pool.removeAll();
+		lockWrite(pool::removeAll);
 	}
 
 	@Override
@@ -146,18 +133,19 @@ public class BigBlockingQueue implements BlockingQueue<Rmap>, AutoCloseable {
 
 	@Override
 	public boolean offer(Rmap e) {
-		enqueue(e);
+		byte[] b = ser(e);
+		lockWrite(() -> pool.enqueue(b));
 		return true;
-	}
-
-	@Override
-	public void put(Rmap e) throws InterruptedException {
-		offer(e);
 	}
 
 	@Override
 	public boolean offer(Rmap e, long timeout, TimeUnit unit) throws InterruptedException {
 		return offer(e);
+	}
+
+	@Override
+	public void put(Rmap e) throws InterruptedException {
+		offer(e);
 	}
 
 	@Override
@@ -182,27 +170,65 @@ public class BigBlockingQueue implements BlockingQueue<Rmap>, AutoCloseable {
 	}
 
 	@Override
-	public boolean remove(Object o) {
-		pool.dequeue();
-		return true;
-	}
-
-	@Override
 	public boolean contains(Object o) {
 		throw new UnsupportedOperationException();
 	}
 
+	private static final int DRAIN_BATCH_SIZE = 4096;
+
 	@Override
 	public int drainTo(Collection<? super Rmap> c) {
-		byte[] b;
-		while (null != (b = pool.dequeue())) c.add(der(b));
-		return c.size();
+		List<Future<Rmap>> cc = Colls.list();
+		lockWrite(() -> {
+			List<byte[]> bb;
+			while (!pool.isEmpty()) {
+				bb = pool.dequeueMulti(DRAIN_BATCH_SIZE);
+				if (bb.isEmpty()) break;
+				bb.forEach(b -> cc.add(Exeter.of().submit(() -> der(b))));
+			}
+		});
+		cc.forEach(f -> {
+			try {
+				c.add(f.get());
+			} catch (InterruptedException e) {} catch (ExecutionException e) {
+				logger.error("Big queue deserialization fail.", e);
+			}
+		});
+		return cc.size();
 	}
 
 	@Override
 	public int drainTo(Collection<? super Rmap> c, int maxElements) {
-		for (byte[] b : pool.dequeueMulti(maxElements)) c.add(der(b));
-		return c.size();
+		List<byte[]> bb = lockWrite(() -> pool.dequeueMulti(maxElements));
+		if (bb.isEmpty()) return 0;
+		List<Rmap> cc = der(bb);
+		c.addAll(cc);
+		return cc.size();
+	}
+
+	public int drainAtLeast(Collection<? super Rmap> c, int minElements) {
+		List<byte[]> bb = lockWrite(() -> {
+			if (pool.size() < minElements) return null;
+			else {
+				long now = System.currentTimeMillis();
+				try {
+					return pool.dequeueMulti(minElements);
+				} finally {
+					logger.trace("Big queue [" + dbfile + "] dequeue " + minElements + " recs in " + (System.currentTimeMillis() - now)
+							+ " ms.");
+				}
+			}
+		});
+		if (null == bb || bb.isEmpty()) return 0;
+		List<Rmap> cc;
+		long now = System.currentTimeMillis();
+		try {
+			cc = der(bb);
+		} finally {
+			logger.trace("Big queue [" + dbfile + "] deserialized " + bb.size() + " recs in " + (System.currentTimeMillis() - now) + " ms.");
+		}
+		c.addAll(cc);
+		return cc.size();
 	}
 
 	@Override
@@ -222,22 +248,66 @@ public class BigBlockingQueue implements BlockingQueue<Rmap>, AutoCloseable {
 		Files.walk(Paths.get(BASE, dbfile)).sorted(Comparator.reverseOrder()).map(Path::toFile).forEach(File::delete);
 	}
 
-	private byte[] ser(Rmap r) {
-		try (ByteArrayOutputStream out = new ByteArrayOutputStream(); ObjectOutputStream oos = new ObjectOutputStream(out);) {
-			oos.writeObject(r);
-			return out.toByteArray();
-		} catch (IOException e) {
-			throw new RuntimeException(e);
+	public long diskSize() {
+		return lockRead(() -> folderSize(Paths.get(BASE, dbfile).toFile()));
+	}
+
+	private static long folderSize(File dir) {
+		long length = 0;
+		for (File file : dir.listFiles()) {
+			if (file.isFile()) length += file.length();
+			else length += folderSize(file);
+		}
+		return length;
+	}
+
+	private <T> T lockWrite(Supplier<T> doing) {
+		Lock l = lock.writeLock();
+		l.lock();
+		try {
+			return doing.get();
+		} finally {
+			l.unlock();
 		}
 	}
 
-	private Rmap der(byte[] b) {
-		try (ByteArrayInputStream in = new ByteArrayInputStream(b); ObjectInputStream ois = new ObjectInputStream(in);) {
-			return (Rmap) ois.readObject();
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		} catch (ClassNotFoundException e) {
-			throw new RuntimeException(e);
+	private void lockWrite(Runnable doing) {
+		Lock l = lock.writeLock();
+		l.lock();
+		try {
+			doing.run();
+		} finally {
+			l.unlock();
 		}
+	}
+
+	private <T> T lockRead(Supplier<T> getting) {
+		Lock l = lock.readLock();
+		l.lock();
+		try {
+			return getting.get();
+		} finally {
+			l.unlock();
+		}
+	}
+
+	@Override
+	public boolean containsAll(Collection<?> c) {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public boolean retainAll(Collection<?> c) {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public boolean removeAll(Collection<?> c) {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public boolean remove(Object o) {
+		throw new UnsupportedOperationException();
 	}
 }
