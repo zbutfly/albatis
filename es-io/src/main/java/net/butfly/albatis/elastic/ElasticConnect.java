@@ -84,7 +84,7 @@ public interface ElasticConnect extends Connection {
 			if (_logger.isDebugEnabled()) _logger.debug("Fetch transport nodes meta from: " + of(rest).joinAsString(InetSocketAddress::toString,
 					","));
 			HttpHost[] v = Arrays.stream(rest).map(a -> new HttpHost(a.getHostName(), a.getPort())).toArray(i -> new HttpHost[i]);
-			try (RestClient client = RestClient.builder(v).build();) {
+			try (RestClient client = RestClient.builder(v).setHttpClientConfigCallback(callback).build();) {
 				Response rep;
 				rep = client.performRequest("GET", "_nodes");
 				if (rep.getStatusLine().getStatusCode() != 200) //
