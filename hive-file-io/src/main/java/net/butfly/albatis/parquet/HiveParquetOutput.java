@@ -22,10 +22,12 @@ import net.butfly.albatis.ddl.Qualifier;
 import net.butfly.albatis.ddl.TableDesc;
 import net.butfly.albatis.io.OutputBase;
 import net.butfly.albatis.io.Rmap;
+import net.butfly.albatis.parquet.impl.HiveParquetWriterHDFS;
 import net.butfly.albatis.parquet.impl.HiveParquetWriterHDFSWithCacheMM;
 import net.butfly.albatis.parquet.impl.HiveParquetWriterLocal;
 import net.butfly.albatis.parquet.impl.HiveWriter;
 import net.butfly.albatis.parquet.impl.PartitionStrategy;
+import net.butfly.albatis.parquet.utils.BigBlockingQueue;
 
 public class HiveParquetOutput extends OutputBase<Rmap> {
 	private static final long serialVersionUID = 4543231903669455241L;
@@ -51,8 +53,19 @@ public class HiveParquetOutput extends OutputBase<Rmap> {
 		Path path = new Path(conn.base, table.name);
 		if (null != subdir && !subdir.isEmpty()) path = new Path(path, subdir);
 		TableDesc td = schema(table);
-		return writers.computeIfAbsent(path, p -> null == conn.conf ? new HiveParquetWriterLocal(td, conn, p)
-				: new HiveParquetWriterHDFSWithCacheMM(td, conn, p));
+		return writers.computeIfAbsent(path, p -> {
+			if (null == conn.conf) {
+				logger().trace("Parquet local writer created for " + td.qualifier + " on " + p);
+				return new HiveParquetWriterLocal(td, conn, p);
+			} else if (null == BigBlockingQueue.BASE) {
+				logger().trace("Parquet hdfs writer created for " + td.qualifier + " on " + p + //
+				", with hdfs " + conn.conf.get("fs.default.name") + " [" + conn.conf.toString() + "]");
+				return new HiveParquetWriterHDFS(td, conn, p);
+			} else {
+				logger().trace("Parquet hdfs writer created for " + td.qualifier + " on " + p + ", with cache: " + BigBlockingQueue.BASE);
+				return new HiveParquetWriterHDFSWithCacheMM(td, conn, p);
+			}
+		});
 	}
 
 	@Override

@@ -34,22 +34,22 @@ import net.butfly.albatis.io.Rmap;
 
 public class BigBlockingQueue implements BlockingQueue<Rmap>, AutoCloseable {
 	static final Logger logger = Logger.getLogger(BigBlockingQueue.class);
-	private static final String BASE = Configs.gets("net.butfly.albatis.parquet.writer.cache.base.dir", "." + File.separator + "localdata");
+	public static final String BASE = Configs.gets("net.butfly.albatis.parquet.writer.cache.base.dir"); // "." + File.separator + "localdata"
 	private static final boolean PURGING = Boolean.parseBoolean(Configs.gets("net.butfly.albatis.parquet.writer.cache.purge", "true"));
+	private final String base;
 	public final String dbfile;
 	private final BigQueue pool;
 	private final ReadWriteLock lock = new ReentrantReadWriteLock();
 
 	public BigBlockingQueue() {
-		super();
-		dbfile = UUID.randomUUID().toString();
-		pool = new BigQueue(BASE, dbfile);
+		this(UUID.randomUUID().toString());
 	}
 
 	public BigBlockingQueue(String id) {
 		super();
+		this.base = null == BASE ? ("." + File.separator + "localdata") : BASE;
 		dbfile = id;
-		pool = new BigQueue(BASE, dbfile);
+		pool = new BigQueue(base, dbfile);
 	}
 
 	@Override
@@ -245,11 +245,11 @@ public class BigBlockingQueue implements BlockingQueue<Rmap>, AutoCloseable {
 	}
 
 	public void purge() throws IOException {
-		Files.walk(Paths.get(BASE, dbfile)).sorted(Comparator.reverseOrder()).map(Path::toFile).forEach(File::delete);
+		Files.walk(Paths.get(base, dbfile)).sorted(Comparator.reverseOrder()).map(Path::toFile).forEach(File::delete);
 	}
 
 	public long diskSize() {
-		return lockRead(() -> folderSize(Paths.get(BASE, dbfile).toFile()));
+		return lockRead(() -> folderSize(Paths.get(base, dbfile).toFile()));
 	}
 
 	private static long folderSize(File dir) {

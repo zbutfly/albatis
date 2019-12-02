@@ -98,7 +98,7 @@ public abstract class HiveParquetWriter extends HiveWriter {
 				if (null != writer) try {
 					String bytes = StatsUtils.formatKilo(writer.getDataSize(), "bytes");
 					long c = count.get();
-					logger.debug("Parquet file rolling with " + bytes + "/" + c + " records: " + old.toString());
+					logger.trace("Parquet file rolling with " + bytes + "/" + c + " records: " + old.toString());
 					writer.close();
 				} catch (IOException e) {
 					logger.error("Parquet file close failed.", e);
@@ -109,7 +109,7 @@ public abstract class HiveParquetWriter extends HiveWriter {
 					} catch (IOException e) {
 						logger.error("Parquet file closed but move failed: " + old.toString(), e);
 					} finally {
-						logger.debug("Parquet file rolling finished, spent " + (System.currentTimeMillis() - now) + " ms: " + old.toString());
+						logger.trace("Parquet file rolling finished, spent " + (System.currentTimeMillis() - now) + " ms: " + old.toString());
 					}
 				}
 			});
