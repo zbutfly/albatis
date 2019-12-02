@@ -95,21 +95,23 @@ public abstract class HiveParquetWriter extends HiveWriter {
 			current = new Path(new Path(partitionBase, ".current"), filename());
 			Exeter.of().submit(() -> {
 				long now = System.currentTimeMillis();
-				if (null != writer) try {
+				if (null != writer) {
 					String bytes = StatsUtils.formatKilo(writer.getDataSize(), "bytes");
 					long c = count.get();
-					logger.trace("Parquet file rolling with " + bytes + "/" + c + " records: " + old.toString());
-					writer.close();
-				} catch (IOException e) {
-					logger.error("Parquet file close failed.", e);
-				} finally {
 					try {
-						if (!conn.client.rename(old, new Path(old.getParent().getParent(), old.getName()))) //
-							logger.error("Parquet file closed but move failed: " + old.toString());
+						writer.close();
 					} catch (IOException e) {
-						logger.error("Parquet file closed but move failed: " + old.toString(), e);
+						logger.error("Parquet file close failed.", e);
 					} finally {
-						logger.trace("Parquet file rolling finished, spent " + (System.currentTimeMillis() - now) + " ms: " + old.toString());
+						try {
+							if (!conn.client.rename(old, new Path(old.getParent().getParent(), old.getName()))) //
+								logger.error("Parquet file closed but move failed: " + old.toString());
+						} catch (IOException e) {
+							logger.error("Parquet file closed but move failed: " + old.toString(), e);
+						} finally {
+							logger.trace("Parquet file rolling with " + bytes + "/" + c + " records finished, spent " //
+									+ (System.currentTimeMillis() - now) + " ms: " + old.toString());
+						}
 					}
 				}
 			});
