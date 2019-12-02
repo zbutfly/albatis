@@ -42,7 +42,7 @@ import net.butfly.albatis.ddl.TableDesc;
 
 @SuppressWarnings("unchecked")
 public class KuduConnection extends KuduConnectionBase<KuduConnection, KuduClient, KuduSession> {
-	public static String KERBEROS_CONF_PATH = Configs.gets("albatis.kudu.kerberos.conf.path");
+	public static String KERBEROS_CONF_PATH = null;
 	public KuduConnection(URISpec kuduUri) throws IOException {
 		super(kuduUri);
 		session = client.newSession();
@@ -52,7 +52,11 @@ public class KuduConnection extends KuduConnectionBase<KuduConnection, KuduClien
 
 	@Override
 	protected KuduClient initialize(URISpec uri) {
-		if(null != uri.getParameter("kerberos")){ KERBEROS_CONF_PATH = uri.getParameter("kerberos"); }
+		if(null != uri.getParameter("kerberos")){
+			KERBEROS_CONF_PATH = uri.getParameter("kerberos");
+		}else {
+			KERBEROS_CONF_PATH = null;
+		}
 		if(null!=KERBEROS_CONF_PATH){
 			new Kerberos(KERBEROS_CONF_PATH);
 			try {

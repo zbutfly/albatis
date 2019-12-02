@@ -25,8 +25,8 @@ public class Kerberos extends KerberosLoader {
             Configuration configuration=new Configuration();
             configuration.set("hadoop.security.authentication", "Kerberos");
             System.setProperty("java.security.krb5.conf", new File(kerberosConfPath,KRB5_CONF).getPath());
-            System.setProperty("javax.security.auth.useSubjectCredsOnly", "false");
-            System.setProperty("java.security.auth.login.config",new File(kerberosConfPath,JAAS_CONF).getPath());
+//            System.setProperty("javax.security.auth.useSubjectCredsOnly", "false");
+//            System.setProperty("java.security.auth.login.config",new File(kerberosConfPath,JAAS_CONF).getPath());
             UserGroupInformation.setConfiguration(configuration);
             UserGroupInformation.loginUserFromKeytab(user, new File(kerberosConfPath,KERBEROS_PROPS.getProperty(USER_TAB)).getPath());
 

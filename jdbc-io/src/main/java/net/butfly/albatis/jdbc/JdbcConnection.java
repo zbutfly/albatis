@@ -31,7 +31,7 @@ import org.apache.hadoop.security.UserGroupInformation;
 
 public class JdbcConnection extends DataConnection<DataSource> {
 	private static final Logger logger = Logger.getLogger(JdbcConnection.class);
-	public static final String KERBEROS_CONF_PATH = Configs.gets("albatis.jdbc.kerberos.conf.path");
+	public static String KERBEROS_CONF_PATH = null;
 	final Dialect dialect;
 
 	public JdbcConnection(URISpec uri) throws IOException {
@@ -42,6 +42,11 @@ public class JdbcConnection extends DataConnection<DataSource> {
 	@Override
 	protected DataSource initialize(URISpec uri) {
 		Dialect dialect = Dialect.of(uri.getSchema());
+		if(null != uri.getParameter("kerberos")){
+			KERBEROS_CONF_PATH = uri.getParameter("kerberos");
+		}else {
+			KERBEROS_CONF_PATH = null;
+		}
 		if(null!=KERBEROS_CONF_PATH){
 			new Kerberos(KERBEROS_CONF_PATH);
 			UserGroupInformation loginUser = null;
