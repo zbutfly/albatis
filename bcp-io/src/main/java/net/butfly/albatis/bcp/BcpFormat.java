@@ -63,7 +63,7 @@ public class BcpFormat {
         if (pathTable.contains("/")) {
             tableName = pathTable.substring(pathTable.lastIndexOf("/") + 1);
             varPath = pathTable.substring(0, pathTable.lastIndexOf("/") + 1);
-        }
+        }else tableName = pathTable;
         String finalTable = tableName;
         List<TaskDesc> taskDescs = tasks.stream().filter(task -> finalTable.equals(task.dstTableName)).collect(Collectors.toList());
         if(0 == taskDescs.size()) throw new RuntimeException("BcpOutput have no obtain task describe information");
