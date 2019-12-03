@@ -76,8 +76,7 @@ public class BcpOutput extends OutputBase<Rmap> {
             try {
             	poolMap.putIfAbsent(m.table().qualifier, new LinkedBlockingQueue<>(50000));
                 LinkedBlockingQueue<Rmap> pool = poolMap.get(m.table().qualifier);
-                Map<String, Object> map = m.containsKey("value") ? (Map<String, Object>) m.get("value") : m.map();
-                Rmap rmap = new Rmap(new Qualifier(m.table().qualifier), map);
+                Rmap rmap = new Rmap(new Qualifier(m.table().qualifier), m.map());
                 if(null == m.keyField()) return;
                 if (rmap.containsKey(m.keyField()))
                     if (null != rmap.get(m.keyField()) && Props.BCP_KEY_FIELD_EXCLUDE) {
