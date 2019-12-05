@@ -101,18 +101,6 @@ public class Dialect implements Loggable {
 
 	public HikariConfig toConfig(Dialect dialect, URISpec uriSpec) {
 		HikariConfig config = new HikariConfig();
-		String maximumPoolSize = Configs.gets("albatis.jdbc.maximumpoolsize");
-		String minimumIdle = Configs.gets("albatis.jdbc.minimumIdle");
-		String maxLifetime = Configs.gets("albatis.jdbc.maxLifetime");
-		String idleTimeOut = Configs.gets("albatis.jdbc.idleTimeout");
-		if (null != maximumPoolSize && !"".equals(maximumPoolSize))
-			config.setMaximumPoolSize(Integer.parseInt(maximumPoolSize));
-		if (null != minimumIdle && !"".equals(minimumIdle))
-			config.setMinimumIdle(Integer.parseInt(minimumIdle));
-		if (null != maxLifetime && "".equals(maxLifetime))
-			config.setMaxLifetime(Long.valueOf(maxLifetime));
-		if (null != idleTimeOut && "".equals(idleTimeOut))
-			config.setIdleTimeout(Long.parseLong(idleTimeOut));
 		DialectFor d = dialect.getClass().getAnnotation(DialectFor.class);
 		config.setPoolName(d.subSchema() + "-Hikari-Pool");
 		if (!"".equals(d.jdbcClassname())) {
