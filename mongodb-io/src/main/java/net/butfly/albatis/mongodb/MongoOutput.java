@@ -69,6 +69,7 @@ public class MongoOutput extends OutputBase<Rmap> {
 	private boolean upsert(Rmap m, String keyField, Object keyValue, List<Rmap> retries) {
 		boolean retry;
 		if (null == keyField && null != keyValue) conn.collection(m.table().name).save(MongoConnection.dbobj(m)).getN();
+		else if (null == keyField && null == keyValue) throw new IllegalArgumentException("Please check your configuration that insured that the key field is configured!");
 		else do {
 			retry = false;
 			try {
